@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MILTAPE</title>
-    <!-- Chargement auto de socket.io -->
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -12,23 +12,22 @@
     <button id="btn">VALIDER</button>
 
     <script>
-        console.log("Script chargé avec succès");
-        
-        // Connexion sans spécifier d'URL (utilise l'URL actuelle du site)
-        const socket = io();
+        // Mets ici ton lien exact Railway entre les guillemets
+        const socket = io("https://ton-projet.up.railway.app");
 
         socket.on('connect', () => {
-            console.log("Connecté au serveur avec ID :", socket.id);
+            console.log("Connecté au serveur ! ID :", socket.id);
         });
 
         document.getElementById('btn').onclick = () => {
             const p = document.getElementById('pseudo').value;
-            console.log("Envoi du pseudo :", p);
-            socket.emit('setPseudo', p);
+            if(p.trim() !== "") {
+                socket.emit('setPseudo', p);
+            }
         };
 
         socket.on('pseudoAccepted', () => {
-            alert("Pseudo validé !");
+            alert("Pseudo validé avec succès par le serveur !");
         });
     </script>
 </body>
