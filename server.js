@@ -15,6 +15,7 @@ const io = new Server(server, {
 
 let waitingPlayers = []; 
 let activeTournaments = {};
+const GAME_DURATION = 10 * 60 * 1000; // 10 minutes
 
 io.on('connection', (socket) => {
     console.log(`⚡ Nouveau joueur connecté : ${socket.id}`);
@@ -33,29 +34,29 @@ io.on('connection', (socket) => {
 
         socket.emit('inQueue', { position: waitingPlayers.length });
 
-        if(waitingPlayers.length >= 1) {
-            let roomPlayers = waitingPlayers.splice(0, 1);
+        // DÈS QU'IL Y A 5 JOUEURS DANS LA FILE, ON LANCE LE TOURNOI
+        if(waitingPlayers.length >= 5) {
+            let roomPlayers = waitingPlayers.splice(0, 5);
             let roomId = 'room_' + Date.now();
 
             activeTournaments[roomId] = {
                 players: roomPlayers,
                 status: 'playing',
-                endTime: Date.now() + 600000
+                endTime: Date.now() + GAME_DURATION
             };
 
-            // Stocker le roomId directement dans l'objet socket pour le retrouver facilement au clic
             roomPlayers.forEach(p => {
                 const s = io.sockets.sockets.get(p.socketId);
                 if(s) {
                     s.join(roomId);
                     s.currentRoom = roomId;
-                    s.emit('startTournament', { duration: 600000 });
+                    s.emit('startTournament', { duration: GAME_DURATION });
                 }
             });
 
             setTimeout(() => {
                 endTournament(roomId);
-            }, 600000);
+            }, GAME_DURATION);
         }
     });
 
