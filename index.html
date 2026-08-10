@@ -25,7 +25,7 @@
             justify-content: center; 
             min-height: 100vh; 
             overflow: hidden;
-            /* Utilisation directe de ton image tap-art.jpg avec un voile sombre par-dessus pour la lisibilité */
+            /* Utilisation de ton image tap-art.jpg avec un voile sombre par-dessus */
             background: linear-gradient(rgba(11, 2, 19, 0.65), rgba(11, 2, 19, 0.85)), url('tap-art.jpg') no-repeat center center / cover;
         }
 
@@ -156,7 +156,8 @@
     </div>
 
     <script>
-        const socket = io();
+        // Connexion au serveur Railway configurée
+        const socket = io("https://miltape-backend-production.up.railway.app");
 
         let currentBet = 5; let score = 0; let gameInterval;
 
