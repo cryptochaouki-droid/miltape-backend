@@ -9,25 +9,19 @@
 <body>
     <h1>Test Connexion</h1>
     <input type="text" id="pseudo" placeholder="Pseudo">
-    <button id="btn">VALIDER</button>
+    <button onclick="testerClic()">VALIDER</button>
 
     <script>
-        // Mets ici ton lien exact Railway entre les guillemets
-        const socket = io("https://ton-projet.up.railway.app");
+        const socket = io();
 
-        socket.on('connect', () => {
-            console.log("Connecté au serveur ! ID :", socket.id);
-        });
-
-        document.getElementById('btn').onclick = () => {
+        function testerClic() {
             const p = document.getElementById('pseudo').value;
-            if(p.trim() !== "") {
-                socket.emit('setPseudo', p);
-            }
-        };
+            alert("Bouton cliqué avec le pseudo : " + p);
+            socket.emit('setPseudo', p);
+        }
 
         socket.on('pseudoAccepted', () => {
-            alert("Pseudo validé avec succès par le serveur !");
+            alert("Le serveur a répondu : OK !");
         });
     </script>
 </body>
