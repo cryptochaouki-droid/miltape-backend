@@ -2,9 +2,13 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
+
+// Permet de servir les fichiers statiques (comme index.html et tap-art.jpg)
+app.use(express.static(path.join(__dirname)));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -24,7 +28,6 @@ io.on('connection', (socket) => {
 
     updateGlobalStats();
 
-    // CORRECTION : Le serveur valide et renvoie l'événement au client
     socket.on('setPseudo', (pseudo) => {
         if(pseudo && pseudo.trim() !== "") {
             players[socket.id].username = pseudo.trim();
