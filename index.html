@@ -75,8 +75,8 @@
     </div>
 
     <div class="card" id="queue-area" style="display:none;">
-        <h2>Recherche de joueurs...</h2>
-        <p>Lancement imminent...</p>
+        <h2>Connexion en cours...</h2>
+        <p>Entrée dans l'arène...</p>
     </div>
 
     <div class="card" id="game-area" style="display:none;">
@@ -100,14 +100,26 @@
             document.getElementById('login-area').style.display = 'none';
             document.getElementById('queue-area').style.display = 'block';
             socket.emit('joinQueue');
+
+            // SÉCURITÉ : Si le serveur tarde à répondre, on force l'accès au jeu après 1 seconde
+            setTimeout(() => {
+                lancerJeuDirect();
+            }, 1000);
         });
 
         socket.on('startTournament', (data) => {
+            lancerJeuDirect(data ? data.duration : 600000);
+        });
+
+        function lancerJeuDirect(duration = 600000) {
+            document.getElementById('login-area').style.display = 'none';
             document.getElementById('queue-area').style.display = 'none';
             document.getElementById('game-area').style.display = 'block';
-            gameActive = true;
-            startTimer(data.duration);
-        });
+            if (!gameActive) {
+                gameActive = true;
+                startTimer(duration);
+            }
+        }
 
         function tap() {
             if(gameActive) socket.emit('playerTap');
