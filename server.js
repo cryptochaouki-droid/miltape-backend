@@ -1,73 +1,31 @@
+// server.js (Structure sécurisée)
 const express = require('express');
-const http = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
-const path = require('path');
+const mongoose = require('mongoose');
 
-const app = express();
-app.use(cors());
+// Connexion à la base de données
+mongoose.connect(process.env.MONGO_URI);
 
-// Permet de servir les fichiers statiques (comme index.html et tap-art.jpg)
-app.use(express.static(path.join(__dirname)));
-
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+// Modèle de Joueur
+const PlayerSchema = new mongoose.Schema({
+    username: String,
+    walletAddress: String,
+    balance: { type: Number, default: 0 }, // Solde en USDT
+    totalScore: { type: Number, default: 0 }
 });
+const Player = mongoose.model('Player', PlayerSchema);
 
-let players = {};
+// ... (config socket.io ici)
 
-io.on('connection', (socket) => {
-    console.log(`⚡ Nouveau joueur : ${socket.id}`);
+// ANTI-TRICHE : Le client ne dit pas "j'ai 100 points", il dit "j'ai fait un clic"
+socket.on('playerTap', async (playerId) => {
+    // Vérification : Le serveur vérifie le temps entre 2 clics pour bloquer les bots/auto-clickers
+    const now = Date.now();
+    if (userLastTapTime[playerId] && (now - userLastTapTime[playerId] < 50)) {
+        return; // Clic trop rapide, probablement un tricheur
+    }
+    userLastTapTime[playerId] = now;
 
-    players[socket.id] = {
-        id: socket.id,
-        username: "Anonyme",
-        score: 0
-    };
-
-    updateGlobalStats();
-
-    socket.on('setPseudo', (pseudo) => {
-        if(pseudo && pseudo.trim() !== "") {
-            players[socket.id].username = pseudo.trim();
-            socket.emit('pseudoAccepted', players[socket.id].username);
-            updateGlobalStats();
-        }
-    });
-
-    socket.on('playerTap', (data) => {
-        if (players[socket.id]) {
-            players[socket.id].score += data.points;
-            updateGlobalStats();
-        }
-    });
-
-    socket.on('sendMessage', (msg) => {
-        const playerName = players[socket.id] ? players[socket.id].username : "Anonyme";
-        io.emit('chatMessage', { sender: playerName, text: msg });
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`❌ Joueur déconnecté : ${socket.id}`);
-        delete players[socket.id];
-        updateGlobalStats();
-    });
-});
-
-function updateGlobalStats() {
-    let playerList = Object.values(players).map(p => ({
-        username: p.username,
-        score: p.score
-    }));
-
-    playerList.sort((a, b) => b.score - a.score);
-
-    io.emit('updateLeaderboard', playerList);
-    io.emit('updatePlayerCount', Object.keys(players).length);
-}
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`🚀 Serveur MILTAPE en ligne sur le port ${PORT}`);
+    // Mise à jour sécurisée du score en base de données
+    await Player.updateOne({ _id: playerId }, { $inc: { totalScore: 1 } });
 });
