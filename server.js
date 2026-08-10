@@ -24,7 +24,6 @@ io.on('connection', (socket) => {
             const cleanPseudo = pseudo.trim();
             socket.data.username = cleanPseudo;
             socket.emit('pseudoAccepted', cleanPseudo);
-            console.log(`Pseudo validé pour ${socket.id} : ${cleanPseudo}`);
         }
     });
 
@@ -44,10 +43,12 @@ io.on('connection', (socket) => {
                 endTime: Date.now() + 600000
             };
 
+            // Stocker le roomId directement dans l'objet socket pour le retrouver facilement au clic
             roomPlayers.forEach(p => {
                 const s = io.sockets.sockets.get(p.socketId);
                 if(s) {
                     s.join(roomId);
+                    s.currentRoom = roomId;
                     s.emit('startTournament', { duration: 600000 });
                 }
             });
@@ -66,7 +67,7 @@ io.on('connection', (socket) => {
         }
         lastTapTimes[socket.id] = now;
 
-        let room = Object.keys(socket.rooms).find(r => r.startsWith('room_'));
+        let room = socket.currentRoom;
         if(room && activeTournaments[room]) {
             let p = activeTournaments[room].players.find(x => x.socketId === socket.id);
             if(p) {
