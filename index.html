@@ -2,29 +2,86 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MILTAPE - Tournoi</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #121212; color: white; }
-        #game-area { display: none; }
-        #btn-tap { width: 200px; height: 200px; border-radius: 50%; font-size: 24px; cursor: pointer; }
-        #timer { font-size: 30px; color: #ffeb3b; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background: #0f172a; 
+            color: white; 
+            margin: 0; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .card {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            background: #22c55e;
+            color: white;
+            cursor: pointer;
+        }
+        button:active { background: #16a34a; }
+        #btn-tap { 
+            width: 220px; 
+            height: 220px; 
+            border-radius: 50%; 
+            font-size: 32px; 
+            background: #ef4444; 
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+            margin: 20px auto;
+        }
+        #btn-tap:active { background: #dc2626; transform: scale(0.95); }
+        #timer { font-size: 36px; color: #facc15; font-weight: bold; margin-bottom: 10px; }
+        .score-box { font-size: 24px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="login-area">
+    <div class="card" id="login-area">
+        <h2>MILTAPE</h2>
+        <p>Entre ton pseudo pour jouer :</p>
         <input type="text" id="pseudo" placeholder="Ton pseudo...">
-        <button onclick="setPseudo()">Valider</button>
+        <button onclick="setPseudo()">VALIDER</button>
     </div>
 
-    <div id="queue-area" style="display:none;">
-        <p>En attente de joueurs... (<span id="queue-count">0</span>/5)</p>
+    <div class="card" id="queue-area" style="display:none;">
+        <h2>Recherche de joueurs...</h2>
+        <p>En attente des autres participants (<span id="queue-count">0</span>/5)</p>
     </div>
 
-    <div id="game-area">
+    <div class="card" id="game-area" style="display:none;">
         <div id="timer">10:00</div>
-        <h1>Score : <span id="score">0</span></h1>
+        <div class="score-box">Score : <span id="score">0</span></div>
         <button id="btn-tap" onclick="tap()">TAP !</button>
     </div>
 
@@ -34,13 +91,19 @@
 
         function setPseudo() {
             const p = document.getElementById('pseudo').value;
-            socket.emit('setPseudo', p);
+            if(p.trim() !== "") {
+                socket.emit('setPseudo', p);
+            }
         }
 
         socket.on('pseudoAccepted', () => {
             document.getElementById('login-area').style.display = 'none';
             document.getElementById('queue-area').style.display = 'block';
             socket.emit('joinQueue');
+        });
+
+        socket.on('inQueue', (data) => {
+            document.getElementById('queue-count').innerText = data.position;
         });
 
         socket.on('startTournament', (data) => {
@@ -63,12 +126,13 @@
             const display = document.getElementById('timer');
             let interval = setInterval(() => {
                 let m = Math.floor(timer / 60);
-                let s = timer % 60;
+                let s = Math.floor(timer % 60);
                 display.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
                 if (--timer < 0) {
                     clearInterval(interval);
                     gameActive = false;
                     alert("Tournoi terminé !");
+                    location.reload();
                 }
             }, 1000);
         }
