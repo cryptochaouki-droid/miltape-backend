@@ -12,16 +12,27 @@
     <button onclick="testerClic()">VALIDER</button>
 
     <script>
-        const socket = io();
+        // On force l'utilisation des WebSockets purs pour éviter les blocages de Railway
+        const socket = io({
+            transports: ['websocket']
+        });
+
+        socket.on('connect', () => {
+            console.log("Connecté ! ID:", socket.id);
+        });
+
+        socket.on('connect_error', (err) => {
+            alert("Erreur de connexion serveur : " + err.message);
+        });
 
         function testerClic() {
             const p = document.getElementById('pseudo').value;
-            alert("Bouton cliqué avec le pseudo : " + p);
+            alert("Envoi au serveur du pseudo : " + p);
             socket.emit('setPseudo', p);
         }
 
         socket.on('pseudoAccepted', () => {
-            alert("Le serveur a répondu : OK !");
+            alert("Succès ! Le serveur a validé.");
         });
     </script>
 </body>
