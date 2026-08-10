@@ -4,25 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MILTAPE - Édition Royale</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
             --bg-color: #0b0213;
-            --panel-bg: rgba(36, 9, 64, 0.85);
+            --panel-bg: rgba(20, 5, 35, 0.85);
             --royal-pink: #ff007f;
-            --neon-purple: #8a2be2;
-            --gold-base: #ffb703;
             --neon-blue: #00e5ff;
-            --neon-green: #00ff88;
+            --gold-base: #ffb703;
             --text-main: #ffffff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Poppins', sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; overflow: hidden; background: radial-gradient(circle at 50% 30%, rgba(138, 43, 226, 0.25) 0%, #0b0213 75%); }
+        
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            display: flex; justify-content: center; min-height: 100vh; overflow: hidden;
+            /* Arrière-plan inspiré de ton image : vortex cosmique orange/violet/bleu */
+            background: radial-gradient(circle at 50% 40%, rgba(255, 115, 0, 0.2) 0%, rgba(138, 43, 226, 0.25) 40%, #0b0213 80%);
+        }
+
         .app-container { width: 100%; max-width: 420px; position: relative; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; display: flex; flex-direction: column; transition: transform 0.4s ease, opacity 0.4s ease; opacity: 0; pointer-events: none; transform: translateX(100%); }
+        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; display: flex; flex-direction: column; transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; pointer-events: none; transform: translateX(100%); }
         .view.active { opacity: 1; pointer-events: all; transform: translateX(0); }
         .view.prev { transform: translateX(-100%); }
 
@@ -32,7 +37,7 @@
         .main-input { width: 100%; background: rgba(255,255,255,0.05); border: 2px solid rgba(138,43,226,0.6); padding: 15px; border-radius: 15px; color: #fff; font-size: 1.1rem; text-align: center; margin-bottom: 20px; outline: none; }
         .main-input:focus { border-color: var(--royal-pink); box-shadow: 0 0 15px rgba(255,0,127,0.4); }
 
-        .play-btn { width: 100%; background: linear-gradient(135deg, var(--royal-pink), var(--neon-purple)); padding: 16px; border-radius: 30px; border: none; font-family: 'Montserrat'; font-weight: 900; font-size: 1.1rem; color: #fff; cursor: pointer; box-shadow: 0 8px 25px rgba(255, 0, 127, 0.5); text-transform: uppercase; letter-spacing: 1px; }
+        .play-btn { width: 100%; background: linear-gradient(135deg, var(--royal-pink), #8a2be2); padding: 16px; border-radius: 30px; border: none; font-family: 'Montserrat'; font-weight: 900; font-size: 1.1rem; color: #fff; cursor: pointer; box-shadow: 0 8px 25px rgba(255, 0, 127, 0.5); text-transform: uppercase; letter-spacing: 1px; }
         .play-btn:active { transform: scale(0.95); }
 
         /* VUE INSCRIPTION */
@@ -46,19 +51,24 @@
         .bet-card h2 { font-family: 'Montserrat'; font-weight: 900; font-size: 1.5rem; color: #fff; }
 
         /* HUD JEU */
-        .hud-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .hud-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; z-index: 10; }
         .badge { background: rgba(255, 0, 127, 0.15); border: 1px solid var(--royal-pink); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: var(--royal-pink); }
         .players-online { font-size: 0.75rem; color: #a494c6; text-align: right; }
         .players-online strong { color: var(--neon-blue); display: block; font-size: 0.95rem; }
 
-        /* ZONE TAPE CENTRALE */
+        /* ZONE TAPE STYLE TON IMAGE */
         .tap-zone { flex-grow: 1; display: flex; justify-content: center; align-items: center; position: relative; }
-        .tap-button { width: 170px; height: 170px; border-radius: 50%; cursor: pointer; background: radial-gradient(circle at 30% 30%, #ff007f, #4a00e0); border: 4px solid #fff; box-shadow: 0 0 40px rgba(255, 0, 127, 0.7); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; transition: transform 0.05s; }
-        .tap-button:active { transform: scale(0.92); }
-        .tap-text { font-family: 'Montserrat'; font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 2px; }
+        
+        /* Cercles magiques de l'image de fond */
+        .magic-ring { position: absolute; width: 260px; height: 260px; border-radius: 50%; border: 2px solid rgba(255, 183, 3, 0.4); box-shadow: 0 0 30px rgba(255, 115, 0, 0.3), inset 0 0 30px rgba(0, 229, 255, 0.3); animation: spinRing 10s linear infinite; pointer-events: none; }
+        @keyframes spinRing { 100% { transform: rotate(360deg); } }
 
-        /* CLASSEMENT & CHAT EN DIRECT (ONGLETS OU SECTION BASSE) */
-        .social-section { background: var(--panel-bg); border-radius: 15px; padding: 12px; margin-top: auto; border: 1px solid rgba(138,43,226,0.3); max-height: 180px; display: flex; flex-direction: column; }
+        .tap-button { width: 160px; height: 160px; border-radius: 50%; cursor: pointer; background: radial-gradient(circle at 35% 35%, #ffb703, #ff007f); border: 4px solid #fff; box-shadow: 0 0 50px rgba(255, 183, 3, 0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; transition: transform 0.05s; }
+        .tap-button:active { transform: scale(0.90); }
+        .tap-text { font-family: 'Montserrat'; font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+
+        /* CLASSEMENT & CHAT */
+        .social-section { background: var(--panel-bg); border-radius: 15px; padding: 12px; margin-top: auto; border: 1px solid rgba(138,43,226,0.3); max-height: 180px; display: flex; flex-direction: column; z-index: 10; }
         .tabs { display: flex; gap: 10px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
         .tab-btn { background: none; border: none; color: #a494c6; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
         .tab-btn.active { color: var(--royal-pink); border-bottom: 2px solid var(--royal-pink); }
@@ -100,39 +110,38 @@
             <button class="play-btn" onclick="startGameSession()">JOUER MAINTENANT</button>
         </div>
 
-        <!-- 3. JEU + CLASSEMENT & CHAT EN DIRECT -->
+        <!-- 3. JEU -->
         <div id="view-game" class="view">
             <div class="hud-top">
                 <div class="badge" id="gameTimer">00:10</div>
                 <div class="players-online">EN LIGNE<strong id="onlineCount">1</strong></div>
             </div>
 
-            <div style="text-align: center; margin-bottom: 5px;">
+            <div style="text-align: center; margin-bottom: 5px; z-index:10;">
                 <div style="font-size: 0.65rem; color: #a494c6; text-transform: uppercase;">Score en direct</div>
-                <div style="font-family: 'Montserrat'; font-size: 2.5rem; font-weight: 900; color: var(--royal-pink);" id="scoreDisplay">0</div>
+                <div style="font-family: 'Montserrat'; font-size: 2.5rem; font-weight: 900; color: var(--gold-base); text-shadow: 0 0 15px rgba(255,183,3,0.5);" id="scoreDisplay">0</div>
             </div>
 
             <div class="tap-zone">
+                <div class="magic-ring"></div>
                 <div class="tap-button" id="mainBtn">
                     <div class="tap-text">TAP!</div>
                 </div>
             </div>
 
-            <!-- Espace Classement & Chat -->
+            <!-- Classement & Chat -->
             <div class="social-section">
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('leaderboard')">🏆 Classement Direct</button>
-                    <button class="tab-btn" onclick="switchTab('chat')">💬 Chat Global</button>
+                    <button class="tab-btn active" onclick="switchTab('leaderboard', event)">🏆 Classement</button>
+                    <button class="tab-btn" onclick="switchTab('chat', event)">💬 Chat</button>
                 </div>
 
-                <!-- Contenu Classement -->
                 <div id="tab-leaderboard" class="tab-content">
                     <div id="leaderboardList">Chargement...</div>
                 </div>
 
-                <!-- Contenu Chat -->
                 <div id="tab-chat" class="tab-content hidden" style="display:flex; flex-direction:column;">
-                    <div id="chatMessages" style="flex-grow:1; overflow-y:auto; max-height:85px; margin-bottom:5px; font-size:0.75rem;"></div>
+                    <div id="chatMessages" style="flex-grow:1; overflow-y:auto; max-height:80px; margin-bottom:5px; font-size:0.75rem;"></div>
                     <div class="chat-input-box">
                         <input type="text" id="chatInput" class="chat-input" placeholder="Dis quelque chose...">
                         <button class="chat-send" onclick="sendChatMessage()">Envoyer</button>
@@ -144,8 +153,8 @@
     </div>
 
     <script>
-        // Connexion au Vrai Serveur WebSocket (Remplace par ton URL Railway plus tard)
-        const socket = io("https://ton-projet.up.railway.app"); // Laisse vide ou mets localhost pour test local
+        // Connexion WebSocket (mets ton URL Railway ou laisse vide pour tester en local)
+        const socket = io();
 
         let currentBet = 5; let score = 0; let gameInterval;
 
@@ -155,11 +164,14 @@
             toView.classList.remove('prev'); toView.classList.add('active');
         }
 
-        // Inscription
+        // CORRECTION INSCRIPTION : Validation fluide
         function registerUser() {
             const pseudo = document.getElementById('pseudoInput').value;
-            if(!pseudo) return alert("Entre un pseudo !");
-            socket.emit('setPseudo', pseudo);
+            if(!pseudo || pseudo.trim() === "") {
+                alert("Entre un pseudo valide !");
+                return;
+            }
+            socket.emit('setPseudo', pseudo.trim());
         }
 
         socket.on('pseudoAccepted', (name) => {
@@ -167,12 +179,10 @@
             switchView('view-signup', 'view-lobby');
         });
 
-        // Joueurs en ligne
         socket.on('updatePlayerCount', (count) => {
             document.getElementById('onlineCount').innerText = count;
         });
 
-        // Mise à jour Classement en direct
         socket.on('updateLeaderboard', (list) => {
             const lbContainer = document.getElementById('leaderboardList');
             lbContainer.innerHTML = "";
@@ -186,14 +196,23 @@
             element.classList.add('active'); currentBet = amount;
         }
 
+        // CORRECTION TEMPS : Lancement propre du chrono de 10 secondes
         function startGameSession() {
             switchView('view-lobby', 'view-game');
-            score = 0; document.getElementById('scoreDisplay').innerText = score;
+            score = 0; 
+            document.getElementById('scoreDisplay').innerText = score;
             
             let timeLeft = 10;
+            document.getElementById('gameTimer').innerText = `00:10`;
+
+            // Nettoie l'ancien intervalle s'il y en avait un
+            if(gameInterval) clearInterval(gameInterval);
+
             gameInterval = setInterval(() => {
                 timeLeft--;
-                document.getElementById('gameTimer').innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
+                let s = timeLeft < 10 ? '0' + timeLeft : timeLeft;
+                document.getElementById('gameTimer').innerText = `00:${s}`;
+                
                 if(timeLeft <= 0) {
                     clearInterval(gameInterval);
                     alert("Fin de partie ! Ton score total : " + score);
@@ -202,30 +221,27 @@
             }, 1000);
         }
 
-        // Action de Tap
+        // Action de Tap sécurisée
         document.getElementById('mainBtn').addEventListener('pointerdown', (e) => {
             e.preventDefault();
             score += 1;
             document.getElementById('scoreDisplay').innerText = score;
-            socket.emit('playerTap', { points: 1 }); // Envoie au serveur en temps réel
+            socket.emit('playerTap', { points: 1 });
             if(navigator.vibrate) navigator.vibrate(30);
         });
 
-        // Gestion des Onglets bas de page
-        function switchTab(tabName) {
+        function switchTab(tabName, evt) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             if(tabName === 'leaderboard') {
                 document.getElementById('tab-leaderboard').classList.remove('hidden');
                 document.getElementById('tab-chat').classList.add('hidden');
-                event.target.classList.add('active');
             } else {
                 document.getElementById('tab-chat').classList.remove('hidden');
                 document.getElementById('tab-leaderboard').classList.add('hidden');
-                event.target.classList.add('active');
             }
+            evt.target.classList.add('active');
         }
 
-        // Chat
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             if(input.value.trim() !== "") {
