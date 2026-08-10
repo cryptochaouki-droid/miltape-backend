@@ -9,7 +9,7 @@
     <style>
         :root {
             --bg-color: #0b0213;
-            --panel-bg: rgba(20, 5, 35, 0.85);
+            --panel-bg: rgba(15, 4, 28, 0.85);
             --royal-pink: #ff007f;
             --neon-blue: #00e5ff;
             --gold-base: #ffb703;
@@ -19,10 +19,14 @@
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Poppins', sans-serif; }
         
         body {
-            background-color: var(--bg-color); color: var(--text-main);
-            display: flex; justify-content: center; min-height: 100vh; overflow: hidden;
-            /* Arrière-plan inspiré de ton image : vortex cosmique orange/violet/bleu */
-            background: radial-gradient(circle at 50% 40%, rgba(255, 115, 0, 0.2) 0%, rgba(138, 43, 226, 0.25) 40%, #0b0213 80%);
+            background-color: var(--bg-color); 
+            color: var(--text-main);
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh; 
+            overflow: hidden;
+            /* Utilisation directe de ton image tap-art.jpg avec un voile sombre par-dessus pour la lisibilité */
+            background: linear-gradient(rgba(11, 2, 19, 0.65), rgba(11, 2, 19, 0.85)), url('tap-art.jpg') no-repeat center center / cover;
         }
 
         .app-container { width: 100%; max-width: 420px; position: relative; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
@@ -56,19 +60,18 @@
         .players-online { font-size: 0.75rem; color: #a494c6; text-align: right; }
         .players-online strong { color: var(--neon-blue); display: block; font-size: 0.95rem; }
 
-        /* ZONE TAPE STYLE TON IMAGE */
+        /* ZONE TAPE */
         .tap-zone { flex-grow: 1; display: flex; justify-content: center; align-items: center; position: relative; }
         
-        /* Cercles magiques de l'image de fond */
-        .magic-ring { position: absolute; width: 260px; height: 260px; border-radius: 50%; border: 2px solid rgba(255, 183, 3, 0.4); box-shadow: 0 0 30px rgba(255, 115, 0, 0.3), inset 0 0 30px rgba(0, 229, 255, 0.3); animation: spinRing 10s linear infinite; pointer-events: none; }
+        .magic-ring { position: absolute; width: 240px; height: 240px; border-radius: 50%; border: 2px solid rgba(255, 183, 3, 0.4); box-shadow: 0 0 30px rgba(255, 115, 0, 0.3), inset 0 0 30px rgba(0, 229, 255, 0.3); animation: spinRing 10s linear infinite; pointer-events: none; }
         @keyframes spinRing { 100% { transform: rotate(360deg); } }
 
-        .tap-button { width: 160px; height: 160px; border-radius: 50%; cursor: pointer; background: radial-gradient(circle at 35% 35%, #ffb703, #ff007f); border: 4px solid #fff; box-shadow: 0 0 50px rgba(255, 183, 3, 0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; transition: transform 0.05s; }
+        .tap-button { width: 150px; height: 150px; border-radius: 50%; cursor: pointer; background: radial-gradient(circle at 35% 35%, #ffb703, #ff007f); border: 4px solid #fff; box-shadow: 0 0 40px rgba(255, 183, 3, 0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; transition: transform 0.05s; }
         .tap-button:active { transform: scale(0.90); }
         .tap-text { font-family: 'Montserrat'; font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
 
         /* CLASSEMENT & CHAT */
-        .social-section { background: var(--panel-bg); border-radius: 15px; padding: 12px; margin-top: auto; border: 1px solid rgba(138,43,226,0.3); max-height: 180px; display: flex; flex-direction: column; z-index: 10; }
+        .social-section { background: var(--panel-bg); border-radius: 15px; padding: 12px; margin-top: auto; border: 1px solid rgba(138,43,226,0.3); max-height: 180px; display: flex; flex-direction: column; z-index: 10; backdrop-filter: blur(10px); }
         .tabs { display: flex; gap: 10px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
         .tab-btn { background: none; border: none; color: #a494c6; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
         .tab-btn.active { color: var(--royal-pink); border-bottom: 2px solid var(--royal-pink); }
@@ -153,7 +156,6 @@
     </div>
 
     <script>
-        // Connexion WebSocket (mets ton URL Railway ou laisse vide pour tester en local)
         const socket = io();
 
         let currentBet = 5; let score = 0; let gameInterval;
@@ -164,7 +166,6 @@
             toView.classList.remove('prev'); toView.classList.add('active');
         }
 
-        // CORRECTION INSCRIPTION : Validation fluide
         function registerUser() {
             const pseudo = document.getElementById('pseudoInput').value;
             if(!pseudo || pseudo.trim() === "") {
@@ -196,7 +197,6 @@
             element.classList.add('active'); currentBet = amount;
         }
 
-        // CORRECTION TEMPS : Lancement propre du chrono de 10 secondes
         function startGameSession() {
             switchView('view-lobby', 'view-game');
             score = 0; 
@@ -205,7 +205,6 @@
             let timeLeft = 10;
             document.getElementById('gameTimer').innerText = `00:10`;
 
-            // Nettoie l'ancien intervalle s'il y en avait un
             if(gameInterval) clearInterval(gameInterval);
 
             gameInterval = setInterval(() => {
@@ -221,7 +220,6 @@
             }, 1000);
         }
 
-        // Action de Tap sécurisée
         document.getElementById('mainBtn').addEventListener('pointerdown', (e) => {
             e.preventDefault();
             score += 1;
