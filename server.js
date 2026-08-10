@@ -57,9 +57,9 @@ io.on('connection', (socket) => {
 
         socket.emit('inQueue', { position: waitingPlayers.length });
 
-        // LANCEMENT IMMÉDIAT (1 joueur requis pour tes tests)
-        if(waitingPlayers.length >= 1) {
-            let roomPlayers = waitingPlayers.splice(0, 1);
+        // STRICTEMENT 5 JOUERS POUR LANCER LE TOURNOI
+        if(waitingPlayers.length >= 5) {
+            let roomPlayers = waitingPlayers.splice(0, 5);
             let roomId = 'room_' + Date.now();
 
             activeTournaments[roomId] = {
