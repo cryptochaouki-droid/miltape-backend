@@ -1,22 +1,36 @@
-// ... (garde tout le début de ton server.js)
+const express = require('express');
+const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server);
+const path = require('path');
 
-// Fonction pour envoyer le nombre de joueurs à tout le monde
-function updatePlayerCount() {
-    const count = io.engine.clientsCount;
-    io.emit('playerCountUpdate', count);
-}
+app.use(express.static(path.join(__dirname, 'public')));
 
+// Servir le fichier index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Gestion des connexions Socket.io
 io.on('connection', (socket) => {
-    console.log(`⚡ Nouveau joueur connecté : ${socket.id}`);
-    updatePlayerCount(); // Met à jour dès qu'un joueur arrive
-
-    // ... (garde tes autres événements ici)
+    console.log('Un utilisateur est connecté');
+    
+    // Envoyer le nombre de joueurs en temps réel
+    io.emit('playerCountUpdate', io.engine.clientsCount);
 
     socket.on('disconnect', () => {
-        console.log(`❌ Déconnecté : ${socket.id}`);
-        waitingPlayers = waitingPlayers.filter(p => p.socketId !== socket.id);
-        updatePlayerCount(); // Met à jour dès qu'un joueur part
+        io.emit('playerCountUpdate', io.engine.clientsCount);
+    });
+
+    socket.on('playerTap', () => {
+        // Logique de jeu ici
     });
 });
 
-// ... (garde le reste du server.js)
+// IMPORTANT : Le port dynamique pour Railway
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Serveur démarré sur le port ${PORT}`);
+});
