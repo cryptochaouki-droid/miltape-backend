@@ -29,3 +29,28 @@ socket.on('playerTap', async (playerId) => {
     // Mise à jour sécurisée du score en base de données
     await Player.updateOne({ _id: playerId }, { $inc: { totalScore: 1 } });
 });
+// Durée d'une partie : 10 minutes en millisecondes
+const GAME_DURATION = 10 * 60 * 1000; 
+
+// Gestion d'une session de tournoi de 10 minutes
+function startTournamentRoom(roomId) {
+    let room = activeRooms[roomId];
+    room.status = "playing";
+    room.endTime = Date.now() + GAME_DURATION;
+
+    // Le serveur prévient tous les joueurs que les 10 minutes commencent
+    io.to(roomId).emit('tournamentStarted', { duration: GAME_DURATION });
+
+    // Timer de fin de partie géré par le serveur (et non par le téléphone du joueur)
+    setTimeout(async () => {
+        room.status = "ended";
+        
+        // Trier les joueurs du salon par score du plus grand au plus petit
+        let sortedPlayers = room.players.sort((a, b) => b.score - a.score);
+
+        // Distribuer les gains (1er, 2ème, 3ème...)
+        await distributePrizes(sortedPlayers, room.entryFee);
+
+        io.to(roomId).emit('tournamentEnded', sortedPlayers);
+    }, GAME_DURATION);
+}
