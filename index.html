@@ -2,34 +2,461 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MILTAPE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MILTAPE - VIP Edition</title>
     <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #05020a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .header { font-size: 1.5rem; color: #ffcc00; margin-bottom: 20px; }
-        #online-count { color: #00ff66; font-weight: bold; }
-        #btn-tap { width: 200px; height: 200px; border-radius: 50%; background: #ff6a00; border: none; cursor: pointer; color: white; font-size: 2rem; }
+        :root {
+            --bg-color: #05020a;
+            --panel-bg: rgba(18, 13, 38, 0.6);
+            --panel-border: rgba(69, 50, 117, 0.5);
+            --gold-light: #fff3a1;
+            --gold-base: #ffcc00;
+            --gold-dark: #e67300;
+            --neon-green: #00ff66;
+            --neon-blue: #00d2ff;
+            --neon-purple: #b535ff;
+            --neon-orange: #ff6a00;
+            --text-main: #ffffff;
+            --text-muted: #8e85b0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(56, 27, 128, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(255, 106, 0, 0.15) 0%, transparent 50%);
+        }
+
+        .stars {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: -1;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="white" opacity="0.3"/><circle cx="150" cy="40" r="1.5" fill="white" opacity="0.5"/><circle cx="80" cy="120" r="1" fill="white" opacity="0.2"/><circle cx="190" cy="180" r="2" fill="white" opacity="0.4"/></svg>') repeat;
+            animation: drift 60s linear infinite;
+        }
+        @keyframes drift { from { transform: translateY(0); } to { transform: translateY(-100vh); } }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 100px;
+            position: relative;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--panel-border);
+            border-radius: 25px;
+            padding: 6px 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .profile { display: flex; align-items: center; gap: 10px; }
+        .avatar-wrap { position: relative; }
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            border: 2px solid var(--gold-base);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.4);
+        }
+        .level-badge {
+            position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+            background: var(--gold-base); color: #000;
+            font-size: 0.55rem; font-weight: 800; padding: 2px 6px;
+            border-radius: 8px; font-family: 'Montserrat', sans-serif;
+        }
+        
+        .user-details h1 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .online-dot { color: var(--neon-green); font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .online-dot::before { content: ''; display: block; width: 6px; height: 6px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 8px var(--neon-green); animation: pulse 2s infinite; }
+
+        .balance {
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,204,0,0.3);
+            padding: 6px 12px; border-radius: 20px; text-align: right;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .balance span { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; }
+        .balance strong { font-size: 0.95rem; color: #fff; font-family: 'Montserrat', sans-serif; font-weight: 800; }
+
+        .hero { text-align: center; position: relative; margin-top: 10px; z-index: 10; }
+        .crown { width: 45px; margin-bottom: -10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); animation: float 3s ease-in-out infinite; }
+        .title {
+            font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 3.2rem;
+            line-height: 0.9; margin: 0;
+            background: linear-gradient(180deg, #fffde4 0%, #ffcc00 45%, #b35900 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0px 8px 10px rgba(0,0,0,0.6));
+            letter-spacing: -1px;
+            transform: skewX(-5deg);
+        }
+        .subtitle {
+            font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800;
+            letter-spacing: 4px; color: #fff; background: rgba(0,0,0,0.5);
+            display: inline-block; padding: 4px 15px; border-radius: 4px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-top: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .slogan { margin-top: 15px; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.1rem; }
+
+        .multiplier-banner {
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.15), transparent);
+            border-top: 1px solid rgba(255, 204, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 204, 0, 0.3);
+            text-align: center; padding: 12px 0; margin: 10px 0;
+        }
+        .multiplier-banner span { font-size: 0.8rem; font-weight: 600; color: #ccc; }
+        .multiplier-banner strong { font-size: 1.8rem; font-family: 'Montserrat'; font-weight: 900; color: var(--gold-base); text-shadow: 0 0 15px rgba(255, 204, 0, 0.5); margin: 0 8px; }
+
+        .section-title { text-align: center; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .section-title::before, .section-title::after { content: ''; height: 1px; width: 30px; background: var(--panel-border); }
+
+        .bets-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .bet-card {
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 12px; padding: 12px 4px; text-align: center;
+            cursor: pointer; position: relative; overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(5px);
+        }
+        .bet-price { font-size: 1.3rem; font-family: 'Montserrat'; font-weight: 900; margin-bottom: 2px; }
+        .bet-name { font-size: 0.55rem; font-weight: 700; text-transform: uppercase; }
+
+        .tier-1 { --color: var(--neon-green); }
+        .tier-2 { --color: var(--neon-blue); }
+        .tier-3 { --color: var(--neon-purple); }
+        .tier-4 { --color: var(--neon-orange); }
+
+        .bet-card[data-tier] { color: var(--color); }
+        .bet-card[data-tier] .bet-price { color: #fff; }
+        .bet-card.active {
+            border-color: var(--color);
+            background: rgba(255,255,255,0.03);
+            box-shadow: 0 0 20px rgba(var(--color-rgb), 0.3);
+            transform: translateY(-3px);
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            background: var(--panel-bg);
+            color: white;
+            margin-bottom: 10px;
+            text-align: center;
+            outline: none;
+        }
+
+        .play-btn-wrapper { position: relative; margin-top: 10px; }
+        .play-btn {
+            width: 100%;
+            background: linear-gradient(180deg, #ffde00 0%, #ff8800 100%);
+            border: 2px solid #ffeb3b;
+            padding: 16px;
+            border-radius: 30px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #110500;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255, 136, 0, 0.5);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .play-btn:active { transform: scale(0.96); }
+
+        #game-area { text-align: center; display: none; }
+        #timer { font-size: 2.5rem; color: var(--gold-base); font-family: 'Montserrat', sans-serif; font-weight: 900; margin-bottom: 10px; }
+        .score-box { font-size: 1.2rem; margin-bottom: 20px; font-weight: 600; color: var(--text-muted); }
+        .score-box span { color: #fff; font-size: 2rem; font-family: 'Montserrat', sans-serif; font-weight: 900; }
+        
+        #btn-tap {
+            width: 240px; height: 240px; border-radius: 50%;
+            background: radial-gradient(circle, #ff5e62 0%, #ff9966 100%);
+            border: 6px solid #fff;
+            color: white; font-family: 'Montserrat', sans-serif; font-size: 2.5rem; font-weight: 900;
+            box-shadow: 0 0 40px rgba(255, 94, 98, 0.8), inset 0 10px 20px rgba(255,255,255,0.4);
+            margin: 0 auto; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.05s ease;
+        }
+        #btn-tap:active { transform: scale(0.92); box-shadow: 0 0 20px rgba(255, 94, 98, 0.6); }
+
+        .info-bar {
+            display: flex; justify-content: space-between;
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 15px; padding: 12px; margin-top: 15px; backdrop-filter: blur(5px);
+        }
+        .info-item { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 600; }
+        .info-item span { color: #fff; font-family: 'Montserrat'; font-weight: 800; font-size: 0.85rem; display: block; }
+
+        .widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .widget-card {
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 15px; padding: 12px; position: relative; overflow: hidden;
+        }
+        .widget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .widget-title { font-weight: 800; font-size: 0.75rem; color: #fff; }
+        .chat-preview { font-size: 0.65rem; color: #aaa; line-height: 1.4; }
+        .chat-preview strong { color: var(--neon-green); }
+
+        .nav-dock {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 420px;
+            background: rgba(5, 2, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-around; align-items: flex-end;
+            padding: 10px 15px 20px 15px; z-index: 100;
+        }
+        .nav-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: var(--text-muted); font-size: 0.65rem; font-weight: 600; text-decoration: none;
+        }
+        .nav-center {
+            position: relative; width: 70px; height: 70px;
+            background: var(--bg-color); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            margin-top: -35px; border: 4px solid var(--bg-color);
+        }
+        .nav-center-inner {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: linear-gradient(135deg, #ffcc00, #ff6600);
+            display: flex; justify-content: center; align-items: center;
+            color: #000; font-size: 1.5rem;
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(0, 255, 102, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0); } }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>MILTAPE</h1>
-        <div id="online-count">0 EN LIGNE</div>
+
+    <div class="stars"></div>
+
+    <div class="app">
+        
+        <!-- Header -->
+        <header class="top-bar">
+            <div class="profile">
+                <div class="avatar-wrap">
+                    <div class="avatar">👑</div>
+                    <div class="level-badge">LVL 12</div>
+                </div>
+                <div class="user-details">
+                    <h1 id="user-display-name">MILTAPER</h1>
+                    <div class="online-dot" id="online-count">0 EN LIGNE</div>
+                </div>
+            </div>
+            <div class="balance">
+                <span>SOLDE</span>
+                <strong>12.45 €</strong>
+            </div>
+        </header>
+
+        <!-- ZONE D'ACCUEIL / LOGIN & CHOIX -->
+        <div id="login-area">
+            <section class="hero">
+                <h1 class="title">MILTAPE</h1>
+                <div class="subtitle">WORLD CHALLENGE</div>
+                <div class="slogan">
+                    <span style="color: var(--gold-base);">TAPE.</span> 
+                    <span style="color: #fff;">CLASSE-TOI.</span> 
+                    <span style="color: var(--neon-purple);">GAGNE.</span>
+                </div>
+            </section>
+
+            <div class="multiplier-banner" style="margin-top: 20px;">
+                <span>GAGNE</span>
+                <strong>2X</strong>
+                <span>TA MISE</span>
+            </div>
+
+            <section style="margin-top: 15px;">
+                <div class="section-title">ENTRE TON PSEUDO</div>
+                <input type="text" id="pseudo" class="input-box" placeholder="Ton pseudo VIP..." value="MILTAPER">
+            </section>
+
+            <section style="margin-top: 10px;">
+                <div class="section-title">CHOISIS TA MISE</div>
+                <div class="bets-grid">
+                    <div class="bet-card tier-1 active" data-tier="1" style="--color-rgb: 0, 255, 102;" onclick="selectBet(this)">
+                        <div class="bet-price">1 €</div>
+                        <div class="bet-name">★ Débutant</div>
+                    </div>
+                    <div class="bet-card tier-2" data-tier="2" style="--color-rgb: 0, 210, 255;" onclick="selectBet(this)">
+                        <div class="bet-price">5 €</div>
+                        <div class="bet-name">★★ Standard</div>
+                    </div>
+                    <div class="bet-card tier-3" data-tier="3" style="--color-rgb: 181, 53, 255;" onclick="selectBet(this)">
+                        <div class="bet-price">10 €</div>
+                        <div class="bet-name">💎 Premium</div>
+                    </div>
+                    <div class="bet-card tier-4" data-tier="4" style="--color-rgb: 255, 106, 0;" onclick="selectBet(this)">
+                        <div class="bet-price">20 €</div>
+                        <div class="bet-name">👑 High</div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="play-btn-wrapper" style="margin-top: 20px;">
+                <button class="play-btn" onclick="lancerJeu()">
+                    JOUER MAINTENANT 
+                </button>
+            </div>
+        </div>
+
+        <!-- ZONE DE JEU ACTIVE -->
+        <div id="game-area">
+            <div id="timer">10:00</div>
+            <div class="score-box">TON SCORE<br><span id="score">0</span></div>
+            <button id="btn-tap" onclick="tap()">TAP !</button>
+        </div>
+
+        <!-- Info Bar -->
+        <div class="info-bar">
+            <div class="info-item">
+                <span style="color: var(--neon-purple);">⏱</span>
+                <div>10 MIN<br><span style="font-size:0.5rem; font-weight:400; color:#8e85b0;">PAR PARTIE</span></div>
+            </div>
+            <div class="info-item">
+                <span style="color: var(--gold-base);">🏆</span>
+                <div>TOP 5<br><span style="font-size:0.5rem; font-weight:400; color:#8e85b0;">CLASSEMENT</span></div>
+            </div>
+            <div class="info-item">
+                <span style="color: var(--neon-blue);">🪙</span>
+                <div>2X<br><span style="font-size:0.5rem; font-weight:400; color:#8e85b0;">TA MISE</span></div>
+            </div>
+        </div>
+
+        <!-- Widgets -->
+        <div class="widgets">
+            <div class="widget-card">
+                <div class="widget-header">
+                    <span class="widget-title">CHAT GLOBAL</span>
+                    <span style="color: var(--neon-green); font-size: 0.6rem;">● ACTIF</span>
+                </div>
+                <div class="chat-preview">
+                    <strong>TaperKing:</strong> 🔥 En route pour le top !<br>
+                    <strong>FastTap:</strong> 🍀 Bonne chance
+                </div>
+            </div>
+
+            <div class="widget-card">
+                <div class="widget-header">
+                    <span class="widget-title">PARRAINAGE</span>
+                    <span style="color: var(--neon-purple); font-size: 0.5rem; font-weight:bold;">NOUVEAU</span>
+                </div>
+                <div style="font-size: 0.6rem; color: #aaa;">Invite tes amis et gagne !</div>
+                <div style="background: rgba(0,0,0,0.5); border: 1px dashed var(--neon-purple); padding: 6px; border-radius: 6px; text-align: center; margin-top: 6px; font-weight: 900; font-size: 0.75rem;">
+                    MILTA123
+                </div>
+            </div>
+        </div>
+
     </div>
-    
-    <button id="btn-tap" onclick="tap()">TAP !</button>
+
+    <!-- Dock Navigation -->
+    <nav class="nav-dock">
+        <a href="#" class="nav-btn">CHAT</a>
+        <div class="nav-center">
+            <div class="nav-center-inner">👑</div>
+        </div>
+        <a href="#" class="nav-btn">AMIS</a>
+    </nav>
 
     <script>
         const socket = io();
+        let gameActive = false;
 
-        // Mise à jour du compteur en direct
+        // Compteur réel en direct
         socket.on('playerCountUpdate', (count) => {
             document.getElementById('online-count').innerText = count + " EN LIGNE";
         });
 
+        function selectBet(element) {
+            document.querySelectorAll('.bet-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            element.classList.add('active');
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function lancerJeu() {
+            const pseudo = document.getElementById('pseudo').value;
+            if(pseudo.trim() !== "") {
+                document.getElementById('user-display-name').innerText = pseudo;
+                socket.emit('setPseudo', pseudo);
+            }
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            socket.emit('joinQueue');
+        }
+
+        socket.on('startTournament', (data) => {
+            gameActive = true;
+            startTimer(data.duration);
+        });
+
         function tap() {
-            socket.emit('playerTap');
+            if(gameActive) {
+                socket.emit('playerTap');
+                if (navigator.vibrate) navigator.vibrate(30);
+            }
+        }
+
+        socket.on('scoreUpdated', (s) => {
+            document.getElementById('score').innerText = s;
+        });
+
+        socket.on('tournamentResults', (results) => {
+            gameActive = false;
+            let msg = "🏆 Tournoi terminé !\n\nClassement Top 5 :\n";
+            results.forEach(r => {
+                msg += `${r.rank}. ${r.username} - ${r.score} taps\n`;
+            });
+            alert(msg);
+            location.reload();
+        });
+
+        function startTimer(duration) {
+            let timer = duration / 1000;
+            const display = document.getElementById('timer');
+            let interval = setInterval(() => {
+                let m = Math.floor(timer / 60);
+                let s = Math.floor(timer % 60);
+                display.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (--timer < 0) {
+                    clearInterval(interval);
+                    gameActive = false;
+                }
+            }, 1000);
         }
     </script>
 </body>
