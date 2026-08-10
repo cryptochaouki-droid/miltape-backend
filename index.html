@@ -3,27 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MILTAPE - Connexion</title>
+    <title>MILTAPE - Tournoi</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
+        * { box-sizing: border-box; }
         body { 
             font-family: Arial, sans-serif; 
             text-align: center; 
             background: #0f172a; 
             color: white; 
             margin: 0; 
-            padding: 50px; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
         .card {
             background: #1e293b;
             padding: 30px;
             border-radius: 15px;
-            max-width: 400px;
-            margin: auto;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
         }
         input {
-            width: 80%;
+            width: 100%;
             padding: 12px;
             font-size: 16px;
             border-radius: 8px;
@@ -34,7 +40,7 @@
             text-align: center;
         }
         button {
-            width: 80%;
+            width: 100%;
             padding: 12px;
             font-size: 18px;
             font-weight: bold;
@@ -45,39 +51,99 @@
             cursor: pointer;
         }
         button:active { background: #16a34a; }
+        #btn-tap { 
+            width: 220px; 
+            height: 220px; 
+            border-radius: 50%; 
+            font-size: 32px; 
+            background: #ef4444; 
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+            margin: 20px auto;
+        }
+        #btn-tap:active { background: #dc2626; transform: scale(0.95); }
+        #timer { font-size: 36px; color: #facc15; font-weight: bold; margin-bottom: 10px; }
+        .score-box { font-size: 24px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
+    <div class="card" id="login-area">
         <h2>MILTAPE</h2>
         <p>Entre ton pseudo :</p>
         <input type="text" id="pseudo" placeholder="Ton pseudo...">
-        <br>
         <button onclick="validerPseudo()">VALIDER</button>
     </div>
 
-    <script>
-        // Connexion automatique au serveur via l'URL actuelle
-        const socket = io();
+    <div class="card" id="queue-area" style="display:none;">
+        <h2>Recherche de joueurs...</h2>
+        <p>En attente des participants (<span id="queue-count">0</span>/5)</p>
+    </div>
 
-        socket.on('connect', () => {
-            console.log("Connecté au serveur avec l'ID :", socket.id);
-        });
+    <div class="card" id="game-area" style="display:none;">
+        <div id="timer">10:00</div>
+        <div class="score-box">Score : <span id="score">0</span></div>
+        <button id="btn-tap" onclick="tap()">TAP !</button>
+    </div>
+
+    <script>
+        const socket = io();
+        let gameActive = false;
 
         function validerPseudo() {
             const p = document.getElementById('pseudo').value;
             if(p.trim() !== "") {
-                alert("Envoi du pseudo : " + p);
                 socket.emit('setPseudo', p);
-            } else {
-                alert("Veuillez entrer un pseudo valide !");
             }
         }
 
         socket.on('pseudoAccepted', () => {
-            alert("Succès ! Le serveur a validé ton pseudo.");
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('queue-area').style.display = 'block';
+            socket.emit('joinQueue');
         });
+
+        socket.on('inQueue', (data) => {
+            document.getElementById('queue-count').innerText = data.position;
+        });
+
+        socket.on('startTournament', (data) => {
+            document.getElementById('queue-area').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            gameActive = true;
+            startTimer(data.duration);
+        });
+
+        function tap() {
+            if(gameActive) socket.emit('playerTap');
+        }
+
+        socket.on('scoreUpdated', (s) => {
+            document.getElementById('score').innerText = s;
+        });
+
+        socket.on('tournamentResults', (results) => {
+            gameActive = false;
+            let msg = "Tournoi terminé !\n\nClassement :\n";
+            results.forEach(r => {
+                msg += `${r.rank}. ${r.username} - ${r.score} taps\n`;
+            });
+            alert(msg);
+            location.reload();
+        });
+
+        function startTimer(duration) {
+            let timer = duration / 1000;
+            const display = document.getElementById('timer');
+            let interval = setInterval(() => {
+                let m = Math.floor(timer / 60);
+                let s = Math.floor(timer % 60);
+                display.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (--timer < 0) {
+                    clearInterval(interval);
+                    gameActive = false;
+                }
+            }, 1000);
+        }
     </script>
 </body>
 </html>
