@@ -3,155 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MILTAPE - Tournoi</title>
+    <title>MILTAPE - Direct</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            background: #0f172a; 
-            color: white; 
-            margin: 0; 
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .card {
-            background: #1e293b;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            width: 100%;
-            max-width: 400px;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: white;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 8px;
-            border: none;
-            background: #22c55e;
-            color: white;
-            cursor: pointer;
-        }
-        button:active { background: #16a34a; }
-        #btn-tap { 
-            width: 220px; 
-            height: 220px; 
-            border-radius: 50%; 
-            font-size: 32px; 
-            background: #ef4444; 
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-            margin: 20px auto;
-        }
-        #btn-tap:active { background: #dc2626; transform: scale(0.95); }
-        #timer { font-size: 36px; color: #facc15; font-weight: bold; margin-bottom: 10px; }
-        .score-box { font-size: 24px; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #0f172a; color: white; padding: 50px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 15px; max-width: 400px; margin: auto; }
+        input { width: 80%; padding: 12px; font-size: 16px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        button { width: 80%; padding: 12px; font-size: 18px; font-weight: bold; border-radius: 8px; background: #22c55e; color: white; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <div class="card" id="login-area">
+    <div class="card" id="box">
         <h2>MILTAPE</h2>
-        <p>Entre ton pseudo :</p>
-        <input type="text" id="pseudo" placeholder="Ton pseudo...">
-        <button onclick="validerPseudo()">VALIDER</button>
-    </div>
-
-    <div class="card" id="queue-area" style="display:none;">
-        <h2>Connexion en cours...</h2>
-        <p>Entrée dans l'arène...</p>
-    </div>
-
-    <div class="card" id="game-area" style="display:none;">
-        <div id="timer">10:00</div>
-        <div class="score-box">Score : <span id="score">0</span></div>
-        <button id="btn-tap" onclick="tap()">TAP !</button>
+        <input type="text" id="p" placeholder="Ton pseudo">
+        <br>
+        <button id="btn">VALIDER</button>
     </div>
 
     <script>
         const socket = io();
-        let gameActive = false;
 
-        function validerPseudo() {
-            const p = document.getElementById('pseudo').value;
-            if(p.trim() !== "") {
-                socket.emit('setPseudo', p);
+        document.getElementById('btn').onclick = function() {
+            const val = document.getElementById('p').value;
+            if(val.trim() !== "") {
+                alert("Clic OK, envoi vers le serveur...");
+                socket.emit('setPseudo', val);
+                socket.emit('joinQueue');
+            } else {
+                alert("Entre un pseudo !");
             }
-        }
+        };
 
         socket.on('pseudoAccepted', () => {
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('queue-area').style.display = 'block';
-            socket.emit('joinQueue');
-
-            // SÉCURITÉ : Si le serveur tarde à répondre, on force l'accès au jeu après 1 seconde
-            setTimeout(() => {
-                lancerJeuDirect();
-            }, 1000);
+            alert("Serveur OK ! Entrée dans le jeu...");
+            document.getElementById('box').innerHTML = '<h2>C\'est parti !</h2><button onclick="location.reload()">Recharger</button>';
         });
-
-        socket.on('startTournament', (data) => {
-            lancerJeuDirect(data ? data.duration : 600000);
-        });
-
-        function lancerJeuDirect(duration = 600000) {
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('queue-area').style.display = 'none';
-            document.getElementById('game-area').style.display = 'block';
-            if (!gameActive) {
-                gameActive = true;
-                startTimer(duration);
-            }
-        }
-
-        function tap() {
-            if(gameActive) socket.emit('playerTap');
-        }
-
-        socket.on('scoreUpdated', (s) => {
-            document.getElementById('score').innerText = s;
-        });
-
-        socket.on('tournamentResults', (results) => {
-            gameActive = false;
-            let msg = "Tournoi terminé !\n\nClassement :\n";
-            results.forEach(r => {
-                msg += `${r.rank}. ${r.username} - ${r.score} taps\n`;
-            });
-            alert(msg);
-            location.reload();
-        });
-
-        function startTimer(duration) {
-            let timer = duration / 1000;
-            const display = document.getElementById('timer');
-            let interval = setInterval(() => {
-                let m = Math.floor(timer / 60);
-                let s = Math.floor(timer % 60);
-                display.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-                if (--timer < 0) {
-                    clearInterval(interval);
-                    gameActive = false;
-                }
-            }, 1000);
-        }
     </script>
 </body>
 </html>
