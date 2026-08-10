@@ -76,7 +76,7 @@
 
     <div class="card" id="queue-area" style="display:none;">
         <h2>Recherche de joueurs...</h2>
-        <p>En attente des participants (<span id="queue-count">0</span>/5)</p>
+        <p>Lancement imminent...</p>
     </div>
 
     <div class="card" id="game-area" style="display:none;">
@@ -100,10 +100,6 @@
             document.getElementById('login-area').style.display = 'none';
             document.getElementById('queue-area').style.display = 'block';
             socket.emit('joinQueue');
-        });
-
-        socket.on('inQueue', (data) => {
-            document.getElementById('queue-count').innerText = data.position;
         });
 
         socket.on('startTournament', (data) => {
