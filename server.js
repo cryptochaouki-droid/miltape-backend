@@ -34,9 +34,9 @@ io.on('connection', (socket) => {
 
         socket.emit('inQueue', { position: waitingPlayers.length });
 
-        // DÈS QU'IL Y A 5 JOUEURS DANS LA FILE, ON LANCE LE TOURNOI
-        if(waitingPlayers.length >= 5) {
-            let roomPlayers = waitingPlayers.splice(0, 5);
+        // LANCEMENT IMMÉDIAT DÈS QU'UN JOUEUR ENTRE (pas d'attente inutile)
+        if(waitingPlayers.length >= 1) {
+            let roomPlayers = waitingPlayers.splice(0, 1);
             let roomId = 'room_' + Date.now();
 
             activeTournaments[roomId] = {
@@ -89,9 +89,11 @@ function endTournament(roomId) {
     if(!tournament) return;
 
     tournament.status = 'ended';
+    // Trie par score décroissant et garde les 5 meilleurs maximum
     tournament.players.sort((a, b) => b.score - a.score);
+    let topPlayers = tournament.players.slice(0, 5);
 
-    let results = tournament.players.map((p, index) => ({
+    let results = topPlayers.map((p, index) => ({
         rank: index + 1,
         username: p.username,
         score: p.score
