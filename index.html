@@ -3,36 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MILTAPE</title>
+    <title>MILTAPE - Connexion</title>
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background: #0f172a; 
+            color: white; 
+            margin: 0; 
+            padding: 50px; 
+        }
+        .card {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            margin: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        input {
+            width: 80%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        button {
+            width: 80%;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            border: none;
+            background: #22c55e;
+            color: white;
+            cursor: pointer;
+        }
+        button:active { background: #16a34a; }
+    </style>
 </head>
 <body>
-    <h1>Test Connexion</h1>
-    <input type="text" id="pseudo" placeholder="Pseudo">
-    <button onclick="testerClic()">VALIDER</button>
+
+    <div class="card">
+        <h2>MILTAPE</h2>
+        <p>Entre ton pseudo :</p>
+        <input type="text" id="pseudo" placeholder="Ton pseudo...">
+        <br>
+        <button onclick="validerPseudo()">VALIDER</button>
+    </div>
 
     <script>
-        // On force l'utilisation des WebSockets purs pour éviter les blocages de Railway
-        const socket = io({
-            transports: ['websocket']
-        });
+        // Connexion automatique au serveur via l'URL actuelle
+        const socket = io();
 
         socket.on('connect', () => {
-            console.log("Connecté ! ID:", socket.id);
+            console.log("Connecté au serveur avec l'ID :", socket.id);
         });
 
-        socket.on('connect_error', (err) => {
-            alert("Erreur de connexion serveur : " + err.message);
-        });
-
-        function testerClic() {
+        function validerPseudo() {
             const p = document.getElementById('pseudo').value;
-            alert("Envoi au serveur du pseudo : " + p);
-            socket.emit('setPseudo', p);
+            if(p.trim() !== "") {
+                alert("Envoi du pseudo : " + p);
+                socket.emit('setPseudo', p);
+            } else {
+                alert("Veuillez entrer un pseudo valide !");
+            }
         }
 
         socket.on('pseudoAccepted', () => {
-            alert("Succès ! Le serveur a validé.");
+            alert("Succès ! Le serveur a validé ton pseudo.");
         });
     </script>
 </body>
