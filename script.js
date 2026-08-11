@@ -51,6 +51,10 @@ let leaderboardInterval = null;
 let localTaps = 0;
 let tapTimeout = null;
 
+// Variables pour l'automatisation du cycle du chrono
+let challengeInterval = null;
+let timeLeft = 10; // 10 secondes pour le cycle
+
 
 /* =========================================================
    OUTILS
@@ -182,60 +186,85 @@ async function loadGame() {
 
 
 /* =========================================================
-   TIMER
+   TIMER & AUTOMATISATION DU REDÉMARRAGE
 ========================================================= */
 
 function updateTimer() {
 
-    const timer =
-        $("timer");
+    const timer = $("timer");
 
-    if (!timer || !gameEndsAt) {
+    if (!timer) {
         return;
     }
 
-    const remaining =
-        gameEndsAt.getTime() -
-        Date.now();
+    // Si gameEndsAt est défini via le backend, on calcule le temps restant réel
+    if (gameEndsAt) {
+        const remaining = gameEndsAt.getTime() - Date.now();
 
-    if (remaining <= 0) {
+        if (remaining <= 0) {
+            timer.textContent = "00:00";
+            joined = false;
 
-        timer.textContent =
-            "00:00";
+            const tapButton = $("tapButton");
+            if (tapButton) {
+                tapButton.disabled = true;
+            }
 
-        joined = false;
-
-        const tapButton =
-            $("tapButton");
-
-        if (tapButton) {
-            tapButton.disabled = true;
+            showMessage("🏁 CHALLENGE TERMINÉ");
+            return;
         }
 
-        showMessage(
-            "🏁 CHALLENGE TERMINÉ"
-        );
+        const totalSeconds = Math.floor(remaining / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
 
-        return;
+        timer.textContent =
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0");
     }
+}
 
-    const totalSeconds =
-        Math.floor(
-            remaining / 1000
-        );
+// Fonction dédiée à l'automatisation du redémarrage du chrono en boucle (toutes les 10 secondes)
+function startAutoChallengeTimer() {
+    const timerDisplay = $("timer");
+    const tapButton = $("tapButton");
+    const tapMessage = $("tapMessage");
 
-    const minutes =
-        Math.floor(
-            totalSeconds / 60
-        );
+    timeLeft = 10;
+    if (timerDisplay) timerDisplay.textContent = "00:10";
 
-    const seconds =
-        totalSeconds % 60;
+    if (tapButton && joined) tapButton.disabled = false;
+    if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE EN COURS - TAPEZ !";
 
-    timer.textContent =
-        String(minutes).padStart(2, "0") +
-        ":" +
-        String(seconds).padStart(2, "0");
+    if (challengeInterval) clearInterval(challengeInterval);
+
+    challengeInterval = setInterval(() => {
+        timeLeft--;
+
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        let formattedTime = 
+            (minutes < 10 ? "0" : "") + minutes + ":" + 
+            (seconds < 10 ? "0" : "") + seconds;
+
+        if (timerDisplay) {
+            timerDisplay.textContent = formattedTime;
+        }
+
+        if (timeLeft <= 0) {
+            clearInterval(challengeInterval);
+            
+            if (tapMessage) {
+                tapMessage.textContent = "⚡ FIN DU ROUND ! Redémarrage...";
+            }
+
+            // Pause de 1 seconde avant de relancer automatiquement un nouveau cycle
+            setTimeout(() => {
+                startAutoChallengeTimer();
+            }, 1000);
+        }
+    }, 1000);
 }
 
 
@@ -431,10 +460,9 @@ async function joinChallenge() {
 
         updateScore();
 
-        gameEndsAt =
-            new Date(
-                data.game.endsAt
-            );
+        if (data.game && data.game.endsAt) {
+            gameEndsAt = new Date(data.game.endsAt);
+        }
 
         const modal =
             $("entryModal");
@@ -460,6 +488,9 @@ async function joinChallenge() {
         showMessage(
             "🔥 TU ES DANS LE CHALLENGE !"
         );
+
+        // Lancer l'automatisation du chrono des 10 secondes dès l'entrée dans le jeu
+        startAutoChallengeTimer();
 
         loadLeaderboard();
 
