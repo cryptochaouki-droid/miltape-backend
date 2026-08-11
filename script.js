@@ -236,62 +236,53 @@ function updateTimer() {
 
 
 /* =========================================================
-   CHOIX DE MISE
+   CHOIX DE MISE LIBRE
 ========================================================= */
 
-function setupBetButtons() {
+function setupBetInput() {
 
-    const buttons =
-        document.querySelectorAll(
-            ".bet-button"
+    const customBetInput =
+        $("customBetInput");
+
+    if (customBetInput) {
+
+        customBetInput.addEventListener(
+            "input",
+            () => {
+
+                let val =
+                    parseFloat(
+                        customBetInput.value
+                    );
+
+                if (isNaN(val) || val < 0) {
+                    val = 0;
+                }
+
+                selectedBet = val;
+
+                const selected =
+                    $("selectedBet");
+
+                if (selected) {
+                    selected.textContent =
+                        "€" +
+                        selectedBet;
+                }
+
+                const entryBet =
+                    $("entryBet");
+
+                if (entryBet) {
+                    entryBet.textContent =
+                        "€" +
+                        selectedBet;
+                }
+
+            }
         );
 
-    buttons.forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    selectedBet =
-                        Number(
-                            button.dataset.bet
-                        );
-
-                    buttons.forEach(
-                        b =>
-                            b.classList.remove(
-                                "selected"
-                            )
-                    );
-
-                    button.classList.add(
-                        "selected"
-                    );
-
-                    const selected =
-                        $("selectedBet");
-
-                    if (selected) {
-                        selected.textContent =
-                            "€" +
-                            selectedBet;
-                    }
-
-                    const entryBet =
-                        $("entryBet");
-
-                    if (entryBet) {
-                        entryBet.textContent =
-                            "€" +
-                            selectedBet;
-                    }
-
-                }
-            );
-
-        }
-    );
+    }
 }
 
 
@@ -1071,7 +1062,7 @@ async function initMiltape() {
     );
 
 
-    setupBetButtons();
+    setupBetInput();
 
     setupEntry();
 
