@@ -229,142 +229,6 @@ body {
 
 
 /* =====================================================
-   HERO (VERSION COMPACTE)
-===================================================== */
-
-.hero {
-
-    position: relative;
-
-    margin: 10px 12px 0;
-
-    height: 130px;
-
-    overflow: hidden;
-
-    border-radius: 20px;
-
-    border:
-        1px solid
-        rgba(255, 216, 77, .25);
-
-    background:
-        radial-gradient(
-            circle at center,
-            rgba(125, 24, 255, .55),
-            transparent 62%
-        ),
-        #110020;
-
-    box-shadow:
-        0 0 25px
-        rgba(128, 27, 255, .22),
-        inset 0 0 25px
-        rgba(255, 255, 255, .03);
-}
-
-.hero-image {
-
-    position: absolute;
-
-    inset: 0;
-
-    width: 100%;
-    height: 100%;
-
-    object-fit: cover;
-
-    opacity: .45;
-
-    mix-blend-mode: screen;
-}
-
-.hero::after {
-
-    content: "";
-
-    position: absolute;
-
-    inset: 0;
-
-    background:
-        linear-gradient(
-            180deg,
-            transparent 10%,
-            rgba(7, 0, 15, .3) 40%,
-            rgba(7, 0, 15, .92) 100%
-        );
-}
-
-.hero-content {
-
-    position: absolute;
-
-    z-index: 2;
-
-    left: 0;
-    right: 0;
-    bottom: 10px;
-
-    text-align: center;
-
-    padding: 0 10px;
-}
-
-.hero h1 {
-
-    font-size: clamp(28px, 9vw, 42px);
-
-    font-weight: 1000;
-
-    line-height: .85;
-
-    letter-spacing: -1.5px;
-
-    color: #fff;
-
-    text-shadow:
-        0 2px 0 #6e12a6,
-        0 0 10px rgba(192, 55, 255, .8),
-        0 0 25px rgba(255, 38, 219, .35);
-}
-
-.hero h1 span {
-
-    display: block;
-
-    margin-top: 4px;
-
-    font-size: 13px;
-
-    letter-spacing: 4px;
-
-    color: var(--gold);
-
-    text-shadow:
-        0 0 10px
-        rgba(255, 216, 77, .65);
-}
-
-.slogan {
-
-    margin-top: 5px;
-
-    font-size: 9px;
-
-    font-weight: 800;
-
-    letter-spacing: 1.5px;
-
-    color: #ddd;
-}
-
-.slogan strong {
-    color: var(--gold);
-}
-
-
-/* =====================================================
    RULES
 ===================================================== */
 
@@ -495,44 +359,6 @@ body {
     color: var(--muted);
 
     letter-spacing: 2px;
-}
-
-
-/* =====================================================
-   TAP VISUAL
-===================================================== */
-
-.tap-visual {
-
-    margin: 12px;
-
-    height: 125px;
-
-    overflow: hidden;
-
-    border-radius: 20px;
-
-    border:
-        1px solid
-        rgba(194, 50, 255, .3);
-
-    background: #10001d;
-
-    box-shadow:
-        0 0 30px
-        rgba(128, 31, 255, .16);
-}
-
-.tap-visual img {
-
-    width: 100%;
-    height: 100%;
-
-    object-fit: cover;
-
-    opacity: .88;
-
-    display: block;
 }
 
 
@@ -691,55 +517,6 @@ body {
 
 .section-title strong {
     color: var(--gold);
-}
-
-.bet-buttons {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 7px;
-}
-
-.bet-button {
-
-    height: 43px;
-
-    border-radius: 12px;
-
-    border:
-        1px solid
-        rgba(255,255,255,.12);
-
-    background:
-        rgba(255,255,255,.04);
-
-    color: white;
-
-    font-weight: 900;
-
-    cursor: pointer;
-}
-
-.bet-button.selected {
-
-    color: #13000e;
-
-    background:
-        linear-gradient(
-            135deg,
-            var(--gold),
-            var(--gold2)
-        );
-
-    border-color:
-        var(--gold);
-
-    box-shadow:
-        0 0 18px
-        rgba(255, 194, 35, .25);
 }
 
 
@@ -1620,14 +1397,6 @@ footer small {
 ===================================================== */
 
 @media (max-width: 360px) {
-
-    .hero {
-        height: 120px;
-    }
-
-    .hero h1 {
-        font-size: 32px;
-    }
 
     .tap-button {
         width: 170px;
