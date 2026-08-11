@@ -1,31 +1,42 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    // =====================================================
-    // MILTAPE WORLD CHALLENGE
-    // Connexion au serveur Railway + MongoDB
-    // =====================================================
-
-    // ⚠️ REMPLACE CETTE URL PAR TON DOMAINE PUBLIC RAILWAY
-    const API_URL = "https://TON-DOMAINE-RAILWAY.up.railway.app";
+    /* =====================================================
+       MILTAPE WORLD CHALLENGE
+       Frontend → Railway → MongoDB
+       Version DEMO / sans argent réel
+    ===================================================== */
 
     // =====================================================
-    // JOUEUR
+    // 1. URL DU SERVEUR RAILWAY
     // =====================================================
 
-    let playerId = localStorage.getItem("miltapePlayerId");
+    const API_URL =
+        "https://TON-URL-RAILWAY.up.railway.app";
+
+
+    // =====================================================
+    // 2. JOUEUR
+    // =====================================================
+
+    let playerId =
+        localStorage.getItem("miltapePlayerId");
 
     if (!playerId) {
+
         playerId =
             "player_" +
             Date.now() +
             "_" +
-            Math.random().toString(36).substring(2, 8);
+            Math.random()
+                .toString(36)
+                .substring(2, 8);
 
         localStorage.setItem(
             "miltapePlayerId",
             playerId
         );
     }
+
 
     let playerName =
         localStorage.getItem("miltapePlayerName");
@@ -44,8 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
+
     // =====================================================
-    // VARIABLES
+    // 3. VARIABLES DU JEU
     // =====================================================
 
     let taps = 0;
@@ -63,8 +75,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let serverGameId = null;
 
+
     // =====================================================
-    // ELEMENTS
+    // 4. ELEMENTS HTML
     // =====================================================
 
     const timer =
@@ -77,7 +90,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("tapCount");
 
     const tapButtonCount =
-        document.getElementById("tapButtonCount");
+        document.getElementById(
+            "tapButtonCount"
+        );
 
     const comboElement =
         document.getElementById("combo");
@@ -89,13 +104,19 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("level");
 
     const levelProgress =
-        document.getElementById("levelProgress");
+        document.getElementById(
+            "levelProgress"
+        );
 
     const selectedBetElement =
-        document.getElementById("selectedBet");
+        document.getElementById(
+            "selectedBet"
+        );
 
     const tapMessage =
-        document.getElementById("tapMessage");
+        document.getElementById(
+            "tapMessage"
+        );
 
     const leaderboardList =
         document.getElementById(
@@ -117,8 +138,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "chatSend"
         );
 
+
     // =====================================================
-    // API
+    // 5. API
     // =====================================================
 
     async function api(
@@ -130,16 +152,31 @@ document.addEventListener("DOMContentLoaded", () => {
             await fetch(
                 API_URL + endpoint,
                 {
+                    ...options,
+
                     headers: {
                         "Content-Type":
-                            "application/json"
-                    },
-                    ...options
+                            "application/json",
+
+                        ...(options.headers || {})
+                    }
                 }
             );
 
-        const data =
-            await response.json();
+        let data;
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
+            throw new Error(
+                "SERVER_INVALID_RESPONSE"
+            );
+
+        }
 
         if (!response.ok) {
 
@@ -147,13 +184,62 @@ document.addEventListener("DOMContentLoaded", () => {
                 data.error ||
                 "SERVER_ERROR"
             );
+
         }
 
         return data;
+
     }
 
+
     // =====================================================
-    // BET
+    // 6. TEST SERVEUR
+    // =====================================================
+
+    async function testServer() {
+
+        try {
+
+            const data =
+                await api("/");
+
+            console.log(
+                "MILTAPE SERVER:",
+                data
+            );
+
+            if (
+                data.database ===
+                "connected"
+            ) {
+
+                console.log(
+                    "✅ MONGO DB CONNECTED"
+                );
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "❌ SERVER CONNECTION ERROR:",
+                error
+            );
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "⚠️ SERVER OFFLINE";
+
+            }
+
+        }
+
+    }
+
+
+    // =====================================================
+    // 7. CHOIX DE MISE
     // =====================================================
 
     document
@@ -183,12 +269,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         .querySelectorAll(
                             ".bet-button"
                         )
-                        .forEach(
-                            b =>
-                                b.classList.remove(
-                                    "selected"
-                                )
-                        );
+                        .forEach(b => {
+
+                            b.classList.remove(
+                                "selected"
+                            );
+
+                        });
 
                     button.classList.add(
                         "selected"
@@ -208,8 +295,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         });
 
+
     // =====================================================
-    // CHARGER LA PARTIE
+    // 8. CHARGER LA PARTIE
     // =====================================================
 
     async function loadGame() {
@@ -229,23 +317,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 serverGameId =
                     data.game.id;
 
-                const endTime =
-                    new Date(
-                        data.game.endsAt
-                    ).getTime();
-
-                timeLeft =
-                    Math.max(
-                        0,
-                        Math.floor(
-                            (
-                                endTime -
-                                Date.now()
-                            ) / 1000
-                        )
-                    );
-
-                updateTimer();
+                updateServerTimer(
+                    data.game.endsAt
+                );
 
             }
 
@@ -256,60 +330,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 error
             );
 
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "⚠️ SERVER CONNECTION ERROR";
-
-            }
-
         }
 
     }
 
+
     // =====================================================
-    // ENTRER DANS LA PARTIE
+    // 9. TIMER SERVEUR
     // =====================================================
 
-    async function enterChallenge() {
+    function updateServerTimer(
+        endsAt
+    ) {
 
-        try {
+        const endTime =
+            new Date(
+                endsAt
+            ).getTime();
 
-            if (tapMessage) {
+        function refresh() {
 
-                tapMessage.textContent =
-                    "⏳ CONNECTING...";
-
-            }
-
-            const data =
-                await api(
-                    "/api/join",
-                    {
-                        method: "POST",
-
-                        body: JSON.stringify({
-                            playerId,
-                            playerName
-                        })
-                    }
-                );
-
-            if (!data.success) {
-                throw new Error(
-                    "JOIN_FAILED"
-                );
-            }
-
-            serverGameId =
-                data.game.id;
-
-            const endTime =
-                new Date(
-                    data.game.endsAt
-                ).getTime();
-
-            timeLeft =
+            const difference =
                 Math.max(
                     0,
                     Math.floor(
@@ -320,52 +361,35 @@ document.addEventListener("DOMContentLoaded", () => {
                     )
                 );
 
-            startLocalGame();
+            timeLeft =
+                difference;
 
-            await loadLeaderboard();
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🔥 TAP TO PLAY";
-
-            }
-
-        } catch (error) {
-
-            console.error(
-                "JOIN ERROR:",
-                error
-            );
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "❌ CANNOT ENTER";
-
-            }
+            updateTimer();
 
         }
 
+        refresh();
+
+        clearInterval(
+            timerInterval
+        );
+
+        timerInterval =
+            setInterval(
+                refresh,
+                1000
+            );
+
     }
 
+
     // =====================================================
-    // DÉTECTER LE BOUTON ENTER CHALLENGE
+    // 10. ENTER CHALLENGE
     // =====================================================
 
-    const enterChallengeButton =
+    const enterChallenge =
         document.getElementById(
             "enterChallenge"
-        );
-
-    const confirmEntry =
-        document.getElementById(
-            "confirmEntry"
-        );
-
-    const cancelEntry =
-        document.getElementById(
-            "cancelEntry"
         );
 
     const entryModal =
@@ -378,9 +402,20 @@ document.addEventListener("DOMContentLoaded", () => {
             "entryBet"
         );
 
-    if (enterChallengeButton) {
+    const confirmEntry =
+        document.getElementById(
+            "confirmEntry"
+        );
 
-        enterChallengeButton.addEventListener(
+    const cancelEntry =
+        document.getElementById(
+            "cancelEntry"
+        );
+
+
+    if (enterChallenge) {
+
+        enterChallenge.addEventListener(
             "click",
             () => {
 
@@ -400,7 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 } else {
 
-                    enterChallenge();
+                    enterGame();
 
                 }
 
@@ -409,8 +444,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
     // =====================================================
-    // ANNULER
+    // 11. ANNULER ENTRÉE
     // =====================================================
 
     if (cancelEntry) {
@@ -432,8 +468,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
     // =====================================================
-    // CONFIRMER
+    // 12. CONFIRMER ENTRÉE
     // =====================================================
 
     if (confirmEntry) {
@@ -450,114 +487,107 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 }
 
-                await enterChallenge();
+                await enterGame();
 
             }
         );
 
     }
 
+
     // =====================================================
-    // START LOCAL GAME
+    // 13. ENTRER DANS LA PARTIE
     // =====================================================
 
-    function startLocalGame() {
+    async function enterGame() {
 
-        gameStarted = true;
+        try {
 
-        taps = 0;
-        combo = 1;
-        power = 100;
-        level = 1;
+            if (tapMessage) {
 
-        if (tapButton) {
+                tapMessage.textContent =
+                    "⏳ CONNECTING...";
 
-            tapButton.disabled =
-                false;
+            }
 
-        }
+            const data =
+                await api(
+                    "/api/join",
+                    {
+                        method: "POST",
 
-        updateDisplay();
-        updateTimer();
+                        body:
+                            JSON.stringify({
+                                playerId:
+                                    playerId,
 
-        clearInterval(
-            timerInterval
-        );
+                                playerName:
+                                    playerName
+                            })
+                    }
+                );
 
-        timerInterval =
-            setInterval(
-                updateGameTimer,
-                1000
+            if (!data.success) {
+
+                throw new Error(
+                    "JOIN_FAILED"
+                );
+
+            }
+
+            serverGameId =
+                data.game.id;
+
+            gameStarted = true;
+
+            taps = 0;
+            combo = 1;
+            power = 100;
+            level = 1;
+
+            updateServerTimer(
+                data.game.endsAt
             );
-
-    }
-
-    // =====================================================
-    // TIMER
-    // =====================================================
-
-    function updateGameTimer() {
-
-        if (!gameStarted) {
-            return;
-        }
-
-        timeLeft--;
-
-        if (timeLeft <= 0) {
-
-            timeLeft = 0;
-
-            gameStarted = false;
 
             if (tapButton) {
 
                 tapButton.disabled =
-                    true;
+                    false;
 
             }
 
-            clearInterval(
-                timerInterval
+            updateDisplay();
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🔥 TAP TO PLAY";
+
+            }
+
+            await loadLeaderboard();
+
+        } catch (error) {
+
+            console.error(
+                "JOIN ERROR:",
+                error
             );
 
             if (tapMessage) {
 
                 tapMessage.textContent =
-                    "🏆 CHALLENGE FINISHED";
+                    "❌ CANNOT ENTER";
 
             }
 
         }
 
-        updateTimer();
-
     }
 
-    function updateTimer() {
-
-        if (!timer) {
-            return;
-        }
-
-        const minutes =
-            Math.floor(
-                timeLeft / 60
-            );
-
-        const seconds =
-            timeLeft % 60;
-
-        timer.textContent =
-            String(minutes)
-                .padStart(2, "0") +
-            ":" +
-            String(seconds)
-                .padStart(2, "0");
-    }
 
     // =====================================================
-    // TAP
+    // 14. BOUTON TAP
     // =====================================================
 
     if (tapButton) {
@@ -578,13 +608,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
                     return;
+
                 }
 
                 if (timeLeft <= 0) {
                     return;
                 }
 
-                // Affichage immédiat
+
+                // -----------------------------------------
+                // AFFICHAGE IMMÉDIAT
+                // -----------------------------------------
+
                 taps++;
 
                 combo++;
@@ -606,7 +641,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 updateDisplay();
 
-                // Animation
+
+                // -----------------------------------------
+                // ANIMATION
+                // -----------------------------------------
+
                 tapButton.classList.remove(
                     "tap-animation"
                 );
@@ -617,18 +656,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     "tap-animation"
                 );
 
-                // Envoi au serveur
+
+                // -----------------------------------------
+                // ENVOI AU SERVEUR
+                // -----------------------------------------
+
                 try {
 
                     const data =
                         await api(
                             "/api/tap",
                             {
-                                method: "POST",
+                                method:
+                                    "POST",
 
                                 body:
                                     JSON.stringify({
-                                        playerId
+                                        playerId:
+                                            playerId
                                     })
                             }
                         );
@@ -642,6 +687,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         taps =
                             data.score;
 
+                        level =
+                            Math.floor(
+                                taps / 100
+                            ) + 1;
+
                         updateDisplay();
 
                     }
@@ -649,7 +699,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 } catch (error) {
 
                     console.error(
-                        "TAP SERVER ERROR:",
+                        "TAP ERROR:",
                         error
                     );
 
@@ -660,8 +710,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
     // =====================================================
-    // AFFICHAGE
+    // 15. AFFICHAGE
     // =====================================================
 
     function updateDisplay() {
@@ -683,14 +734,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (comboElement) {
 
             comboElement.textContent =
-                "x" + combo;
+                "x" +
+                combo;
 
         }
 
         if (powerElement) {
 
             powerElement.textContent =
-                power + "%";
+                power +
+                "%";
 
         }
 
@@ -704,14 +757,69 @@ document.addEventListener("DOMContentLoaded", () => {
         if (levelProgress) {
 
             levelProgress.style.width =
-                (taps % 100) + "%";
+                (taps % 100) +
+                "%";
 
         }
 
     }
 
+
     // =====================================================
-    // CLASSEMENT TOP 5
+    // 16. AFFICHAGE TIMER
+    // =====================================================
+
+    function updateTimer() {
+
+        if (!timer) {
+            return;
+        }
+
+        const minutes =
+            Math.floor(
+                timeLeft / 60
+            );
+
+        const seconds =
+            timeLeft % 60;
+
+        timer.textContent =
+            String(minutes)
+                .padStart(2, "0") +
+            ":" +
+            String(seconds)
+                .padStart(2, "0");
+
+
+        // -----------------------------------------
+        // FIN DE PARTIE
+        // -----------------------------------------
+
+        if (timeLeft <= 0) {
+
+            gameStarted = false;
+
+            if (tapButton) {
+
+                tapButton.disabled =
+                    true;
+
+            }
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🏆 CHALLENGE FINISHED";
+
+            }
+
+        }
+
+    }
+
+
+    // =====================================================
+    // 17. TOP 5
     // =====================================================
 
     async function loadLeaderboard() {
@@ -727,7 +835,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 !data.success ||
                 !leaderboardList
             ) {
+
                 return;
+
             }
 
             leaderboardList.innerHTML =
@@ -778,14 +888,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
-    // Actualiser le classement
+
+    // Actualisation toutes les 3 secondes
+
     setInterval(
         loadLeaderboard,
         3000
     );
 
+
     // =====================================================
-    // CHAT
+    // 18. CHAT
     // =====================================================
 
     async function loadChat() {
@@ -801,7 +914,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 !data.success ||
                 !chatMessages
             ) {
+
                 return;
+
             }
 
             chatMessages.innerHTML =
@@ -831,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
     }
+
 
     function addChatMessage(
         name,
@@ -862,6 +978,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
+    // =====================================================
+    // 19. ENVOYER CHAT
+    // =====================================================
+
     async function sendChat() {
 
         if (!chatInput) {
@@ -880,13 +1001,19 @@ document.addEventListener("DOMContentLoaded", () => {
             await api(
                 "/api/chat",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     body:
                         JSON.stringify({
-                            playerId,
-                            playerName,
-                            message
+                            playerId:
+                                playerId,
+
+                            playerName:
+                                playerName,
+
+                            message:
+                                message
                         })
                 }
             );
@@ -906,6 +1033,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
     if (chatSend) {
 
         chatSend.addEventListener(
@@ -914,6 +1042,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
     }
+
 
     if (chatInput) {
 
@@ -935,8 +1064,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
     // =====================================================
-    // SÉCURITÉ HTML
+    // 20. SÉCURITÉ HTML
     // =====================================================
 
     function escapeHTML(value) {
@@ -965,13 +1095,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
 
+
     // =====================================================
-    // INITIALISATION
+    // 21. INITIALISATION
     // =====================================================
 
     updateDisplay();
 
     updateTimer();
+
+    testServer();
 
     loadGame();
 
@@ -979,8 +1112,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadChat();
 
+
     console.log(
-        "🔥 MILTAPE WORLD CHALLENGE CONNECTÉ"
+        "🔥 MILTAPE WORLD CHALLENGE READY"
     );
 
 });
