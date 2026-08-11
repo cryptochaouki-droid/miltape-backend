@@ -723,10 +723,10 @@ function renderLeaderboard(players) {
         return;
     }
 
-    // Met à jour le compteur en ligne (affiche au moins 1 si le tableau contient des joueurs ou si tu participes)
+    // CORRECTION : Met à jour le compteur en ligne en se basant sur les joueurs reçus ou l'état de participation
     const onlineCount = $("onlineCount");
     if (onlineCount) {
-        onlineCount.textContent = players.length > 0 ? players.length : (joined ? 1 : 0);
+        onlineCount.textContent = players.length > 0 ? players.length : (joined ? 1 : 1);
     }
 
 
