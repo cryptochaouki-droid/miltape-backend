@@ -14,7 +14,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
 
-    <title></title>
+    <title>Miltape World Challenge</title>
 
     <link
         rel="icon"
@@ -90,16 +90,10 @@
 
 
     <!-- =====================================================
-         HERO
+         HERO (IMAGE CASSÉE SUPPRIMÉE)
     ====================================================== -->
 
     <section class="hero">
-
-        <img
-            src="miltape-reference.jpg"
-            alt="Miltape World Challenge"
-            class="hero-image"
-        >
 
         <div class="hero-content">
 
@@ -202,7 +196,7 @@
 
 
     <!-- =====================================================
-         TIMER (DÉPLACÉ ICI)
+         TIMER
     ====================================================== -->
 
     <section class="timer-card">
@@ -300,7 +294,7 @@
             </span>
 
             <strong>
-                <span id="level">
+                <span>
                     1
                 </span>
             </strong>
@@ -343,7 +337,6 @@
         </div>
 
 
-        <!-- CHAMP DE SAISIE LIBRE DE LA MISE -->
         <div style="margin-top: 10px;">
             <div style="display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.3); border: 2px solid #ffcc00; border-radius: 12px; padding: 10px 15px;">
                 <span style="color: #ffcc00; font-size: 22px; font-weight: bold; margin-right: 8px;">€</span>
@@ -617,7 +610,6 @@
         </p>
 
 
-        <!-- CHAMP DE SAISIE DU PSEUDO PERSONNALISÉ -->
         <div style="margin: 15px 0; text-align: left;">
             <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;">
                 TON PSEUDO :
@@ -693,7 +685,6 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
-        // Synchroniser le champ de mise libre avec l'affichage de la mise
         const customBetInput = document.getElementById("customBetInput");
         const selectedBetSpan = document.getElementById("selectedBet");
         const entryBetSpan = document.getElementById("entryBet");
@@ -703,132 +694,65 @@ document.addEventListener(
                 let val = customBetInput.value;
                 if (val === "" || isNaN(val)) val = "0";
                 
-                // Mettre à jour les textes d'affichage de la mise
                 if (selectedBetSpan) selectedBetSpan.textContent = "€" + val;
                 if (entryBetSpan) entryBetSpan.textContent = "€" + val;
             });
         }
 
-        // Remplir automatiquement le champ pseudo s'il est déjà enregistré en mémoire
         const savedName = localStorage.getItem("miltape_player_name");
         const nameInput = document.getElementById("customPlayerName");
         if (savedName && nameInput) {
             nameInput.value = savedName;
         }
 
-        const cancelBottom =
-            document.getElementById(
-                "cancelEntryBottom"
-            );
-
-        const modal =
-            document.getElementById(
-                "entryModal"
-            );
+        const cancelBottom = document.getElementById("cancelEntryBottom");
+        const cancelTop = document.getElementById("cancelEntry");
+        const modal = document.getElementById("entryModal");
 
         if (cancelBottom && modal) {
-
-            cancelBottom.addEventListener(
-                "click",
-                function () {
-
-                    modal.classList.remove(
-                        "show"
-                    );
-
-                }
-            );
-
+            cancelBottom.addEventListener("click", function () {
+                modal.classList.remove("show");
+            });
         }
 
+        if (cancelTop && modal) {
+            cancelTop.addEventListener("click", function () {
+                modal.classList.remove("show");
+            });
+        }
 
-        const shareButton =
-            document.getElementById(
-                "shareButton"
-            );
+        const shareButton = document.getElementById("shareButton");
 
         if (shareButton) {
+            shareButton.addEventListener("click", async function () {
+                const shareData = {
+                    title: "Miltape World Challenge",
+                    text: "🔥 Viens jouer au Miltape World Challenge !",
+                    url: window.location.href
+                };
 
-            shareButton.addEventListener(
-                "click",
-                async function () {
-
-                    const shareData = {
-
-                        title:
-                            "Miltape World Challenge",
-
-                        text:
-                            "🔥 Viens jouer au Miltape World Challenge !",
-
-                        url:
-                            window.location.href
-
-                    };
-
-                    try {
-
-                        if (
-                            navigator.share
-                        ) {
-
-                            await navigator.share(
-                                shareData
-                            );
-
-                        } else {
-
-                            await navigator.clipboard.writeText(
-                                window.location.href
-                            );
-
-                            shareButton.textContent =
-                                "COPIÉ ✓";
-
-                            setTimeout(
-                                function () {
-
-                                    shareButton.textContent =
-                                        "PARTAGER";
-
-                                },
-                                2000
-                            );
-
-                        }
-
-                    } catch (error) {
-
-                        console.log(
-                            "Share cancelled"
-                        );
-
+                try {
+                    if (navigator.share) {
+                        await navigator.share(shareData);
+                    } else {
+                        await navigator.clipboard.writeText(window.location.href);
+                        shareButton.textContent = "COPIÉ ✓";
+                        setTimeout(function () {
+                            shareButton.textContent = "PARTAGER";
+                        }, 2000);
                     }
-
+                } catch (error) {
+                    console.log("Share cancelled");
                 }
-            );
-
+            });
         }
 
-
-        const walletButton =
-            document.getElementById(
-                "walletButton"
-            );
+        const walletButton = document.getElementById("walletButton");
 
         if (walletButton) {
-
-            walletButton.addEventListener(
-                "click",
-                function () {
-
-                    alert(
-                        "💰 MODE DEMO\n\nWallet et argent réel seront ajoutés plus tard."
-                    );
-
-                }
-            );
-
+            walletButton.addEventListener("click", function () {
+                alert("💰 MODE DEMO\n\nWallet et argent réel seront ajoutés plus tard.");
+            });
         }
 
     }
