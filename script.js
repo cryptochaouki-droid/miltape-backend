@@ -1,6 +1,6 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
-   CLIENT JAVASCRIPT
+   CLIENT JAVASCRIPT (OPTIMISÉ & FLUIDE)
    MODE DEMO — SANS ARGENT RÉEL
 ========================================================= */
 
@@ -46,6 +46,10 @@ let score = 0;
 let gameEndsAt = null;
 let timerInterval = null;
 let leaderboardInterval = null;
+
+// Variables pour l'optimisation des taps (anti-lourdeur / buffering)
+let localTaps = 0;
+let tapTimeout = null;
 
 
 /* =========================================================
@@ -474,118 +478,80 @@ async function joinChallenge() {
 
 
 /* =========================================================
-   TAP
+   TAP OPTIMISÉ (FLUIDE / BATCH)
 ========================================================= */
 
-async function sendTap() {
+function sendTap() {
 
     if (!joined) {
-
         showMessage(
             "⚡ ENTRE D'ABORD DANS LE CHALLENGE"
         );
-
         return;
     }
 
+    const tapButton = $("tapButton");
+    if (!tapButton) return;
 
-    const tapButton =
-        $("tapButton");
+    // Animation immédiate
+    tapButton.classList.add("tap-active");
+    setTimeout(() => {
+        tapButton.classList.remove("tap-active");
+    }, 80);
 
-    if (!tapButton) {
-        return;
+    // Incrémentation locale instantanée pour zéro latence visuelle
+    localTaps++;
+    score++;
+    updateScore();
+
+    // Envoi groupé (debounce) pour ne pas saturer le serveur à chaque clic
+    if (tapTimeout) {
+        clearTimeout(tapTimeout);
     }
 
+    tapTimeout = setTimeout(async () => {
+        const tapsToSend = localTaps;
+        localTaps = 0;
 
-    tapButton.classList.add(
-        "tap-active"
-    );
+        if (tapsToSend <= 0) return;
 
-    setTimeout(
-        () => {
-
-            tapButton.classList.remove(
-                "tap-active"
-            );
-
-        },
-        80
-    );
-
-
-    try {
-
-        const response =
-            await fetch(
+        try {
+            const response = await fetch(
                 API_URL + "/api/tap",
                 {
                     method: "POST",
-
                     headers: {
-                        "Content-Type":
-                            "application/json"
+                        "Content-Type": "application/json"
                     },
-
-                    body:
-                        JSON.stringify({
-                            playerId:
-                                playerId
-                        })
+                    body: JSON.stringify({
+                        playerId: playerId,
+                        count: tapsToSend // Le backend doit idéalement accepter un paramètre "count" ou additionner les taps
+                    })
                 }
             );
 
+            const data = await response.json();
 
-        const data =
-            await response.json();
-
-
-        if (!response.ok || !data.success) {
-
-            if (
-                data.error ===
-                "GAME_FINISHED"
-            ) {
-
-                joined = false;
-
-                tapButton.disabled =
-                    true;
-
-                showMessage(
-                    "🏁 PARTIE TERMINÉE"
-                );
-
-                return;
+            if (!response.ok || !data.success) {
+                if (data.error === "GAME_FINISHED") {
+                    joined = false;
+                    tapButton.disabled = true;
+                    showMessage("🏁 PARTIE TERMINÉE");
+                    return;
+                }
+                throw new Error(data.error || "TAP_ERROR");
             }
 
-            throw new Error(
-                data.error ||
-                "TAP_ERROR"
-            );
+            // Synchronisation optionnelle avec le score exact du serveur si renvoyé
+            if (typeof data.score === "number") {
+                score = data.score;
+                updateScore();
+            }
+
+        } catch (error) {
+            console.error("TAP ERROR:", error);
         }
-
-
-        score =
-            Number(
-                data.score || 0
-            );
-
-        updateScore();
-
-        loadLeaderboard();
-
-    } catch (error) {
-
-        console.error(
-            "TAP ERROR:",
-            error
-        );
-
-        showMessage(
-            "❌ TAP NON ENREGISTRÉ"
-        );
-    }
-
+    }, 400); // Envoie le paquet de clics cumulés après 400ms d'inactivité ou de rafale
 }
 
 
@@ -595,83 +561,85 @@ async function sendTap() {
 
 function updateScore() {
 
-    const tapCount =
-        $("tapCount");
+    requestAnimationFrame(() => {
+        const tapCount =
+            $("tapCount");
 
-    const tapButtonCount =
-        $("tapButtonCount");
+        const tapButtonCount =
+            $("tapButtonCount");
 
-    if (tapCount) {
+        if (tapCount) {
 
-        tapCount.textContent =
-            score;
-    }
+            tapCount.textContent =
+                score;
+        }
 
-    if (tapButtonCount) {
+        if (tapButtonCount) {
 
-        tapButtonCount.textContent =
-            score;
-    }
-
-
-    const combo =
-        $("combo");
-
-    if (combo) {
-
-        combo.textContent =
-            "x" +
-            Math.max(
-                1,
-                Math.floor(
-                    score / 10
-                ) + 1
-            );
-    }
+            tapButtonCount.textContent =
+                score;
+        }
 
 
-    const level =
-        $("level");
+        const combo =
+            $("combo");
 
-    if (level) {
+        if (combo) {
 
-        level.textContent =
-            Math.max(
-                1,
-                Math.floor(
-                    score / 100
-                ) + 1
-            );
-    }
-
-
-    const progress =
-        $("levelProgress");
-
-    if (progress) {
-
-        const percentage =
-            score % 100;
-
-        progress.style.width =
-            percentage + "%";
-    }
+            combo.textContent =
+                "x" +
+                Math.max(
+                    1,
+                    Math.floor(
+                        score / 10
+                    ) + 1
+                );
+        }
 
 
-    const power =
-        $("power");
+        const level =
+            $("level");
 
-    if (power) {
+        if (level) {
 
-        power.textContent =
-            Math.max(
-                0,
-                100 -
-                Math.floor(
-                    score / 50
-                )
-            ) + "%";
-    }
+            level.textContent =
+                Math.max(
+                    1,
+                    Math.floor(
+                        score / 100
+                    ) + 1
+                );
+        }
+
+
+        const progress =
+            $("levelProgress");
+
+        if (progress) {
+
+            const percentage =
+                score % 100;
+
+            progress.style.width =
+                percentage + "%";
+        }
+
+
+        const power =
+            $("power");
+
+        if (power) {
+
+            power.textContent =
+                Math.max(
+                    0,
+                    100 -
+                    Math.floor(
+                        score / 50
+                    )
+                ) + "%";
+        }
+    });
 
 }
 
