@@ -1,5 +1,5 @@
 /* =========================================================
-   MILTAPE WORLD CHALLENGE - VERSION CORRIGÉE & GESTION PSEUDO
+   MILTAPE WORLD CHALLENGE - VERSION CHRONO PERSONNEL 10 MIN
 ========================================================= */
 
 const API_URL = "https://miltape-backend-production.up.railway.app";
@@ -25,7 +25,7 @@ let joined = false;
 let score = 0;
 let leaderboardInterval = null;
 let challengeInterval = null;
-let timeLeft = 10;
+let timeLeft = 600; // 10 minutes (10 * 60 secondes)
 let localTaps = 0;
 let tapTimeout = null;
 
@@ -40,43 +40,42 @@ function showMessage(text) {
 }
 
 /* =========================================================
-   GESTION DU CHRONO (100% LOCAL & FLUIDE)
+   GESTION DU CHRONO PERSONNEL (10 MINUTES)
 ========================================================= */
-function startAutoChallengeTimer() {
+function startPersonalTimer() {
     const timerDisplay = $("timer");
     const tapButton = $("tapButton");
     const tapMessage = $("tapMessage");
 
-    timeLeft = 10;
-    if (timerDisplay) timerDisplay.textContent = "00:10";
+    timeLeft = 600; // 10 minutes
+    updateTimerDisplay();
+
     if (tapButton && joined) tapButton.disabled = false;
-    if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE EN COURS - TAPEZ !";
+    if (tapMessage) tapMessage.textContent = "🔥 PARTIE LANCÉE - 10 MINUTES POUR TAPET !";
 
     if (challengeInterval) clearInterval(challengeInterval);
 
     challengeInterval = setInterval(() => {
         timeLeft--;
-        let seconds = timeLeft % 60;
-        if (timerDisplay) timerDisplay.textContent = "00:" + (seconds < 10 ? "0" : "") + seconds;
+        updateTimerDisplay();
 
         if (timeLeft <= 0) {
             clearInterval(challengeInterval);
+            if (tapButton) tapButton.disabled = true;
             
-            // Calcul résultat
-            const targetScore = 10;
-            if (score >= targetScore) {
-                showMessage(`🎉 VICTOIRE ! +€${(selectedBet * 2).toFixed(1)} !`);
-            } else {
-                showMessage(`❌ DÉFAITE ! Perte de €${selectedBet}.`);
-            }
-
-            setTimeout(() => {
-                score = 0;
-                updateScore();
-                startAutoChallengeTimer();
-            }, 2000);
+            showMessage("⏰ TEMPS ÉCOULÉ ! Score final enregistré.");
         }
     }, 1000);
+}
+
+function updateTimerDisplay() {
+    const timerDisplay = $("timer");
+    if (!timerDisplay) return;
+    
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    timerDisplay.textContent = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
 }
 
 /* =========================================================
@@ -117,7 +116,7 @@ async function joinChallenge() {
         }
 
         showMessage("🔥 TU ES DANS LE CHALLENGE !");
-        startAutoChallengeTimer();
+        startPersonalTimer();
         loadLeaderboard();
     } catch (error) {
         // Affiche proprement le message du serveur (ex: "Ce pseudo est déjà pris...")
@@ -131,6 +130,7 @@ async function joinChallenge() {
 ========================================================= */
 function sendTap() {
     if (!joined) return showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
+    if (timeLeft <= 0) return showMessage("⏰ TEMPS ÉCOULÉ POUR CETTE PARTIE");
 
     localTaps++;
     score++;
