@@ -1,5 +1,5 @@
 /* =========================================================
-   MILTAPE WORLD CHALLENGE - VERSION CORRIGÉE (CHRONO LOCAL)
+   MILTAPE WORLD CHALLENGE - VERSION CORRIGÉE & GESTION PSEUDO
 ========================================================= */
 
 const API_URL = "https://miltape-backend-production.up.railway.app";
@@ -36,7 +36,7 @@ function showMessage(text) {
     if (!message) return;
     message.textContent = text;
     message.classList.add("show");
-    setTimeout(() => { message.classList.remove("show"); }, 1800);
+    setTimeout(() => { message.classList.remove("show"); }, 2500);
 }
 
 /* =========================================================
@@ -80,7 +80,7 @@ function startAutoChallengeTimer() {
 }
 
 /* =========================================================
-   REJOINDRE LE JEU
+   REJOINDRE LE JEU (AVEC GESTION DU PSEUDO DÉJÀ PRIS)
 ========================================================= */
 async function joinChallenge() {
     const nameInput = $("customPlayerName");
@@ -97,7 +97,11 @@ async function joinChallenge() {
         });
 
         const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || "JOIN_ERROR");
+
+        // Si le serveur refuse (ex: pseudo déjà pris), on déclenche une erreur avec le texte du serveur
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "JOIN_ERROR");
+        }
 
         joined = true;
         score = 0;
@@ -116,7 +120,9 @@ async function joinChallenge() {
         startAutoChallengeTimer();
         loadLeaderboard();
     } catch (error) {
-        showMessage("❌ " + (error.message || "ERREUR"));
+        // Affiche proprement le message du serveur (ex: "Ce pseudo est déjà pris...")
+        console.error("JOIN ERROR:", error);
+        showMessage("❌ " + error.message);
     }
 }
 
@@ -154,10 +160,9 @@ function updateScore() {
 }
 
 /* =========================================================
-   INITIALISATION (SANS CONFLIT SERVEUR)
+   INITIALISATION
 ========================================================= */
 async function initMiltape() {
-    // Initialisation des boutons et inputs
     const customBetInput = $("customBetInput");
     if (customBetInput) customBetInput.addEventListener("input", () => {
         selectedBet = parseFloat(customBetInput.value) || 0;
@@ -173,7 +178,6 @@ async function initMiltape() {
     const tapButton = $("tapButton");
     if (tapButton) tapButton.addEventListener("click", sendTap);
 
-    // Lancement du classement et chat en fond
     loadLeaderboard();
     loadChat();
     leaderboardInterval = setInterval(loadLeaderboard, 3000);
