@@ -3,13 +3,6 @@
    CLIENT JAVASCRIPT
    MODE DEMO — SANS ARGENT RÉEL
 ========================================================= */
-const API_URL = "https://miltape-backend-production.up.railway.app";
-const API_URL = "https://thorough-gratitude-production.up.railway.app";
-/* =========================================================
-   MILTAPE WORLD CHALLENGE
-   CLIENT JAVASCRIPT
-   MODE DEMO — SANS ARGENT RÉEL
-========================================================= */
 
 const API_URL = "https://thorough-gratitude-production.up.railway.app";
 
