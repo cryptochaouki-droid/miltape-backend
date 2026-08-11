@@ -225,12 +225,10 @@ function renderLeaderboard(players) {
         else if (p.position === 3) nameColor = "#CD7F32";
 
         return `
-            <div class="ranking-row ${isMe ? 'me' : ''}" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="rank" style="font-weight: bold;">#${p.position}</span>
-                    <strong class="player-name" style="color: ${nameColor};">${escapeHTML(p.playerName)}</strong>
-                </div>
-                <span class="score" style="font-weight: bold;">${p.score}</span>
+            <div class="leaderboard-item ${isMe ? 'me' : ''}">
+                <div class="rank">#${p.position}</div>
+                <div class="player-name" style="color: ${nameColor};">${escapeHTML(p.playerName)}</div>
+                <div class="player-score">${p.score}</div>
             </div>
         `;
     }).join("");
