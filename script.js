@@ -43,7 +43,6 @@ function showMessage(text) {
    GESTION DU CHRONO PERSONNEL (10 MINUTES)
 ========================================================= */
 function startPersonalTimer() {
-    const timerDisplay = $("timer");
     const tapButton = $("tapButton");
     const tapMessage = $("tapMessage");
 
@@ -176,6 +175,21 @@ async function initMiltape() {
     const tapButton = $("tapButton");
     if (tapButton) tapButton.addEventListener("click", sendTap);
 
+    // Écouteurs pour le Chat
+    const chatSendButton = $("chatSend");
+    if (chatSendButton) {
+        chatSendButton.addEventListener("click", sendChatMessage);
+    }
+
+    const chatInput = $("chatInput");
+    if (chatInput) {
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                sendChatMessage();
+            }
+        });
+    }
+
     loadLeaderboard();
     loadChat();
     leaderboardInterval = setInterval(loadLeaderboard, 3000);
@@ -205,7 +219,6 @@ function renderLeaderboard(players) {
     list.innerHTML = players.map(p => {
         const isMe = p.playerId === playerId;
         
-        // Couleur personnalisée selon le rang (1er = Or, 2ème = Argent, 3ème = Bronze, autres = Blanc)
         let nameColor = "#ffffff";
         if (p.position === 1) nameColor = "#FFD700";
         else if (p.position === 2) nameColor = "#C0C0C0";
@@ -229,6 +242,9 @@ function escapeHTML(str) {
     );
 }
 
+/* =========================================================
+   CHAT — CHARGER ET ENVOYER LES MESSAGES
+========================================================= */
 async function loadChat() {
     try {
         const res = await fetch(API_URL + "/api/chat");
@@ -239,8 +255,40 @@ async function loadChat() {
 
 function renderChat(msgs) {
     const container = $("chatMessages");
-    if (container) container.innerHTML = msgs.map(m => `
-        <div class="chat-message"><strong>${m.playerName}:</strong> ${m.message}</div>`).join("");
+    if (!container) return;
+    container.innerHTML = msgs.map(m => `
+        <div class="chat-message"><strong>${escapeHTML(m.playerName)}:</strong> ${escapeHTML(m.message)}</div>`).join("");
+}
+
+async function sendChatMessage() {
+    const chatInput = $("chatInput");
+    if (!chatInput) return;
+    
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    if (!joined) {
+        showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
+        return;
+    }
+
+    try {
+        const response = await fetch(API_URL + "/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId, playerName, message })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            chatInput.value = ""; 
+            loadChat(); 
+        } else {
+            showMessage("❌ Erreur d'envoi du message");
+        }
+    } catch (e) {
+        console.error("Chat send error", e);
+    }
 }
 
 document.addEventListener("DOMContentLoaded", initMiltape);
