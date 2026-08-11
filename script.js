@@ -1,581 +1,986 @@
-/* =========================================================
-   MILTAPE WORLD CHALLENGE
-   VRAI CLASSEMENT + VRAI CHAT TEMPS RÉEL
-   ========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
 
-/* ---------------------------------------------------------
-   1. CONFIGURATION SUPABASE
-   --------------------------------------------------------- */
+    // =====================================================
+    // MILTAPE WORLD CHALLENGE
+    // Connexion au serveur Railway + MongoDB
+    // =====================================================
 
-const SUPABASE_URL = "TON_URL_SUPABASE";
-const SUPABASE_ANON_KEY = "TA_CLE_ANON_SUPABASE";
+    // ⚠️ REMPLACE CETTE URL PAR TON DOMAINE PUBLIC RAILWAY
+    const API_URL = "https://TON-DOMAINE-RAILWAY.up.railway.app";
 
-const { createClient } = window.supabase;
+    // =====================================================
+    // JOUEUR
+    // =====================================================
 
-const db = createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
+    let playerId = localStorage.getItem("miltapePlayerId");
 
+    if (!playerId) {
+        playerId =
+            "player_" +
+            Date.now() +
+            "_" +
+            Math.random().toString(36).substring(2, 8);
 
-/* ---------------------------------------------------------
-   2. ÉTAT DU JOUEUR
-   --------------------------------------------------------- */
-
-let playerId = localStorage.getItem("miltape_player_id");
-let playerName = localStorage.getItem("miltape_player_name");
-
-if (!playerId) {
-    playerId = crypto.randomUUID();
-    localStorage.setItem("miltape_player_id", playerId);
-}
-
-if (!playerName) {
-    playerName = "Joueur-" + Math.floor(Math.random() * 9999);
-    localStorage.setItem("miltape_player_name", playerName);
-}
-
-let currentGameId = null;
-let tapCount = 0;
-let gameStarted = false;
-let gameFinished = false;
-
-
-/* ---------------------------------------------------------
-   3. CRÉER / RÉCUPÉRER LA PARTIE ACTIVE
-   --------------------------------------------------------- */
-
-async function getActiveGame() {
-
-    const { data, error } = await db
-        .from("games")
-        .select("*")
-        .eq("status", "waiting")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    if (error) {
-        console.error("Erreur partie :", error);
-        return null;
+        localStorage.setItem(
+            "miltapePlayerId",
+            playerId
+        );
     }
 
-    if (data) {
-        currentGameId = data.id;
+    let playerName =
+        localStorage.getItem("miltapePlayerName");
+
+    if (!playerName) {
+
+        playerName =
+            "Player" +
+            Math.floor(
+                Math.random() * 9999
+            );
+
+        localStorage.setItem(
+            "miltapePlayerName",
+            playerName
+        );
+    }
+
+    // =====================================================
+    // VARIABLES
+    // =====================================================
+
+    let taps = 0;
+    let combo = 1;
+    let power = 100;
+    let level = 1;
+
+    let selectedBet = 1;
+
+    let gameStarted = false;
+
+    let timeLeft = 600;
+
+    let timerInterval = null;
+
+    let serverGameId = null;
+
+    // =====================================================
+    // ELEMENTS
+    // =====================================================
+
+    const timer =
+        document.getElementById("timer");
+
+    const tapButton =
+        document.getElementById("tapButton");
+
+    const tapCount =
+        document.getElementById("tapCount");
+
+    const tapButtonCount =
+        document.getElementById("tapButtonCount");
+
+    const comboElement =
+        document.getElementById("combo");
+
+    const powerElement =
+        document.getElementById("power");
+
+    const levelElement =
+        document.getElementById("level");
+
+    const levelProgress =
+        document.getElementById("levelProgress");
+
+    const selectedBetElement =
+        document.getElementById("selectedBet");
+
+    const tapMessage =
+        document.getElementById("tapMessage");
+
+    const leaderboardList =
+        document.getElementById(
+            "leaderboardList"
+        );
+
+    const chatMessages =
+        document.getElementById(
+            "chatMessages"
+        );
+
+    const chatInput =
+        document.getElementById(
+            "chatInput"
+        );
+
+    const chatSend =
+        document.getElementById(
+            "chatSend"
+        );
+
+    // =====================================================
+    // API
+    // =====================================================
+
+    async function api(
+        endpoint,
+        options = {}
+    ) {
+
+        const response =
+            await fetch(
+                API_URL + endpoint,
+                {
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    ...options
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "SERVER_ERROR"
+            );
+        }
+
         return data;
     }
 
-    return await createGame();
-}
+    // =====================================================
+    // BET
+    // =====================================================
 
+    document
+        .querySelectorAll(".bet-button")
+        .forEach(button => {
 
-/* ---------------------------------------------------------
-   4. CRÉER UNE PARTIE
-   --------------------------------------------------------- */
+            button.addEventListener(
+                "click",
+                () => {
 
-async function createGame() {
+                    selectedBet =
+                        Number(
+                            button.dataset.bet
+                        );
 
-    const now = new Date();
-    const end = new Date(now.getTime() + 10 * 60 * 1000);
+                    if (
+                        selectedBetElement
+                    ) {
 
-    const { data, error } = await db
-        .from("games")
-        .insert({
-            status: "waiting",
-            starts_at: now.toISOString(),
-            ends_at: end.toISOString()
-        })
-        .select()
-        .single();
+                        selectedBetElement.textContent =
+                            "€" +
+                            selectedBet;
 
-    if (error) {
-        console.error("Création partie impossible :", error);
-        return null;
-    }
+                    }
 
-    currentGameId = data.id;
+                    document
+                        .querySelectorAll(
+                            ".bet-button"
+                        )
+                        .forEach(
+                            b =>
+                                b.classList.remove(
+                                    "selected"
+                                )
+                        );
 
-    return data;
-}
+                    button.classList.add(
+                        "selected"
+                    );
 
+                    if (tapMessage) {
 
-/* ---------------------------------------------------------
-   5. REJOINDRE UNE PARTIE
-   --------------------------------------------------------- */
+                        tapMessage.textContent =
+                            "BET €" +
+                            selectedBet +
+                            " SELECTED";
 
-async function joinGame() {
+                    }
 
-    const game = await getActiveGame();
+                }
+            );
 
-    if (!game) {
-        alert("Impossible de rejoindre la partie.");
-        return;
-    }
-
-    currentGameId = game.id;
-
-    const { error } = await db
-        .from("players")
-        .upsert({
-            id: playerId,
-            name: playerName,
-            game_id: currentGameId,
-            score: 0,
-            updated_at: new Date().toISOString()
         });
 
-    if (error) {
-        console.error("Erreur inscription :", error);
-        alert("Impossible de rejoindre la partie.");
-        return;
+    // =====================================================
+    // CHARGER LA PARTIE
+    // =====================================================
+
+    async function loadGame() {
+
+        try {
+
+            const data =
+                await api(
+                    "/api/game"
+                );
+
+            if (
+                data.success &&
+                data.game
+            ) {
+
+                serverGameId =
+                    data.game.id;
+
+                const endTime =
+                    new Date(
+                        data.game.endsAt
+                    ).getTime();
+
+                timeLeft =
+                    Math.max(
+                        0,
+                        Math.floor(
+                            (
+                                endTime -
+                                Date.now()
+                            ) / 1000
+                        )
+                    );
+
+                updateTimer();
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "GAME LOAD ERROR:",
+                error
+            );
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "⚠️ SERVER CONNECTION ERROR";
+
+            }
+
+        }
+
     }
 
-    tapCount = 0;
-    gameStarted = true;
-    gameFinished = false;
+    // =====================================================
+    // ENTRER DANS LA PARTIE
+    // =====================================================
 
-    console.log("Joueur connecté :", playerName);
+    async function enterChallenge() {
 
-    startGameTimer(game);
-    loadLeaderboard();
-}
+        try {
 
+            if (tapMessage) {
 
-/* ---------------------------------------------------------
-   6. TAPER
-   --------------------------------------------------------- */
+                tapMessage.textContent =
+                    "⏳ CONNECTING...";
 
-async function registerTap() {
+            }
 
-    if (!gameStarted || gameFinished || !currentGameId) {
-        return;
+            const data =
+                await api(
+                    "/api/join",
+                    {
+                        method: "POST",
+
+                        body: JSON.stringify({
+                            playerId,
+                            playerName
+                        })
+                    }
+                );
+
+            if (!data.success) {
+                throw new Error(
+                    "JOIN_FAILED"
+                );
+            }
+
+            serverGameId =
+                data.game.id;
+
+            const endTime =
+                new Date(
+                    data.game.endsAt
+                ).getTime();
+
+            timeLeft =
+                Math.max(
+                    0,
+                    Math.floor(
+                        (
+                            endTime -
+                            Date.now()
+                        ) / 1000
+                    )
+                );
+
+            startLocalGame();
+
+            await loadLeaderboard();
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🔥 TAP TO PLAY";
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "JOIN ERROR:",
+                error
+            );
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "❌ CANNOT ENTER";
+
+            }
+
+        }
+
     }
 
-    tapCount++;
+    // =====================================================
+    // DÉTECTER LE BOUTON ENTER CHALLENGE
+    // =====================================================
 
-    /*
-       Mise à jour du score côté serveur.
-       On envoie le nouveau score.
-    */
+    const enterChallengeButton =
+        document.getElementById(
+            "enterChallenge"
+        );
 
-    const { error } = await db
-        .from("players")
-        .update({
-            score: tapCount,
-            updated_at: new Date().toISOString()
-        })
-        .eq("id", playerId)
-        .eq("game_id", currentGameId);
+    const confirmEntry =
+        document.getElementById(
+            "confirmEntry"
+        );
 
-    if (error) {
-        console.error("Erreur score :", error);
-        return;
-    }
+    const cancelEntry =
+        document.getElementById(
+            "cancelEntry"
+        );
 
-    updateLocalScore();
-}
+    const entryModal =
+        document.getElementById(
+            "entryModal"
+        );
 
+    const entryBet =
+        document.getElementById(
+            "entryBet"
+        );
 
-/* ---------------------------------------------------------
-   7. AFFICHER LE SCORE
-   --------------------------------------------------------- */
+    if (enterChallengeButton) {
 
-function updateLocalScore() {
-
-    const elements = document.querySelectorAll(
-        "#score, .score, [data-score]"
-    );
-
-    elements.forEach(element => {
-        element.textContent = tapCount.toLocaleString("fr-FR");
-    });
-}
-
-
-/* ---------------------------------------------------------
-   8. CHARGER LE CLASSEMENT
-   --------------------------------------------------------- */
-
-async function loadLeaderboard() {
-
-    if (!currentGameId) return;
-
-    const { data, error } = await db
-        .from("players")
-        .select("id,name,score")
-        .eq("game_id", currentGameId)
-        .order("score", { ascending: false })
-        .limit(5);
-
-    if (error) {
-        console.error("Erreur classement :", error);
-        return;
-    }
-
-    displayLeaderboard(data);
-}
-
-
-/* ---------------------------------------------------------
-   9. AFFICHER LE TOP 5
-   --------------------------------------------------------- */
-
-function displayLeaderboard(players) {
-
-    let container =
-        document.querySelector("#leaderboard") ||
-        document.querySelector(".leaderboard") ||
-        document.querySelector("[data-leaderboard]");
-
-    if (!container) {
-        console.warn("Zone classement introuvable.");
-        return;
-    }
-
-    container.innerHTML = "";
-
-    players.forEach((player, index) => {
-
-        const row = document.createElement("div");
-
-        row.className = "leaderboard-row";
-
-        let medal = "";
-
-        if (index === 0) medal = "🥇";
-        else if (index === 1) medal = "🥈";
-        else if (index === 2) medal = "🥉";
-        else medal = `${index + 1}`;
-
-        row.innerHTML = `
-            <div class="rank">${medal}</div>
-            <div class="player-name">
-                ${escapeHTML(player.name)}
-            </div>
-            <div class="player-score">
-                ${Number(player.score).toLocaleString("fr-FR")}
-            </div>
-        `;
-
-        container.appendChild(row);
-    });
-}
-
-
-/* ---------------------------------------------------------
-   10. TEMPS RÉEL DU CLASSEMENT
-   --------------------------------------------------------- */
-
-function subscribeLeaderboard() {
-
-    if (!currentGameId) return;
-
-    db
-        .channel("miltape-leaderboard-" + currentGameId)
-        .on(
-            "postgres_changes",
-            {
-                event: "*",
-                schema: "public",
-                table: "players",
-                filter: `game_id=eq.${currentGameId}`
-            },
+        enterChallengeButton.addEventListener(
+            "click",
             () => {
-                loadLeaderboard();
+
+                if (entryBet) {
+
+                    entryBet.textContent =
+                        "€" +
+                        selectedBet;
+
+                }
+
+                if (entryModal) {
+
+                    entryModal.classList.add(
+                        "show"
+                    );
+
+                } else {
+
+                    enterChallenge();
+
+                }
+
             }
-        )
-        .subscribe();
-}
+        );
 
-
-/* ---------------------------------------------------------
-   11. CHAT
-   --------------------------------------------------------- */
-
-async function sendChatMessage() {
-
-    const input =
-        document.querySelector("#chatInput") ||
-        document.querySelector("[data-chat-input]");
-
-    if (!input) return;
-
-    const message = input.value.trim();
-
-    if (!message) return;
-
-    if (message.length > 250) {
-        alert("Message trop long.");
-        return;
     }
 
-    const { error } = await db
-        .from("chat_messages")
-        .insert({
-            player_id: playerId,
-            player_name: playerName,
-            message: message
-        });
+    // =====================================================
+    // ANNULER
+    // =====================================================
 
-    if (error) {
-        console.error("Erreur chat :", error);
-        alert("Impossible d'envoyer le message.");
-        return;
-    }
+    if (cancelEntry) {
 
-    input.value = "";
-}
+        cancelEntry.addEventListener(
+            "click",
+            () => {
 
+                if (entryModal) {
 
-/* ---------------------------------------------------------
-   12. CHARGER LE CHAT
-   --------------------------------------------------------- */
+                    entryModal.classList.remove(
+                        "show"
+                    );
 
-async function loadChat() {
+                }
 
-    const { data, error } = await db
-        .from("chat_messages")
-        .select("*")
-        .order("created_at", { ascending: true })
-        .limit(100);
-
-    if (error) {
-        console.error("Erreur chargement chat :", error);
-        return;
-    }
-
-    data.forEach(message => {
-        displayChatMessage(message);
-    });
-}
-
-
-/* ---------------------------------------------------------
-   13. AFFICHER MESSAGE
-   --------------------------------------------------------- */
-
-function displayChatMessage(message) {
-
-    const container =
-        document.querySelector("#chatMessages") ||
-        document.querySelector(".chat-messages") ||
-        document.querySelector("[data-chat-messages]");
-
-    if (!container) return;
-
-    const div = document.createElement("div");
-
-    div.className = "chat-message";
-
-    div.innerHTML = `
-        <strong>${escapeHTML(message.player_name)}</strong>
-        <span>${escapeHTML(message.message)}</span>
-    `;
-
-    container.appendChild(div);
-
-    container.scrollTop = container.scrollHeight;
-}
-
-
-/* ---------------------------------------------------------
-   14. CHAT TEMPS RÉEL
-   --------------------------------------------------------- */
-
-function subscribeChat() {
-
-    db
-        .channel("miltape-global-chat")
-        .on(
-            "postgres_changes",
-            {
-                event: "INSERT",
-                schema: "public",
-                table: "chat_messages"
-            },
-            payload => {
-                displayChatMessage(payload.new);
             }
-        )
-        .subscribe();
-}
+        );
 
+    }
 
-/* ---------------------------------------------------------
-   15. TIMER
-   --------------------------------------------------------- */
+    // =====================================================
+    // CONFIRMER
+    // =====================================================
 
-function startGameTimer(game) {
+    if (confirmEntry) {
 
-    const timer =
-        document.querySelector("#timer") ||
-        document.querySelector(".timer") ||
-        document.querySelector("[data-timer]");
+        confirmEntry.addEventListener(
+            "click",
+            async () => {
+
+                if (entryModal) {
+
+                    entryModal.classList.remove(
+                        "show"
+                    );
+
+                }
+
+                await enterChallenge();
+
+            }
+        );
+
+    }
+
+    // =====================================================
+    // START LOCAL GAME
+    // =====================================================
+
+    function startLocalGame() {
+
+        gameStarted = true;
+
+        taps = 0;
+        combo = 1;
+        power = 100;
+        level = 1;
+
+        if (tapButton) {
+
+            tapButton.disabled =
+                false;
+
+        }
+
+        updateDisplay();
+        updateTimer();
+
+        clearInterval(
+            timerInterval
+        );
+
+        timerInterval =
+            setInterval(
+                updateGameTimer,
+                1000
+            );
+
+    }
+
+    // =====================================================
+    // TIMER
+    // =====================================================
+
+    function updateGameTimer() {
+
+        if (!gameStarted) {
+            return;
+        }
+
+        timeLeft--;
+
+        if (timeLeft <= 0) {
+
+            timeLeft = 0;
+
+            gameStarted = false;
+
+            if (tapButton) {
+
+                tapButton.disabled =
+                    true;
+
+            }
+
+            clearInterval(
+                timerInterval
+            );
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🏆 CHALLENGE FINISHED";
+
+            }
+
+        }
+
+        updateTimer();
+
+    }
 
     function updateTimer() {
 
-        const end = new Date(game.ends_at).getTime();
-        const now = Date.now();
-
-        const remaining = Math.max(0, end - now);
+        if (!timer) {
+            return;
+        }
 
         const minutes =
-            Math.floor(remaining / 60000)
-                .toString()
-                .padStart(2, "0");
+            Math.floor(
+                timeLeft / 60
+            );
 
         const seconds =
-            Math.floor((remaining % 60000) / 1000)
-                .toString()
+            timeLeft % 60;
+
+        timer.textContent =
+            String(minutes)
+                .padStart(2, "0") +
+            ":" +
+            String(seconds)
                 .padStart(2, "0");
-
-        if (timer) {
-            timer.textContent = `${minutes}:${seconds}`;
-        }
-
-        if (remaining <= 0) {
-
-            clearInterval(interval);
-
-            gameFinished = true;
-            gameStarted = false;
-
-            finishGame();
-        }
     }
+
+    // =====================================================
+    // TAP
+    // =====================================================
+
+    if (tapButton) {
+
+        tapButton.disabled = true;
+
+        tapButton.addEventListener(
+            "click",
+            async () => {
+
+                if (!gameStarted) {
+
+                    if (tapMessage) {
+
+                        tapMessage.textContent =
+                            "⚡ ENTER CHALLENGE FIRST";
+
+                    }
+
+                    return;
+                }
+
+                if (timeLeft <= 0) {
+                    return;
+                }
+
+                // Affichage immédiat
+                taps++;
+
+                combo++;
+
+                if (combo > 99) {
+                    combo = 99;
+                }
+
+                power--;
+
+                if (power < 0) {
+                    power = 0;
+                }
+
+                level =
+                    Math.floor(
+                        taps / 100
+                    ) + 1;
+
+                updateDisplay();
+
+                // Animation
+                tapButton.classList.remove(
+                    "tap-animation"
+                );
+
+                void tapButton.offsetWidth;
+
+                tapButton.classList.add(
+                    "tap-animation"
+                );
+
+                // Envoi au serveur
+                try {
+
+                    const data =
+                        await api(
+                            "/api/tap",
+                            {
+                                method: "POST",
+
+                                body:
+                                    JSON.stringify({
+                                        playerId
+                                    })
+                            }
+                        );
+
+                    if (
+                        data.success &&
+                        typeof data.score ===
+                        "number"
+                    ) {
+
+                        taps =
+                            data.score;
+
+                        updateDisplay();
+
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        "TAP SERVER ERROR:",
+                        error
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+    // =====================================================
+    // AFFICHAGE
+    // =====================================================
+
+    function updateDisplay() {
+
+        if (tapCount) {
+
+            tapCount.textContent =
+                taps;
+
+        }
+
+        if (tapButtonCount) {
+
+            tapButtonCount.textContent =
+                taps;
+
+        }
+
+        if (comboElement) {
+
+            comboElement.textContent =
+                "x" + combo;
+
+        }
+
+        if (powerElement) {
+
+            powerElement.textContent =
+                power + "%";
+
+        }
+
+        if (levelElement) {
+
+            levelElement.textContent =
+                level;
+
+        }
+
+        if (levelProgress) {
+
+            levelProgress.style.width =
+                (taps % 100) + "%";
+
+        }
+
+    }
+
+    // =====================================================
+    // CLASSEMENT TOP 5
+    // =====================================================
+
+    async function loadLeaderboard() {
+
+        try {
+
+            const data =
+                await api(
+                    "/api/leaderboard"
+                );
+
+            if (
+                !data.success ||
+                !leaderboardList
+            ) {
+                return;
+            }
+
+            leaderboardList.innerHTML =
+                "";
+
+            data.players.forEach(
+                player => {
+
+                    const row =
+                        document.createElement(
+                            "div"
+                        );
+
+                    row.className =
+                        "player-row";
+
+                    row.innerHTML = `
+                        <span class="rank">
+                            ${player.position}
+                        </span>
+
+                        <span class="player-name">
+                            ${escapeHTML(
+                                player.playerName
+                            )}
+                        </span>
+
+                        <strong class="player-taps">
+                            ${player.score}
+                        </strong>
+                    `;
+
+                    leaderboardList.appendChild(
+                        row
+                    );
+
+                }
+            );
+
+        } catch (error) {
+
+            console.error(
+                "LEADERBOARD ERROR:",
+                error
+            );
+
+        }
+
+    }
+
+    // Actualiser le classement
+    setInterval(
+        loadLeaderboard,
+        3000
+    );
+
+    // =====================================================
+    // CHAT
+    // =====================================================
+
+    async function loadChat() {
+
+        try {
+
+            const data =
+                await api(
+                    "/api/chat"
+                );
+
+            if (
+                !data.success ||
+                !chatMessages
+            ) {
+                return;
+            }
+
+            chatMessages.innerHTML =
+                "";
+
+            data.messages.forEach(
+                message => {
+
+                    addChatMessage(
+                        message.playerName,
+                        message.message
+                    );
+
+                }
+            );
+
+            chatMessages.scrollTop =
+                chatMessages.scrollHeight;
+
+        } catch (error) {
+
+            console.error(
+                "CHAT LOAD ERROR:",
+                error
+            );
+
+        }
+
+    }
+
+    function addChatMessage(
+        name,
+        message
+    ) {
+
+        if (!chatMessages) {
+            return;
+        }
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+        div.className =
+            "chat-message";
+
+        div.innerHTML = `
+            <strong>
+                ${escapeHTML(name)}:
+            </strong>
+            ${escapeHTML(message)}
+        `;
+
+        chatMessages.appendChild(
+            div
+        );
+
+    }
+
+    async function sendChat() {
+
+        if (!chatInput) {
+            return;
+        }
+
+        const message =
+            chatInput.value.trim();
+
+        if (!message) {
+            return;
+        }
+
+        try {
+
+            await api(
+                "/api/chat",
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+                            playerId,
+                            playerName,
+                            message
+                        })
+                }
+            );
+
+            chatInput.value = "";
+
+            await loadChat();
+
+        } catch (error) {
+
+            console.error(
+                "CHAT SEND ERROR:",
+                error
+            );
+
+        }
+
+    }
+
+    if (chatSend) {
+
+        chatSend.addEventListener(
+            "click",
+            sendChat
+        );
+
+    }
+
+    if (chatInput) {
+
+        chatInput.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key ===
+                    "Enter"
+                ) {
+
+                    sendChat();
+
+                }
+
+            }
+        );
+
+    }
+
+    // =====================================================
+    // SÉCURITÉ HTML
+    // =====================================================
+
+    function escapeHTML(value) {
+
+        return String(value)
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+    // =====================================================
+    // INITIALISATION
+    // =====================================================
+
+    updateDisplay();
 
     updateTimer();
 
-    const interval = setInterval(updateTimer, 1000);
-}
+    loadGame();
 
+    loadLeaderboard();
 
-/* ---------------------------------------------------------
-   16. FIN DE PARTIE
-   --------------------------------------------------------- */
+    loadChat();
 
-async function finishGame() {
-
-    await loadLeaderboard();
-
-    alert(
-        "🏆 PARTIE TERMINÉE !\n\n" +
-        "Le classement final est en cours de calcul."
-    );
-}
-
-
-/* ---------------------------------------------------------
-   17. UTILITAIRE ANTI HTML
-   --------------------------------------------------------- */
-
-function escapeHTML(value) {
-
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
-
-
-/* ---------------------------------------------------------
-   18. BOUTON TAP
-   --------------------------------------------------------- */
-
-function setupTapButton() {
-
-    const button =
-        document.querySelector("#tapButton") ||
-        document.querySelector(".tap-button") ||
-        document.querySelector("[data-tap]");
-
-    if (!button) {
-        console.warn("Bouton TAP introuvable.");
-        return;
-    }
-
-    button.addEventListener("click", registerTap);
-
-    button.addEventListener(
-        "touchstart",
-        event => {
-            event.preventDefault();
-            registerTap();
-        },
-        { passive: false }
-    );
-}
-
-
-/* ---------------------------------------------------------
-   19. BOUTON JOUER
-   --------------------------------------------------------- */
-
-function setupPlayButton() {
-
-    const buttons = document.querySelectorAll(
-        "#playButton, .play-button, [data-play]"
+    console.log(
+        "🔥 MILTAPE WORLD CHALLENGE CONNECTÉ"
     );
 
-    buttons.forEach(button => {
-
-        button.addEventListener("click", async () => {
-
-            await joinGame();
-
-            subscribeLeaderboard();
-        });
-    });
-}
-
-
-/* ---------------------------------------------------------
-   20. CHAT INPUT
-   --------------------------------------------------------- */
-
-function setupChat() {
-
-    const button =
-        document.querySelector("#sendChat") ||
-        document.querySelector("[data-send-chat]");
-
-    if (button) {
-        button.addEventListener("click", sendChatMessage);
-    }
-
-    const input =
-        document.querySelector("#chatInput") ||
-        document.querySelector("[data-chat-input]");
-
-    if (input) {
-
-        input.addEventListener("keydown", event => {
-
-            if (event.key === "Enter") {
-                event.preventDefault();
-                sendChatMessage();
-            }
-
-        });
-    }
-}
-
-
-/* ---------------------------------------------------------
-   21. DÉMARRAGE
-   --------------------------------------------------------- */
-
-document.addEventListener("DOMContentLoaded", async () => {
-
-    console.log("🔥 MILTAPE WORLD CHALLENGE");
-
-    setupTapButton();
-    setupPlayButton();
-    setupChat();
-
-    await loadChat();
-
-    subscribeChat();
 });
