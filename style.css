@@ -229,20 +229,20 @@ body {
 
 
 /* =====================================================
-   HERO
+   HERO (VERSION COMPACTE)
 ===================================================== */
 
 .hero {
 
     position: relative;
 
-    margin: 14px 12px 0;
+    margin: 10px 12px 0;
 
-    height: 210px;
+    height: 130px;
 
     overflow: hidden;
 
-    border-radius: 25px;
+    border-radius: 20px;
 
     border:
         1px solid
@@ -257,9 +257,9 @@ body {
         #110020;
 
     box-shadow:
-        0 0 35px
+        0 0 25px
         rgba(128, 27, 255, .22),
-        inset 0 0 35px
+        inset 0 0 25px
         rgba(255, 255, 255, .03);
 }
 
@@ -274,7 +274,7 @@ body {
 
     object-fit: cover;
 
-    opacity: .55;
+    opacity: .45;
 
     mix-blend-mode: screen;
 }
@@ -290,9 +290,9 @@ body {
     background:
         linear-gradient(
             180deg,
-            transparent 15%,
-            rgba(7, 0, 15, .25) 45%,
-            rgba(7, 0, 15, .94) 100%
+            transparent 10%,
+            rgba(7, 0, 15, .3) 40%,
+            rgba(7, 0, 15, .92) 100%
         );
 }
 
@@ -304,7 +304,7 @@ body {
 
     left: 0;
     right: 0;
-    bottom: 18px;
+    bottom: 10px;
 
     text-align: center;
 
@@ -313,48 +313,48 @@ body {
 
 .hero h1 {
 
-    font-size: clamp(38px, 12vw, 58px);
+    font-size: clamp(28px, 9vw, 42px);
 
     font-weight: 1000;
 
-    line-height: .82;
+    line-height: .85;
 
-    letter-spacing: -2px;
+    letter-spacing: -1.5px;
 
     color: #fff;
 
     text-shadow:
-        0 3px 0 #6e12a6,
-        0 0 12px rgba(192, 55, 255, .8),
-        0 0 35px rgba(255, 38, 219, .35);
+        0 2px 0 #6e12a6,
+        0 0 10px rgba(192, 55, 255, .8),
+        0 0 25px rgba(255, 38, 219, .35);
 }
 
 .hero h1 span {
 
     display: block;
 
-    margin-top: 8px;
+    margin-top: 4px;
 
-    font-size: 16px;
+    font-size: 13px;
 
-    letter-spacing: 5px;
+    letter-spacing: 4px;
 
     color: var(--gold);
 
     text-shadow:
-        0 0 12px
+        0 0 10px
         rgba(255, 216, 77, .65);
 }
 
 .slogan {
 
-    margin-top: 10px;
+    margin-top: 5px;
 
-    font-size: 10px;
+    font-size: 9px;
 
     font-weight: 800;
 
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
 
     color: #ddd;
 }
@@ -924,7 +924,6 @@ body {
         filter 0.08s ease;
 }
 
-/* Effet au clic (via :active ou via la classe JS .tap-active) */
 .tap-button:not(:disabled):active,
 .tap-button.tap-active {
 
@@ -1623,11 +1622,11 @@ footer small {
 @media (max-width: 360px) {
 
     .hero {
-        height: 190px;
+        height: 120px;
     }
 
     .hero h1 {
-        font-size: 39px;
+        font-size: 32px;
     }
 
     .tap-button {
