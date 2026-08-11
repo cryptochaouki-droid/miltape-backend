@@ -1,5 +1,5 @@
 /* =========================================================
-   MILTAPE WORLD CHALLENGE - VERSION CHRONO PERSONNEL 10 MIN
+   MILTAPE WORLD CHALLENGE - VERSION FINALE CORRIGÉE
 ========================================================= */
 
 const API_URL = "https://miltape-backend-production.up.railway.app";
@@ -97,7 +97,6 @@ async function joinChallenge() {
 
         const data = await response.json();
 
-        // Si le serveur refuse (ex: pseudo déjà pris), on déclenche une erreur avec le texte du serveur
         if (!response.ok || !data.success) {
             throw new Error(data.error || "JOIN_ERROR");
         }
@@ -119,7 +118,6 @@ async function joinChallenge() {
         startPersonalTimer();
         loadLeaderboard();
     } catch (error) {
-        // Affiche proprement le message du serveur (ex: "Ce pseudo est déjà pris...")
         console.error("JOIN ERROR:", error);
         showMessage("❌ " + error.message);
     }
@@ -192,15 +190,43 @@ async function loadLeaderboard() {
     } catch (e) {}
 }
 
+/* =========================================================
+   CLASSEMENT (POSITION & PSEUDO CÔTE À CÔTE + COULEURS)
+========================================================= */
 function renderLeaderboard(players) {
     const list = $("leaderboardList");
     if (!list) return;
-    list.innerHTML = players.map(p => `
-        <div class="ranking-row ${p.playerId === playerId ? 'me' : ''}">
-            <span class="rank">${p.position}</span>
-            <strong>${p.playerName}</strong>
-            <span class="score">${p.score}</span>
-        </div>`).join("");
+
+    if (!players.length) {
+        list.innerHTML = `<div class="empty-ranking">Aucun joueur</div>`;
+        return;
+    }
+
+    list.innerHTML = players.map(p => {
+        const isMe = p.playerId === playerId;
+        
+        // Couleur personnalisée selon le rang (1er = Or, 2ème = Argent, 3ème = Bronze, autres = Blanc)
+        let nameColor = "#ffffff";
+        if (p.position === 1) nameColor = "#FFD700";
+        else if (p.position === 2) nameColor = "#C0C0C0";
+        else if (p.position === 3) nameColor = "#CD7F32";
+
+        return `
+            <div class="ranking-row ${isMe ? 'me' : ''}" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="rank" style="font-weight: bold;">#${p.position}</span>
+                    <strong class="player-name" style="color: ${nameColor};">${escapeHTML(p.playerName)}</strong>
+                </div>
+                <span class="score" style="font-weight: bold;">${p.score}</span>
+            </div>
+        `;
+    }).join("");
+}
+
+function escapeHTML(str) {
+    return String(str).replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
 }
 
 async function loadChat() {
