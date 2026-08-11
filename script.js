@@ -1,881 +1,428 @@
-document.addEventListener("DOMContentLoaded", () => {
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const { MongoClient } = require("mongodb");
 
-    /* =====================================================
-       MILTAPE WORLD CHALLENGE
-       Frontend → Railway → MongoDB
-       Version DEMO / sans argent réel
-    ===================================================== */
+const app = express();
+const server = http.createServer(app);
 
-    // =====================================================
-    // 1. URL DU SERVEUR RAILWAY
-    // =====================================================
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
-    const API_URL =
-        "https://TON-URL-RAILWAY.up.railway.app";
+app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
+
+let client;
+let db;
+let games;
+let players;
+let messages;
 
 
-    // =====================================================
-    // 2. JOUEUR
-    // =====================================================
+/* =====================================================
+   MONGODB
+===================================================== */
 
-    let playerId =
-        localStorage.getItem("miltapePlayerId");
+async function connectMongoDB() {
 
-    if (!playerId) {
-
-        playerId =
-            "player_" +
-            Date.now() +
-            "_" +
-            Math.random()
-                .toString(36)
-                .substring(2, 8);
-
-        localStorage.setItem(
-            "miltapePlayerId",
-            playerId
+    if (!MONGODB_URI) {
+        throw new Error(
+            "MONGODB_URI n'est pas configurée dans Railway"
         );
     }
 
+    client = new MongoClient(MONGODB_URI);
 
-    let playerName =
-        localStorage.getItem("miltapePlayerName");
+    await client.connect();
 
-    if (!playerName) {
+    db = client.db("miltape");
 
-        playerName =
-            "Player" +
-            Math.floor(
-                Math.random() * 9999
-            );
+    games = db.collection("games");
+    players = db.collection("players");
+    messages = db.collection("messages");
 
-        localStorage.setItem(
-            "miltapePlayerName",
-            playerName
-        );
-    }
+    await players.createIndex({
+        gameId: 1,
+        score: -1
+    });
 
+    await messages.createIndex({
+        createdAt: -1
+    });
 
-    // =====================================================
-    // 3. VARIABLES DU JEU
-    // =====================================================
-
-    let taps = 0;
-    let combo = 1;
-    let power = 100;
-    let level = 1;
-
-    let selectedBet = 1;
-
-    let gameStarted = false;
-
-    let timeLeft = 600;
-
-    let timerInterval = null;
-
-    let serverGameId = null;
+    console.log("✅ MongoDB connecté");
+}
 
 
-    // =====================================================
-    // 4. ELEMENTS HTML
-    // =====================================================
+/* =====================================================
+   PARTIE ACTIVE
+===================================================== */
 
-    const timer =
-        document.getElementById("timer");
+async function getActiveGame() {
 
-    const tapButton =
-        document.getElementById("tapButton");
-
-    const tapCount =
-        document.getElementById("tapCount");
-
-    const tapButtonCount =
-        document.getElementById(
-            "tapButtonCount"
-        );
-
-    const comboElement =
-        document.getElementById("combo");
-
-    const powerElement =
-        document.getElementById("power");
-
-    const levelElement =
-        document.getElementById("level");
-
-    const levelProgress =
-        document.getElementById(
-            "levelProgress"
-        );
-
-    const selectedBetElement =
-        document.getElementById(
-            "selectedBet"
-        );
-
-    const tapMessage =
-        document.getElementById(
-            "tapMessage"
-        );
-
-    const leaderboardList =
-        document.getElementById(
-            "leaderboardList"
-        );
-
-    const chatMessages =
-        document.getElementById(
-            "chatMessages"
-        );
-
-    const chatInput =
-        document.getElementById(
-            "chatInput"
-        );
-
-    const chatSend =
-        document.getElementById(
-            "chatSend"
-        );
-
-
-    // =====================================================
-    // 5. API
-    // =====================================================
-
-    async function api(
-        endpoint,
-        options = {}
-    ) {
-
-        const response =
-            await fetch(
-                API_URL + endpoint,
-                {
-                    ...options,
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-
-                        ...(options.headers || {})
-                    }
-                }
-            );
-
-        let data;
-
-        try {
-
-            data =
-                await response.json();
-
-        } catch {
-
-            throw new Error(
-                "SERVER_INVALID_RESPONSE"
-            );
-
+    let game = await games.findOne({
+        status: {
+            $in: ["waiting", "running"]
+        },
+        endsAt: {
+            $gt: new Date()
         }
+    });
 
-        if (!response.ok) {
+    if (!game) {
 
-            throw new Error(
-                data.error ||
-                "SERVER_ERROR"
-            );
+        const now = new Date();
 
-        }
+        const endsAt = new Date(
+            now.getTime() + 10 * 60 * 1000
+        );
 
-        return data;
+        const result =
+            await games.insertOne({
+                status: "running",
+                startsAt: now,
+                endsAt: endsAt,
+                createdAt: now
+            });
 
+        game =
+            await games.findOne({
+                _id: result.insertedId
+            });
+
+        console.log("🎮 Nouvelle partie créée");
     }
 
+    return game;
+}
 
-    // =====================================================
-    // 6. TEST SERVEUR
-    // =====================================================
 
-    async function testServer() {
+/* =====================================================
+   ACCUEIL / HEALTH CHECK
+===================================================== */
 
-        try {
+app.get("/", (req, res) => {
 
-            const data =
-                await api("/");
+    res.json({
+        success: true,
+        project: "Miltape World Challenge",
+        status: "online",
+        database:
+            db
+                ? "connected"
+                : "not connected"
+    });
 
-            console.log(
-                "MILTAPE SERVER:",
-                data
-            );
+});
 
-            if (
-                data.database ===
-                "connected"
-            ) {
 
-                console.log(
-                    "✅ MONGO DB CONNECTED"
-                );
+/* =====================================================
+   GAME
+===================================================== */
 
+app.get("/api/game", async (req, res) => {
+
+    try {
+
+        const game =
+            await getActiveGame();
+
+        res.json({
+            success: true,
+
+            game: {
+                id:
+                    game._id.toString(),
+
+                status:
+                    game.status,
+
+                startsAt:
+                    game.startsAt,
+
+                endsAt:
+                    game.endsAt
             }
-
-        } catch (error) {
-
-            console.error(
-                "❌ SERVER CONNECTION ERROR:",
-                error
-            );
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "⚠️ SERVER OFFLINE";
-
-            }
-
-        }
-
-    }
-
-
-    // =====================================================
-    // 7. CHOIX DE MISE
-    // =====================================================
-
-    document
-        .querySelectorAll(".bet-button")
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    selectedBet =
-                        Number(
-                            button.dataset.bet
-                        );
-
-                    if (
-                        selectedBetElement
-                    ) {
-
-                        selectedBetElement.textContent =
-                            "€" +
-                            selectedBet;
-
-                    }
-
-                    document
-                        .querySelectorAll(
-                            ".bet-button"
-                        )
-                        .forEach(b => {
-
-                            b.classList.remove(
-                                "selected"
-                            );
-
-                        });
-
-                    button.classList.add(
-                        "selected"
-                    );
-
-                    if (tapMessage) {
-
-                        tapMessage.textContent =
-                            "BET €" +
-                            selectedBet +
-                            " SELECTED";
-
-                    }
-
-                }
-            );
-
         });
 
+    } catch (error) {
 
-    // =====================================================
-    // 8. CHARGER LA PARTIE
-    // =====================================================
+        console.error(
+            "GAME ERROR:",
+            error
+        );
 
-    async function loadGame() {
+        res.status(500).json({
+            success: false,
+            error: "GAME_ERROR"
+        });
+    }
+
+});
+
+
+/* =====================================================
+   JOIN
+===================================================== */
+
+app.post("/api/join", async (req, res) => {
+
+    try {
+
+        const playerId =
+            String(
+                req.body.playerId || ""
+            ).trim();
+
+        const playerName =
+            String(
+                req.body.playerName || ""
+            )
+            .trim()
+            .slice(0, 30);
+
+        if (!playerId || !playerName) {
+
+            return res.status(400).json({
+                success: false,
+                error: "PLAYER_REQUIRED"
+            });
+        }
+
+        const game =
+            await getActiveGame();
+
+        await players.updateOne(
+
+            {
+                playerId: playerId,
+                gameId: game._id
+            },
+
+            {
+                $set: {
+                    playerId:
+                        playerId,
+
+                    playerName:
+                        playerName,
+
+                    gameId:
+                        game._id,
+
+                    updatedAt:
+                        new Date()
+                },
+
+                $setOnInsert: {
+                    score: 0,
+
+                    createdAt:
+                        new Date()
+                }
+            },
+
+            {
+                upsert: true
+            }
+        );
+
+        res.json({
+
+            success: true,
+
+            game: {
+                id:
+                    game._id.toString(),
+
+                endsAt:
+                    game.endsAt
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "JOIN ERROR:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            error: "JOIN_ERROR"
+        });
+    }
+
+});
+
+
+/* =====================================================
+   TAP
+===================================================== */
+
+app.post("/api/tap", async (req, res) => {
+
+    try {
+
+        const playerId =
+            String(
+                req.body.playerId || ""
+            ).trim();
+
+        if (!playerId) {
+
+            return res.status(400).json({
+                success: false,
+                error: "PLAYER_REQUIRED"
+            });
+        }
+
+        const game =
+            await getActiveGame();
+
+        if (
+            new Date() >=
+            new Date(game.endsAt)
+        ) {
+
+            await games.updateOne(
+                {
+                    _id: game._id
+                },
+                {
+                    $set: {
+                        status:
+                            "finished"
+                    }
+                }
+            );
+
+            return res.status(400).json({
+                success: false,
+                error: "GAME_FINISHED"
+            });
+        }
+
+        const result =
+            await players.findOneAndUpdate(
+
+                {
+                    playerId:
+                        playerId,
+
+                    gameId:
+                        game._id
+                },
+
+                {
+                    $inc: {
+                        score: 1
+                    },
+
+                    $set: {
+                        updatedAt:
+                            new Date()
+                    }
+                },
+
+                {
+                    returnDocument:
+                        "after"
+                }
+            );
+
+        if (!result) {
+
+            return res.status(400).json({
+                success: false,
+                error:
+                    "PLAYER_NOT_IN_GAME"
+            });
+        }
+
+        const score =
+            result.score;
+
+        io.emit(
+            "leaderboard:update"
+        );
+
+        res.json({
+            success: true,
+            score: score
+        });
+
+    } catch (error) {
+
+        console.error(
+            "TAP ERROR:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            error: "TAP_ERROR"
+        });
+    }
+
+});
+
+
+/* =====================================================
+   TOP 5
+===================================================== */
+
+app.get(
+    "/api/leaderboard",
+    async (req, res) => {
 
         try {
 
-            const data =
-                await api(
-                    "/api/game"
-                );
+            const game =
+                await getActiveGame();
 
-            if (
-                data.success &&
-                data.game
-            ) {
+            const topPlayers =
+                await players
+                    .find({
+                        gameId:
+                            game._id
+                    })
+                    .sort({
+                        score: -1
+                    })
+                    .limit(5)
+                    .toArray();
 
-                serverGameId =
-                    data.game.id;
+            res.json({
 
-                updateServerTimer(
-                    data.game.endsAt
-                );
+                success: true,
 
-            }
+                players:
+                    topPlayers.map(
+                        (player, index) => ({
 
-        } catch (error) {
+                            position:
+                                index + 1,
 
-            console.error(
-                "GAME LOAD ERROR:",
-                error
-            );
+                            playerId:
+                                player.playerId,
 
-        }
+                            playerName:
+                                player.playerName,
 
-    }
-
-
-    // =====================================================
-    // 9. TIMER SERVEUR
-    // =====================================================
-
-    function updateServerTimer(
-        endsAt
-    ) {
-
-        const endTime =
-            new Date(
-                endsAt
-            ).getTime();
-
-        function refresh() {
-
-            const difference =
-                Math.max(
-                    0,
-                    Math.floor(
-                        (
-                            endTime -
-                            Date.now()
-                        ) / 1000
+                            score:
+                                player.score || 0
+                        })
                     )
-                );
-
-            timeLeft =
-                difference;
-
-            updateTimer();
-
-        }
-
-        refresh();
-
-        clearInterval(
-            timerInterval
-        );
-
-        timerInterval =
-            setInterval(
-                refresh,
-                1000
-            );
-
-    }
-
-
-    // =====================================================
-    // 10. ENTER CHALLENGE
-    // =====================================================
-
-    const enterChallenge =
-        document.getElementById(
-            "enterChallenge"
-        );
-
-    const entryModal =
-        document.getElementById(
-            "entryModal"
-        );
-
-    const entryBet =
-        document.getElementById(
-            "entryBet"
-        );
-
-    const confirmEntry =
-        document.getElementById(
-            "confirmEntry"
-        );
-
-    const cancelEntry =
-        document.getElementById(
-            "cancelEntry"
-        );
-
-
-    if (enterChallenge) {
-
-        enterChallenge.addEventListener(
-            "click",
-            () => {
-
-                if (entryBet) {
-
-                    entryBet.textContent =
-                        "€" +
-                        selectedBet;
-
-                }
-
-                if (entryModal) {
-
-                    entryModal.classList.add(
-                        "show"
-                    );
-
-                } else {
-
-                    enterGame();
-
-                }
-
-            }
-        );
-
-    }
-
-
-    // =====================================================
-    // 11. ANNULER ENTRÉE
-    // =====================================================
-
-    if (cancelEntry) {
-
-        cancelEntry.addEventListener(
-            "click",
-            () => {
-
-                if (entryModal) {
-
-                    entryModal.classList.remove(
-                        "show"
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    // =====================================================
-    // 12. CONFIRMER ENTRÉE
-    // =====================================================
-
-    if (confirmEntry) {
-
-        confirmEntry.addEventListener(
-            "click",
-            async () => {
-
-                if (entryModal) {
-
-                    entryModal.classList.remove(
-                        "show"
-                    );
-
-                }
-
-                await enterGame();
-
-            }
-        );
-
-    }
-
-
-    // =====================================================
-    // 13. ENTRER DANS LA PARTIE
-    // =====================================================
-
-    async function enterGame() {
-
-        try {
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "⏳ CONNECTING...";
-
-            }
-
-            const data =
-                await api(
-                    "/api/join",
-                    {
-                        method: "POST",
-
-                        body:
-                            JSON.stringify({
-                                playerId:
-                                    playerId,
-
-                                playerName:
-                                    playerName
-                            })
-                    }
-                );
-
-            if (!data.success) {
-
-                throw new Error(
-                    "JOIN_FAILED"
-                );
-
-            }
-
-            serverGameId =
-                data.game.id;
-
-            gameStarted = true;
-
-            taps = 0;
-            combo = 1;
-            power = 100;
-            level = 1;
-
-            updateServerTimer(
-                data.game.endsAt
-            );
-
-            if (tapButton) {
-
-                tapButton.disabled =
-                    false;
-
-            }
-
-            updateDisplay();
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🔥 TAP TO PLAY";
-
-            }
-
-            await loadLeaderboard();
-
-        } catch (error) {
-
-            console.error(
-                "JOIN ERROR:",
-                error
-            );
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "❌ CANNOT ENTER";
-
-            }
-
-        }
-
-    }
-
-
-    // =====================================================
-    // 14. BOUTON TAP
-    // =====================================================
-
-    if (tapButton) {
-
-        tapButton.disabled = true;
-
-        tapButton.addEventListener(
-            "click",
-            async () => {
-
-                if (!gameStarted) {
-
-                    if (tapMessage) {
-
-                        tapMessage.textContent =
-                            "⚡ ENTER CHALLENGE FIRST";
-
-                    }
-
-                    return;
-
-                }
-
-                if (timeLeft <= 0) {
-                    return;
-                }
-
-
-                // -----------------------------------------
-                // AFFICHAGE IMMÉDIAT
-                // -----------------------------------------
-
-                taps++;
-
-                combo++;
-
-                if (combo > 99) {
-                    combo = 99;
-                }
-
-                power--;
-
-                if (power < 0) {
-                    power = 0;
-                }
-
-                level =
-                    Math.floor(
-                        taps / 100
-                    ) + 1;
-
-                updateDisplay();
-
-
-                // -----------------------------------------
-                // ANIMATION
-                // -----------------------------------------
-
-                tapButton.classList.remove(
-                    "tap-animation"
-                );
-
-                void tapButton.offsetWidth;
-
-                tapButton.classList.add(
-                    "tap-animation"
-                );
-
-
-                // -----------------------------------------
-                // ENVOI AU SERVEUR
-                // -----------------------------------------
-
-                try {
-
-                    const data =
-                        await api(
-                            "/api/tap",
-                            {
-                                method:
-                                    "POST",
-
-                                body:
-                                    JSON.stringify({
-                                        playerId:
-                                            playerId
-                                    })
-                            }
-                        );
-
-                    if (
-                        data.success &&
-                        typeof data.score ===
-                        "number"
-                    ) {
-
-                        taps =
-                            data.score;
-
-                        level =
-                            Math.floor(
-                                taps / 100
-                            ) + 1;
-
-                        updateDisplay();
-
-                    }
-
-                } catch (error) {
-
-                    console.error(
-                        "TAP ERROR:",
-                        error
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    // =====================================================
-    // 15. AFFICHAGE
-    // =====================================================
-
-    function updateDisplay() {
-
-        if (tapCount) {
-
-            tapCount.textContent =
-                taps;
-
-        }
-
-        if (tapButtonCount) {
-
-            tapButtonCount.textContent =
-                taps;
-
-        }
-
-        if (comboElement) {
-
-            comboElement.textContent =
-                "x" +
-                combo;
-
-        }
-
-        if (powerElement) {
-
-            powerElement.textContent =
-                power +
-                "%";
-
-        }
-
-        if (levelElement) {
-
-            levelElement.textContent =
-                level;
-
-        }
-
-        if (levelProgress) {
-
-            levelProgress.style.width =
-                (taps % 100) +
-                "%";
-
-        }
-
-    }
-
-
-    // =====================================================
-    // 16. AFFICHAGE TIMER
-    // =====================================================
-
-    function updateTimer() {
-
-        if (!timer) {
-            return;
-        }
-
-        const minutes =
-            Math.floor(
-                timeLeft / 60
-            );
-
-        const seconds =
-            timeLeft % 60;
-
-        timer.textContent =
-            String(minutes)
-                .padStart(2, "0") +
-            ":" +
-            String(seconds)
-                .padStart(2, "0");
-
-
-        // -----------------------------------------
-        // FIN DE PARTIE
-        // -----------------------------------------
-
-        if (timeLeft <= 0) {
-
-            gameStarted = false;
-
-            if (tapButton) {
-
-                tapButton.disabled =
-                    true;
-
-            }
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🏆 CHALLENGE FINISHED";
-
-            }
-
-        }
-
-    }
-
-
-    // =====================================================
-    // 17. TOP 5
-    // =====================================================
-
-    async function loadLeaderboard() {
-
-        try {
-
-            const data =
-                await api(
-                    "/api/leaderboard"
-                );
-
-            if (
-                !data.success ||
-                !leaderboardList
-            ) {
-
-                return;
-
-            }
-
-            leaderboardList.innerHTML =
-                "";
-
-            data.players.forEach(
-                player => {
-
-                    const row =
-                        document.createElement(
-                            "div"
-                        );
-
-                    row.className =
-                        "player-row";
-
-                    row.innerHTML = `
-                        <span class="rank">
-                            ${player.position}
-                        </span>
-
-                        <span class="player-name">
-                            ${escapeHTML(
-                                player.playerName
-                            )}
-                        </span>
-
-                        <strong class="player-taps">
-                            ${player.score}
-                        </strong>
-                    `;
-
-                    leaderboardList.appendChild(
-                        row
-                    );
-
-                }
-            );
+            });
 
         } catch (error) {
 
@@ -884,143 +431,145 @@ document.addEventListener("DOMContentLoaded", () => {
                 error
             );
 
+            res.status(500).json({
+                success: false,
+                error:
+                    "LEADERBOARD_ERROR"
+            });
         }
 
     }
+);
 
 
-    // Actualisation toutes les 3 secondes
+/* =====================================================
+   CHAT - LIRE
+===================================================== */
 
-    setInterval(
-        loadLeaderboard,
-        3000
-    );
-
-
-    // =====================================================
-    // 18. CHAT
-    // =====================================================
-
-    async function loadChat() {
+app.get(
+    "/api/chat",
+    async (req, res) => {
 
         try {
 
-            const data =
-                await api(
-                    "/api/chat"
-                );
+            const chat =
+                await messages
+                    .find({})
+                    .sort({
+                        createdAt: -1
+                    })
+                    .limit(100)
+                    .toArray();
 
-            if (
-                !data.success ||
-                !chatMessages
-            ) {
+            res.json({
 
-                return;
+                success: true,
 
-            }
+                messages:
+                    chat
+                        .reverse()
+                        .map(
+                            message => ({
 
-            chatMessages.innerHTML =
-                "";
+                                playerName:
+                                    message.playerName,
 
-            data.messages.forEach(
-                message => {
+                                message:
+                                    message.message,
 
-                    addChatMessage(
-                        message.playerName,
-                        message.message
-                    );
-
-                }
-            );
-
-            chatMessages.scrollTop =
-                chatMessages.scrollHeight;
+                                createdAt:
+                                    message.createdAt
+                            })
+                        )
+            });
 
         } catch (error) {
 
             console.error(
-                "CHAT LOAD ERROR:",
+                "CHAT ERROR:",
                 error
             );
 
+            res.status(500).json({
+                success: false,
+                error:
+                    "CHAT_ERROR"
+            });
         }
 
     }
+);
 
 
-    function addChatMessage(
-        name,
-        message
-    ) {
+/* =====================================================
+   CHAT - ENVOYER
+===================================================== */
 
-        if (!chatMessages) {
-            return;
-        }
-
-        const div =
-            document.createElement(
-                "div"
-            );
-
-        div.className =
-            "chat-message";
-
-        div.innerHTML = `
-            <strong>
-                ${escapeHTML(name)}:
-            </strong>
-            ${escapeHTML(message)}
-        `;
-
-        chatMessages.appendChild(
-            div
-        );
-
-    }
-
-
-    // =====================================================
-    // 19. ENVOYER CHAT
-    // =====================================================
-
-    async function sendChat() {
-
-        if (!chatInput) {
-            return;
-        }
-
-        const message =
-            chatInput.value.trim();
-
-        if (!message) {
-            return;
-        }
+app.post(
+    "/api/chat",
+    async (req, res) => {
 
         try {
 
-            await api(
-                "/api/chat",
-                {
-                    method:
-                        "POST",
+            const playerId =
+                String(
+                    req.body.playerId || ""
+                ).trim();
 
-                    body:
-                        JSON.stringify({
-                            playerId:
-                                playerId,
+            const playerName =
+                String(
+                    req.body.playerName || ""
+                )
+                .trim()
+                .slice(0, 30);
 
-                            playerName:
-                                playerName,
+            const message =
+                String(
+                    req.body.message || ""
+                )
+                .trim()
+                .slice(0, 250);
 
-                            message:
-                                message
-                        })
-                }
+            if (
+                !playerId ||
+                !playerName ||
+                !message
+            ) {
+
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "MESSAGE_REQUIRED"
+                });
+            }
+
+            const newMessage = {
+
+                playerId:
+                    playerId,
+
+                playerName:
+                    playerName,
+
+                message:
+                    message,
+
+                createdAt:
+                    new Date()
+            };
+
+            await messages.insertOne(
+                newMessage
             );
 
-            chatInput.value = "";
+            io.emit(
+                "chat:new",
+                newMessage
+            );
 
-            await loadChat();
+            res.json({
+                success: true
+            });
 
         } catch (error) {
 
@@ -1029,92 +578,78 @@ document.addEventListener("DOMContentLoaded", () => {
                 error
             );
 
+            res.status(500).json({
+                success: false,
+                error:
+                    "CHAT_SEND_ERROR"
+            });
         }
 
     }
+);
 
 
-    if (chatSend) {
+/* =====================================================
+   SOCKET.IO
+===================================================== */
 
-        chatSend.addEventListener(
-            "click",
-            sendChat
+io.on(
+    "connection",
+    socket => {
+
+        console.log(
+            "👤 Joueur connecté:",
+            socket.id
         );
 
-    }
+        socket.on(
+            "disconnect",
+            () => {
 
-
-    if (chatInput) {
-
-        chatInput.addEventListener(
-            "keydown",
-            event => {
-
-                if (
-                    event.key ===
-                    "Enter"
-                ) {
-
-                    sendChat();
-
-                }
+                console.log(
+                    "👋 Joueur déconnecté:",
+                    socket.id
+                );
 
             }
         );
 
     }
+);
 
 
-    // =====================================================
-    // 20. SÉCURITÉ HTML
-    // =====================================================
+/* =====================================================
+   START SERVER
+===================================================== */
 
-    function escapeHTML(value) {
+async function startServer() {
 
-        return String(value)
-            .replace(
-                /&/g,
-                "&amp;"
-            )
-            .replace(
-                /</g,
-                "&lt;"
-            )
-            .replace(
-                />/g,
-                "&gt;"
-            )
-            .replace(
-                /"/g,
-                "&quot;"
-            )
-            .replace(
-                /'/g,
-                "&#039;"
-            );
+    try {
 
+        await connectMongoDB();
+
+        server.listen(
+            PORT,
+            "0.0.0.0",
+            () => {
+
+                console.log(
+                    `🚀 Miltape lancé sur le port ${PORT}`
+                );
+
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ ERREUR SERVEUR:",
+            error.message
+        );
+
+        process.exit(1);
     }
+}
 
 
-    // =====================================================
-    // 21. INITIALISATION
-    // =====================================================
-
-    updateDisplay();
-
-    updateTimer();
-
-    testServer();
-
-    loadGame();
-
-    loadLeaderboard();
-
-    loadChat();
-
-
-    console.log(
-        "🔥 MILTAPE WORLD CHALLENGE READY"
-    );
-
-});
+startServer();
