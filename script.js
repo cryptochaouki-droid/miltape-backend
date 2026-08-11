@@ -186,7 +186,7 @@ async function loadGame() {
 
 
 /* =========================================================
-   TIMER & AUTOMATISATION DU REDÉMARRAGE
+   TIMER & AUTOMATISATION DU REDÉMARRAGE + RÉSULTATS
 ========================================================= */
 
 function updateTimer() {
@@ -197,7 +197,6 @@ function updateTimer() {
         return;
     }
 
-    // Si gameEndsAt est défini via le backend, on calcule le temps restant réel
     if (gameEndsAt) {
         const remaining = gameEndsAt.getTime() - Date.now();
 
@@ -225,7 +224,22 @@ function updateTimer() {
     }
 }
 
-// Fonction dédiée à l'automatisation du redémarrage du chrono en boucle (toutes les 10 secondes)
+// Fonction de calcul des gains / pertes à la fin du round
+function checkWinOrLoss() {
+    const targetScore = 10; // Seuil requis pour gagner le round
+    const tapMessage = $("tapMessage");
+    
+    if (!tapMessage) return;
+
+    if (score >= targetScore) {
+        const winnings = selectedBet * 2; // Exemple de multiplicateur x2
+        showMessage(`🎉 VICTOIRE ! Tu as gagné +€${winnings.toFixed(1)} !`);
+    } else {
+        showMessage(`❌ DÉFAITE ! Tu perds ta mise de €${selectedBet}.`);
+    }
+}
+
+// Automatisation du redémarrage du chrono en boucle (toutes les 10 secondes)
 function startAutoChallengeTimer() {
     const timerDisplay = $("timer");
     const tapButton = $("tapButton");
@@ -255,14 +269,15 @@ function startAutoChallengeTimer() {
         if (timeLeft <= 0) {
             clearInterval(challengeInterval);
             
-            if (tapMessage) {
-                tapMessage.textContent = "⚡ FIN DU ROUND ! Redémarrage...";
-            }
+            // 🔔 Affiche le résultat (Gagné/Perdu + calcul de la mise)
+            checkWinOrLoss();
 
-            // Pause de 1 seconde avant de relancer automatiquement un nouveau cycle
+            // Pause de 2 secondes pour laisser le joueur lire son résultat avant de relancer
             setTimeout(() => {
+                score = 0; // Réinitialise le score pour le nouveau round
+                updateScore();
                 startAutoChallengeTimer();
-            }, 1000);
+            }, 2000);
         }
     }, 1000);
 }
@@ -524,18 +539,15 @@ function sendTap() {
     const tapButton = $("tapButton");
     if (!tapButton) return;
 
-    // 1. GESTION VISUELLE : Ajout immédiat de la classe d'animation
     tapButton.classList.add("tap-active");
     setTimeout(() => {
         tapButton.classList.remove("tap-active");
     }, 100);
 
-    // 2. Incrémentation locale instantanée pour zéro latence visuelle
     localTaps++;
     score++;
     updateScore();
 
-    // 3. Envoi groupé (debounce) pour ne pas saturer le serveur à chaque clic
     if (tapTimeout) {
         clearTimeout(tapTimeout);
     }
@@ -573,7 +585,6 @@ function sendTap() {
                 throw new Error(data.error || "TAP_ERROR");
             }
 
-            // Synchronisation optionnelle avec le score exact du serveur si renvoyé
             if (typeof data.score === "number") {
                 score = data.score;
                 updateScore();
