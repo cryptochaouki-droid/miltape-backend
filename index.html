@@ -640,6 +640,22 @@
         </p>
 
 
+        <!-- CHAMP DE SAISIE DU PSEUDO PERSONNALISÉ -->
+        <div style="margin: 15px 0; text-align: left;">
+            <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;">
+                TON PSEUDO :
+            </label>
+            <input
+                id="customPlayerName"
+                type="text"
+                maxlength="15"
+                placeholder="Entre ton pseudo..."
+                autocomplete="off"
+                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box;"
+            >
+        </div>
+
+
         <div class="entry-info">
 
             <span>
@@ -699,6 +715,13 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
+        // Remplir automatiquement le champ pseudo s'il est déjà enregistré en mémoire
+        const savedName = localStorage.getItem("miltape_player_name");
+        const nameInput = document.getElementById("customPlayerName");
+        if (savedName && nameInput) {
+            nameInput.value = savedName;
+        }
 
         const cancelBottom =
             document.getElementById(
