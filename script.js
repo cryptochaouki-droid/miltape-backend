@@ -723,6 +723,12 @@ function renderLeaderboard(players) {
         return;
     }
 
+    // Met à jour le compteur en ligne avec le nombre réel de joueurs
+    const onlineCount = $("onlineCount");
+    if (onlineCount) {
+        onlineCount.textContent = players.length;
+    }
+
 
     if (!players.length) {
 
