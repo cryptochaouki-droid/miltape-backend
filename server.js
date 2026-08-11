@@ -137,7 +137,7 @@ app.get("/api/game", async (req, res) => {
 
 
 /* =====================================================
-   JOIN
+   JOIN (AVEC VÉRIFICATION DU PSEUDO UNIQUE)
 ===================================================== */
 
 app.post("/api/join", async (req, res) => {
@@ -162,6 +162,20 @@ app.post("/api/join", async (req, res) => {
         }
 
         const game = await getActiveGame();
+
+        // Vérifier si un autre joueur dans cette partie utilise déjà ce pseudo (insensible à la casse)
+        const existingPlayer = await players.findOne({
+            gameId: game._id,
+            playerId: { $ne: playerId },
+            playerName: { $regex: new RegExp("^" + playerName + "$", "i") }
+        });
+
+        if (existingPlayer) {
+            return res.status(400).json({
+                success: false,
+                error: "Ce pseudo est déjà pris, choisis-en un autre !"
+            });
+        }
 
         await players.updateOne(
 
