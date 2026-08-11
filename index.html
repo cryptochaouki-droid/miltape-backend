@@ -1,1189 +1,145 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
-  <meta name="theme-color" content="#080014">
+    <meta name="theme-color" content="#090014">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
-  <title>Miltape World Challenge</title>
+    <title>Miltape World Challenge</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    <link rel="icon" href="miltape-logo-art.jpg">
 
-    html,
-    body {
-      width: 100%;
-      min-height: 100%;
-      background: #080014;
-      color: white;
-      font-family: Arial, Helvetica, sans-serif;
-      overflow-x: hidden;
-    }
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
 
-    body {
-      padding-bottom: 90px;
-    }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: 0;
-    }
-
-    .app {
-      width: 100%;
-      max-width: 480px;
-      margin: auto;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 50% 15%, #32106b 0%, #100020 35%, #080014 75%);
-      overflow: hidden;
-    }
-
-    /* =========================
-       HEADER
-    ========================= */
-
-    .top-header {
-      width: 100%;
-      padding: 14px 14px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .menu-btn,
-    .wallet-btn {
-      width: 52px;
-      height: 52px;
-      min-width: 52px;
-      border-radius: 50%;
-      background: rgba(15, 10, 35, .92);
-      border: 1px solid #7d42c7;
-      color: white;
-      font-size: 25px;
-      box-shadow: 0 0 18px rgba(148, 54, 255, .25);
-    }
-
-    .online {
-      flex: 1;
-      font-weight: bold;
-      font-size: 14px;
-      line-height: 1.2;
-      padding-left: 5px;
-    }
-
-    .online span {
-      color: #29e34b;
-      font-size: 18px;
-      margin-right: 5px;
-    }
-
-    .balance {
-      min-width: 105px;
-      padding: 9px 12px;
-      border-radius: 18px;
-      background: rgba(5, 2, 20, .85);
-      border: 1px solid #35245c;
-      text-align: center;
-      font-size: 12px;
-    }
-
-    .balance strong {
-      display: block;
-      color: #ffd21c;
-      font-size: 18px;
-      margin-top: 3px;
-    }
-
-    /* =========================
-       HERO
-    ========================= */
-
-    .hero {
-      width: 100%;
-      padding: 8px 14px 0;
-    }
-
-    .hero-image {
-      width: 100%;
-      height: auto;
-      max-height: 330px;
-      display: block;
-      object-fit: cover;
-      object-position: center;
-      border-radius: 22px;
-      border: 1px solid #54228a;
-      box-shadow:
-        0 0 25px rgba(122, 0, 255, .35),
-        0 0 50px rgba(255, 160, 0, .08);
-    }
-
-    .hero-title {
-      text-align: center;
-      padding: 20px 10px 8px;
-    }
-
-    .hero-title h1 {
-      font-size: clamp(29px, 8vw, 43px);
-      line-height: 1;
-      font-weight: 900;
-      letter-spacing: 1px;
-      background: linear-gradient(
-        90deg,
-        #ffb400,
-        #fff0a0,
-        #ff9e00,
-        #b938ff
-      );
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .hero-title p {
-      margin-top: 12px;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 2px;
-    }
-
-    .hero-title p span:first-child {
-      color: #ffc400;
-    }
-
-    .hero-title p span:last-child {
-      color: #d04aff;
-    }
-
-    /* =========================
-       STATS
-    ========================= */
-
-    .stats {
-      margin: 14px 12px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border: 1px solid #49206f;
-      border-radius: 20px;
-      overflow: hidden;
-      background: rgba(10, 4, 26, .85);
-    }
-
-    .stat {
-      padding: 15px 5px;
-      text-align: center;
-      border-right: 1px solid #392052;
-    }
-
-    .stat:last-child {
-      border-right: none;
-    }
-
-    .stat-icon {
-      font-size: 26px;
-    }
-
-    .stat strong {
-      display: block;
-      color: #ffd11c;
-      font-size: 16px;
-      margin-top: 5px;
-    }
-
-    .stat small {
-      display: block;
-      margin-top: 5px;
-      font-size: 11px;
-      color: #ddd;
-    }
-
-    /* =========================
-       TAP VISUAL
-    ========================= */
-
-    .tap-art {
-      width: 100%;
-      padding: 8px 12px 15px;
-    }
-
-    .tap-art img {
-      display: block;
-      width: 100%;
-      height: 230px;
-      object-fit: cover;
-      object-position: center;
-      border-radius: 24px;
-      border: 1px solid #5e258f;
-      box-shadow: 0 0 35px rgba(150, 20, 255, .3);
-    }
-
-    /* =========================
-       PLAY BUTTON
-    ========================= */
-
-    .play-main {
-      width: calc(100% - 34px);
-      margin: 5px 17px 18px;
-      min-height: 70px;
-      border-radius: 24px;
-      background: linear-gradient(180deg, #ffe033, #ffad00);
-      color: #080014;
-      font-size: 25px;
-      font-weight: 900;
-      border: 3px solid #ffd43a;
-      box-shadow:
-        0 0 20px rgba(255, 190, 0, .55),
-        inset 0 -4px 0 rgba(120, 50, 0, .2);
-    }
-
-    .play-main:active {
-      transform: scale(.98);
-    }
-
-    /* =========================
-       BETS
-    ========================= */
-
-    .section-title {
-      text-align: center;
-      font-size: 19px;
-      font-weight: 900;
-      margin: 14px 0;
-      letter-spacing: 1px;
-    }
-
-    .bets {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding: 0 14px;
-    }
-
-    .bet {
-      min-height: 105px;
-      border-radius: 20px;
-      background: rgba(8, 3, 22, .9);
-      border: 1px solid #563073;
-      color: white;
-      padding: 15px 8px;
-      transition: .2s;
-    }
-
-    .bet.active {
-      border: 2px solid #9cff38;
-      box-shadow: 0 0 20px rgba(156, 255, 56, .25);
-    }
-
-    .bet .price {
-      display: block;
-      font-size: 29px;
-      font-weight: 900;
-      color: white;
-    }
-
-    .bet small {
-      display: block;
-      margin-top: 8px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .bet:nth-child(1) .price {
-      color: #a7ff3f;
-    }
-
-    .bet:nth-child(2) .price {
-      color: #58aaff;
-    }
-
-    .bet:nth-child(3) .price {
-      color: #e044ff;
-    }
-
-    .bet:nth-child(4) .price {
-      color: #ffad27;
-    }
-
-    /* =========================
-       REWARD BOX
-    ========================= */
-
-    .reward-box {
-      margin: 18px 14px;
-      padding: 18px 14px;
-      border-radius: 20px;
-      border: 1px solid #54267b;
-      background: linear-gradient(
-        100deg,
-        rgba(45, 16, 67, .9),
-        rgba(12, 5, 28, .95)
-      );
-      text-align: center;
-    }
-
-    .reward-box .emoji {
-      font-size: 42px;
-    }
-
-    .reward-box h2 {
-      font-size: 17px;
-      margin: 8px 0;
-    }
-
-    .reward-box p {
-      color: #ddd;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .reward-box strong {
-      color: #ffd21e;
-    }
-
-    /* =========================
-       CHAT / REFERRAL
-    ========================= */
-
-    .cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 0 14px 20px;
-    }
-
-    .mini-card {
-      min-height: 95px;
-      padding: 15px 10px;
-      border-radius: 18px;
-      background: rgba(10, 4, 27, .9);
-      border: 1px solid #3d2660;
-      text-align: center;
-    }
-
-    .mini-card .icon {
-      font-size: 30px;
-    }
-
-    .mini-card strong {
-      display: block;
-      margin-top: 5px;
-      font-size: 14px;
-    }
-
-    .mini-card small {
-      display: block;
-      color: #aaa;
-      margin-top: 5px;
-    }
-
-    /* =========================
-       BOTTOM NAV
-    ========================= */
-
-    .bottom-nav {
-      position: fixed;
-      left: 50%;
-      bottom: 0;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 480px;
-      height: 78px;
-      background: rgba(5, 3, 14, .97);
-      border-top: 1px solid #322046;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      z-index: 50;
-    }
-
-    .nav-item {
-      background: transparent;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .nav-icon {
-      display: block;
-      font-size: 27px;
-      margin-bottom: 3px;
-    }
-
-    .nav-center {
-      width: 72px;
-      height: 72px;
-      margin: -20px auto 0;
-      border-radius: 50%;
-      background: #090515;
-      border: 4px solid #ffd21c;
-      box-shadow: 0 0 25px rgba(255, 210, 30, .5);
-      color: white;
-      font-weight: bold;
-    }
-
-    /* =========================
-       GAME SCREEN
-    ========================= */
-
-    .game-screen {
-      display: none;
-      padding: 12px;
-    }
-
-    .game-screen.active {
-      display: block;
-    }
-
-    .game-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .timer {
-      flex: 1;
-      text-align: center;
-      border: 1px solid #6d39a1;
-      border-radius: 18px;
-      padding: 10px;
-    }
-
-    .timer small {
-      display: block;
-      color: #ddd;
-    }
-
-    .timer strong {
-      color: #ffd21c;
-      font-size: 30px;
-    }
-
-    .position {
-      text-align: center;
-      margin: 10px 0 18px;
-      font-size: 15px;
-    }
-
-    .tap-zone {
-      width: min(320px, 85vw);
-      height: min(320px, 85vw);
-      margin: 0 auto 20px;
-      border-radius: 50%;
-      padding: 14px;
-      background: #160628;
-      border: 4px solid #d26cff;
-      box-shadow:
-        0 0 30px rgba(198, 61, 255, .7),
-        inset 0 0 35px rgba(108, 24, 255, .7);
-    }
-
-    .tap-button {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle, #7925e8 0%, #401092 55%, #1b0535 100%);
-      color: white;
-      font-size: 30px;
-      font-weight: 900;
-      box-shadow: inset 0 0 35px rgba(196, 74, 255, .35);
-    }
-
-    .tap-button span {
-      display: block;
-      font-size: 55px;
-      margin-bottom: 10px;
-    }
-
-    .tap-button small {
-      display: block;
-      margin-top: 10px;
-      font-size: 13px;
-      color: #ddd;
-    }
-
-    .tap-button:active {
-      transform: scale(.96);
-    }
-
-    .game-info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .info-box {
-      padding: 16px 8px;
-      border-radius: 17px;
-      border: 1px solid #552d7b;
-      text-align: center;
-    }
-
-    .info-box strong {
-      color: #ffd21c;
-      font-size: 20px;
-    }
-
-    /* =========================
-       TOP 5
-    ========================= */
-
-    .leaderboard {
-      margin-top: 18px;
-      border: 1px solid #45215f;
-      border-radius: 18px;
-      padding: 15px;
-      background: rgba(5, 2, 18, .7);
-    }
-
-    .leaderboard h2 {
-      margin-bottom: 12px;
-    }
-
-    .player {
-      display: flex;
-      justify-content: space-between;
-      padding: 11px 5px;
-      border-bottom: 1px solid #241532;
-    }
-
-    .player:last-child {
-      border-bottom: 0;
-    }
-
-    .score {
-      color: #ffd21c;
-      font-weight: bold;
-    }
-
-    /* =========================
-       MODAL
-    ========================= */
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.78);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      z-index: 100;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-box {
-      width: 100%;
-      max-width: 430px;
-      background:
-        linear-gradient(180deg, #19072e, #080014);
-      border: 1px solid #a238e8;
-      border-radius: 25px;
-      padding: 25px 18px;
-      text-align: center;
-      box-shadow: 0 0 40px rgba(177, 44, 255, .35);
-    }
-
-    .modal-box h2 {
-      font-size: 25px;
-      margin-bottom: 15px;
-    }
-
-    .modal-box p {
-      color: #ccc;
-      line-height: 1.5;
-      margin-bottom: 18px;
-    }
-
-    .modal-close {
-      width: 100%;
-      min-height: 55px;
-      border-radius: 18px;
-      background: linear-gradient(90deg,#ffd21c,#ff9d00);
-      color: #09000e;
-      font-weight: 900;
-      font-size: 17px;
-    }
-
-    /* =========================
-       MOBILE
-    ========================= */
-
-    @media (max-width: 380px) {
-
-      .top-header {
-        padding-left: 8px;
-        padding-right: 8px;
-      }
-
-      .menu-btn,
-      .wallet-btn {
-        width: 45px;
-        height: 45px;
-        min-width: 45px;
-      }
-
-      .online {
-        font-size: 12px;
-      }
-
-      .balance {
-        min-width: 88px;
-        font-size: 10px;
-      }
-
-      .balance strong {
-        font-size: 15px;
-      }
-
-      .hero-image {
-        max-height: 270px;
-      }
-
-      .hero-title h1 {
-        font-size: 28px;
-      }
-
-      .stat strong {
-        font-size: 14px;
-      }
-    }
-  </style>
+    <!-- SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
 <div class="app">
 
-  <!-- HEADER -->
-  <header class="top-header">
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
 
-    <button class="menu-btn" onclick="openMenu()">☰</button>
+    <header class="top-header">
 
-    <div class="online">
-      <span>●</span>
-      <b>1,254</b><br>
-      EN LIGNE
-    </div>
+        <button class="menu-button" id="menuButton">
+            ☰
+        </button>
 
-    <div class="balance">
-      SOLDE
-      <strong id="balance">100.00 €</strong>
-    </div>
+        <div class="online">
+            <span class="online-dot"></span>
+            <strong>1,254</strong>
+            <span>EN LIGNE</span>
+        </div>
 
-    <button class="wallet-btn" onclick="openWallet()">▣</button>
+        <div class="wallet-box">
+            <small>SOLDE</small>
+            <strong id="balance">100.00 €</strong>
+        </div>
 
-  </header>
+        <button class="wallet-button">
+            💰
+        </button>
 
+    </header>
 
-  <!-- HERO -->
-  <section class="hero">
 
-    <img
-      class="hero-image"
-      src="assets/miltape-reference.jpg"
-      alt="Miltape World Challenge">
+    <!-- =====================================================
+         HERO / LOGO
+    ====================================================== -->
 
-    <div class="hero-title">
-      <h1>MILTAPE</h1>
+    <section class="hero">
 
-      <p>
-        <span>TAPE.</span>
-        CLASSE-TOI.
-        <span>GAGNE.</span>
-      </p>
-    </div>
+        <img
+            src="miltape-reference.jpg"
+            alt="Miltape World Challenge"
+            class="hero-image"
+        >
 
-  </section>
+        <div class="hero-content">
 
+            <h1>
+                MILTAPE
+                <span>WORLD CHALLENGE</span>
+            </h1>
 
-  <!-- STATS -->
-  <section class="stats">
+            <p class="slogan">
+                <strong>TAPE.</strong>
+                CLASSE-TOI.
+                <strong>GAGNE.</strong>
+            </p>
 
-    <div class="stat">
-      <div class="stat-icon">⏱️</div>
-      <strong>10 MINUTES</strong>
-      <small>PAR PARTIE</small>
-    </div>
+        </div>
 
-    <div class="stat">
-      <div class="stat-icon">🏆</div>
-      <strong>TOP 5</strong>
-      <small>SEULEMENT</small>
-    </div>
+    </section>
 
-    <div class="stat">
-      <div class="stat-icon">🪙</div>
-      <strong>2X</strong>
-      <small>TA MISE</small>
-    </div>
 
-  </section>
+    <!-- =====================================================
+         RÈGLES RAPIDES
+    ====================================================== -->
 
+    <section class="rules">
 
-  <!-- TAP IMAGE -->
-  <section class="tap-art">
+        <div class="rule">
+            <span class="rule-icon">⏱️</span>
+            <strong>10 MINUTES</strong>
+            <small>PAR PARTIE</small>
+        </div>
 
-    <img
-      src="assets/tap-art.jpg"
-      alt="Tape pour jouer">
+        <div class="rule">
+            <span class="rule-icon">🏆</span>
+            <strong>TOP 5</strong>
+            <small>SEULEMENT</small>
+        </div>
 
-  </section>
+        <div class="rule">
+            <span class="rule-icon">🪙</span>
+            <strong>2X</strong>
+            <small>TA MISE</small>
+        </div>
 
+    </section>
 
-  <!-- PLAY -->
-  <button class="play-main" onclick="startGame()">
-    JOUER MAINTENANT
-    ➜
-  </button>
 
+    <!-- =====================================================
+         IMAGE TAP
+    ====================================================== -->
 
-  <!-- BET -->
-  <h2 class="section-title">
-    CHOISIS TA MISE
-  </h2>
+    <section class="tap-visual">
 
-  <section class="bets">
+        <img
+            src="tap-art.jpg"
+            alt="Tap Miltape"
+        >
 
-    <button class="bet active" data-bet="1">
-      <span class="price">1 €</span>
-      <small>★ DÉBUTANT</small>
-    </button>
+    </section>
 
-    <button class="bet" data-bet="5">
-      <span class="price">5 €</span>
-      <small>★ STANDARD</small>
-    </button>
 
-    <button class="bet" data-bet="10">
-      <span class="price">10 €</span>
-      <small>♦ PREMIUM</small>
-    </button>
-
-    <button class="bet" data-bet="20">
-      <span class="price">20 €</span>
-      <small>♛ HIGH CHALLENGE</small>
-    </button>
-
-  </section>
-
-
-  <!-- REWARD -->
-  <section class="reward-box">
-
-    <div class="emoji">💰🏆</div>
-
-    <h2>
-      TAPE LE PLUS POSSIBLE<br>
-      PENDANT <strong>10 MINUTES</strong>
-    </h2>
-
-    <p>
-      SOIS DANS LE <strong>TOP 5</strong><br>
-      ET GAGNE <strong>2X TA MISE</strong> !
-    </p>
-
-  </section>
-
-
-  <!-- CHAT / REFERRAL -->
-  <section class="cards">
-
-    <button class="mini-card" onclick="openChat()">
-      <div class="icon">💬</div>
-      <strong>CHAT GLOBAL</strong>
-      <small>Discute avec les joueurs</small>
-    </button>
-
-    <button class="mini-card" onclick="openReferral()">
-      <div class="icon">🎁</div>
-      <strong>PARRAINAGE</strong>
-      <small>Invite tes amis</small>
-    </button>
-
-  </section>
-
-
-  <!-- GAME -->
-  <section id="gameScreen" class="game-screen">
-
-    <div class="game-header">
-
-      <button
-        class="menu-btn"
-        onclick="closeGame()">
-        ←
-      </button>
-
-      <div class="timer">
-        <small>TEMPS RESTANT</small>
-        <strong id="timer">10:00</strong>
-      </div>
-
-    </div>
-
-
-    <div class="position">
-      POSITION <b id="position">12</b> / 85
-      · COMBO <b id="combo">x1</b>
-    </div>
-
-
-    <div class="tap-zone">
-
-      <button
-        class="tap-button"
-        id="tapButton">
-
-        <span>☝️</span>
-
-        TAP !
-
-        <small>
-          TOUCHER POUR TAPER
-        </small>
-
-      </button>
-
-    </div>
-
-
-    <div class="game-info">
-
-      <div class="info-box">
-        🔥 PUISSANCE
-        <strong>100%</strong>
-      </div>
-
-      <div class="info-box">
-        🏆 SCORE
-        <strong id="score">0</strong>
-      </div>
-
-    </div>
-
-
-    <div class="leaderboard">
-
-      <h2>TOP 5</h2>
-
-      <div class="player">
-        <span>🥇 King</span>
-        <span class="score">23,450</span>
-      </div>
-
-      <div class="player">
-        <span>🥈 Tapper</span>
-        <span class="score">22,300</span>
-      </div>
-
-      <div class="player">
-        <span>🥉 Flash</span>
-        <span class="score">21,870</span>
-      </div>
-
-      <div class="player">
-        <span>4️⃣ Dragon</span>
-        <span class="score">20,540</span>
-      </div>
-
-      <div class="player">
-        <span>5️⃣ Ninja</span>
-        <span class="score">19,980</span>
-      </div>
-
-    </div>
-
-  </section>
-
-
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-
-    <button class="nav-item" onclick="openChat()">
-      <span class="nav-icon">💬</span>
-      CHAT
-    </button>
+    <!-- =====================================================
+         BOUTON JOUER
+    ====================================================== -->
 
     <button
-      class="nav-center"
-      onclick="startGame()">
-
-      ☝️<br>
-      JOUER
-
+        id="playButton"
+        class="main-play-button"
+        data-play
+    >
+        <span>JOUER MAINTENANT</span>
+        <b>➜</b>
     </button>
 
-    <button class="nav-item" onclick="openReferral()">
-      <span class="nav-icon">👥</span>
-      PARRAINAGE
-    </button>
 
-  </nav>
-
-</div>
-
-
-<!-- MODAL -->
-<div id="modal" class="modal">
-
-  <div class="modal-box">
-
-    <h2 id="modalTitle">
-      Miltape
-    </h2>
-
-    <p id="modalText">
-      Démo actuellement active.
-    </p>
-
-    <button
-      class="modal-close"
-      onclick="closeModal()">
-
-      FERMER
-
-    </button>
-
-  </div>
-
-</div>
-
-
-<script>
-
-  let selectedBet = 1;
-  let score = 0;
-  let timeLeft = 600;
-  let timerInterval = null;
-
-  /* =========================
-     MISE
-  ========================= */
-
-  document.querySelectorAll(".bet").forEach(function(button) {
-
-    button.addEventListener("click", function() {
-
-      document.querySelectorAll(".bet")
-        .forEach(function(b) {
-          b.classList.remove("active");
-        });
-
-      this.classList.add("active");
-
-      selectedBet = Number(
-        this.getAttribute("data-bet")
-      );
-
-    });
-
-  });
-
-
-  /* =========================
-     MODAL
-  ========================= */
-
-  function showModal(title, text) {
-
-    document.getElementById("modalTitle").textContent = title;
-
-    document.getElementById("modalText").textContent = text;
-
-    document.getElementById("modal").classList.add("show");
-
-  }
-
-  function closeModal() {
-
-    document.getElementById("modal").classList.remove("show");
-
-  }
-
-
-  /* =========================
-     WALLET
-  ========================= */
-
-  function openWallet() {
-
-    showModal(
-      "👛 WALLET",
-      "Connexion wallet disponible dans la prochaine étape. Cette version est actuellement une démonstration."
-    );
-
-  }
-
-
-  /* =========================
-     MENU
-  ========================= */
-
-  function openMenu() {
-
-    showModal(
-      "☰ MENU",
-      "Profil • Historique • Classement • Règles • Conditions"
-    );
-
-  }
-
-
-  /* =========================
-     CHAT
-  ========================= */
-
-  function openChat() {
-
-    showModal(
-      "💬 CHAT GLOBAL",
-      "Le chat mondial sera connecté au serveur dans la prochaine étape."
-    );
-
-  }
-
-
-  /* =========================
-     REFERRAL
-  ========================= */
-
-  function openReferral() {
-
-    showModal(
-      "🎁 PARRAINAGE",
-      "Invite tes amis et gagne des récompenses. Le système de parrainage sera connecté au backend."
-    );
-
-  }
-
-
-  /* =========================
-     START GAME
-  ========================= */
-
-  function startGame() {
-
-    document.getElementById("gameScreen")
-      .classList.add("active");
-
-    window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: "smooth"
-    });
-
-    score = 0;
-
-    timeLeft = 600;
-
-    document.getElementById("score")
-      .textContent = "0";
-
-    clearInterval(timerInterval);
-
-    updateTimer();
-
-    timerInterval = setInterval(function() {
-
-      timeLeft--;
-
-      updateTimer();
-
-      if (timeLeft <= 0) {
-
-        clearInterval(timerInterval);
-
-        showModal(
-          "🏆 PARTIE TERMINÉE",
-          "Ton score est de " + score + " taps. Cette version est une démo."
-        );
-
-      }
-
-    }, 1000);
-
-  }
-
-
-  /* =========================
-     CLOSE GAME
-  ========================= */
-
-  function closeGame() {
-
-    clearInterval(timerInterval);
-
-    document.getElementById("gameScreen")
-      .classList.remove("active");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-
-  }
-
-
-  /* =========================
-     TIMER
-  ========================= */
-
-  function updateTimer() {
-
-    let minutes = Math.floor(timeLeft / 60);
-
-    let seconds = timeLeft % 60;
-
-    let text =
-      String(minutes).padStart(2, "0")
-      + ":"
-      + String(seconds).padStart(2, "0");
-
-    document.getElementById("timer")
-      .textContent = text;
-
-  }
-
-
-  /* =========================
-     TAP ENGINE
-  ========================= */
-
-  document
-    .getElementById("tapButton")
-    .addEventListener("click", function() {
-
-      score++;
-
-      document.getElementById("score")
-        .textContent = score.toLocaleString("fr-FR");
-
-      /* petit effet */
-      this.style.transform = "scale(.94)";
-
-      setTimeout(() => {
-
-        this.style.transform = "";
-
-      }, 70);
-
-    });
-
-
-</script>
-
-</body>
-</html>
+    <!-- =====================================================
+         CHOIX DE MISE
+    =================================================
