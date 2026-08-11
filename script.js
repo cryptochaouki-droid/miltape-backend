@@ -380,10 +380,20 @@ function setupEntry() {
 
 
 /* =========================================================
-   REJOINDRE LE CHALLENGE
+   REJOINDRE LE CHALLENGE (AVEC PSEUDO PERSONNALISÉ)
 ========================================================= */
 
 async function joinChallenge() {
+
+    const nameInput = $("customPlayerName");
+
+    if (nameInput) {
+        const typedName = nameInput.value.trim();
+        if (typedName !== "") {
+            playerName = typedName;
+            localStorage.setItem("miltape_player_name", playerName);
+        }
+    }
 
     try {
 
@@ -466,7 +476,7 @@ async function joinChallenge() {
         );
 
         showMessage(
-            "❌ ERREUR POUR ENTRER"
+            "❌ " + (error.message || "ERREUR POUR ENTRER")
         );
     }
 }
@@ -723,7 +733,6 @@ function renderLeaderboard(players) {
         return;
     }
 
-    // CORRECTION : Met à jour le compteur en ligne en se basant sur les joueurs reçus ou l'état de participation
     const onlineCount = $("onlineCount");
     if (onlineCount) {
         onlineCount.textContent = players.length > 0 ? players.length : (joined ? 1 : 1);
