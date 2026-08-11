@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -14,18 +16,23 @@
 
     <title>Miltape World Challenge</title>
 
-    <link rel="icon" href="miltape-logo-art.jpg">
+    <link
+        rel="icon"
+        href="miltape-logo-art.jpg"
+    >
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 
-    <!-- SUPABASE -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 
 <body>
 
 <div class="app">
+
 
     <!-- =====================================================
          HEADER
@@ -33,30 +40,57 @@
 
     <header class="top-header">
 
-        <button class="menu-button" id="menuButton">
+        <button
+            class="menu-button"
+            id="menuButton"
+            type="button"
+        >
             ☰
         </button>
 
+
         <div class="online">
+
             <span class="online-dot"></span>
-            <strong>1,254</strong>
-            <span>EN LIGNE</span>
+
+            <strong id="onlineCount">
+                1,254
+            </strong>
+
+            <span>
+                EN LIGNE
+            </span>
+
         </div>
+
 
         <div class="wallet-box">
-            <small>SOLDE</small>
-            <strong id="balance">100.00 €</strong>
+
+            <small>
+                MODE DEMO
+            </small>
+
+            <strong id="balance">
+                100.00 €
+            </strong>
+
         </div>
 
-        <button class="wallet-button">
+
+        <button
+            class="wallet-button"
+            type="button"
+            id="walletButton"
+        >
             💰
         </button>
 
     </header>
 
 
+
     <!-- =====================================================
-         HERO / LOGO
+         HERO
     ====================================================== -->
 
     <section class="hero">
@@ -71,13 +105,19 @@
 
             <h1>
                 MILTAPE
-                <span>WORLD CHALLENGE</span>
+                <span>
+                    WORLD CHALLENGE
+                </span>
             </h1>
 
             <p class="slogan">
+
                 <strong>TAPE.</strong>
+
                 CLASSE-TOI.
+
                 <strong>GAGNE.</strong>
+
             </p>
 
         </div>
@@ -85,45 +125,265 @@
     </section>
 
 
+
     <!-- =====================================================
-         RÈGLES RAPIDES
+         RÈGLES
     ====================================================== -->
 
     <section class="rules">
 
         <div class="rule">
-            <span class="rule-icon">⏱️</span>
-            <strong>10 MINUTES</strong>
-            <small>PAR PARTIE</small>
+
+            <span class="rule-icon">
+                ⏱️
+            </span>
+
+            <strong>
+                10 MINUTES
+            </strong>
+
+            <small>
+                PAR PARTIE
+            </small>
+
         </div>
 
-        <div class="rule">
-            <span class="rule-icon">🏆</span>
-            <strong>TOP 5</strong>
-            <small>SEULEMENT</small>
-        </div>
 
         <div class="rule">
-            <span class="rule-icon">🪙</span>
-            <strong>2X</strong>
-            <small>TA MISE</small>
+
+            <span class="rule-icon">
+                🏆
+            </span>
+
+            <strong>
+                TOP 5
+            </strong>
+
+            <small>
+                SEULEMENT
+            </small>
+
+        </div>
+
+
+        <div class="rule">
+
+            <span class="rule-icon">
+                🪙
+            </span>
+
+            <strong>
+                2X
+            </strong>
+
+            <small>
+                MODE DEMO
+            </small>
+
         </div>
 
     </section>
 
 
+
     <!-- =====================================================
-         IMAGE TAP
+         TIMER
+    ====================================================== -->
+
+    <section class="timer-card">
+
+        <small>
+            CHALLENGE EN COURS
+        </small>
+
+        <div
+            id="timer"
+            class="timer"
+        >
+            10:00
+        </div>
+
+        <span>
+            TEMPS RESTANT
+        </span>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TAP ART
     ====================================================== -->
 
     <section class="tap-visual">
 
         <img
             src="tap-art.jpg"
-            alt="Tap Miltape"
+            alt="Miltape Tap"
         >
 
     </section>
+
+
+
+    <!-- =====================================================
+         STATISTIQUES
+    ====================================================== -->
+
+    <section class="stats">
+
+        <div class="stat-box">
+
+            <small>
+                TES TAPS
+            </small>
+
+            <strong id="tapCount">
+                0
+            </strong>
+
+        </div>
+
+
+        <div class="stat-box">
+
+            <small>
+                COMBO
+            </small>
+
+            <strong id="combo">
+                x1
+            </strong>
+
+        </div>
+
+
+        <div class="stat-box">
+
+            <small>
+                POWER
+            </small>
+
+            <strong id="power">
+                100%
+            </strong>
+
+        </div>
+
+
+        <div class="stat-box">
+
+            <small>
+                LEVEL
+            </small>
+
+            <strong id="level">
+                1
+            </strong>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PROGRESSION
+    ====================================================== -->
+
+    <section class="level-section">
+
+        <div class="level-header">
+
+            <span>
+                NIVEAU
+            </span>
+
+            <strong>
+                <span id="level">
+                    1
+                </span>
+            </strong>
+
+        </div>
+
+
+        <div class="level-bar">
+
+            <div
+                id="levelProgress"
+                class="level-progress"
+                style="width:0%"
+            ></div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         CHOIX DE MISE
+    ====================================================== -->
+
+    <section class="bet-section">
+
+        <div class="section-title">
+
+            <span>
+                CHOISIS TA MISE
+            </span>
+
+            <strong>
+                <span id="selectedBet">
+                    €1
+                </span>
+            </strong>
+
+        </div>
+
+
+        <div class="bet-buttons">
+
+            <button
+                class="bet-button selected"
+                data-bet="1"
+                type="button"
+            >
+                €1
+            </button>
+
+
+            <button
+                class="bet-button"
+                data-bet="2"
+                type="button"
+            >
+                €2
+            </button>
+
+
+            <button
+                class="bet-button"
+                data-bet="5"
+                type="button"
+            >
+                €5
+            </button>
+
+
+            <button
+                class="bet-button"
+                data-bet="10"
+                type="button"
+            >
+                €10
+            </button>
+
+        </div>
+
+    </section>
+
 
 
     <!-- =====================================================
@@ -131,15 +391,437 @@
     ====================================================== -->
 
     <button
-        id="playButton"
+        id="enterChallenge"
         class="main-play-button"
-        data-play
+        type="button"
     >
-        <span>JOUER MAINTENANT</span>
-        <b>➜</b>
+
+        <span>
+            JOUER MAINTENANT
+        </span>
+
+        <b>
+            ➜
+        </b>
+
     </button>
 
 
+
     <!-- =====================================================
-         CHOIX DE MISE
-    =================================================
+         MESSAGE
+    ====================================================== -->
+
+    <div
+        id="tapMessage"
+        class="tap-message"
+    >
+        ⚡ ENTER CHALLENGE FIRST
+    </div>
+
+
+
+    <!-- =====================================================
+         ZONE TAP
+    ====================================================== -->
+
+    <section class="tap-zone">
+
+        <button
+            id="tapButton"
+            class="tap-button"
+            type="button"
+            disabled
+        >
+
+            <span class="tap-glow"></span>
+
+            <strong>
+                TAP
+            </strong>
+
+            <small>
+                <span id="tapButtonCount">
+                    0
+                </span>
+            </small>
+
+        </button>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TOP 5
+    ====================================================== -->
+
+    <section class="leaderboard">
+
+        <div class="section-title">
+
+            <span>
+                🏆 CLASSEMENT
+            </span>
+
+            <strong>
+                TOP 5
+            </strong>
+
+        </div>
+
+
+        <div
+            id="leaderboardList"
+            class="leaderboard-list"
+        >
+
+            <div class="empty-ranking">
+                Aucun joueur pour le moment
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         CHAT GLOBAL
+    ====================================================== -->
+
+    <section class="chat-section">
+
+        <div class="section-title">
+
+            <span>
+                💬 CHAT GLOBAL
+            </span>
+
+            <strong>
+                LIVE
+            </strong>
+
+        </div>
+
+
+        <div
+            id="chatMessages"
+            class="chat-messages"
+        >
+
+            <div class="chat-message">
+
+                <strong>
+                    Miltape:
+                </strong>
+
+                Bienvenue dans le World Challenge 🔥
+
+            </div>
+
+        </div>
+
+
+        <div class="chat-input-box">
+
+            <input
+                id="chatInput"
+                type="text"
+                maxlength="250"
+                placeholder="Écris un message..."
+                autocomplete="off"
+            >
+
+            <button
+                id="chatSend"
+                type="button"
+            >
+                ➤
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PARRAINAGE
+    ====================================================== -->
+
+    <section class="referral">
+
+        <div>
+
+            <strong>
+                👥 INVITE TES AMIS
+            </strong>
+
+            <small>
+                Partage Miltape World Challenge
+            </small>
+
+        </div>
+
+
+        <button
+            id="shareButton"
+            type="button"
+        >
+            PARTAGER
+        </button>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <footer>
+
+        <strong>
+            MILTAPE
+        </strong>
+
+        <span>
+            WORLD CHALLENGE
+        </span>
+
+        <small>
+            VERSION DEMO • SANS ARGENT RÉEL
+        </small>
+
+    </footer>
+
+
+
+</div>
+
+
+
+<!-- =======================================================
+     MODAL ENTRÉE
+======================================================== -->
+
+<div
+    id="entryModal"
+    class="modal"
+>
+
+    <div class="modal-content">
+
+        <button
+            id="cancelEntry"
+            class="modal-close"
+            type="button"
+        >
+            ✕
+        </button>
+
+
+        <div class="modal-icon">
+            🔥
+        </div>
+
+
+        <h2>
+            PRÊT À JOUER ?
+        </h2>
+
+
+        <p>
+            Tu vas rejoindre le
+            <strong>
+                Miltape World Challenge
+            </strong>.
+        </p>
+
+
+        <div class="entry-info">
+
+            <span>
+                MISE SÉLECTIONNÉE
+            </span>
+
+            <strong id="entryBet">
+                €1
+            </strong>
+
+        </div>
+
+
+        <div class="demo-warning">
+
+            🟢 MODE DEMO
+
+            <small>
+                Aucun argent réel n'est utilisé.
+            </small>
+
+        </div>
+
+
+        <button
+            id="confirmEntry"
+            class="confirm-button"
+            type="button"
+        >
+            ENTRER DANS LE CHALLENGE 🔥
+        </button>
+
+
+        <button
+            id="cancelEntryBottom"
+            class="cancel-button"
+            type="button"
+        >
+            ANNULER
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =======================================================
+     SCRIPT
+======================================================== -->
+
+<script src="script.js"></script>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const cancelBottom =
+            document.getElementById(
+                "cancelEntryBottom"
+            );
+
+        const modal =
+            document.getElementById(
+                "entryModal"
+            );
+
+        if (cancelBottom && modal) {
+
+            cancelBottom.addEventListener(
+                "click",
+                function () {
+
+                    modal.classList.remove(
+                        "show"
+                    );
+
+                }
+            );
+
+        }
+
+
+        const shareButton =
+            document.getElementById(
+                "shareButton"
+            );
+
+        if (shareButton) {
+
+            shareButton.addEventListener(
+                "click",
+                async function () {
+
+                    const shareData = {
+
+                        title:
+                            "Miltape World Challenge",
+
+                        text:
+                            "🔥 Viens jouer au Miltape World Challenge !",
+
+                        url:
+                            window.location.href
+
+                    };
+
+                    try {
+
+                        if (
+                            navigator.share
+                        ) {
+
+                            await navigator.share(
+                                shareData
+                            );
+
+                        } else {
+
+                            await navigator.clipboard.writeText(
+                                window.location.href
+                            );
+
+                            shareButton.textContent =
+                                "COPIÉ ✓";
+
+                            setTimeout(
+                                function () {
+
+                                    shareButton.textContent =
+                                        "PARTAGER";
+
+                                },
+                                2000
+                            );
+
+                        }
+
+                    } catch (error) {
+
+                        console.log(
+                            "Share cancelled"
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        const walletButton =
+            document.getElementById(
+                "walletButton"
+            );
+
+        if (walletButton) {
+
+            walletButton.addEventListener(
+                "click",
+                function () {
+
+                    alert(
+                        "💰 MODE DEMO\n\nWallet et argent réel seront ajoutés plus tard."
+                    );
+
+                }
+            );
+
+        }
+
+    }
+
+);
+
+</script>
+
+
+</body>
+
+</html>
