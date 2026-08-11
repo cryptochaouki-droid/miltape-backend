@@ -478,7 +478,7 @@ async function joinChallenge() {
 
 
 /* =========================================================
-   TAP OPTIMISÉ (FLUIDE / BATCH)
+   TAP OPTIMISÉ (FLUIDE / BATCH + ANIMATION CLIC)
 ========================================================= */
 
 function sendTap() {
@@ -493,18 +493,18 @@ function sendTap() {
     const tapButton = $("tapButton");
     if (!tapButton) return;
 
-    // Animation immédiate
+    // 1. GESTION VISUELLE : Ajout immédiat de la classe d'animation
     tapButton.classList.add("tap-active");
     setTimeout(() => {
         tapButton.classList.remove("tap-active");
-    }, 80);
+    }, 100);
 
-    // Incrémentation locale instantanée pour zéro latence visuelle
+    // 2. Incrémentation locale instantanée pour zéro latence visuelle
     localTaps++;
     score++;
     updateScore();
 
-    // Envoi groupé (debounce) pour ne pas saturer le serveur à chaque clic
+    // 3. Envoi groupé (debounce) pour ne pas saturer le serveur à chaque clic
     if (tapTimeout) {
         clearTimeout(tapTimeout);
     }
@@ -525,7 +525,7 @@ function sendTap() {
                     },
                     body: JSON.stringify({
                         playerId: playerId,
-                        count: tapsToSend // Le backend doit idéalement accepter un paramètre "count" ou additionner les taps
+                        count: tapsToSend
                     })
                 }
             );
@@ -551,7 +551,7 @@ function sendTap() {
         } catch (error) {
             console.error("TAP ERROR:", error);
         }
-    }, 400); // Envoie le paquet de clics cumulés après 400ms d'inactivité ou de rafale
+    }, 400); 
 }
 
 
