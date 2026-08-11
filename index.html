@@ -3,54 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MILTAPE</title>
+    <title>MILTAPE - World Challenge</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Force le plein écran sans débordement */
-        html, body { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: #121212; color: white; 
-            font-family: Arial, sans-serif;
-            display: flex; flex-direction: column; 
-            align-items: center; justify-content: center;
-            overflow: hidden; /* Empêche le scroll sur téléphone */
+        :root {
+            --bg-color: #05020a;
+            --panel-bg: rgba(18, 13, 38, 0.7);
+            --panel-border: rgba(90, 60, 150, 0.4);
+            --gold-base: #ffcc00;
+            --neon-orange: #ff6a00;
         }
-        
-        .header { position: absolute; top: 10px; color: #888; font-size: 0.9rem; }
-        
-        #score { font-size: 4rem; font-weight: bold; color: #ffcc00; margin-bottom: 20px; }
-        
-        #btn-tap { 
-            width: 250px; height: 250px; 
-            border-radius: 50%; border: 8px solid #ff9900; 
-            background: #ff5500; color: white; 
-            font-size: 2rem; font-weight: bold; 
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 10%, rgba(60, 20, 120, 0.5) 0%, transparent 60%);
+        }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 90px;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 8px 15px;
+            backdrop-filter: blur(10px);
+        }
+        .online-status { font-size: 0.65rem; color: #00ff66; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        .online-status::before { content: ''; width: 6px; height: 6px; background: #00ff66; border-radius: 50%; box-shadow: 0 0 8px #00ff66; }
+        .solde-box { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,204,0,0.3); padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; text-align: right; }
+        .solde-box strong { color: var(--gold-base); font-family: 'Montserrat'; font-size: 0.9rem; display: block; }
+
+        /* Hero Header */
+        .hero { text-align: center; margin-top: 10px; }
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            font-size: 2.8rem;
+            background: linear-gradient(180deg, #fffde4 0%, #ffcc00 50%, #b35900 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+        .subtitle {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            background: rgba(0,0,0,0.4);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 4px 0;
+            margin-top: 5px;
+            color: #ddd;
+        }
+
+        /* Grille de mises */
+        .bets-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 5px; }
+        .bet-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 10px 2px;
+            text-align: center;
             cursor: pointer;
-            box-shadow: 0 15px #cc4400;
-            touch-action: manipulation; /* Évite le délai au clic sur mobile */
-            -webkit-tap-highlight-color: transparent;
         }
+        .bet-card.active { border-color: var(--gold-base); background: rgba(255,204,0,0.05); box-shadow: 0 0 10px rgba(255,204,0,0.2); }
+        .bet-price { font-family: 'Montserrat'; font-weight: 900; font-size: 1.1rem; color: #fff; }
+        .bet-name { font-size: 0.5rem; color: #aaa; text-transform: uppercase; margin-top: 2px; }
+
+        /* Bouton Jouer / Principal */
+        .play-btn {
+            width: 100%;
+            background: linear-gradient(180deg, #ffde00 0%, #ff8800 100%);
+            border: 2px solid #ffeb3b;
+            padding: 14px;
+            border-radius: 25px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #110500;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 136, 0, 0.4);
+            margin-top: 10px;
+        }
+
+        /* Zone de Jeu / Bouton Tap */
+        #game-area { text-align: center; display: none; margin-top: 20px; }
+        #score { font-size: 3rem; font-family: 'Montserrat'; font-weight: 900; color: var(--gold-base); margin: 10px 0; }
         
-        #btn-tap:active { 
-            transform: translateY(10px); 
-            box-shadow: 0 5px #cc4400; 
+        .tap-circle {
+            width: 220px; height: 220px; border-radius: 50%;
+            background: radial-gradient(circle, #ff5e62 0%, #ff9966 60%, #4a00e0 100%);
+            border: 6px solid #fff;
+            margin: 20px auto;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Montserrat'; font-size: 2rem; font-weight: 900; color: white;
+            box-shadow: 0 0 30px rgba(255,94,98,0.7);
+            cursor: pointer;
         }
+        .tap-circle:active { transform: scale(0.93); }
+
+        /* Navigation du bas (Dock) */
+        .nav-dock {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 420px;
+            background: rgba(5, 2, 10, 0.95);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 10px 0 20px 0; z-index: 100;
+        }
+        .nav-item { color: #8e85b0; font-size: 0.65rem; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; }
+        .nav-center {
+            width: 55px; height: 55px; background: linear-gradient(135deg, #ffcc00, #ff6600);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; box-shadow: 0 0 15px rgba(255,150,0,0.5); margin-top: -25px; border: 3px solid var(--bg-color);
+        }
+
+        .input-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--panel-border); background: var(--panel-bg); color: white; text-align: center; margin-bottom: 10px; outline: none; }
     </style>
 </head>
 <body>
-    <div class="header">En ligne : <span id="online-count">0</span></div>
-    <div id="score">0</div>
-    <button id="btn-tap" onclick="tap()">TAP</button>
-    
-    <script src="/socket.io/socket.io.js"></script>
+
+    <div class="app">
+        <!-- Barre du haut -->
+        <header class="top-bar">
+            <div class="online-status" id="online-count">0 EN LIGNE</div>
+            <div class="solde-box">
+                <span>SOLDE</span>
+                <strong>0.00 €</strong>
+            </div>
+        </header>
+
+        <!-- Écran d'accueil principal -->
+        <div id="login-area">
+            <div class="hero">
+                <h1 class="title">MILTAPE</h1>
+                <div class="subtitle">WORLD CHALLENGE</div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <input type="text" id="pseudo" class="input-box" placeholder="Entre ton pseudo...">
+            </div>
+
+            <div style="font-size: 0.65rem; color: #aaa; text-transform: uppercase; margin-bottom: 5px; font-weight: 700;">Choisis ta mise</div>
+            <div class="bets-grid">
+                <div class="bet-card active" onclick="selectBet(this)"><div class="bet-price">1€</div><div class="bet-name">Débutant</div></div>
+                <div class="bet-card" onclick="selectBet(this)"><div class="bet-price">5€</div><div class="bet-name">Standard</div></div>
+                <div class="bet-card" onclick="selectBet(this)"><div class="bet-price">10€</div><div class="bet-name">Premium</div></div>
+                <div class="bet-card" onclick="selectBet(this)"><div class="bet-price">20€</div><div class="bet-name">High</div></div>
+            </div>
+
+            <button class="play-btn" onclick="lancerJeu()">Jouer Maintenant</button>
+        </div>
+
+        <!-- Écran de jeu -->
+        <div id="game-area">
+            <div style="font-size: 0.8rem; color: #8e85b0;">TON SCORE</div>
+            <div id="score">0</div>
+            <div class="tap-circle" onclick="tap()">TAP !</div>
+        </div>
+    </div>
+
+    <!-- Menu du bas -->
+    <nav class="nav-dock">
+        <div class="nav-item">💬<br>CHAT</div>
+        <div class="nav-center">👑</div>
+        <div class="nav-item">🎁<br>PARRAINAGE</div>
+    </nav>
+
     <script>
         const socket = io();
-        function tap() { 
-            socket.emit('playerTap'); 
-            // Feedback physique sur téléphone
-            if (window.navigator.vibrate) window.navigator.vibrate(50);
+
+        function selectBet(el) {
+            document.querySelectorAll('.bet-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            if (navigator.vibrate) navigator.vibrate(30);
         }
-        socket.on('scoreUpdated', (data) => { document.getElementById('score').innerText = data.score; });
-        socket.on('playerCountUpdate', (count) => { document.getElementById('online-count').innerText = count; });
+
+        function lancerJeu() {
+            const pseudoInput = document.getElementById('pseudo').value.trim();
+            const pseudo = pseudoInput !== "" ? pseudoInput : "Joueur";
+            socket.emit('setPseudo', pseudo);
+            
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+        }
+
+        function tap() {
+            socket.emit('playerTap');
+            if (navigator.vibrate) navigator.vibrate(30);
+        }
+
+        socket.on('scoreUpdated', (data) => {
+            document.getElementById('score').innerText = data.score;
+        });
+
+        socket.on('playerCountUpdate', (count) => {
+            document.getElementById('online-count').innerText = count + " EN LIGNE";
+        });
     </script>
 </body>
 </html>
