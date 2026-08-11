@@ -323,7 +323,7 @@
 
 
     <!-- =====================================================
-         CHOIX DE MISE
+         CHOIX DE MISE LIBRE
     ====================================================== -->
 
     <section class="bet-section">
@@ -343,43 +343,20 @@
         </div>
 
 
-        <div class="bet-buttons">
-
-            <button
-                class="bet-button selected"
-                data-bet="1"
-                type="button"
-            >
-                €1
-            </button>
-
-
-            <button
-                class="bet-button"
-                data-bet="2"
-                type="button"
-            >
-                €2
-            </button>
-
-
-            <button
-                class="bet-button"
-                data-bet="5"
-                type="button"
-            >
-                €5
-            </button>
-
-
-            <button
-                class="bet-button"
-                data-bet="10"
-                type="button"
-            >
-                €10
-            </button>
-
+        <!-- CHAMP DE SAISIE LIBRE DE LA MISE -->
+        <div style="margin-top: 10px;">
+            <div style="display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.3); border: 2px solid #ffcc00; border-radius: 12px; padding: 10px 15px;">
+                <span style="color: #ffcc00; font-size: 22px; font-weight: bold; margin-right: 8px;">€</span>
+                <input
+                    id="customBetInput"
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value="1"
+                    placeholder="Entre ta mise"
+                    style="background: transparent; border: none; color: #ffffff; font-size: 22px; font-weight: bold; width: 100%; outline: none; text-align: center;"
+                >
+            </div>
         </div>
 
     </section>
@@ -715,6 +692,22 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
+        // Synchroniser le champ de mise libre avec l'affichage de la mise
+        const customBetInput = document.getElementById("customBetInput");
+        const selectedBetSpan = document.getElementById("selectedBet");
+        const entryBetSpan = document.getElementById("entryBet");
+
+        if (customBetInput) {
+            customBetInput.addEventListener("input", function () {
+                let val = customBetInput.value;
+                if (val === "" || isNaN(val)) val = "0";
+                
+                // Mettre à jour les textes d'affichage de la mise
+                if (selectedBetSpan) selectedBetSpan.textContent = "€" + val;
+                if (entryBetSpan) entryBetSpan.textContent = "€" + val;
+            });
+        }
 
         // Remplir automatiquement le champ pseudo s'il est déjà enregistré en mémoire
         const savedName = localStorage.getItem("miltape_player_name");
