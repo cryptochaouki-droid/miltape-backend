@@ -21,12 +21,10 @@ if (!playerName) {
 const socket = io(API_URL);
 
 socket.on("online:count", (count) => {
-    const elements = document.querySelectorAll("*");
-    elements.forEach(el => {
-        if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE && el.textContent.includes("EN LIGNE")) {
-            el.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} EN LIGNE`;
-        }
-    });
+    const onlineEl = $("onlineCount");
+    if (onlineEl) {
+        onlineEl.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} EN LIGNE`;
+    }
 });
 
 /* =========================================================
