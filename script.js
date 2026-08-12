@@ -37,6 +37,7 @@ let joined = false;
 let score = 0;
 let leaderboardInterval = null;
 let timeLeft = 600; // Temps initial par défaut
+let currentStatus = "running"; // "running" ou "break"
 let localTaps = 0;
 let tapTimeout = null;
 
@@ -51,23 +52,46 @@ function showMessage(text) {
 }
 
 /* =========================================================
-   GESTION DU CHRONO MONDIAL (SYNCHRONISÉ PAR LE SERVEUR)
+   GESTION DU CHRONO MONDIAL ET DES PAUSES DE MISE (10 SEC)
 ========================================================= */
-socket.on("global:timer", (timeLeftServer) => {
-    timeLeft = timeLeftServer;
+socket.on("global:timer", (data) => {
+    // Le serveur envoie un objet { timeLeft, status }
+    timeLeft = data.timeLeft;
+    currentStatus = data.status;
+    
     updateTimerDisplay();
 
     const tapButton = $("tapButton");
     const tapMessage = $("tapMessage");
+    const timerCardTitle = document.querySelector(".timer-card small");
 
-    if (timeLeft > 0) {
-        if (tapButton && joined) tapButton.disabled = false;
-    } else {
+    if (currentStatus === "break") {
+        // Période de pause de 10 secondes pour miser
+        if (timerCardTitle) timerCardTitle.textContent = "⌛ TEMPS DE MISE (PAUSE)";
         if (tapButton) tapButton.disabled = true;
         if (tapMessage && joined) {
-            tapMessage.textContent = "⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE !";
+            tapMessage.textContent = "💰 PLACE TES MISES ! PROCHAINE PARTIE DANS " + timeLeft + "s";
+        }
+    } else {
+        // Partie en cours ("running")
+        if (timerCardTitle) timerCardTitle.textContent = "CHALLENGE EN COURS";
+        if (timeLeft > 0) {
+            if (tapButton && joined) tapButton.disabled = false;
+        } else {
+            if (tapButton) tapButton.disabled = true;
+            if (tapMessage && joined) {
+                tapMessage.textContent = "⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE !";
+            }
         }
     }
+});
+
+// Réinitialisation lors du redémarrage d'une nouvelle partie
+socket.on("game:restart", () => {
+    score = 0;
+    updateScore();
+    showMessage("🚀 UNE NOUVELLE PARTIE COMMENCE !");
+    loadLeaderboard();
 });
 
 function updateTimerDisplay() {
@@ -111,7 +135,7 @@ async function joinChallenge() {
         if (modal) modal.classList.remove("show");
         
         const tapButton = $("tapButton");
-        if (tapButton && timeLeft > 0) {
+        if (tapButton && timeLeft > 0 && currentStatus === "running") {
             tapButton.disabled = false;
             tapButton.focus();
         }
@@ -129,6 +153,7 @@ async function joinChallenge() {
 ========================================================= */
 function sendTap() {
     if (!joined) return showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
+    if (currentStatus === "break") return showMessage("⌛ PATIENCE, TEMPS DE MISE EN COURS");
     if (timeLeft <= 0) return showMessage("⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE");
 
     localTaps++;
