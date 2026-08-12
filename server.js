@@ -130,6 +130,52 @@ app.get("/", (req, res) => {
 
 
 /* =====================================================
+   PANNEAU ADMIN — STATS GLOBALES & GESTION
+===================================================== */
+
+app.get("/api/admin/stats", async (req, res) => {
+    try {
+        if (!db) {
+            return res.status(500).json({ success: false, error: "DB_NOT_CONNECTED" });
+        }
+
+        const totalPlayers = await players.countDocuments();
+        const activeGame = await getActiveGame();
+        
+        // Calcul du total des taps tous jeux confondus ou dans la partie active
+        const pipeline = [
+            { $group: { _id: null, totalTaps: { $sum: "$score" } } }
+        ];
+        const tapResult = await players.aggregate(pipeline).toArray();
+        const totalTapsAll = tapResult.length > 0 ? tapResult[0].totalTaps : 0;
+
+        // Récupérer les 20 derniers joueurs inscrits
+        const recentPlayers = await players.find({}).sort({ createdAt: -1 }).limit(20).toArray();
+
+        res.json({
+            success: true,
+            stats: {
+                totalPlayers,
+                totalTapsAll,
+                currentGameStatus: activeGame.status,
+                currentGameEndsAt: activeGame.endsAt
+            },
+            recentPlayers: recentPlayers.map(p => ({
+                playerId: p.playerId,
+                playerName: p.playerName,
+                score: p.score,
+                createdAt: p.createdAt
+            }))
+        });
+
+    } catch (error) {
+        console.error("ADMIN STATS ERROR:", error);
+        res.status(500).json({ success: false, error: "ADMIN_ERROR" });
+    }
+});
+
+
+/* =====================================================
    GAME (RÉCUPÉRER LE STATUT ET LE TEMPS RESTANT GLOBAL)
 ===================================================== */
 
