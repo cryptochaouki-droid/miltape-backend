@@ -61,7 +61,6 @@ async function getActiveGame() {
     });
 
     if (!game) {
-        // S'il n'y a plus de jeu actif ou que les 10 min sont passées, on clôture les anciens et on en crée un nouveau
         await games.updateMany(
             { status: { $in: ["waiting", "running"] } },
             { $set: { status: "finished" } }
@@ -86,7 +85,6 @@ async function getActiveGame() {
 
         console.log("🎮 Nouvelle partie globale de 10 minutes créée");
         
-        // Informer tous les clients connectés qu'une nouvelle partie commence
         io.emit("game:restart");
     }
 
@@ -171,7 +169,6 @@ app.post("/api/join", async (req, res) => {
 
         const game = await getActiveGame();
 
-        // Vérifier si un autre joueur dans cette partie utilise déjà ce pseudo (insensible à la casse)
         const existingPlayer = await players.findOne({
             gameId: game._id,
             playerId: { $ne: playerId },
@@ -492,24 +489,38 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   SOCKET.IO
+   SOCKET.IO & CHRONO MONDIAL EN DIRECT
 ===================================================== */
 
 io.on("connection", socket => {
 
     console.log("👤 Joueur connecté :", socket.id);
 
-    // Diffuser le nombre exact de clients connectés à tout le monde
     io.emit("online:count", io.engine.clientsCount);
 
     socket.on("disconnect", () => {
         console.log("👋 Joueur déconnecté :", socket.id);
-
-        // Mettre à jour le compteur lorsqu'un joueur quitte
         io.emit("online:count", io.engine.clientsCount);
     });
 
 });
+
+// Boucle serveur : calcule le temps restant en direct de la base de données et l'envoie toutes les secondes
+setInterval(async () => {
+    try {
+        if (!db) return;
+        const game = await getActiveGame();
+        
+        const now = new Date();
+        const endsAt = new Date(game.endsAt);
+        const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
+
+        // Envoie l'événement du chrono mondial à tous les téléphones connectés en même temps
+        io.emit("global:timer", timeLeftSec);
+    } catch (e) {
+        console.error("Erreur timer global:", e);
+    }
+}, 1000);
 
 
 /* =====================================================
