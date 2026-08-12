@@ -21,7 +21,6 @@ if (!playerName) {
 const socket = io(API_URL);
 
 socket.on("online:count", (count) => {
-    // Recherche de l'élément contenant le texte "EN LIGNE" pour le mettre à jour dynamiquement avec un seul point vert propre
     const elements = document.querySelectorAll("*");
     elements.forEach(el => {
         if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE && el.textContent.includes("EN LIGNE")) {
@@ -307,4 +306,3 @@ async function sendChatMessage() {
 }
 
 document.addEventListener("DOMContentLoaded", initMiltape);
-Ces juste?
