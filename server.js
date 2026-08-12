@@ -46,46 +46,67 @@ async function connectMongoDB() {
 
 
 /* =====================================================
-   PARTIE ACTIVE (GÉRÉE EN BOUCLE TOUTES LES 10 MINUTES)
+   PARTIE ACTIVE (GÉRÉE AVEC PAUSE DE 10 SECONDES)
 ===================================================== */
 
 async function getActiveGame() {
+    const now = new Date();
 
+    // Cherche une partie en cours ("running") ou en pause de mise ("break")
     let game = await games.findOne({
-        status: {
-            $in: ["waiting", "running"]
-        },
-        endsAt: {
-            $gt: new Date()
-        }
+        status: { $in: ["running", "break"] },
+        endsAt: { $gt: now }
     });
 
     if (!game) {
-        await games.updateMany(
-            { status: { $in: ["waiting", "running"] } },
-            { $set: { status: "finished" } }
-        );
-
-        const now = new Date();
-
-        const endsAt = new Date(
-            now.getTime() + 10 * 60 * 1000
-        );
-
-        const result = await games.insertOne({
-            status: "running",
-            startsAt: now,
-            endsAt,
-            createdAt: now
+        // Vérifie s'il y a une ancienne partie active qui vient de se terminer
+        const expiredGame = await games.findOne({
+            status: { $in: ["running", "break"] },
+            endsAt: { $lte: now }
         });
 
-        game = await games.findOne({
-            _id: result.insertedId
-        });
+        if (expiredGame) {
+            if (expiredGame.status === "running") {
+                // Passage en mode "break" (10 secondes de pause pour miser)
+                const breakEndsAt = new Date(now.getTime() + 10 * 1000);
+                await games.updateOne(
+                    { _id: expiredGame._id },
+                    { $set: { status: "break", endsAt: breakEndsAt } }
+                );
+                game = await games.findOne({ _id: expiredGame._id });
+                console.log("⏸️ Fin de partie : Début de la pause de mise de 10 secondes");
+            } else if (expiredGame.status === "break") {
+                // Le break est terminé -> Création d'une nouvelle partie de 10 minutes ("running")
+                await games.updateOne(
+                    { _id: expiredGame._id },
+                    { $set: { status: "finished" } }
+                );
 
-        console.log("🎮 Nouvelle partie globale de 10 minutes créée");
-        
-        io.emit("game:restart");
+                const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
+                const result = await games.insertOne({
+                    status: "running",
+                    startsAt: now,
+                    endsAt,
+                    createdAt: now
+                });
+
+                game = await games.findOne({ _id: result.insertedId });
+                console.log("🎮 Nouvelle partie globale de 10 minutes créée");
+                io.emit("game:restart");
+            }
+        } else {
+            // S'il n'y a vraiment aucune partie, on en lance une neuve directement
+            const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
+            const result = await games.insertOne({
+                status: "running",
+                startsAt: now,
+                endsAt,
+                createdAt: now
+            });
+
+            game = await games.findOne({ _id: result.insertedId });
+            console.log("🎮 Première partie globale initialisée");
+        }
     }
 
     return game;
@@ -109,7 +130,7 @@ app.get("/", (req, res) => {
 
 
 /* =====================================================
-   GAME (RÉCUPÉRER LE TEMPS RESTANT GLOBAL)
+   GAME (RÉCUPÉRER LE STATUT ET LE TEMPS RESTANT GLOBAL)
 ===================================================== */
 
 app.get("/api/game", async (req, res) => {
@@ -117,12 +138,15 @@ app.get("/api/game", async (req, res) => {
     try {
 
         const game = await getActiveGame();
+        const now = new Date();
+        const timeLeftSec = Math.max(0, Math.floor((new Date(game.endsAt) - now) / 1000));
 
         res.json({
             success: true,
             game: {
                 id: game._id.toString(),
-                status: game.status,
+                status: game.status, // "running" ou "break"
+                timeLeft: timeLeftSec,
                 startsAt: game.startsAt,
                 endsAt: game.endsAt
             }
@@ -214,6 +238,7 @@ app.post("/api/join", async (req, res) => {
 
             game: {
                 id: game._id.toString(),
+                status: game.status,
                 endsAt: game.endsAt
             }
 
@@ -253,24 +278,12 @@ app.post("/api/tap", async (req, res) => {
 
         const game = await getActiveGame();
 
-        if (new Date() >= new Date(game.endsAt)) {
-
-            await games.updateOne(
-                {
-                    _id: game._id
-                },
-                {
-                    $set: {
-                        status: "finished"
-                    }
-                }
-            );
-
+        // Empêche de taper si on est en période de pause ("break") ou si c'est fini
+        if (game.status === "break" || new Date() >= new Date(game.endsAt)) {
             return res.status(400).json({
                 success: false,
-                error: "GAME_FINISHED"
+                error: "GAME_BREAK_OR_FINISHED"
             });
-
         }
 
         const result =
@@ -489,7 +502,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   SOCKET.IO & CHRONO MONDIAL EN DIRECT
+   SOCKET.IO & CHRONO MONDIAL / PAUSE EN DIRECT
 ===================================================== */
 
 io.on("connection", socket => {
@@ -505,7 +518,7 @@ io.on("connection", socket => {
 
 });
 
-// Boucle serveur : calcule le temps restant en direct de la base de données et l'envoie toutes les secondes
+// Boucle serveur : calcule le temps et l'état en direct et les envoie toutes les secondes
 setInterval(async () => {
     try {
         if (!db) return;
@@ -515,8 +528,11 @@ setInterval(async () => {
         const endsAt = new Date(game.endsAt);
         const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
 
-        // Envoie l'événement du chrono mondial à tous les téléphones connectés en même temps
-        io.emit("global:timer", timeLeftSec);
+        // Envoie à la fois le temps restant et le statut ("running" ou "break") aux joueurs
+        io.emit("global:timer", {
+            timeLeft: timeLeftSec,
+            status: game.status
+        });
     } catch (e) {
         console.error("Erreur timer global:", e);
     }
