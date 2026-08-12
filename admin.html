@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miltape - Panneau Admin</title>
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        body { background-color: #090014; color: #fff; font-family: sans-serif; padding: 20px; }
+        .admin-container { max-width: 800px; margin: 0 auto; }
+        .admin-card { background: rgba(25, 10, 40, 0.9); border: 1px solid #ffcc00; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .admin-card h2 { color: #ffcc00; margin-top: 0; font-size: 20px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: rgba(0, 0, 0, 0.4); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-box span { display: block; font-size: 12px; color: #b8b8b8; }
+        .stat-box strong { font-size: 24px; color: #ffcc00; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: #ffcc00; }
+        .refresh-btn { background: #ffcc00; color: #000; border: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 20px; }
+        .refresh-btn:hover { background: #ffd633; }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <h1>👑 PANNEAU ADMIN — MILTAPE</h1>
+    <p>Bienvenue le boss ! Tu es l'unique modérateur.</p>
+
+    <button class="refresh-btn" onclick="loadAdminData()">🔄 Actualiser les données</button>
+
+    <!-- STATS GLOBALES -->
+    <div class="stat-grid">
+        <div class="stat-box">
+            <span>JOUEURS TOTAUX</span>
+            <strong id="totalPlayers">-</strong>
+        </div>
+        <div class="stat-box">
+            <span>TAPS CUMULÉS</span>
+            <strong id="totalTaps">-</strong>
+        </div>
+        <div class="stat-box">
+            <span>STATUT DU JEU</span>
+            <strong id="gameStatus" style="font-size: 18px;">-</strong>
+        </div>
+    </div>
+
+    <!-- DERNIERS JOUEURS -->
+    <div class="admin-card">
+        <h2>👥 Derniers Joueurs Inscrits / Actifs</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Pseudo</th>
+                    <th>Score Actuel</th>
+                    <th>ID Joueur</th>
+                </tr>
+            </thead>
+            <tbody id="playersTableBody">
+                <tr><td colspan="3">Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SURVEILLANCE DU CHAT -->
+    <div class="admin-card">
+        <h2>💬 Surveillance du Chat Global</h2>
+        <div id="adminChatBox" style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; height: 200px; overflow-y: auto; font-size: 13px;">
+            Chargement du chat...
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = "https://miltape-backend-production.up.railway.app";
+
+async function loadAdminData() {
+    try {
+        // Charger les stats et les joueurs
+        const resStats = await fetch(API_URL + "/api/admin/stats");
+        const dataStats = await resStats.json();
+
+        if (dataStats.success) {
+            document.getElementById("totalPlayers").textContent = dataStats.stats.totalPlayers;
+            document.getElementById("totalTaps").textContent = dataStats.stats.totalTapsAll;
+            document.getElementById("gameStatus").textContent = dataStats.stats.currentGameStatus.toUpperCase();
+
+            const tbody = document.getElementById("playersTableBody");
+            tbody.innerHTML = dataStats.recentPlayers.map(p => `
+                <tr>
+                    <td><strong>${escapeHTML(p.playerName)}</strong></td>
+                    <td style="color: #ffcc00;">${p.score} taps</td>
+                    <td style="font-size: 11px; color: #888;">${p.playerId}</td>
+                </tr>
+            `).join("");
+        }
+
+        // Charger le chat
+        const resChat = await fetch(API_URL + "/api/chat");
+        const dataChat = await resChat.json();
+        if (dataChat.success) {
+            const chatBox = document.getElementById("adminChatBox");
+            chatBox.innerHTML = dataChat.messages.map(m => `
+                <div style="margin-bottom: 5px;">
+                    <strong style="color: #ffcc00;">${escapeHTML(m.playerName)}:</strong> ${escapeHTML(m.message)}
+                </div>
+            `).join("");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+    } catch (e) {
+        console.error("Erreur chargement admin:", e);
+    }
+}
+
+function escapeHTML(str) {
+    return String(str).replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
+}
+
+// Charger au démarrage puis toutes les 3 secondes
+loadAdminData();
+setInterval(loadAdminData, 3000);
+</script>
+
+</body>
+</html>
