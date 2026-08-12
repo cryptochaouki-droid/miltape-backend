@@ -486,23 +486,21 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   SOCKET.IO
+   SOCKET.IO (CORRIGÉ)
 ===================================================== */
 
 io.on("connection", socket => {
 
-    console.log(
-        "👤 Joueur connecté :",
-        socket.id
-    );
+    console.log("👤 Joueur connecté :", socket.id);
+
+    // Diffuser le nombre exact de clients connectés à tout le monde
+    io.emit("online:count", io.engine.clientsCount);
 
     socket.on("disconnect", () => {
+        console.log("👋 Joueur déconnecté :", socket.id);
 
-        console.log(
-            "👋 Joueur déconnecté :",
-            socket.id
-        );
-
+        // Mettre à jour le compteur lorsqu'un joueur quitte
+        io.emit("online:count", io.engine.clientsCount);
     });
 
 });
