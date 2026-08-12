@@ -260,8 +260,13 @@ async function loadChat() {
 function renderChat(msgs) {
     const container = $("chatMessages");
     if (!container) return;
+    
     container.innerHTML = msgs.map(m => `
-        <div class="chat-message"><strong>${escapeHTML(m.playerName)}:</strong> ${escapeHTML(m.message)}</div>`).join("");
+        <div class="chat-message"><strong>${escapeHTML(m.playerName)}:</strong> ${escapeHTML(m.message)}</div>
+    `).join("");
+
+    // Fait descendre le chat automatiquement tout en bas pour voir les nouveaux messages
+    container.scrollTop = container.scrollHeight;
 }
 
 async function sendChatMessage() {
