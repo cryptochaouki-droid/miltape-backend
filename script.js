@@ -230,7 +230,8 @@ async function initMiltape() {
 
     loadLeaderboard();
     loadChat();
-    leaderboardInterval = setInterval(loadLeaderboard, 3000);
+    // Actualisation rapide du classement toutes les 1 seconde
+    leaderboardInterval = setInterval(loadLeaderboard, 1000);
     setInterval(loadChat, 5000);
 }
 
@@ -243,7 +244,7 @@ async function loadLeaderboard() {
 }
 
 /* =========================================================
-   CLASSEMENT (POSITION & PSEUDO CÔTE À CÔTE + COULEURS)
+   CLASSEMENT (AVEC POSITION # ET COULEURS)
 ========================================================= */
 function renderLeaderboard(players) {
     const list = $("leaderboardList");
