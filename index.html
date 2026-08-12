@@ -644,6 +644,15 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
+        const enterButton = document.getElementById("enterChallenge");
+        const modal = document.getElementById("entryModal");
+
+        if (enterButton && modal) {
+            enterButton.addEventListener("click", function () {
+                modal.classList.add("show");
+            });
+        }
+
         const customBetInput = document.getElementById("customBetInput");
         const selectedBetSpan = document.getElementById("selectedBet");
         const entryBetSpan = document.getElementById("entryBet");
@@ -666,7 +675,6 @@ document.addEventListener(
 
         const cancelBottom = document.getElementById("cancelEntryBottom");
         const cancelTop = document.getElementById("cancelEntry");
-        const modal = document.getElementById("entryModal");
 
         if (cancelBottom && modal) {
             cancelBottom.addEventListener("click", function () {
