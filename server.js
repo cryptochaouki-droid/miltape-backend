@@ -518,26 +518,6 @@ io.on("connection", socket => {
 
 });
 
-// Boucle serveur : calcule le temps et l'état en direct et les envoie toutes les secondes
-setInterval(async () => {
-    try {
-        if (!db) return;
-        const game = await getActiveGame();
-        
-        const now = new Date();
-        const endsAt = new Date(game.endsAt);
-        const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
-
-        // Envoie à la fois le temps restant et le statut ("running" ou "break") aux joueurs
-        io.emit("global:timer", {
-            timeLeft: timeLeftSec,
-            status: game.status
-        });
-    } catch (e) {
-        console.error("Erreur timer global:", e);
-    }
-}, 1000);
-
 
 /* =====================================================
    START
@@ -549,15 +529,32 @@ async function startServer() {
 
         await connectMongoDB();
 
+        // Boucle serveur : calcule le temps et l'état en direct et les envoie toutes les secondes
+        setInterval(async () => {
+            try {
+                if (!db) return;
+                const game = await getActiveGame();
+                
+                const now = new Date();
+                const endsAt = new Date(game.endsAt);
+                const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
+
+                io.emit("global:timer", {
+                    timeLeft: timeLeftSec,
+                    status: game.status
+                });
+            } catch (e) {
+                console.error("Erreur timer global:", e);
+            }
+        }, 1000);
+
         server.listen(
             PORT,
             "0.0.0.0",
             () => {
-
                 console.log(
                     `🚀 Miltape lancé sur le port ${PORT}`
                 );
-
             }
         );
 
