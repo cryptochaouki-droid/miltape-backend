@@ -55,7 +55,6 @@ function showMessage(text) {
    GESTION DU CHRONO MONDIAL ET DES PAUSES DE MISE (10 SEC)
 ========================================================= */
 socket.on("global:timer", (data) => {
-    // Le serveur envoie un objet { timeLeft, status }
     timeLeft = data.timeLeft;
     currentStatus = data.status;
     
@@ -66,14 +65,17 @@ socket.on("global:timer", (data) => {
     const timerCardTitle = document.querySelector(".timer-card small");
 
     if (currentStatus === "break") {
-        // Période de pause de 10 secondes pour miser
         if (timerCardTitle) timerCardTitle.textContent = "⌛ TEMPS DE MISE (PAUSE)";
         if (tapButton) tapButton.disabled = true;
         if (tapMessage && joined) {
-            tapMessage.textContent = "💰 PLACE TES MISES ! PROCHAINE PARTIE DANS " + timeLeft + "s";
+            if (timeLeft > 0) {
+                tapMessage.textContent = "💰 PLACE TES MISES ! PROCHAINE PARTIE DANS " + timeLeft + "s";
+                tapMessage.classList.add("show");
+            } else {
+                tapMessage.textContent = "🚀 LANCEMENT IMMÉDIAT DE LA PARTIE...";
+            }
         }
     } else {
-        // Partie en cours ("running")
         if (timerCardTitle) timerCardTitle.textContent = "CHALLENGE EN COURS";
         if (timeLeft > 0) {
             if (tapButton && joined) tapButton.disabled = false;
