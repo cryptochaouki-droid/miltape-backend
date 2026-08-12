@@ -54,14 +54,12 @@ async function connectMongoDB() {
 async function getActiveGame() {
     const now = new Date();
 
-    // Cherche une partie en cours ("running") ou en pause de mise ("break")
     let game = await games.findOne({
         status: { $in: ["running", "break"] },
         endsAt: { $gt: now }
     });
 
     if (!game) {
-        // Vérifie s'il y a une ancienne partie active qui vient de se terminer
         const expiredGame = await games.findOne({
             status: { $in: ["running", "break"] },
             endsAt: { $lte: now }
@@ -69,7 +67,6 @@ async function getActiveGame() {
 
         if (expiredGame) {
             if (expiredGame.status === "running") {
-                // Passage en mode "break" (10 secondes de pause pour miser)
                 const breakEndsAt = new Date(now.getTime() + 10 * 1000);
                 await games.updateOne(
                     { _id: expiredGame._id },
@@ -78,7 +75,6 @@ async function getActiveGame() {
                 game = await games.findOne({ _id: expiredGame._id });
                 console.log("⏸️ Fin de partie : Début de la pause de mise de 10 secondes");
             } else if (expiredGame.status === "break") {
-                // Le break est terminé -> Création d'une nouvelle partie de 10 minutes ("running")
                 await games.updateOne(
                     { _id: expiredGame._id },
                     { $set: { status: "finished" } }
@@ -97,7 +93,6 @@ async function getActiveGame() {
                 io.emit("game:restart");
             }
         } else {
-            // S'il n'y a vraiment aucune partie, on en lance une neuve directement
             const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
             const result = await games.insertOne({
                 status: "running",
@@ -120,14 +115,12 @@ async function getActiveGame() {
 ===================================================== */
 
 app.get("/", (req, res) => {
-
     res.json({
         success: true,
         project: "Miltape World Challenge",
         status: "online",
         database: db ? "connected" : "not connected"
     });
-
 });
 
 
@@ -144,14 +137,12 @@ app.get("/api/admin/stats", async (req, res) => {
         const totalPlayers = await players.countDocuments();
         const activeGame = await getActiveGame();
         
-        // Calcul du total des taps tous jeux confondus ou dans la partie active
         const pipeline = [
             { $group: { _id: null, totalTaps: { $sum: "$score" } } }
         ];
         const tapResult = await players.aggregate(pipeline).toArray();
         const totalTapsAll = tapResult.length > 0 ? tapResult[0].totalTaps : 0;
 
-        // Récupérer les 20 derniers joueurs inscrits
         const recentPlayers = await players.find({}).sort({ createdAt: -1 }).limit(20).toArray();
 
         res.json({
@@ -182,9 +173,7 @@ app.get("/api/admin/stats", async (req, res) => {
 ===================================================== */
 
 app.get("/api/game", async (req, res) => {
-
     try {
-
         const game = await getActiveGame();
         const now = new Date();
         const timeLeftSec = Math.max(0, Math.floor((new Date(game.endsAt) - now) / 1000));
@@ -193,24 +182,16 @@ app.get("/api/game", async (req, res) => {
             success: true,
             game: {
                 id: game._id.toString(),
-                status: game.status, // "running" ou "break"
+                status: game.status,
                 timeLeft: timeLeftSec,
                 startsAt: game.startsAt,
                 endsAt: game.endsAt
             }
         });
-
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            success: false,
-            error: "GAME_ERROR"
-        });
-
+        res.status(500).json({ success: false, error: "GAME_ERROR" });
     }
-
 });
 
 
@@ -219,24 +200,12 @@ app.get("/api/game", async (req, res) => {
 ===================================================== */
 
 app.post("/api/join", async (req, res) => {
-
     try {
-
-        const playerId =
-            String(req.body.playerId || "");
-
-        const playerName =
-            String(req.body.playerName || "")
-                .trim()
-                .slice(0, 30);
+        const playerId = String(req.body.playerId || "");
+        const playerName = String(req.body.playerName || "").trim().slice(0, 30);
 
         if (!playerId || !playerName) {
-
-            return res.status(400).json({
-                success: false,
-                error: "PLAYER_REQUIRED"
-            });
-
+            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
         }
 
         const game = await getActiveGame();
@@ -255,54 +224,26 @@ app.post("/api/join", async (req, res) => {
         }
 
         await players.updateOne(
-
+            { playerId, gameId: game._id },
             {
-                playerId,
-                gameId: game._id
+                $set: { playerId, playerName, gameId: game._id, updatedAt: new Date() },
+                $setOnInsert: { score: 0, createdAt: new Date() }
             },
-
-            {
-                $set: {
-                    playerId,
-                    playerName,
-                    gameId: game._id,
-                    updatedAt: new Date()
-                },
-
-                $setOnInsert: {
-                    score: 0,
-                    createdAt: new Date()
-                }
-            },
-
-            {
-                upsert: true
-            }
+            { upsert: true }
         );
 
         res.json({
-
             success: true,
-
             game: {
                 id: game._id.toString(),
                 status: game.status,
                 endsAt: game.endsAt
             }
-
         });
-
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            success: false,
-            error: "JOIN_ERROR"
-        });
-
+        res.status(500).json({ success: false, error: "JOIN_ERROR" });
     }
-
 });
 
 
@@ -311,79 +252,40 @@ app.post("/api/join", async (req, res) => {
 ===================================================== */
 
 app.post("/api/tap", async (req, res) => {
-
     try {
-
         const playerId = String(req.body.playerId || "");
         const tapCount = parseInt(req.body.count || 1, 10);
 
         if (!playerId) {
-            return res.status(400).json({
-                success: false,
-                error: "PLAYER_REQUIRED"
-            });
+            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
         }
 
         const game = await getActiveGame();
 
-        // Empêche de taper si on est en période de pause ("break") ou si c'est fini
         if (game.status === "break" || new Date() >= new Date(game.endsAt)) {
-            return res.status(400).json({
-                success: false,
-                error: "GAME_BREAK_OR_FINISHED"
-            });
+            return res.status(400).json({ success: false, error: "GAME_BREAK_OR_FINISHED" });
         }
 
-        const result =
-            await players.findOneAndUpdate(
-
-                {
-                    playerId,
-                    gameId: game._id
-                },
-
-                {
-                    $inc: {
-                        score: tapCount
-                    },
-
-                    $set: {
-                        updatedAt: new Date()
-                    }
-                },
-
-                {
-                    returnDocument: "after"
-                }
-            );
+        const result = await players.findOneAndUpdate(
+            { playerId, gameId: game._id },
+            {
+                $inc: { score: tapCount },
+                $set: { updatedAt: new Date() }
+            },
+            { returnDocument: "after" }
+        );
 
         if (!result) {
-
-            return res.status(400).json({
-                success: false,
-                error: "PLAYER_NOT_IN_GAME"
-            });
-
+            return res.status(400).json({ success: false, error: "PLAYER_NOT_IN_GAME" });
         }
 
         io.emit("leaderboard:update");
 
-        res.json({
-            success: true,
-            score: result.score
-        });
-
+        res.json({ success: true, score: result.score });
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            success: false,
-            error: "TAP_ERROR"
-        });
-
+        res.status(500).json({ success: false, error: "TAP_ERROR" });
     }
-
 });
 
 
@@ -392,48 +294,28 @@ app.post("/api/tap", async (req, res) => {
 ===================================================== */
 
 app.get("/api/leaderboard", async (req, res) => {
-
     try {
-
         const game = await getActiveGame();
 
-        const topPlayers =
-            await players
-                .find({
-                    gameId: game._id
-                })
-                .sort({
-                    score: -1
-                })
-                .limit(5)
-                .toArray();
+        const topPlayers = await players
+            .find({ gameId: game._id })
+            .sort({ score: -1 })
+            .limit(5)
+            .toArray();
 
         res.json({
-
             success: true,
-
-            players: topPlayers.map(
-                (player, index) => ({
-                    position: index + 1,
-                    playerId: player.playerId,
-                    playerName: player.playerName,
-                    score: player.score
-                })
-            )
-
+            players: topPlayers.map((player, index) => ({
+                position: index + 1,
+                playerId: player.playerId,
+                playerName: player.playerName,
+                score: player.score
+            }))
         });
-
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            success: false,
-            error: "LEADERBOARD_ERROR"
-        });
-
+        res.status(500).json({ success: false, error: "LEADERBOARD_ERROR" });
     }
-
 });
 
 
@@ -442,43 +324,21 @@ app.get("/api/leaderboard", async (req, res) => {
 ===================================================== */
 
 app.get("/api/chat", async (req, res) => {
-
     try {
-
-        const chat =
-            await messages
-                .find({})
-                .sort({
-                    createdAt: -1
-                })
-                .limit(100)
-                .toArray();
+        const chat = await messages.find({}).sort({ createdAt: -1 }).limit(100).toArray();
 
         res.json({
-
             success: true,
-
-            messages: chat.reverse().map(
-                message => ({
-                    playerName: message.playerName,
-                    message: message.message,
-                    createdAt: message.createdAt
-                })
-            )
-
+            messages: chat.reverse().map(message => ({
+                playerName: message.playerName,
+                message: message.message,
+                createdAt: message.createdAt
+            }))
         });
-
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            success: false,
-            error: "CHAT_ERROR"
-        });
-
+        res.status(500).json({ success: false, error: "CHAT_ERROR" });
     }
-
 });
 
 
@@ -487,65 +347,80 @@ app.get("/api/chat", async (req, res) => {
 ===================================================== */
 
 app.post("/api/chat", async (req, res) => {
-
     try {
-
-        const playerId =
-            String(req.body.playerId || "");
-
-        const playerName =
-            String(req.body.playerName || "")
-                .trim()
-                .slice(0, 30);
-
-        const message =
-            String(req.body.message || "")
-                .trim()
-                .slice(0, 250);
+        const playerId = String(req.body.playerId || "");
+        const playerName = String(req.body.playerName || "").trim().slice(0, 30);
+        const message = String(req.body.message || "").trim().slice(0, 250);
 
         if (!playerId || !playerName || !message) {
-
-            return res.status(400).json({
-                success: false,
-                error: "MESSAGE_REQUIRED"
-            });
-
+            return res.status(400).json({ success: false, error: "MESSAGE_REQUIRED" });
         }
 
-        const newMessage = {
-
-            playerId,
-
-            playerName,
-
-            message,
-
-            createdAt: new Date()
-
-        };
+        const newMessage = { playerId, playerName, message, createdAt: new Date() };
 
         await messages.insertOne(newMessage);
+        io.emit("chat:new", newMessage);
 
-        io.emit(
-            "chat:new",
-            newMessage
-        );
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "CHAT_SEND_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   CRÉATION DE PAIEMENT NOWPAYMENTS
+===================================================== */
+
+app.post("/api/create-payment", async (req, res) => {
+    try {
+        const { playerId, playerName, amount } = req.body;
+
+        if (!playerId || !amount) {
+            return res.status(400).json({ success: false, error: "PLAYER_AND_AMOUNT_REQUIRED" });
+        }
+
+        const apiKey = process.env.NOWPAYMENTS_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
+        }
+
+        const response = await fetch("https://api.nowpayments.io/v1/invoice", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey
+            },
+            body: JSON.stringify({
+                price_amount: parseFloat(amount),
+                price_currency: "usd",
+                pay_currency: "usdttrc20",
+                order_id: playerId,
+                order_description: `Mise Miltape pour ${playerName || playerId}`,
+                ipn_url: "https://miltape-backend-production.up.railway.app/ipn",
+                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
+                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
+            })
+        });
+
+        const paymentData = await response.json();
+
+        if (!response.ok) {
+            console.error("Erreur API NOWPayments:", paymentData);
+            return res.status(400).json({ success: false, error: paymentData.message || "NOWPAYMENTS_API_ERROR" });
+        }
 
         res.json({
-            success: true
+            success: true,
+            invoice_url: paymentData.invoice_url,
+            payment_id: paymentData.id
         });
 
     } catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            error: "CHAT_SEND_ERROR"
-        });
-
+        console.error("❌ ERREUR CREATE PAYMENT:", error);
+        res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
     }
-
 });
 
 
@@ -604,16 +479,13 @@ app.post("/ipn", async (req, res) => {
 ===================================================== */
 
 io.on("connection", socket => {
-
     console.log("👤 Joueur connecté :", socket.id);
-
     io.emit("online:count", io.engine.clientsCount);
 
     socket.on("disconnect", () => {
         console.log("👋 Joueur déconnecté :", socket.id);
         io.emit("online:count", io.engine.clientsCount);
     });
-
 });
 
 
@@ -622,9 +494,7 @@ io.on("connection", socket => {
 ===================================================== */
 
 async function startServer() {
-
     try {
-
         await connectMongoDB();
 
         setInterval(async () => {
@@ -645,23 +515,12 @@ async function startServer() {
             }
         }, 1000);
 
-        server.listen(
-            PORT,
-            "0.0.0.0",
-            () => {
-                console.log(
-                    `🚀 Miltape lancé sur le port ${PORT}`
-                );
-            }
-        );
+        server.listen(PORT, "0.0.0.0", () => {
+            console.log(`🚀 Miltape lancé sur le port ${PORT}`);
+        });
 
     } catch (error) {
-
-        console.error(
-            "❌ ERREUR SERVEUR :",
-            error.message
-        );
-
+        console.error("❌ ERREUR SERVEUR :", error.message);
         process.exit(1);
     }
 }
