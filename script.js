@@ -194,46 +194,8 @@ function updateScore() {
 }
 
 /* =========================================================
-   INITIALISATION
+   CLASSEMENT (AVEC POSITION # ET COULEURS)
 ========================================================= */
-async function initMiltape() {
-    const customBetInput = $("customBetInput");
-    if (customBetInput) customBetInput.addEventListener("input", () => {
-        selectedBet = parseFloat(customBetInput.value) || 0;
-        if ($("selectedBet")) $("selectedBet").textContent = "€" + selectedBet;
-    });
-
-    const enterButton = $("enterChallenge");
-    if (enterButton) enterButton.addEventListener("click", () => $("entryModal").classList.add("show"));
-    
-    const confirmButton = $("confirmEntry");
-    if (confirmButton) confirmButton.addEventListener("click", joinChallenge);
-
-    const tapButton = $("tapButton");
-    if (tapButton) tapButton.addEventListener("click", sendTap);
-
-    // Écouteurs pour le Chat
-    const chatSendButton = $("chatSend");
-    if (chatSendButton) {
-        chatSendButton.addEventListener("click", sendChatMessage);
-    }
-
-    const chatInput = $("chatInput");
-    if (chatInput) {
-        chatInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                sendChatMessage();
-            }
-        });
-    }
-
-    loadLeaderboard();
-    loadChat();
-    // Actualisation rapide du classement toutes les 1 seconde
-    leaderboardInterval = setInterval(loadLeaderboard, 1000);
-    setInterval(loadChat, 5000);
-}
-
 async function loadLeaderboard() {
     try {
         const res = await fetch(API_URL + "/api/leaderboard");
@@ -242,19 +204,16 @@ async function loadLeaderboard() {
     } catch (e) {}
 }
 
-/* =========================================================
-   CLASSEMENT (AVEC POSITION # ET COULEURS)
-========================================================= */
 function renderLeaderboard(players) {
     const list = $("leaderboardList");
     if (!list) return;
 
     if (!players.length) {
-        list.innerHTML = `<div class="empty-ranking">Aucun joueur</div>`;
+        list.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
         return;
     }
 
-    // Affichage des 5 premiers (ou 4 selon ton choix)
+    // Affichage des 5 premiers
     const topPlayers = players.slice(0, 5);
 
     list.innerHTML = topPlayers.map(p => {
@@ -305,7 +264,6 @@ function renderChat(msgs) {
         <div class="chat-message"><strong>${escapeHTML(m.playerName || "Anonyme")}:</strong> ${escapeHTML(m.message || "")}</div>
     `).join("");
 
-    // Fait descendre le chat automatiquement tout en bas pour voir les nouveaux messages
     container.scrollTop = container.scrollHeight;
 }
 
@@ -341,4 +299,55 @@ async function sendChatMessage() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", initMiltape);
+/* =========================================================
+   INITIALISATION GLOBALE
+========================================================= */
+function initMiltape() {
+    const customBetInput = $("customBetInput");
+    if (customBetInput) {
+        customBetInput.addEventListener("input", () => {
+            selectedBet = parseFloat(customBetInput.value) || 0;
+            if ($("selectedBet")) $("selectedBet").textContent = "€" + selectedBet;
+        });
+    }
+
+    const enterButton = $("enterChallenge");
+    if (enterButton) {
+        enterButton.addEventListener("click", () => {
+            const modal = $("entryModal");
+            if (modal) modal.classList.add("show");
+        });
+    }
+    
+    const confirmButton = $("confirmEntry");
+    if (confirmButton) confirmButton.addEventListener("click", joinChallenge);
+
+    const tapButton = $("tapButton");
+    if (tapButton) tapButton.addEventListener("click", sendTap);
+
+    const chatSendButton = $("chatSend");
+    if (chatSendButton) chatSendButton.addEventListener("click", sendChatMessage);
+
+    const chatInput = $("chatInput");
+    if (chatInput) {
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") sendChatMessage();
+        });
+    }
+
+    // Charger les données initiales
+    loadLeaderboard();
+    loadChat();
+
+    // Actualisations automatiques en arrière-plan
+    if (leaderboardInterval) clearInterval(leaderboardInterval);
+    leaderboardInterval = setInterval(loadLeaderboard, 1000);
+    setInterval(loadChat, 5000);
+}
+
+// Lancement automatique au chargement complet de la page HTML
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMiltape);
+} else {
+    initMiltape();
+}
