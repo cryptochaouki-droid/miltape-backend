@@ -285,8 +285,12 @@ async function loadChat() {
     try {
         const res = await fetch(API_URL + "/api/chat");
         const data = await res.json();
-        if (data.success) renderChat(data.messages || []);
-    } catch (e) {}
+        if (data.success) {
+            renderChat(data.messages || []);
+        }
+    } catch (e) {
+        console.error("Erreur chargement chat:", e);
+    }
 }
 
 function renderChat(msgs) {
@@ -294,7 +298,7 @@ function renderChat(msgs) {
     if (!container) return;
     
     container.innerHTML = msgs.map(m => `
-        <div class="chat-message"><strong>${escapeHTML(m.playerName)}:</strong> ${escapeHTML(m.message)}</div>
+        <div class="chat-message"><strong>${escapeHTML(m.playerName || "Anonyme")}:</strong> ${escapeHTML(m.message || "")}</div>
     `).join("");
 
     // Fait descendre le chat automatiquement tout en bas pour voir les nouveaux messages
@@ -321,14 +325,15 @@ async function sendChatMessage() {
         });
 
         const data = await response.json();
-        if (data.success) {
+        if (response.ok && data.success) {
             chatInput.value = ""; 
             loadChat(); 
         } else {
-            showMessage("❌ Erreur d'envoi du message");
+            showMessage("❌ " + (data.error || "Erreur d'envoi du message"));
         }
     } catch (e) {
-        console.error("Chat send error", e);
+        console.error("Chat send error:", e);
+        showMessage("❌ Erreur de connexion au serveur");
     }
 }
 
