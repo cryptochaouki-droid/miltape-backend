@@ -21,8 +21,7 @@ if (!playerName) {
 const socket = io(API_URL);
 
 socket.on("online:count", (count) => {
-    const onlineElement = document.querySelector(".en-ligne") || document.getElementById("onlineCount");
-    // Recherche de l'élément contenant le texte "EN LIGNE" pour le mettre à jour dynamiquement
+    // Recherche de l'élément contenant le texte "EN LIGNE" pour le mettre à jour dynamiquement avec un seul point vert propre
     const elements = document.querySelectorAll("*");
     elements.forEach(el => {
         if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE && el.textContent.includes("EN LIGNE")) {
@@ -137,7 +136,7 @@ async function joinChallenge() {
 }
 
 /* =========================================================
-   TAP & SCORE
+   TAP & SCORE (OPTIMISÉ ENVOI GROUPÉ)
 ========================================================= */
 function sendTap() {
     if (!joined) return showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
@@ -151,15 +150,17 @@ function sendTap() {
     tapTimeout = setTimeout(async () => {
         const tapsToSend = localTaps;
         localTaps = 0;
+        if (tapsToSend <= 0) return;
+
         try {
-            for (let i = 0; i < tapsToSend; i++) {
-                await fetch(API_URL + "/api/tap", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ playerId })
-                });
-            }
-        } catch (e) { console.error("Tap error"); }
+            await fetch(API_URL + "/api/tap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ playerId, count: tapsToSend })
+            });
+        } catch (e) { 
+            console.error("Tap error", e); 
+        }
     }, 400);
 }
 
