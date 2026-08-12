@@ -46,7 +46,7 @@ async function connectMongoDB() {
 
 
 /* =====================================================
-   PARTIE ACTIVE
+   PARTIE ACTIVE (GÉRÉE EN BOUCLE TOUTES LES 10 MINUTES)
 ===================================================== */
 
 async function getActiveGame() {
@@ -61,6 +61,11 @@ async function getActiveGame() {
     });
 
     if (!game) {
+        // S'il n'y a plus de jeu actif ou que les 10 min sont passées, on clôture les anciens et on en crée un nouveau
+        await games.updateMany(
+            { status: { $in: ["waiting", "running"] } },
+            { $set: { status: "finished" } }
+        );
 
         const now = new Date();
 
@@ -69,7 +74,7 @@ async function getActiveGame() {
         );
 
         const result = await games.insertOne({
-            status: "waiting",
+            status: "running",
             startsAt: now,
             endsAt,
             createdAt: now
@@ -79,7 +84,10 @@ async function getActiveGame() {
             _id: result.insertedId
         });
 
-        console.log("🎮 Nouvelle partie créée");
+        console.log("🎮 Nouvelle partie globale de 10 minutes créée");
+        
+        // Informer tous les clients connectés qu'une nouvelle partie commence
+        io.emit("game:restart");
     }
 
     return game;
@@ -103,7 +111,7 @@ app.get("/", (req, res) => {
 
 
 /* =====================================================
-   GAME
+   GAME (RÉCUPÉRER LE TEMPS RESTANT GLOBAL)
 ===================================================== */
 
 app.get("/api/game", async (req, res) => {
@@ -229,23 +237,21 @@ app.post("/api/join", async (req, res) => {
 
 
 /* =====================================================
-   TAP
+   TAP (OPTIMISÉ AVEC SUPPORT DU BATCH DE CLICS)
 ===================================================== */
 
 app.post("/api/tap", async (req, res) => {
 
     try {
 
-        const playerId =
-            String(req.body.playerId || "");
+        const playerId = String(req.body.playerId || "");
+        const tapCount = parseInt(req.body.count || 1, 10);
 
         if (!playerId) {
-
             return res.status(400).json({
                 success: false,
                 error: "PLAYER_REQUIRED"
             });
-
         }
 
         const game = await getActiveGame();
@@ -280,7 +286,7 @@ app.post("/api/tap", async (req, res) => {
 
                 {
                     $inc: {
-                        score: 1
+                        score: tapCount
                     },
 
                     $set: {
@@ -486,7 +492,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   SOCKET.IO (CORRIGÉ)
+   SOCKET.IO
 ===================================================== */
 
 io.on("connection", socket => {
