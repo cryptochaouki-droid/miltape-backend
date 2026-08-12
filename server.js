@@ -24,6 +24,7 @@ let db;
 let games;
 let players;
 let messages;
+let payments;
 
 async function connectMongoDB() {
 
@@ -40,6 +41,7 @@ async function connectMongoDB() {
     games = db.collection("games");
     players = db.collection("players");
     messages = db.collection("messages");
+    payments = db.collection("payments");
 
     console.log("✅ MongoDB connecté");
 }
@@ -548,6 +550,56 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
+   NOWPAYMENTS IPN (WEBHOOK DE PAIEMENT)
+===================================================== */
+
+app.post("/ipn", async (req, res) => {
+    try {
+        const paymentData = req.body;
+        console.log("🔔 Notification IPN reçue de NOWPayments :", paymentData);
+
+        const paymentId = paymentData.payment_id;
+        const paymentStatus = paymentData.payment_status; 
+        const orderId = paymentData.order_id; 
+        const priceAmount = paymentData.price_amount;
+        const payCurrency = paymentData.pay_currency;
+
+        if (!paymentId) {
+            return res.status(400).json({ success: false, error: "INVALID_IPN_DATA" });
+        }
+
+        if (payments) {
+            await payments.updateOne(
+                { paymentId: String(paymentId) },
+                { 
+                    $set: { 
+                        paymentStatus, 
+                        orderId, 
+                        priceAmount, 
+                        payCurrency, 
+                        rawdata: paymentData,
+                        updatedAt: new Date() 
+                    },
+                    $setOnInsert: { createdAt: new Date() }
+                },
+                { upsert: true }
+            );
+        }
+
+        if (paymentStatus === "finished" || paymentStatus === "confirmed") {
+            console.log(`✅ Paiement validé pour la commande/joueur : ${orderId}`);
+        }
+
+        return res.status(200).json({ success: true });
+
+    } catch (error) {
+        console.error("❌ ERREUR IPN :", error);
+        return res.status(500).json({ success: false, error: "IPN_HANDLER_ERROR" });
+    }
+});
+
+
+/* =====================================================
    SOCKET.IO & CHRONO MONDIAL / PAUSE EN DIRECT
 ===================================================== */
 
@@ -575,7 +627,6 @@ async function startServer() {
 
         await connectMongoDB();
 
-        // Boucle serveur : calcule le temps et l'état en direct et les envoie toutes les secondes
         setInterval(async () => {
             try {
                 if (!db) return;
