@@ -17,6 +17,20 @@ if (!playerName) {
     localStorage.setItem("miltape_player_name", playerName);
 }
 
+// Connexion Socket.io pour le temps réel (joueurs en ligne, etc.)
+const socket = io(API_URL);
+
+socket.on("online:count", (count) => {
+    const onlineElement = document.querySelector(".en-ligne") || document.getElementById("onlineCount");
+    // Recherche de l'élément contenant le texte "EN LIGNE" pour le mettre à jour dynamiquement
+    const elements = document.querySelectorAll("*");
+    elements.forEach(el => {
+        if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE && el.textContent.includes("EN LIGNE")) {
+            el.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} EN LIGNE`;
+        }
+    });
+});
+
 /* =========================================================
    ÉTAT DU JEU
 ========================================================= */
@@ -138,11 +152,13 @@ function sendTap() {
         const tapsToSend = localTaps;
         localTaps = 0;
         try {
-            await fetch(API_URL + "/api/tap", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ playerId, count: tapsToSend })
-            });
+            for (let i = 0; i < tapsToSend; i++) {
+                await fetch(API_URL + "/api/tap", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ playerId })
+                });
+            }
         } catch (e) { console.error("Tap error"); }
     }, 400);
 }
