@@ -100,8 +100,13 @@ function updateTimerDisplay() {
     const timerDisplay = $("timer");
     if (!timerDisplay) return;
     
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
+    let timeVal = parseInt(timeLeft, 10);
+    if (isNaN(timeVal) || timeVal < 0) {
+        timeVal = 0;
+    }
+    
+    const minutes = Math.floor(timeVal / 60);
+    const seconds = timeVal % 60;
     
     timerDisplay.textContent = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
 }
