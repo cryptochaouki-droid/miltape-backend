@@ -307,3 +307,4 @@ async function sendChatMessage() {
 }
 
 document.addEventListener("DOMContentLoaded", initMiltape);
+Ces juste?
