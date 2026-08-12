@@ -155,6 +155,40 @@ async function joinChallenge() {
 }
 
 /* =========================================================
+   PAIEMENT NOWPAYMENTS
+========================================================= */
+async function startNowPayments() {
+    const amount = selectedBet || 1; // Utilise la mise sélectionnée (par défaut 1)
+
+    try {
+        showMessage("⏳ Génération de la facture crypto...");
+
+        const response = await fetch(API_URL + "/api/create-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId, playerName, amount })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "Erreur lors de la création du paiement");
+        }
+
+        if (data.invoice_url) {
+            // Redirige le joueur vers la page de paiement sécurisée NOWPayments
+            window.location.href = data.invoice_url;
+        } else {
+            throw new Error("Lien de paiement introuvable");
+        }
+
+    } catch (error) {
+        console.error("PAYMENT ERROR:", error);
+        showMessage("❌ " + error.message);
+    }
+}
+
+/* =========================================================
    TAP & SCORE (OPTIMISÉ ENVOI GROUPÉ)
 ========================================================= */
 function sendTap() {
@@ -213,7 +247,6 @@ function renderLeaderboard(players) {
         return;
     }
 
-    // Affichage des 5 premiers
     const topPlayers = players.slice(0, 5);
 
     list.innerHTML = topPlayers.map(p => {
@@ -322,6 +355,12 @@ function initMiltape() {
     const confirmButton = $("confirmEntry");
     if (confirmButton) confirmButton.addEventListener("click", joinChallenge);
 
+    // Liaison du bouton de paiement/mise NOWPayments (ID: confirmBetButton)
+    const payButton = $("confirmBetButton");
+    if (payButton) {
+        payButton.addEventListener("click", startNowPayments);
+    }
+
     const tapButton = $("tapButton");
     if (tapButton) tapButton.addEventListener("click", sendTap);
 
@@ -335,17 +374,14 @@ function initMiltape() {
         });
     }
 
-    // Charger les données initiales
     loadLeaderboard();
     loadChat();
 
-    // Actualisations automatiques en arrière-plan
     if (leaderboardInterval) clearInterval(leaderboardInterval);
     leaderboardInterval = setInterval(loadLeaderboard, 1000);
     setInterval(loadChat, 5000);
 }
 
-// Lancement automatique au chargement complet de la page HTML
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initMiltape);
 } else {
