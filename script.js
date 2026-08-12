@@ -1,5 +1,5 @@
 /* =========================================================
-   MILTAPE WORLD CHALLENGE - VERSION FINALE CORRIGÉE
+   MILTAPE WORLD CHALLENGE - CHRONO MONDIAL SYNCHRONISÉ
 ========================================================= */
 
 const API_URL = "https://miltape-backend-production.up.railway.app";
@@ -17,7 +17,7 @@ if (!playerName) {
     localStorage.setItem("miltape_player_name", playerName);
 }
 
-// Connexion Socket.io pour le temps réel (joueurs en ligne, etc.)
+// Connexion Socket.io pour le temps réel (joueurs en ligne, chrono mondial, etc.)
 const socket = io(API_URL);
 
 socket.on("online:count", (count) => {
@@ -36,8 +36,7 @@ let selectedBet = 1;
 let joined = false;
 let score = 0;
 let leaderboardInterval = null;
-let challengeInterval = null;
-let timeLeft = 600; // 10 minutes (10 * 60 secondes)
+let timeLeft = 600; // Temps initial par défaut
 let localTaps = 0;
 let tapTimeout = null;
 
@@ -52,32 +51,24 @@ function showMessage(text) {
 }
 
 /* =========================================================
-   GESTION DU CHRONO PERSONNEL (10 MINUTES)
+   GESTION DU CHRONO MONDIAL (SYNCHRONISÉ PAR LE SERVEUR)
 ========================================================= */
-function startPersonalTimer() {
+socket.on("global:timer", (timeLeftServer) => {
+    timeLeft = timeLeftServer;
+    updateTimerDisplay();
+
     const tapButton = $("tapButton");
     const tapMessage = $("tapMessage");
 
-    timeLeft = 600; // 10 minutes
-    updateTimerDisplay();
-
-    if (tapButton && joined) tapButton.disabled = false;
-    if (tapMessage) tapMessage.textContent = "🔥 PARTIE LANCÉE - 10 MINUTES POUR TAPET !";
-
-    if (challengeInterval) clearInterval(challengeInterval);
-
-    challengeInterval = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay();
-
-        if (timeLeft <= 0) {
-            clearInterval(challengeInterval);
-            if (tapButton) tapButton.disabled = true;
-            
-            showMessage("⏰ TEMPS ÉCOULÉ ! Score final enregistré.");
+    if (timeLeft > 0) {
+        if (tapButton && joined) tapButton.disabled = false;
+    } else {
+        if (tapButton) tapButton.disabled = true;
+        if (tapMessage && joined) {
+            tapMessage.textContent = "⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE !";
         }
-    }, 1000);
-}
+    }
+});
 
 function updateTimerDisplay() {
     const timerDisplay = $("timer");
@@ -90,7 +81,7 @@ function updateTimerDisplay() {
 }
 
 /* =========================================================
-   REJOINDRE LE JEU (AVEC GESTION DU PSEUDO DÉJÀ PRIS)
+   REJOINDRE LE JEU
 ========================================================= */
 async function joinChallenge() {
     const nameInput = $("customPlayerName");
@@ -120,13 +111,12 @@ async function joinChallenge() {
         if (modal) modal.classList.remove("show");
         
         const tapButton = $("tapButton");
-        if (tapButton) {
+        if (tapButton && timeLeft > 0) {
             tapButton.disabled = false;
             tapButton.focus();
         }
 
-        showMessage("🔥 TU ES DANS LE CHALLENGE !");
-        startPersonalTimer();
+        showMessage("🔥 TU ES DANS LE CHALLENGE GLOBAL !");
         loadLeaderboard();
     } catch (error) {
         console.error("JOIN ERROR:", error);
@@ -139,7 +129,7 @@ async function joinChallenge() {
 ========================================================= */
 function sendTap() {
     if (!joined) return showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
-    if (timeLeft <= 0) return showMessage("⏰ TEMPS ÉCOULÉ POUR CETTE PARTIE");
+    if (timeLeft <= 0) return showMessage("⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE");
 
     localTaps++;
     score++;
