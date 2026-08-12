@@ -63,11 +63,11 @@ socket.on("global:timer", (data) => {
     const timerCardTitle = document.querySelector(".timer-card small");
 
     if (currentStatus === "break") {
-        if (timerCardTitle) timerCardTitle.textContent = "⌛ TEMPS DE MISE (PAUSE)";
+        if (timerCardTitle) timerCardTitle.textContent = "🏆 RÉSULTATS DU TOP";
         if (tapButton) tapButton.disabled = true;
         if (tapMessage && joined) {
             if (timeLeft > 0) {
-                tapMessage.textContent = "💰 PLACE TES MISES ! PROCHAINE PARTIE DANS " + timeLeft + "s";
+                tapMessage.textContent = "🏆 PARTIE TERMINÉE ! RÉSULTATS DES GAGNANTS - PROCHAINE DANS " + timeLeft + "s";
                 tapMessage.classList.add("show");
             } else {
                 tapMessage.textContent = "🚀 LANCEMENT IMMÉDIAT DE LA PARTIE...";
@@ -80,7 +80,8 @@ socket.on("global:timer", (data) => {
         } else {
             if (tapButton) tapButton.disabled = true;
             if (tapMessage && joined) {
-                tapMessage.textContent = "⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE !";
+                tapMessage.textContent = "⏰ TEMPS ÉCOULÉ ! VOICI LES GAGNANTS DU TOP !";
+                tapMessage.classList.add("show");
             }
         }
     }
@@ -253,19 +254,23 @@ function renderLeaderboard(players) {
         return;
     }
 
-    list.innerHTML = players.map(p => {
+    // Affichage des 5 premiers (ou 4 selon ton choix)
+    const topPlayers = players.slice(0, 5);
+
+    list.innerHTML = topPlayers.map(p => {
         const isMe = p.playerId === playerId;
         
         let nameColor = "#ffffff";
-        if (p.position === 1) nameColor = "#FFD700";
+        let crown = "";
+        if (p.position === 1) { nameColor = "#FFD700"; crown = "👑 "; }
         else if (p.position === 2) nameColor = "#C0C0C0";
         else if (p.position === 3) nameColor = "#CD7F32";
 
         return `
             <div class="leaderboard-item ${isMe ? 'me' : ''}">
                 <div class="rank">#${p.position}</div>
-                <div class="player-name" style="color: ${nameColor};">${escapeHTML(p.playerName)}</div>
-                <div class="player-score">${p.score}</div>
+                <div class="player-name" style="color: ${nameColor};">${crown}${escapeHTML(p.playerName)}</div>
+                <div class="player-score">${p.score} taps</div>
             </div>
         `;
     }).join("");
