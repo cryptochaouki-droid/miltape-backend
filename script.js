@@ -158,11 +158,31 @@ async function joinChallenge() {
    PAIEMENT NOWPAYMENTS
 ========================================================= */
 async function startNowPayments() {
+    const nameInput = $("customPlayerName");
+    if (nameInput && nameInput.value.trim() !== "") {
+        playerName = nameInput.value.trim();
+        localStorage.setItem("miltape_player_name", playerName);
+    }
+
     const amount = selectedBet || 1; // Utilise la mise sélectionnée (par défaut 1)
 
     try {
+        // 1. Enregistre d'abord le joueur dans la base de données
+        const joinResponse = await fetch(API_URL + "/api/join", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId, playerName })
+        });
+
+        const joinData = await joinResponse.json();
+        if (!joinResponse.ok || !joinData.success) {
+            throw new Error(joinData.error || "JOIN_ERROR");
+        }
+
+        joined = true;
         showMessage("⏳ Génération de la facture crypto...");
 
+        // 2. Génère ensuite la facture NOWPayments
         const response = await fetch(API_URL + "/api/create-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
