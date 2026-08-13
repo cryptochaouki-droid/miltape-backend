@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
-    // Éléments d'inscription / paiement / crypto (si présents dans votre HTML)
+    // Éléments d'inscription / paiement / crypto
     const joinButton = document.getElementById("joinButton");
     const playerNameInput = document.getElementById("playerNameInput");
     const cryptoAddressInput = document.getElementById("cryptoAddressInput");
@@ -29,7 +29,51 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
     }
 
-    // Gestion du bouton pour rejoindre / enregistrer le profil avec l'adresse crypto
+    // Fonction pour lancer le paiement NOWPayments et enregistrer le profil
+    async function payAndJoin(currentId, name, cryptoAddress) {
+        try {
+            // 1. Enregistrer d'abord le profil et l'adresse crypto sur le serveur
+            const resJoin = await fetch(`${BACKEND_URL}/api/join`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    playerId: currentId,
+                    playerName: name,
+                    cryptoAddress: cryptoAddress
+                })
+            });
+
+            const dataJoin = await resJoin.json();
+            if (!dataJoin.success) {
+                alert(dataJoin.error || "Erreur lors de l'enregistrement du profil.");
+                return;
+            }
+
+            // 2. Créer la facture de paiement sur NOWPayments (montant par défaut : 1$)
+            const resPayment = await fetch(`${BACKEND_URL}/api/create-payment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    playerId: currentId,
+                    playerName: name,
+                    amount: 1
+                })
+            });
+
+            const dataPayment = await resPayment.json();
+            if (dataPayment.success && dataPayment.invoice_url) {
+                // Rediriger vers la page de paiement sécurisée NOWPayments
+                window.location.href = dataPayment.invoice_url;
+            } else {
+                alert(dataPayment.error || "Erreur lors de la création de la facture de paiement.");
+            }
+        } catch (err) {
+            console.error("Erreur réseau /payAndJoin:", err);
+            alert("Erreur de connexion au serveur.");
+        }
+    }
+
+    // Gestion du bouton pour rejoindre / payer
     if (joinButton) {
         joinButton.addEventListener("click", async () => {
             const name = playerNameInput ? playerNameInput.value.trim() : "";
@@ -54,28 +98,8 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.setItem("miltape_player_name", name);
             localStorage.setItem("miltape_crypto_address", cryptoAddress);
 
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/join`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        playerId: currentId,
-                        playerName: name,
-                        cryptoAddress: cryptoAddress
-                    })
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    alert("Inscription validée avec succès !");
-                    location.reload();
-                } else {
-                    alert(data.error || "Erreur lors de l'inscription");
-                }
-            } catch (err) {
-                console.error("Erreur réseau /join:", err);
-                alert("Erreur de connexion au serveur.");
-            }
+            // Lancer le processus d'enregistrement et de redirection vers le paiement
+            await payAndJoin(currentId, name, cryptoAddress);
         });
     }
 
