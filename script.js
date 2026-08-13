@@ -1,424 +1,531 @@
-/* =========================================================
-   MILTAPE WORLD CHALLENGE - CHRONO MONDIAL SYNCHRONISÉ
-========================================================= */
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const { MongoClient } = require("mongodb");
 
-const API_URL = "https://miltape-backend-production.up.railway.app";
+const app = express();
+const server = http.createServer(app);
 
-let playerId = localStorage.getItem("miltape_player_id");
-let playerName = localStorage.getItem("miltape_player_name");
-
-if (!playerId) {
-    playerId = "player_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
-    localStorage.setItem("miltape_player_id", playerId);
-}
-
-if (!playerName) {
-    playerName = "Joueur_" + Math.floor(Math.random() * 9000 + 1000);
-    localStorage.setItem("miltape_player_name", playerName);
-}
-
-// Connexion Socket.io pour le temps réel
-const socket = io(API_URL);
-
-socket.on("online:count", (count) => {
-    const onlineEl = $("onlineCount");
-    if (onlineEl) {
-        onlineEl.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} EN LIGNE`;
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
     }
 });
 
-/* =========================================================
-   ÉTAT DU JEU
-========================================================= */
-let selectedBet = 2; // Minimum 2$ pour NOWPayments
-let joined = false;
-let score = 0;
-let leaderboardInterval = null;
-let timeLeft = 600; 
-let currentStatus = "running"; 
-let localTaps = 0;
-let tapTimeout = null;
+app.use(cors());
+app.use(express.json());
 
-function $(id) { return document.getElementById(id); }
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-function showMessage(text) {
-    const message = $("tapMessage");
-    if (!message) return;
-    message.textContent = text;
-    message.classList.add("show");
-    setTimeout(() => { message.classList.remove("show"); }, 2500);
+let db;
+let games;
+let players;
+let messages;
+let payments;
+
+async function connectMongoDB() {
+
+    if (!MONGODB_URI) {
+        throw new Error("MONGODB_URI n'est pas configurée dans Railway");
+    }
+
+    const client = new MongoClient(MONGODB_URI);
+
+    await client.connect();
+
+    db = client.db("miltape");
+
+    games = db.collection("games");
+    players = db.collection("players");
+    messages = db.collection("messages");
+    payments = db.collection("payments");
+
+    console.log("✅ MongoDB connecté");
 }
 
-/* =========================================================
-   GESTION DU CHRONO MONDIAL ET DES PAUSES
-========================================================= */
-socket.on("global:timer", (data) => {
-    timeLeft = data.timeLeft;
-    currentStatus = data.status;
-    
-    updateTimerDisplay();
 
-    const tapButton = $("tapButton");
-    const tapMessage = $("tapMessage");
-    const timerCardTitle = document.querySelector(".timer-card small");
+/* =====================================================
+   PARTIE ACTIVE (GÉRÉE AVEC PAUSE DE 10 SECONDES)
+===================================================== */
 
-    if (currentStatus === "break") {
-        if (timerCardTitle) timerCardTitle.textContent = "🏆 RÉSULTATS DU TOP";
-        if (tapButton) tapButton.disabled = true;
-        if (tapMessage && joined) {
-            if (timeLeft > 0) {
-                tapMessage.textContent = "🏆 PARTIE TERMINÉE ! RÉSULTATS DES GAGNANTS - PROCHAINE DANS " + timeLeft + "s";
-                tapMessage.classList.add("show");
-            } else {
-                tapMessage.textContent = "🚀 LANCEMENT IMMÉDIAT DE LA PARTIE...";
-            }
-        }
-    } else {
-        if (timerCardTitle) timerCardTitle.textContent = "CHALLENGE EN COURS";
-        if (timeLeft > 0) {
-            if (tapButton && joined) tapButton.disabled = false;
-        } else {
-            if (tapButton) tapButton.disabled = true;
-            if (tapMessage && joined) {
-                tapMessage.textContent = "⏰ TEMPS ÉCOULÉ ! VOICI LES GAGNANTS DU TOP !";
-                tapMessage.classList.add("show");
-            }
-        }
-    }
-});
+async function getActiveGame() {
+    const now = new Date();
 
-socket.on("game:restart", () => {
-    score = 0;
-    updateScore();
-    showMessage("🚀 UNE NOUVELLE PARTIE COMMENCE !");
-    loadLeaderboard();
-});
-
-function updateTimerDisplay() {
-    const timerDisplay = $("timer");
-    if (!timerDisplay) return;
-    
-    let timeVal = parseInt(timeLeft, 10);
-    if (isNaN(timeVal) || timeVal < 0) {
-        timeVal = 0;
-    }
-    
-    const minutes = Math.floor(timeVal / 60);
-    const seconds = timeVal % 60;
-    
-    timerDisplay.textContent = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
-}
-
-/* =========================================================
-   REJOINDRE LE JEU (MODE GRATUIT / TEST)
-========================================================= */
-async function joinChallenge() {
-    const nameInput = $("customPlayerName");
-    if (nameInput && nameInput.value.trim() !== "") {
-        playerName = nameInput.value.trim();
-        localStorage.setItem("miltape_player_name", playerName);
-    }
-
-    try {
-        const response = await fetch(API_URL + "/api/join", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId, playerName })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || "JOIN_ERROR");
-        }
-
-        joined = true;
-        score = 0;
-        updateScore();
-        
-        const modal = $("entryModal");
-        if (modal) modal.classList.remove("show");
-        
-        const tapButton = $("tapButton");
-        if (tapButton && timeLeft > 0 && currentStatus === "running") {
-            tapButton.disabled = false;
-            tapButton.focus();
-        }
-
-        showMessage("🔥 TU ES DANS LE CHALLENGE GLOBAL !");
-        loadLeaderboard();
-    } catch (error) {
-        console.error("JOIN ERROR:", error);
-        showMessage("❌ " + error.message);
-    }
-}
-
-/* =========================================================
-   PAIEMENT NOWPAYMENTS DIRECT (SANS ERREUR 400)
-========================================================= */
-async function startNowPayments() {
-    const nameInput = $("customPlayerName");
-    if (nameInput && nameInput.value.trim() !== "") {
-        playerName = nameInput.value.trim();
-        localStorage.setItem("miltape_player_name", playerName);
-    }
-
-    // Sécurité : Montant minimum 2$
-    const amount = Math.max(2, parseFloat(selectedBet) || 2);
-
-    try {
-        showMessage("⏳ Connexion au serveur...");
-
-        // 1. Inscription du joueur
-        const joinResponse = await fetch(API_URL + "/api/join", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId, playerName })
-        });
-
-        const joinData = await joinResponse.json();
-        if (!joinResponse.ok || !joinData.success) {
-            throw new Error(joinData.error || "JOIN_ERROR");
-        }
-
-        joined = true;
-        showMessage("⏳ Génération du paiement USDT TRC-20...");
-
-        // 2. Appel direct à l'API Payment
-        const response = await fetch(API_URL + "/api/create-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId, playerName, amount })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || "Erreur lors de la création du paiement");
-        }
-
-        // Si le serveur nous renvoie une adresse directe de dépôt USDT
-        if (data.pay_address) {
-            const modal = $("entryModal");
-            if (modal) modal.classList.remove("show");
-
-            alert(
-                `⚡ PAIEMENT CRÉÉ AVEC SUCCÈS !\n\n` +
-                `Envoyez exactement: ${data.pay_amount} USDT (TRC-20)\n` +
-                `À l'adresse suivante:\n${data.pay_address}\n\n` +
-                `Dès réception du transfert par le réseau, votre participation sera validée !`
-            );
-            
-            showMessage("✅ Adresse de paiement générée !");
-        } else if (data.invoice_url) {
-            // Sinon redirection standard
-            window.location.href = data.invoice_url;
-        } else {
-            throw new Error("Lien ou adresse de paiement introuvable");
-        }
-
-    } catch (error) {
-        console.error("PAYMENT ERROR:", error);
-        alert("ERREUR : " + error.message);
-        showMessage("❌ " + error.message);
-    }
-}
-
-/* =========================================================
-   TAP & SCORE
-========================================================= */
-function sendTap() {
-    if (!joined) return showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
-    if (currentStatus === "break") return showMessage("⌛ PATIENCE, TEMPS DE MISE EN COURS");
-    if (timeLeft <= 0) return showMessage("⏰ TEMPS ÉCOULÉ POUR CE CHALLENGE");
-
-    localTaps++;
-    score++;
-    updateScore();
-
-    if (tapTimeout) clearTimeout(tapTimeout);
-    tapTimeout = setTimeout(async () => {
-        const tapsToSend = localTaps;
-        localTaps = 0;
-        if (tapsToSend <= 0) return;
-
-        try {
-            await fetch(API_URL + "/api/tap", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ playerId, count: tapsToSend })
-            });
-        } catch (e) { 
-            console.error("Tap error", e); 
-        }
-    }, 400);
-}
-
-function updateScore() {
-    requestAnimationFrame(() => {
-        const tapCount = $("tapCount");
-        const tapButtonCount = $("tapButtonCount");
-        if (tapCount) tapCount.textContent = score;
-        if (tapButtonCount) tapButtonCount.textContent = score;
+    let game = await games.findOne({
+        status: { $in: ["running", "break"] },
+        endsAt: { $gt: now }
     });
-}
 
-/* =========================================================
-   CLASSEMENT
-========================================================= */
-async function loadLeaderboard() {
-    try {
-        const res = await fetch(API_URL + "/api/leaderboard");
-        const data = await res.json();
-        if (data.success) renderLeaderboard(data.players || []);
-    } catch (e) {}
-}
-
-function renderLeaderboard(players) {
-    const list = $("leaderboardList");
-    if (!list) return;
-
-    if (!players.length) {
-        list.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
-        return;
-    }
-
-    const topPlayers = players.slice(0, 5);
-
-    list.innerHTML = topPlayers.map(p => {
-        const isMe = p.playerId === playerId;
-        
-        let nameColor = "#ffffff";
-        let crown = "";
-        if (p.position === 1) { nameColor = "#FFD700"; crown = "👑 "; }
-        else if (p.position === 2) nameColor = "#C0C0C0";
-        else if (p.position === 3) nameColor = "#CD7F32";
-
-        return `
-            <div class="leaderboard-item ${isMe ? 'me' : ''}">
-                <div class="rank">#${p.position}</div>
-                <div class="player-name" style="color: ${nameColor};">${crown}${escapeHTML(p.playerName)}</div>
-                <div class="player-score">${p.score} taps</div>
-            </div>
-        `;
-    }).join("");
-}
-
-function escapeHTML(str) {
-    return String(str).replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-    );
-}
-
-/* =========================================================
-   CHAT
-========================================================= */
-async function loadChat() {
-    try {
-        const res = await fetch(API_URL + "/api/chat");
-        const data = await res.json();
-        if (data.success) {
-            renderChat(data.messages || []);
-        }
-    } catch (e) {
-        console.error("Erreur chargement chat:", e);
-    }
-}
-
-function renderChat(msgs) {
-    const container = $("chatMessages");
-    if (!container) return;
-    
-    container.innerHTML = msgs.map(m => `
-        <div class="chat-message"><strong>${escapeHTML(m.playerName || "Anonyme")}:</strong> ${escapeHTML(m.message || "")}</div>
-    `).join("");
-
-    container.scrollTop = container.scrollHeight;
-}
-
-async function sendChatMessage() {
-    const chatInput = $("chatInput");
-    if (!chatInput) return;
-    
-    const message = chatInput.value.trim();
-    if (!message) return;
-
-    if (!joined) {
-        showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
-        return;
-    }
-
-    try {
-        const response = await fetch(API_URL + "/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId, playerName, message })
+    if (!game) {
+        const expiredGame = await games.findOne({
+            status: { $in: ["running", "break"] },
+            endsAt: { $lte: now }
         });
 
-        const data = await response.json();
-        if (response.ok && data.success) {
-            chatInput.value = ""; 
-            loadChat(); 
+        if (expiredGame) {
+            if (expiredGame.status === "running") {
+                const breakEndsAt = new Date(now.getTime() + 10 * 1000);
+                await games.updateOne(
+                    { _id: expiredGame._id },
+                    { $set: { status: "break", endsAt: breakEndsAt } }
+                );
+                game = await games.findOne({ _id: expiredGame._id });
+                console.log("⏸️ Fin de partie : Début de la pause de mise de 10 secondes");
+            } else if (expiredGame.status === "break") {
+                await games.updateOne(
+                    { _id: expiredGame._id },
+                    { $set: { status: "finished" } }
+                );
+
+                const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
+                const result = await games.insertOne({
+                    status: "running",
+                    startsAt: now,
+                    endsAt,
+                    createdAt: now
+                });
+
+                game = await games.findOne({ _id: result.insertedId });
+                console.log("🎮 Nouvelle partie globale de 10 minutes créée");
+                io.emit("game:restart");
+            }
         } else {
-            showMessage("❌ " + (data.error || "Erreur d'envoi du message"));
+            const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
+            const result = await games.insertOne({
+                status: "running",
+                startsAt: now,
+                endsAt,
+                createdAt: now
+            });
+
+            game = await games.findOne({ _id: result.insertedId });
+            console.log("🎮 Première partie globale initialisée");
         }
-    } catch (e) {
-        console.error("Chat send error:", e);
-        showMessage("❌ Erreur de connexion au serveur");
+    }
+
+    return game;
+}
+
+
+/* =====================================================
+   TEST
+===================================================== */
+
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        project: "Miltape World Challenge",
+        status: "online",
+        database: db ? "connected" : "not connected"
+    });
+});
+
+
+/* =====================================================
+   PANNEAU ADMIN — STATS GLOBALES & GESTION
+===================================================== */
+
+app.get("/api/admin/stats", async (req, res) => {
+    try {
+        if (!db) {
+            return res.status(500).json({ success: false, error: "DB_NOT_CONNECTED" });
+        }
+
+        const totalPlayers = await players.countDocuments();
+        const activeGame = await getActiveGame();
+        
+        const pipeline = [
+            { $group: { _id: null, totalTaps: { $sum: "$score" } } }
+        ];
+        const tapResult = await players.aggregate(pipeline).toArray();
+        const totalTapsAll = tapResult.length > 0 ? tapResult[0].totalTaps : 0;
+
+        const recentPlayers = await players.find({}).sort({ createdAt: -1 }).limit(20).toArray();
+
+        res.json({
+            success: true,
+            stats: {
+                totalPlayers,
+                totalTapsAll,
+                currentGameStatus: activeGame.status,
+                currentGameEndsAt: activeGame.endsAt
+            },
+            recentPlayers: recentPlayers.map(p => ({
+                playerId: p.playerId,
+                playerName: p.playerName,
+                score: p.score,
+                createdAt: p.createdAt
+            }))
+        });
+
+    } catch (error) {
+        console.error("ADMIN STATS ERROR:", error);
+        res.status(500).json({ success: false, error: "ADMIN_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   GAME (RÉCUPÉRER LE STATUT ET LE TEMPS RESTANT GLOBAL)
+===================================================== */
+
+app.get("/api/game", async (req, res) => {
+    try {
+        const game = await getActiveGame();
+        const now = new Date();
+        const timeLeftSec = Math.max(0, Math.floor((new Date(game.endsAt) - now) / 1000));
+
+        res.json({
+            success: true,
+            game: {
+                id: game._id.toString(),
+                status: game.status,
+                timeLeft: timeLeftSec,
+                startsAt: game.startsAt,
+                endsAt: game.endsAt
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "GAME_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   JOIN (AVEC VÉRIFICATION DU PSEUDO UNIQUE)
+===================================================== */
+
+app.post("/api/join", async (req, res) => {
+    try {
+        const playerId = String(req.body.playerId || "");
+        const playerName = String(req.body.playerName || "").trim().slice(0, 30);
+
+        if (!playerId || !playerName) {
+            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
+        }
+
+        const game = await getActiveGame();
+
+        const existingPlayer = await players.findOne({
+            gameId: game._id,
+            playerId: { $ne: playerId },
+            playerName: { $regex: new RegExp("^" + playerName + "$", "i") }
+        });
+
+        if (existingPlayer) {
+            return res.status(400).json({
+                success: false,
+                error: "Ce pseudo est déjà pris, choisis-en un autre !"
+            });
+        }
+
+        await players.updateOne(
+            { playerId, gameId: game._id },
+            {
+                $set: { playerId, playerName, gameId: game._id, updatedAt: new Date() },
+                $setOnInsert: { score: 0, createdAt: new Date() }
+            },
+            { upsert: true }
+        );
+
+        res.json({
+            success: true,
+            game: {
+                id: game._id.toString(),
+                status: game.status,
+                endsAt: game.endsAt
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "JOIN_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   TAP (OPTIMISÉ AVEC SUPPORT DU BATCH DE CLICS)
+===================================================== */
+
+app.post("/api/tap", async (req, res) => {
+    try {
+        const playerId = String(req.body.playerId || "");
+        const tapCount = parseInt(req.body.count || 1, 10);
+
+        if (!playerId) {
+            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
+        }
+
+        const game = await getActiveGame();
+
+        if (game.status === "break" || new Date() >= new Date(game.endsAt)) {
+            return res.status(400).json({ success: false, error: "GAME_BREAK_OR_FINISHED" });
+        }
+
+        const result = await players.findOneAndUpdate(
+            { playerId, gameId: game._id },
+            {
+                $inc: { score: tapCount },
+                $set: { updatedAt: new Date() }
+            },
+            { returnDocument: "after" }
+        );
+
+        if (!result) {
+            return res.status(400).json({ success: false, error: "PLAYER_NOT_IN_GAME" });
+        }
+
+        io.emit("leaderboard:update");
+
+        res.json({ success: true, score: result.score });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "TAP_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   LEADERBOARD TOP 5
+===================================================== */
+
+app.get("/api/leaderboard", async (req, res) => {
+    try {
+        const game = await getActiveGame();
+
+        const topPlayers = await players
+            .find({ gameId: game._id })
+            .sort({ score: -1 })
+            .limit(5)
+            .toArray();
+
+        res.json({
+            success: true,
+            players: topPlayers.map((player, index) => ({
+                position: index + 1,
+                playerId: player.playerId,
+                playerName: player.playerName,
+                score: player.score
+            }))
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "LEADERBOARD_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   CHAT — LIRE
+===================================================== */
+
+app.get("/api/chat", async (req, res) => {
+    try {
+        const chat = await messages.find({}).sort({ createdAt: -1 }).limit(100).toArray();
+
+        res.json({
+            success: true,
+            messages: chat.reverse().map(message => ({
+                playerName: message.playerName,
+                message: message.message,
+                createdAt: message.createdAt
+            }))
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "CHAT_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   CHAT — ENVOYER
+===================================================== */
+
+app.post("/api/chat", async (req, res) => {
+    try {
+        const playerId = String(req.body.playerId || "");
+        const playerName = String(req.body.playerName || "").trim().slice(0, 30);
+        const message = String(req.body.message || "").trim().slice(0, 250);
+
+        if (!playerId || !playerName || !message) {
+            return res.status(400).json({ success: false, error: "MESSAGE_REQUIRED" });
+        }
+
+        const newMessage = { playerId, playerName, message, createdAt: new Date() };
+
+        await messages.insertOne(newMessage);
+        io.emit("chat:new", newMessage);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: "CHAT_SEND_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   CRÉATION DE FACTURE NOWPAYMENTS (MONTANT SÉCURISÉ MINIMUM 5$)
+===================================================== */
+
+app.post("/api/create-payment", async (req, res) => {
+    try {
+        const { playerId, playerName, amount } = req.body;
+
+        if (!playerId || !amount) {
+            return res.status(400).json({ success: false, error: "PLAYER_AND_AMOUNT_REQUIRED" });
+        }
+
+        const apiKey = process.env.NOWPAYMENTS_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
+        }
+
+        // Sécurité minimale de 5$ pour empêcher l'erreur "less than minimal" de NOWPayments
+        const finalAmount = Math.max(5, parseFloat(amount) || 5);
+
+        // Appel à l'API invoice pour afficher le choix des stablecoins au joueur
+        const response = await fetch("https://api.nowpayments.io/v1/invoice", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey
+            },
+            body: JSON.stringify({
+                price_amount: finalAmount,
+                price_currency: "usd",
+                order_id: playerId,
+                order_description: `Mise Miltape pour ${playerName || playerId}`,
+                ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn",
+                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
+                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
+            })
+        });
+
+        const invoiceData = await response.json();
+
+        if (!response.ok) {
+            console.error("Erreur API Invoice NOWPayments:", invoiceData);
+            return res.status(400).json({ success: false, error: invoiceData.message || "INVOICE_API_ERROR" });
+        }
+
+        res.json({
+            success: true,
+            invoice_url: invoiceData.invoice_url,
+            payment_id: invoiceData.id
+        });
+
+    } catch (error) {
+        console.error("❌ ERREUR CREATE INVOICE:", error);
+        res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   NOWPAYMENTS IPN (WEBHOOK DE PAIEMENT)
+===================================================== */
+
+app.post("/api/ipn", async (req, res) => {
+    try {
+        const paymentData = req.body;
+        console.log("🔔 Notification IPN reçue de NOWPayments :", paymentData);
+
+        const paymentId = paymentData.payment_id;
+        const paymentStatus = paymentData.payment_status; 
+        const orderId = paymentData.order_id; 
+        const priceAmount = paymentData.price_amount;
+        const payCurrency = paymentData.pay_currency;
+
+        if (!paymentId) {
+            return res.status(400).json({ success: false, error: "INVALID_IPN_DATA" });
+        }
+
+        if (payments) {
+            await payments.updateOne(
+                { paymentId: String(paymentId) },
+                { 
+                    $set: { 
+                        paymentStatus, 
+                        orderId, 
+                        priceAmount, 
+                        payCurrency, 
+                        rawdata: paymentData,
+                        updatedAt: new Date() 
+                    },
+                    $setOnInsert: { createdAt: new Date() }
+                },
+                { upsert: true }
+            );
+        }
+
+        if (paymentStatus === "finished" || paymentStatus === "confirmed") {
+            console.log(`✅ Paiement validé pour la commande/joueur : ${orderId}`);
+        }
+
+        return res.status(200).json({ success: true });
+
+    } catch (error) {
+        console.error("❌ ERREUR IPN :", error);
+        return res.status(500).json({ success: false, error: "IPN_HANDLER_ERROR" });
+    }
+});
+
+
+/* =====================================================
+   SOCKET.IO & CHRONO MONDIAL / PAUSE EN DIRECT
+===================================================== */
+
+io.on("connection", socket => {
+    console.log("👤 Joueur connecté :", socket.id);
+    io.emit("online:count", io.engine.clientsCount);
+
+    socket.on("disconnect", () => {
+        console.log("👋 Joueur déconnecté :", socket.id);
+        io.emit("online:count", io.engine.clientsCount);
+    });
+});
+
+
+/* =====================================================
+   START
+===================================================== */
+
+async function startServer() {
+    try {
+        await connectMongoDB();
+
+        setInterval(async () => {
+            try {
+                if (!db) return;
+                const game = await getActiveGame();
+                
+                const now = new Date();
+                const endsAt = new Date(game.endsAt);
+                const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
+
+                io.emit("global:timer", {
+                    timeLeft: timeLeftSec,
+                    status: game.status
+                });
+            } catch (e) {
+                console.error("Erreur timer global:", e);
+            }
+        }, 1000);
+
+        server.listen(PORT, "0.0.0.0", () => {
+            console.log(`🚀 Miltape lancé sur le port ${PORT}`);
+        });
+
+    } catch (error) {
+        console.error("❌ ERREUR SERVEUR :", error.message);
+        process.exit(1);
     }
 }
 
-/* =========================================================
-   INITIALISATION GLOBALE
-========================================================= */
-function initMiltape() {
-    const customBetInput = $("customBetInput");
-    if (customBetInput) {
-        customBetInput.addEventListener("input", () => {
-            selectedBet = parseFloat(customBetInput.value) || 2;
-            if ($("selectedBet")) $("selectedBet").textContent = "€" + selectedBet;
-        });
-    }
-
-    const enterButton = $("enterChallenge");
-    if (enterButton) {
-        enterButton.addEventListener("click", () => {
-            const modal = $("entryModal");
-            if (modal) modal.classList.add("show");
-        });
-    }
-    
-    const confirmButton = $("confirmEntry");
-    if (confirmButton) confirmButton.addEventListener("click", joinChallenge);
-
-    const payButton = $("confirmBetButton");
-    if (payButton) {
-        payButton.addEventListener("click", startNowPayments);
-    }
-
-    const tapButton = $("tapButton");
-    if (tapButton) tapButton.addEventListener("click", sendTap);
-
-    const chatSendButton = $("chatSend");
-    if (chatSendButton) chatSendButton.addEventListener("click", sendChatMessage);
-
-    const chatInput = $("chatInput");
-    if (chatInput) {
-        chatInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") sendChatMessage();
-        });
-    }
-
-    loadLeaderboard();
-    loadChat();
-
-    if (leaderboardInterval) clearInterval(leaderboardInterval);
-    leaderboardInterval = setInterval(loadLeaderboard, 1000);
-    setInterval(loadChat, 5000);
-}
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initMiltape);
-} else {
-    initMiltape();
-}
+startServer();
