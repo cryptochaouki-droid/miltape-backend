@@ -386,7 +386,6 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
-        // Sécurité mise libre : si le montant est vide ou inférieur à 1, on force à 1 pour éviter l'échec de l'API
         let finalAmount = parseFloat(amount);
         if (isNaN(finalAmount) || finalAmount <= 0) {
             finalAmount = 1;
@@ -404,8 +403,8 @@ app.post("/api/create-payment", async (req, res) => {
                 order_id: String(playerId),
                 order_description: `Mise Miltape pour ${playerName || playerId}`,
                 ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn",
-                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
-                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
+                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/index.html",
+                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/index.html"
             })
         });
 
