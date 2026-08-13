@@ -370,7 +370,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   CRÉATION DE PAIEMENT DIRECT NOWPAYMENTS (CORRIGÉ 400)
+   CRÉATION DE FACTURE NOWPAYMENTS (MONTANT LIBRE & MULTI-STABLECOINS)
 ===================================================== */
 
 app.post("/api/create-payment", async (req, res) => {
@@ -386,11 +386,11 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
-        // Force une sécurité minimale de 2$ pour NOWPayments
-        const finalAmount = Math.max(2, parseFloat(amount) || 2);
+        // Montant libre choisi par le joueur sans imposer de minimum
+        const finalAmount = parseFloat(amount) || 1;
 
-        // Appel direct à l'API payment (et non invoice) pour éviter le bug 400 de leur page hébergée
-        const response = await fetch("https://api.nowpayments.io/v1/payment", {
+        // Appel à l'API invoice pour afficher le choix des stablecoins au joueur
+        const response = await fetch("https://api.nowpayments.io/v1/invoice", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -399,30 +399,29 @@ app.post("/api/create-payment", async (req, res) => {
             body: JSON.stringify({
                 price_amount: finalAmount,
                 price_currency: "usd",
-                pay_currency: "usdttrc20",
                 order_id: playerId,
                 order_description: `Mise Miltape pour ${playerName || playerId}`,
-                ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn"
+                ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn",
+                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
+                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
             })
         });
 
-        const paymentData = await response.json();
+        const invoiceData = await response.json();
 
         if (!response.ok) {
-            console.error("Erreur API NOWPayments:", paymentData);
-            return res.status(400).json({ success: false, error: paymentData.message || "NOWPAYMENTS_API_ERROR" });
+            console.error("Erreur API Invoice NOWPayments:", invoiceData);
+            return res.status(400).json({ success: false, error: invoiceData.message || "INVOICE_API_ERROR" });
         }
 
         res.json({
             success: true,
-            payment_id: paymentData.payment_id,
-            pay_address: paymentData.pay_address,
-            pay_amount: paymentData.pay_amount,
-            invoice_url: paymentData.pay_url || `https://nowpayments.io/payment/?payment_id=${paymentData.payment_id}`
+            invoice_url: invoiceData.invoice_url,
+            payment_id: invoiceData.id
         });
 
     } catch (error) {
-        console.error("❌ ERREUR CREATE PAYMENT:", error);
+        console.error("❌ ERREUR CREATE INVOICE:", error);
         res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
     }
 });
