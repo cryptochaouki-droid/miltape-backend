@@ -370,7 +370,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   CRÉATION DE PAIEMENT NOWPAYMENTS (CORRIGÉ 2$ MINIMUM)
+   CRÉATION DE PAIEMENT DIRECT NOWPAYMENTS (CORRIGÉ 400)
 ===================================================== */
 
 app.post("/api/create-payment", async (req, res) => {
@@ -389,7 +389,8 @@ app.post("/api/create-payment", async (req, res) => {
         // Force une sécurité minimale de 2$ pour NOWPayments
         const finalAmount = Math.max(2, parseFloat(amount) || 2);
 
-        const response = await fetch("https://api.nowpayments.io/v1/invoice", {
+        // Appel direct à l'API payment (et non invoice) pour éviter le bug 400 de leur page hébergée
+        const response = await fetch("https://api.nowpayments.io/v1/payment", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -401,8 +402,7 @@ app.post("/api/create-payment", async (req, res) => {
                 pay_currency: "usdttrc20",
                 order_id: playerId,
                 order_description: `Mise Miltape pour ${playerName || playerId}`,
-                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
-                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
+                ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn"
             })
         });
 
@@ -415,8 +415,10 @@ app.post("/api/create-payment", async (req, res) => {
 
         res.json({
             success: true,
-            invoice_url: paymentData.invoice_url,
-            payment_id: paymentData.id
+            payment_id: paymentData.payment_id,
+            pay_address: paymentData.pay_address,
+            pay_amount: paymentData.pay_amount,
+            invoice_url: paymentData.pay_url || `https://nowpayments.io/payment/?payment_id=${paymentData.payment_id}`
         });
 
     } catch (error) {
