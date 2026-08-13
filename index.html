@@ -595,10 +595,10 @@
 
         <div class="demo-warning">
 
-            🟢 MODE DEMO
+            🟢 PAIEMENT CRYPTO
 
             <small>
-                Aucun argent réel n'est utilisé.
+                Sécurisé par NOWPayments.
             </small>
 
         </div>
@@ -643,6 +643,8 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
+        const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+
         const enterButton = document.getElementById("enterChallenge");
         const modal = document.getElementById("entryModal");
 
@@ -666,10 +668,75 @@ document.addEventListener(
             });
         }
 
+        // Gestion ou création d'un ID unique joueur persistant
+        let playerId = localStorage.getItem("miltape_player_id");
+        if (!playerId) {
+            playerId = 'player_' + Math.random().toString(36).substring(2, 11);
+            localStorage.setItem("miltape_player_id", playerId);
+        }
+
         const savedName = localStorage.getItem("miltape_player_name");
         const nameInput = document.getElementById("customPlayerName");
         if (savedName && nameInput) {
             nameInput.value = savedName;
+        }
+
+        // Bouton de confirmation de paiement et d'entrée
+        const confirmButton = document.getElementById("confirmBetButton");
+        if (confirmButton) {
+            confirmButton.addEventListener("click", async function () {
+                const playerName = nameInput ? nameInput.value.trim() : "";
+                const amount = customBetInput ? customBetInput.value : "2";
+
+                if (!playerName) {
+                    alert("Entre un pseudo valide !");
+                    return;
+                }
+
+                localStorage.setItem("miltape_player_name", playerName);
+                confirmButton.textContent = "CHARGEMENT...";
+                confirmButton.disabled = true;
+
+                try {
+                    // 1. Enregistrement / Jointure dans la partie
+                    const joinRes = await fetch(`${BACKEND_URL}/api/join`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ playerId, playerName })
+                    });
+                    const joinData = await joinRes.json();
+
+                    if (!joinData.success) {
+                        alert(joinData.error || "Erreur lors de l'inscription.");
+                        confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                        confirmButton.disabled = false;
+                        return;
+                    }
+
+                    // 2. Création de la facture NOWPayments
+                    const payRes = await fetch(`${BACKEND_URL}/api/create-payment`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ playerId, playerName, amount })
+                    });
+                    const payData = await payRes.json();
+
+                    if (payData.success && payData.invoice_url) {
+                        // Redirection vers la page de paiement officielle NOWPayments
+                        window.location.href = payData.invoice_url;
+                    } else {
+                        alert("Erreur de paiement : " + (payData.error || "Inconnue"));
+                        confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                        confirmButton.disabled = false;
+                    }
+
+                } catch (err) {
+                    console.error("Erreur réseau :", err);
+                    alert("Impossible de joindre le serveur de paiement.");
+                    confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                    confirmButton.disabled = false;
+                }
+            });
         }
 
         const cancelBottom = document.getElementById("cancelEntryBottom");
@@ -717,7 +784,7 @@ document.addEventListener(
 
         if (walletButton) {
             walletButton.addEventListener("click", function () {
-                alert("💰 MODE DEMO\n\nWallet et argent réel seront ajoutés plus tard.");
+                alert("💰 MODES DE PAIEMENT\n\nTes paiements et gains sont gérés en cryptomonnaies via NOWPayments.");
             });
         }
 
