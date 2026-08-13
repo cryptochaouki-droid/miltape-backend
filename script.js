@@ -30,7 +30,7 @@ socket.on("online:count", (count) => {
 /* =========================================================
    ÉTAT DU JEU
 ========================================================= */
-let selectedBet = 1;
+let selectedBet = 2; // Valeur minimale par défaut fixée à 2$ pour NOWPayments
 let joined = false;
 let score = 0;
 let leaderboardInterval = null;
@@ -155,7 +155,7 @@ async function joinChallenge() {
 }
 
 /* =========================================================
-   PAIEMENT NOWPAYMENTS (MIS À JOUR AVEC ALERTE MOBILE)
+   PAIEMENT NOWPAYMENTS (CORRIGÉ MONTANT MINIMAL)
 ========================================================= */
 async function startNowPayments() {
     const nameInput = $("customPlayerName");
@@ -164,7 +164,8 @@ async function startNowPayments() {
         localStorage.setItem("miltape_player_name", playerName);
     }
 
-    const amount = selectedBet || 1; // Utilise la mise sélectionnée (par défaut 1)
+    // Force une valeur minimale de 2$ pour éviter l'erreur NOWPayments
+    const amount = Math.max(2, parseFloat(selectedBet) || 2);
 
     try {
         showMessage("⏳ Connexion au serveur...");
@@ -362,7 +363,7 @@ function initMiltape() {
     const customBetInput = $("customBetInput");
     if (customBetInput) {
         customBetInput.addEventListener("input", () => {
-            selectedBet = parseFloat(customBetInput.value) || 0;
+            selectedBet = parseFloat(customBetInput.value) || 2;
             if ($("selectedBet")) $("selectedBet").textContent = "€" + selectedBet;
         });
     }
