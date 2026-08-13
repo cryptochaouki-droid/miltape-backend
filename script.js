@@ -370,15 +370,15 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   CRÉATION DE FACTURE NOWPAYMENTS (MONTANT LIBRE & FLEXIBLE)
+   CRÉATION DE FACTURE NOWPAYMENTS (MISE LIBRE & FLEXIBLE)
 ===================================================== */
 
 app.post("/api/create-payment", async (req, res) => {
     try {
         const { playerId, playerName, amount } = req.body;
 
-        if (!playerId || !amount) {
-            return res.status(400).json({ success: false, error: "PLAYER_AND_AMOUNT_REQUIRED" });
+        if (!playerId) {
+            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
         }
 
         const apiKey = process.env.NOWPAYMENTS_API_KEY;
@@ -386,10 +386,9 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
-        // Utilisation directe du montant voulu par l'utilisateur sans plancher artificiel bloquant
+        // Utilisation directe du montant voulu par l'utilisateur (mise libre)
         const finalAmount = parseFloat(amount) || 1;
 
-        // Appel à l'API invoice pour afficher le choix des stablecoins au joueur
         const response = await fetch("https://api.nowpayments.io/v1/invoice", {
             method: "POST",
             headers: {
@@ -399,7 +398,7 @@ app.post("/api/create-payment", async (req, res) => {
             body: JSON.stringify({
                 price_amount: finalAmount,
                 price_currency: "usd",
-                order_id: playerId,
+                order_id: String(playerId),
                 order_description: `Mise Miltape pour ${playerName || playerId}`,
                 ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn",
                 success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
