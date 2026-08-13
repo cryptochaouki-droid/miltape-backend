@@ -111,11 +111,11 @@
         <div class="wallet-box">
 
             <small>
-                MODE DEMO
+                CRYPTO
             </small>
 
             <strong id="balance">
-                100.00 €
+                USDT
             </strong>
 
         </div>
@@ -211,11 +211,11 @@
             </span>
 
             <strong>
-                2X
+                USDT
             </strong>
 
             <small>
-                MODE DEMO
+                TRC20
             </small>
 
         </div>
@@ -272,7 +272,7 @@
 
 
     <!-- =====================================================
-         CHOIX DE MISE LIBRE (MINIMUM 2€)
+         CHOIX DE MISE LIBRE (MINIMUM 1$)
     ====================================================== -->
 
     <section class="bet-section">
@@ -285,7 +285,7 @@
 
             <strong>
                 <span id="selectedBet">
-                    €2
+                    $1
                 </span>
             </strong>
 
@@ -294,13 +294,13 @@
 
         <div style="margin-top: 10px;">
             <div style="display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.3); border: 2px solid #ffcc00; border-radius: 12px; padding: 10px 15px;">
-                <span style="color: #ffcc00; font-size: 22px; font-weight: bold; margin-right: 8px;">€</span>
+                <span style="color: #ffcc00; font-size: 22px; font-weight: bold; margin-right: 8px;">$</span>
                 <input
                     id="customBetInput"
                     type="number"
-                    min="2"
+                    min="1"
                     step="0.1"
-                    value="2"
+                    value="1"
                     placeholder="Entre ta mise"
                     style="background: transparent; border: none; color: #ffffff; font-size: 22px; font-weight: bold; width: 100%; outline: none; text-align: center;"
                 >
@@ -516,7 +516,7 @@
         </span>
 
         <small>
-            VERSION DEMO • SANS ARGENT RÉEL
+            CRYPTOMONNAIE • NOWPAYMENTS
         </small>
 
     </footer>
@@ -600,7 +600,7 @@
             </span>
 
             <strong id="entryBet">
-                €2
+                $1
             </strong>
 
         </div>
@@ -676,8 +676,8 @@ document.addEventListener(
                 let val = customBetInput.value;
                 if (val === "" || isNaN(val)) val = "0";
                 
-                if (selectedBetSpan) selectedBetSpan.textContent = "€" + val;
-                if (entryBetSpan) entryBetSpan.textContent = "€" + val;
+                if (selectedBetSpan) selectedBetSpan.textContent = "$" + val;
+                if (entryBetSpan) entryBetSpan.textContent = "$" + val;
             });
         }
 
@@ -706,7 +706,7 @@ document.addEventListener(
             confirmButton.addEventListener("click", async function () {
                 const playerName = nameInput ? nameInput.value.trim() : "";
                 const cryptoAddress = cryptoInput ? cryptoInput.value.trim() : "";
-                const amount = customBetInput ? customBetInput.value : "2";
+                const amount = customBetInput ? customBetInput.value : "1";
 
                 if (!playerName) {
                     alert("Entre un pseudo valide !");
@@ -811,7 +811,7 @@ document.addEventListener(
 
         if (walletButton) {
             walletButton.addEventListener("click", function () {
-                alert("💰 MODES DE PAIEMENT\n\nTes paiements et gains sont gérés en cryptomonnaies via NOWPayments.");
+                alert("💰 MODES DE PAIEMENT\n\nTes paiements et gains sont gérés en cryptomonnaies (USDT TRC20) via NOWPayments.");
             });
         }
 
