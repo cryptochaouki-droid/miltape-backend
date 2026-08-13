@@ -579,6 +579,19 @@
             >
         </div>
 
+        <div style="margin: 15px 0; text-align: left;">
+            <label for="customCryptoAddress" style="display: block; font-size: 11px; margin-bottom: 5px; color: #ffcc00; font-weight: bold;">
+                ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :
+            </label>
+            <input
+                id="customCryptoAddress"
+                type="text"
+                placeholder="Votre adresse USDT TRC20..."
+                autocomplete="off"
+                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ffcc00; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box;"
+            >
+        </div>
+
 
         <div class="entry-info">
 
@@ -681,11 +694,18 @@ document.addEventListener(
             nameInput.value = savedName;
         }
 
+        const savedCrypto = localStorage.getItem("miltape_crypto_address");
+        const cryptoInput = document.getElementById("customCryptoAddress");
+        if (savedCrypto && cryptoInput) {
+            cryptoInput.value = savedCrypto;
+        }
+
         // Bouton de confirmation de paiement et d'entrée
         const confirmButton = document.getElementById("confirmBetButton");
         if (confirmButton) {
             confirmButton.addEventListener("click", async function () {
                 const playerName = nameInput ? nameInput.value.trim() : "";
+                const cryptoAddress = cryptoInput ? cryptoInput.value.trim() : "";
                 const amount = customBetInput ? customBetInput.value : "2";
 
                 if (!playerName) {
@@ -693,16 +713,23 @@ document.addEventListener(
                     return;
                 }
 
+                if (!cryptoAddress) {
+                    alert("Veuillez entrer votre adresse crypto (USDT TRC20) pour recevoir vos gains automatiques !");
+                    return;
+                }
+
                 localStorage.setItem("miltape_player_name", playerName);
+                localStorage.setItem("miltape_crypto_address", cryptoAddress);
+                
                 confirmButton.textContent = "CHARGEMENT...";
                 confirmButton.disabled = true;
 
                 try {
-                    // 1. Enregistrement / Jointure dans la partie
+                    // 1. Enregistrement / Jointure dans la partie avec l'adresse crypto
                     const joinRes = await fetch(`${BACKEND_URL}/api/join`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ playerId, playerName })
+                        body: JSON.stringify({ playerId, playerName, cryptoAddress })
                     });
                     const joinData = await joinRes.json();
 
