@@ -370,7 +370,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   CRÉATION DE PAIEMENT NOWPAYMENTS
+   CRÉATION DE PAIEMENT NOWPAYMENTS (CORRIGÉ 2$ MINIMUM)
 ===================================================== */
 
 app.post("/api/create-payment", async (req, res) => {
@@ -386,6 +386,9 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
+        // Force une sécurité minimale de 2$ pour NOWPayments
+        const finalAmount = Math.max(2, parseFloat(amount) || 2);
+
         const response = await fetch("https://api.nowpayments.io/v1/invoice", {
             method: "POST",
             headers: {
@@ -393,7 +396,7 @@ app.post("/api/create-payment", async (req, res) => {
                 "x-api-key": apiKey
             },
             body: JSON.stringify({
-                price_amount: parseFloat(amount),
+                price_amount: finalAmount,
                 price_currency: "usd",
                 pay_currency: "usdttrc20",
                 order_id: playerId,
