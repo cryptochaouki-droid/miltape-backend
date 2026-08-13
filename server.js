@@ -570,7 +570,7 @@ app.post("/api/ipn", async (req, res) => {
 
     } catch (error) {
         console.error("❌ ERREUR IPN :", error);
-        return res.status(550).json({ success: false, error: "IPN_HANDLER_ERROR" });
+        return res.status(500).json({ success: false, error: "IPN_HANDLER_ERROR" });
     }
 });
 
