@@ -398,7 +398,6 @@ app.post("/api/create-payment", async (req, res) => {
                 pay_currency: "usdttrc20",
                 order_id: playerId,
                 order_description: `Mise Miltape pour ${playerName || playerId}`,
-                ipn_url: "https://miltape-backend-production.up.railway.app/ipn",
                 success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
                 cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
             })
@@ -428,7 +427,7 @@ app.post("/api/create-payment", async (req, res) => {
    NOWPAYMENTS IPN (WEBHOOK DE PAIEMENT)
 ===================================================== */
 
-app.post("/ipn", async (req, res) => {
+app.post("/api/ipn", async (req, res) => {
     try {
         const paymentData = req.body;
         console.log("🔔 Notification IPN reçue de NOWPayments :", paymentData);
