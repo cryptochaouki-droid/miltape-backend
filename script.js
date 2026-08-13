@@ -17,7 +17,7 @@ if (!playerName) {
     localStorage.setItem("miltape_player_name", playerName);
 }
 
-// Connexion Socket.io pour le temps réel (joueurs en ligne, chrono mondial, etc.)
+// Connexion Socket.io pour le temps réel
 const socket = io(API_URL);
 
 socket.on("online:count", (count) => {
@@ -30,12 +30,12 @@ socket.on("online:count", (count) => {
 /* =========================================================
    ÉTAT DU JEU
 ========================================================= */
-let selectedBet = 2; // Valeur minimale par défaut fixée à 2$ pour NOWPayments
+let selectedBet = 2; // Minimum 2$ pour NOWPayments
 let joined = false;
 let score = 0;
 let leaderboardInterval = null;
-let timeLeft = 600; // Temps initial par défaut
-let currentStatus = "running"; // "running" ou "break"
+let timeLeft = 600; 
+let currentStatus = "running"; 
 let localTaps = 0;
 let tapTimeout = null;
 
@@ -50,7 +50,7 @@ function showMessage(text) {
 }
 
 /* =========================================================
-   GESTION DU CHRONO MONDIAL ET DES PAUSES DE MISE (10 SEC)
+   GESTION DU CHRONO MONDIAL ET DES PAUSES
 ========================================================= */
 socket.on("global:timer", (data) => {
     timeLeft = data.timeLeft;
@@ -87,7 +87,6 @@ socket.on("global:timer", (data) => {
     }
 });
 
-// Réinitialisation lors du redémarrage d'une nouvelle partie
 socket.on("game:restart", () => {
     score = 0;
     updateScore();
@@ -111,7 +110,7 @@ function updateTimerDisplay() {
 }
 
 /* =========================================================
-   REJOINDRE LE JEU
+   REJOINDRE LE JEU (MODE GRATUIT / TEST)
 ========================================================= */
 async function joinChallenge() {
     const nameInput = $("customPlayerName");
@@ -155,7 +154,7 @@ async function joinChallenge() {
 }
 
 /* =========================================================
-   PAIEMENT NOWPAYMENTS (CORRIGÉ MONTANT MINIMAL)
+   PAIEMENT NOWPAYMENTS DIRECT (SANS ERREUR 400)
 ========================================================= */
 async function startNowPayments() {
     const nameInput = $("customPlayerName");
@@ -164,13 +163,13 @@ async function startNowPayments() {
         localStorage.setItem("miltape_player_name", playerName);
     }
 
-    // Force une valeur minimale de 2$ pour éviter l'erreur NOWPayments
+    // Sécurité : Montant minimum 2$
     const amount = Math.max(2, parseFloat(selectedBet) || 2);
 
     try {
         showMessage("⏳ Connexion au serveur...");
 
-        // 1. Enregistre d'abord le joueur dans la base de données
+        // 1. Inscription du joueur
         const joinResponse = await fetch(API_URL + "/api/join", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -183,9 +182,9 @@ async function startNowPayments() {
         }
 
         joined = true;
-        showMessage("⏳ Génération de la facture crypto...");
+        showMessage("⏳ Génération du paiement USDT TRC-20...");
 
-        // 2. Génère ensuite la facture NOWPayments
+        // 2. Appel direct à l'API Payment
         const response = await fetch(API_URL + "/api/create-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -198,11 +197,24 @@ async function startNowPayments() {
             throw new Error(data.error || "Erreur lors de la création du paiement");
         }
 
-        if (data.invoice_url) {
-            // Redirige le joueur vers la page de paiement sécurisée NOWPayments
+        // Si le serveur nous renvoie une adresse directe de dépôt USDT
+        if (data.pay_address) {
+            const modal = $("entryModal");
+            if (modal) modal.classList.remove("show");
+
+            alert(
+                `⚡ PAIEMENT CRÉÉ AVEC SUCCÈS !\n\n` +
+                `Envoyez exactement: ${data.pay_amount} USDT (TRC-20)\n` +
+                `À l'adresse suivante:\n${data.pay_address}\n\n` +
+                `Dès réception du transfert par le réseau, votre participation sera validée !`
+            );
+            
+            showMessage("✅ Adresse de paiement générée !");
+        } else if (data.invoice_url) {
+            // Sinon redirection standard
             window.location.href = data.invoice_url;
         } else {
-            throw new Error("Lien de paiement introuvable");
+            throw new Error("Lien ou adresse de paiement introuvable");
         }
 
     } catch (error) {
@@ -213,7 +225,7 @@ async function startNowPayments() {
 }
 
 /* =========================================================
-   TAP & SCORE (OPTIMISÉ ENVOI GROUPÉ)
+   TAP & SCORE
 ========================================================= */
 function sendTap() {
     if (!joined) return showMessage("⚡ ENTRE D'ABORD DANS LE CHALLENGE");
@@ -252,7 +264,7 @@ function updateScore() {
 }
 
 /* =========================================================
-   CLASSEMENT (AVEC POSITION # ET COULEURS)
+   CLASSEMENT
 ========================================================= */
 async function loadLeaderboard() {
     try {
@@ -299,7 +311,7 @@ function escapeHTML(str) {
 }
 
 /* =========================================================
-   CHAT — CHARGER ET ENVOYER LES MESSAGES
+   CHAT
 ========================================================= */
 async function loadChat() {
     try {
@@ -379,7 +391,6 @@ function initMiltape() {
     const confirmButton = $("confirmEntry");
     if (confirmButton) confirmButton.addEventListener("click", joinChallenge);
 
-    // Liaison du bouton de paiement/mise NOWPayments (ID: confirmBetButton)
     const payButton = $("confirmBetButton");
     if (payButton) {
         payButton.addEventListener("click", startNowPayments);
