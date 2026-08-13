@@ -370,7 +370,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 /* =====================================================
-   CRÉATION DE FACTURE NOWPAYMENTS (MONTANT SÉCURISÉ MINIMUM 5$)
+   CRÉATION DE FACTURE NOWPAYMENTS (MONTANT LIBRE & FLEXIBLE)
 ===================================================== */
 
 app.post("/api/create-payment", async (req, res) => {
@@ -386,8 +386,8 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
-        // Sécurité minimale de 5$ pour empêcher l'erreur "less than minimal" de NOWPayments
-        const finalAmount = Math.max(5, parseFloat(amount) || 5);
+        // Utilisation directe du montant voulu par l'utilisateur sans plancher artificiel bloquant
+        const finalAmount = parseFloat(amount) || 1;
 
         // Appel à l'API invoice pour afficher le choix des stablecoins au joueur
         const response = await fetch("https://api.nowpayments.io/v1/invoice", {
