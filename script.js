@@ -14,6 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
+    // Éléments d'inscription / paiement / crypto (si présents dans votre HTML)
+    const joinButton = document.getElementById("joinButton");
+    const playerNameInput = document.getElementById("playerNameInput");
+    const cryptoAddressInput = document.getElementById("cryptoAddressInput");
+
     let localTaps = 0;
     const playerId = localStorage.getItem("miltape_player_id");
     const playerName = localStorage.getItem("miltape_player_name");
@@ -22,6 +27,56 @@ document.addEventListener("DOMContentLoaded", () => {
     if (playerId && playerName) {
         if (tapButton) tapButton.disabled = false;
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
+    }
+
+    // Gestion du bouton pour rejoindre / enregistrer le profil avec l'adresse crypto
+    if (joinButton) {
+        joinButton.addEventListener("click", async () => {
+            const name = playerNameInput ? playerNameInput.value.trim() : "";
+            const cryptoAddress = cryptoAddressInput ? cryptoAddressInput.value.trim() : "";
+
+            if (!name) {
+                alert("Veuillez entrer un pseudo !");
+                return;
+            }
+
+            if (!cryptoAddress) {
+                alert("Veuillez entrer votre adresse crypto (USDT TRC20) pour recevoir vos gains automatiques !");
+                return;
+            }
+
+            // Générer un ID unique si le joueur n'en a pas
+            let currentId = playerId;
+            if (!currentId) {
+                currentId = 'player_' + Math.random().toString(36).substring(2, 15);
+                localStorage.setItem("miltape_player_id", currentId);
+            }
+            localStorage.setItem("miltape_player_name", name);
+            localStorage.setItem("miltape_crypto_address", cryptoAddress);
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        playerId: currentId,
+                        playerName: name,
+                        cryptoAddress: cryptoAddress
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert("Inscription validée avec succès !");
+                    location.reload();
+                } else {
+                    alert(data.error || "Erreur lors de l'inscription");
+                }
+            } catch (err) {
+                console.error("Erreur réseau /join:", err);
+                alert("Erreur de connexion au serveur.");
+            }
+        });
     }
 
     // 1. Gestion du Chrono global en temps réel via Socket.io
