@@ -3,6 +3,7 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const { MongoClient } = require("mongodb");
+const axios = require("axios");
 
 const app = express();
 const server = http.createServer(app);
@@ -48,6 +49,91 @@ async function connectMongoDB() {
 
 
 /* =====================================================
+   FONCTION DE VERSEMENT AUTOMATIQUE (PAYOUT NOWPAYMENTS)
+===================================================== */
+
+async function distributePrizesForGame(gameId) {
+    try {
+        const apiKey = process.env.NOWPAYMENTS_API_KEY;
+        if (!apiKey) {
+            console.error("❌ Impossible de distribuer les gains : NOWPAYMENTS_API_KEY absente");
+            return;
+        }
+
+        // Récupérer le Top 5 de la partie terminée trié par score décroissant
+        const topPlayers = await players
+            .find({ gameId: gameId })
+            .sort({ score: -1 })
+            .limit(5)
+            .toArray();
+
+        if (topPlayers.length === 0) {
+            console.log("ℹ️ Aucun joueur dans cette partie pour distribuer les gains.");
+            return;
+        }
+
+        console.log(`🎁 Distribution des gains pour le top ${topPlayers.length} de la partie ${gameId}`);
+
+        // Définition des gains par position (Exemple modifiable : 1er = 5$, 2e = 3$, 3e = 2$, 4e = 1$, 5e = 1$)
+        const prizes = [5, 3, 2, 1, 1];
+
+        for (let i = 0; i < topPlayers.length; i++) {
+            const player = topPlayers[i];
+            const prizeAmount = prizes[i] || 1; // 1$ par défaut si hors du tableau spécifique
+
+            // Vérifier si le joueur a renseigné une adresse crypto de retrait (stockée dans son profil ou sa session)
+            // Si le joueur n'a pas d'adresse, on passe au suivant pour éviter de bloquer
+            if (!player.cryptoAddress) {
+                console.log(`⚠️ Le joueur ${player.playerName} (ID: ${player.playerId}) n'a pas d'adresse crypto enregistrée pour recevoir ses gains.`);
+                continue;
+            }
+
+            try {
+                console.log(`💸 Envoi de ${prizeAmount} USDT à ${player.playerName} (${player.cryptoAddress})...`);
+
+                const response = await axios.post('https://api.nowpayments.io/v1/payout', {
+                    withdrawals: [
+                        {
+                            address: player.cryptoAddress,
+                            currency: 'usdttrc20',
+                            amount: prizeAmount,
+                            ipn_url: "https://miltape-backend-production.up.railway.app/api/ipn"
+                        }
+                    ]
+                }, {
+                    headers: {
+                        'x-api-key': apiKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log(`✅ Gain envoyé avec succès au joueur ${player.playerName} :`, response.data);
+
+                // Enregistrer le versement dans la base de données
+                if (payments) {
+                    await payments.insertOne({
+                        playerId: player.playerId,
+                        playerName: player.playerName,
+                        gameId: gameId,
+                        amount: prizeAmount,
+                        currency: 'usdttrc20',
+                        payoutResponse: response.data,
+                        createdAt: new Date()
+                    });
+                }
+
+            } catch (payoutError) {
+                console.error(`❌ Erreur lors du versement automatique pour ${player.playerName}:`, payoutError.response?.data || payoutError.message);
+            }
+        }
+
+    } catch (error) {
+        console.error("❌ ERREUR GLOBALE DISTRIBUTE PRIZES:", error);
+    }
+}
+
+
+/* =====================================================
    PARTIE ACTIVE (GÉRÉE AVEC PAUSE DE 10 SECONDES)
 ===================================================== */
 
@@ -67,6 +153,10 @@ async function getActiveGame() {
 
         if (expiredGame) {
             if (expiredGame.status === "running") {
+                // 1. La partie vient de se terminer -> On déclenche la distribution automatique des gains aux 5 premiers
+                await distributePrizesForGame(expiredGame._id);
+
+                // 2. Passage en mode pause de 10 secondes
                 const breakEndsAt = new Date(now.getTime() + 10 * 1000);
                 await games.updateOne(
                     { _id: expiredGame._id },
@@ -196,13 +286,14 @@ app.get("/api/game", async (req, res) => {
 
 
 /* =====================================================
-   JOIN (AVEC VÉRIFICATION DU PSEUDO UNIQUE)
+   JOIN (AVEC ENREGISTREMENT DE L'ADRESSE CRYPTO DU JOUEUR)
 ===================================================== */
 
 app.post("/api/join", async (req, res) => {
     try {
         const playerId = String(req.body.playerId || "");
         const playerName = String(req.body.playerName || "").trim().slice(0, 30);
+        const cryptoAddress = String(req.body.cryptoAddress || "").trim(); // Récupération de l'adresse pour les gains
 
         if (!playerId || !playerName) {
             return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
@@ -226,7 +317,13 @@ app.post("/api/join", async (req, res) => {
         await players.updateOne(
             { playerId, gameId: game._id },
             {
-                $set: { playerId, playerName, gameId: game._id, updatedAt: new Date() },
+                $set: { 
+                    playerId, 
+                    playerName, 
+                    gameId: game._id, 
+                    cryptoAddress: cryptoAddress || "", 
+                    updatedAt: new Date() 
+                },
                 $setOnInsert: { score: 0, createdAt: new Date() }
             },
             { upsert: true }
@@ -386,13 +483,11 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
-        // Sécurité pour garantir un minimum de 1$ et éviter les erreurs NOWPayments
         let finalAmount = parseFloat(amount);
         if (isNaN(finalAmount) || finalAmount < 1) {
             finalAmount = 1;
         }
 
-        // Appel à l'API invoice pour afficher le choix des stablecoins au joueur
         const response = await fetch("https://api.nowpayments.io/v1/invoice", {
             method: "POST",
             headers: {
@@ -475,7 +570,7 @@ app.post("/api/ipn", async (req, res) => {
 
     } catch (error) {
         console.error("❌ ERREUR IPN :", error);
-        return res.status(500).json({ success: false, error: "IPN_HANDLER_ERROR" });
+        return res.status(550).json({ success: false, error: "IPN_HANDLER_ERROR" });
     }
 });
 
