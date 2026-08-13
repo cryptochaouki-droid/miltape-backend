@@ -386,8 +386,11 @@ app.post("/api/create-payment", async (req, res) => {
             return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
         }
 
-        // Utilisation directe du montant voulu par l'utilisateur (mise libre)
-        const finalAmount = parseFloat(amount) || 1;
+        // Sécurité mise libre : si le montant est vide ou inférieur à 1, on force à 1 pour éviter l'échec de l'API
+        let finalAmount = parseFloat(amount);
+        if (isNaN(finalAmount) || finalAmount <= 0) {
+            finalAmount = 1;
+        }
 
         const response = await fetch("https://api.nowpayments.io/v1/invoice", {
             method: "POST",
