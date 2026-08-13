@@ -155,7 +155,7 @@ async function joinChallenge() {
 }
 
 /* =========================================================
-   PAIEMENT NOWPAYMENTS
+   PAIEMENT NOWPAYMENTS (MIS À JOUR AVEC ALERTE MOBILE)
 ========================================================= */
 async function startNowPayments() {
     const nameInput = $("customPlayerName");
@@ -167,6 +167,8 @@ async function startNowPayments() {
     const amount = selectedBet || 1; // Utilise la mise sélectionnée (par défaut 1)
 
     try {
+        showMessage("⏳ Connexion au serveur...");
+
         // 1. Enregistre d'abord le joueur dans la base de données
         const joinResponse = await fetch(API_URL + "/api/join", {
             method: "POST",
@@ -204,6 +206,7 @@ async function startNowPayments() {
 
     } catch (error) {
         console.error("PAYMENT ERROR:", error);
+        alert("ERREUR : " + error.message);
         showMessage("❌ " + error.message);
     }
 }
