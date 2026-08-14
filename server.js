@@ -30,55 +30,45 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 8080;
 
 const MONGO_URI = process.env.MONGO_URI;
-
 const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY;
 
 const FRONTEND_URL =
     process.env.FRONTEND_URL ||
     "https://uki-droid.github.io";
 
-const MIN_BET = 13;
+const IPN_URL =
+    process.env.IPN_URL ||
+    "https://miltape-backend-production.up.railway.app/api/ipn";
 
+const MIN_BET = 13;
 const GAME_DURATION = 600; // 10 minutes
 
+let mongoConnected = false;
+
 /* =========================================================
-   VERIFICATION ENVIRONNEMENT
+   LOGS DE DÉMARRAGE
 ========================================================= */
 
-if (!MONGO_URI) {
-    console.error("❌ MONGO_URI manquant dans Railway");
-}
-
-if (!NOWPAYMENTS_API_KEY) {
-    console.error("❌ NOWPAYMENTS_API_KEY manquant dans Railway");
-}
+console.log("======================================");
+console.log("🔥 MILTAPE BACKEND");
+console.log("======================================");
+console.log("Port :", PORT);
+console.log("Minimum mise :", MIN_BET, "USDT");
+console.log("Paiement : USDT TRC20");
+console.log("Partie : 10 minutes");
+console.log("MongoDB :", MONGO_URI ? "CONFIGURÉ" : "❌ MANQUANT");
+console.log(
+    "NOWPayments :",
+    NOWPAYMENTS_API_KEY ? "CONFIGURÉ" : "❌ MANQUANT"
+);
+console.log("Frontend :", FRONTEND_URL);
+console.log("======================================");
 
 /* =========================================================
    MONGODB
 ========================================================= */
 
-mongoose.set("strictQuery", true);
-
-mongoose.connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 10000,
-    connectTimeoutMS: 10000,
-    socketTimeoutMS: 20000,
-    maxPoolSize: 10,
-    minPoolSize: 1
-})
-.then(() => {
-    console.log("✅ MongoDB connecté");
-})
-.catch((err) => {
-    console.error("❌ Erreur MongoDB :", err.message);
-});
-
-/* =========================================================
-   SCHEMA JOUEUR
-========================================================= */
-
 const playerSchema = new mongoose.Schema({
-
     playerId: {
         type: String,
         required: true,
@@ -88,12 +78,6 @@ const playerSchema = new mongoose.Schema({
     playerName: {
         type: String,
         default: "Anonyme"
-    },
-
-    roundId: {
-        type: Number,
-        required: true,
-        index: true
     },
 
     score: {
@@ -121,91 +105,54 @@ const playerSchema = new mongoose.Schema({
         default: "pending"
     },
 
-    paid: {
-        type: Boolean,
-        default: false
-    },
-
     createdAt: {
         type: Date,
         default: Date.now
-    },
-
-    updatedAt: {
-        type: Date,
-        default: Date.now
     }
-
 });
-
-/*
-   Un seul enregistrement par joueur et par partie.
-   Cela évite de créer un document MongoDB à chaque TAP.
-*/
-
-playerSchema.index(
-    { playerId: 1, roundId: 1 },
-    { unique: true }
-);
 
 const Player = mongoose.model("Player", playerSchema);
 
-/* =========================================================
-   ROUND / TIMER
-========================================================= */
+async function connectMongoDB() {
+    if (!MONGO_URI) {
+        console.error("❌ MONGO_URI manquant dans Railway.");
+        console.error(
+            "➡️ Railway > Variables > MONGO_URI = ton URL MongoDB Atlas"
+        );
+        return;
+    }
 
-let timerLeft = GAME_DURATION;
+    try {
+        await mongoose.connect(MONGO_URI, {
+            serverSelectionTimeoutMS: 10000
+        });
 
-let roundId = Math.floor(Date.now() / 1000);
+        mongoConnected = true;
 
-function getCurrentRoundId() {
-    return roundId;
+        console.log("✅ MongoDB connecté");
+    } catch (error) {
+        mongoConnected = false;
+
+        console.error("❌ Erreur MongoDB :", error.message);
+    }
 }
 
-/* =========================================================
-   OUTILS
-========================================================= */
-
-function isValidTRC20Address(address) {
-
-    if (!address) return false;
-
-    const value = String(address).trim();
-
-    /*
-       Adresse USDT TRC20 classique :
-       commence généralement par T
-       longueur 34 caractères.
-    */
-
-    return /^T[a-zA-Z0-9]{33}$/.test(value);
-}
-
-function cleanName(name) {
-
-    if (!name) return "Anonyme";
-
-    return String(name)
-        .trim()
-        .replace(/[<>]/g, "")
-        .substring(0, 20);
-}
+connectMongoDB();
 
 /* =========================================================
-   HEALTH CHECK
+   ROUTE TEST
 ========================================================= */
 
 app.get("/", (req, res) => {
-
     res.json({
         success: true,
-        project: "Miltape World Challenge",
+        app: "Miltape World Challenge",
         status: "online",
-        minimumBet: MIN_BET,
-        currency: "USDT TRC20",
-        roundId: getCurrentRoundId()
+        mongo: mongoConnected,
+        minBet: MIN_BET,
+        paymentCurrency: "USDTTRC20",
+        gameDuration: GAME_DURATION
     });
-
 });
 
 /* =========================================================
@@ -213,24 +160,19 @@ app.get("/", (req, res) => {
 ========================================================= */
 
 app.get("/api/status", (req, res) => {
-
     res.json({
         success: true,
         server: "online",
-        mongodb:
-            mongoose.connection.readyState === 1
-                ? "connected"
-                : "disconnected",
+        mongo: mongoConnected,
+        nowpayments: !!NOWPAYMENTS_API_KEY,
         minimumBet: MIN_BET,
-        currency: "USDTTRC20",
-        roundId: getCurrentRoundId(),
-        timerLeft
+        paymentCurrency: "USDTTRC20",
+        gameDuration: GAME_DURATION
     });
-
 });
 
 /* =========================================================
-   CREATE NOWPAYMENTS PAYMENT
+   CRÉATION FACTURE NOWPAYMENTS
 ========================================================= */
 
 app.post("/api/create-payment", async (req, res) => {
@@ -244,88 +186,79 @@ app.post("/api/create-payment", async (req, res) => {
             cryptoAddress
         } = req.body;
 
-        if (!playerId) {
+        /* ---------------------------------------------
+           VALIDATION
+        --------------------------------------------- */
 
+        if (!playerId) {
             return res.status(400).json({
                 success: false,
                 error: "PLAYER_ID_REQUIRED"
             });
-
         }
 
         const numericAmount = Number(amount);
 
-        /* ===============================
-           MINIMUM 13 USDT
-        =============================== */
+        if (!Number.isFinite(numericAmount)) {
+            return res.status(400).json({
+                success: false,
+                error: "INVALID_AMOUNT"
+            });
+        }
 
-        if (
-            !Number.isFinite(numericAmount) ||
-            numericAmount < MIN_BET
-        ) {
+        if (numericAmount < MIN_BET) {
 
             return res.status(400).json({
                 success: false,
-                error: "MINIMUM_BET_13_USDT",
-                minimum: MIN_BET
+                error: `MINIMUM_BET_${MIN_BET}_USDT`,
+                message: `La mise minimum est de ${MIN_BET} USDT.`
             });
 
         }
 
-        /* ===============================
-           ARRONDI
-        =============================== */
+        if (!NOWPAYMENTS_API_KEY) {
 
-        const finalAmount =
-            Math.round(numericAmount * 100) / 100;
+            console.error("❌ NOWPAYMENTS_API_KEY manquante.");
 
-        /* ===============================
-           VALIDATION ADRESSE GAIN
-        =============================== */
-
-        if (!isValidTRC20Address(cryptoAddress)) {
-
-            return res.status(400).json({
+            return res.status(500).json({
                 success: false,
-                error: "INVALID_TRC20_ADDRESS"
+                error: "NOWPAYMENTS_API_KEY_MISSING"
             });
 
         }
 
-        const safeName = cleanName(playerName);
-
-        const currentRound = getCurrentRoundId();
+        /* ---------------------------------------------
+           ID UNIQUE
+        --------------------------------------------- */
 
         const orderId =
-            `MILTAPE_${playerId}_${currentRound}_${Date.now()}`;
+            `MILTAPE_${playerId}_${Date.now()}`;
 
-        /*
+        /* ---------------------------------------------
+           CRÉATION DE L'INVOICE
+           
            IMPORTANT :
+           /v1/invoice retourne une URL de facture.
+        --------------------------------------------- */
 
-           cryptoAddress est uniquement l'adresse de retrait
-           du joueur.
+        const invoiceData = JSON.stringify({
 
-           Elle n'est PAS envoyée comme payout_address
-           au endpoint /v1/payment.
-
-           NOWPayments crée l'adresse de dépôt du paiement.
-        */
-
-        const paymentData = JSON.stringify({
-
-            price_amount: finalAmount,
+            price_amount: numericAmount,
 
             price_currency: "usd",
-
-            pay_currency: "usdttrc20",
-
-            ipn_callback_url:
-                `${BACKEND_URL_PLACEHOLDER}/api/ipn`,
 
             order_id: orderId,
 
             order_description:
-                `Miltape World Challenge - ${safeName} - Mise ${finalAmount} USDT`
+                `Miltape World Challenge - Mise ${numericAmount} USDT`,
+
+            ipn_callback_url: IPN_URL,
+
+            success_url:
+                FRONTEND_URL,
+
+            cancel_url:
+                FRONTEND_URL
 
         });
 
@@ -333,22 +266,30 @@ app.post("/api/create-payment", async (req, res) => {
 
             hostname: "api.nowpayments.io",
 
-            path: "/v1/payment",
+            path: "/v1/invoice",
 
             method: "POST",
 
             headers: {
 
-                "Content-Type": "application/json",
-
-                "x-api-key": NOWPAYMENTS_API_KEY,
+                "Content-Type":
+                    "application/json",
 
                 "Content-Length":
-                    Buffer.byteLength(paymentData)
+                    Buffer.byteLength(invoiceData),
+
+                "x-api-key":
+                    NOWPAYMENTS_API_KEY
 
             }
 
         };
+
+        console.log("💰 Nouvelle demande de paiement");
+        console.log("👤 Joueur :", playerName || "Anonyme");
+        console.log("💵 Mise :", numericAmount, "USDT");
+        console.log("🪙 Paiement : USDT TRC20");
+        console.log("🧾 Order :", orderId);
 
         const paymentReq =
             https.request(options, (apiRes) => {
@@ -356,20 +297,18 @@ app.post("/api/create-payment", async (req, res) => {
                 let data = "";
 
                 apiRes.on("data", (chunk) => {
-
                     data += chunk;
-
                 });
 
                 apiRes.on("end", async () => {
 
                     console.log(
-                        "NOWPayments status:",
+                        "NOWPayments status :",
                         apiRes.statusCode
                     );
 
                     console.log(
-                        "NOWPayments réponse:",
+                        "NOWPayments réponse :",
                         data
                     );
 
@@ -383,131 +322,143 @@ app.post("/api/create-payment", async (req, res) => {
                     } catch (error) {
 
                         return res.status(502).json({
-
                             success: false,
-
-                            error:
-                                "NOWPAYMENTS_INVALID_RESPONSE"
-
+                            error: "NOWPAYMENTS_INVALID_RESPONSE"
                         });
 
                     }
+
+                    /* -----------------------------------------
+                       ERREUR NOWPAYMENTS
+                    ----------------------------------------- */
 
                     if (
                         apiRes.statusCode < 200 ||
                         apiRes.statusCode >= 300
                     ) {
 
+                        const message =
+                            responseJson.message ||
+                            responseJson.error ||
+                            "Erreur NOWPayments";
+
                         return res.status(400).json({
 
                             success: false,
 
                             error:
-                                responseJson.message ||
-                                responseJson.error ||
-                                "NOWPAYMENTS_PAYMENT_ERROR",
+                                `NOWPAYMENTS_ERROR: ${message}`,
 
-                            details: responseJson
+                            details:
+                                responseJson
 
                         });
 
                     }
 
-                    /*
-                       NOWPayments doit normalement fournir :
-                       payment_id
-                       pay_address
-                       pay_amount
-                       pay_currency
-                    */
+                    /* -----------------------------------------
+                       URL FACTURE
+                    ----------------------------------------- */
 
-                    if (
-                        !responseJson.payment_id ||
-                        !responseJson.pay_address
-                    ) {
+                    const invoiceUrl =
+                        responseJson.invoice_url ||
+                        responseJson.invoiceUrl;
 
-                        return res.status(500).json({
+                    if (!invoiceUrl) {
+
+                        console.error(
+                            "❌ invoice_url absent :",
+                            responseJson
+                        );
+
+                        return res.status(502).json({
 
                             success: false,
 
                             error:
-                                "NOWPAYMENTS_MISSING_PAYMENT_DATA",
+                                "NOWPAYMENTS_INVOICE_URL_MISSING",
 
-                            details: responseJson
+                            details:
+                                responseJson
 
                         });
 
                     }
 
-                    try {
+                    /* -----------------------------------------
+                       ENREGISTREMENT MONGODB
+                    ----------------------------------------- */
 
-                        await Player.findOneAndUpdate(
+                    if (mongoConnected) {
 
-                            {
+                        try {
+
+                            await Player.create({
+
                                 playerId,
-                                roundId: currentRound
-                            },
 
-                            {
+                                playerName:
+                                    playerName || "Anonyme",
 
-                                playerId,
+                                amount:
+                                    numericAmount,
 
-                                playerName: safeName,
-
-                                roundId: currentRound,
-
-                                amount: finalAmount,
-
-                                cryptoAddress,
+                                cryptoAddress:
+                                    cryptoAddress || "",
 
                                 paymentId:
-                                    String(responseJson.payment_id),
+                                    responseJson.id ||
+                                    responseJson.invoice_id ||
+                                    "",
 
-                                paymentStatus: "waiting",
+                                paymentStatus:
+                                    "pending",
 
-                                paid: false,
+                                score: 0
 
-                                updatedAt: new Date()
+                            });
 
-                            },
+                        } catch (mongoError) {
 
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true
-                            }
+                            console.error(
+                                "⚠️ Erreur sauvegarde MongoDB :",
+                                mongoError.message
+                            );
 
-                        );
+                        }
 
-                    } catch (dbError) {
+                    } else {
 
-                        console.error(
-                            "Erreur sauvegarde paiement :",
-                            dbError
+                        console.warn(
+                            "⚠️ MongoDB non connecté : paiement créé mais non sauvegardé."
                         );
 
                     }
+
+                    /* -----------------------------------------
+                       RÉPONSE AU FRONTEND
+                    ----------------------------------------- */
 
                     return res.json({
 
                         success: true,
 
-                        payment_id:
-                            responseJson.payment_id,
+                        invoice_url:
+                            invoiceUrl,
 
-                        pay_address:
-                            responseJson.pay_address,
-
-                        pay_amount:
-                            responseJson.pay_amount,
-
-                        pay_currency:
-                            responseJson.pay_currency ||
-                            "usdttrc20",
+                        invoice_id:
+                            responseJson.id ||
+                            responseJson.invoice_id ||
+                            null,
 
                         order_id:
-                            responseJson.order_id ||
-                            orderId
+                            orderId,
+
+                        amount:
+                            numericAmount,
+
+                        currency:
+                            "USDTTRC20"
 
                     });
 
@@ -518,26 +469,22 @@ app.post("/api/create-payment", async (req, res) => {
         paymentReq.on("error", (error) => {
 
             console.error(
-                "❌ Erreur NOWPayments :",
+                "❌ Erreur connexion NOWPayments :",
                 error
             );
 
-            if (!res.headersSent) {
+            return res.status(500).json({
 
-                res.status(500).json({
+                success: false,
 
-                    success: false,
+                error:
+                    "NOWPAYMENTS_CONNECTION_ERROR"
 
-                    error:
-                        "NOWPAYMENTS_CONNECTION_ERROR"
-
-                });
-
-            }
+            });
 
         });
 
-        paymentReq.write(paymentData);
+        paymentReq.write(invoiceData);
 
         paymentReq.end();
 
@@ -548,7 +495,7 @@ app.post("/api/create-payment", async (req, res) => {
             error
         );
 
-        res.status(500).json({
+        return res.status(500).json({
 
             success: false,
 
@@ -561,200 +508,6 @@ app.post("/api/create-payment", async (req, res) => {
 });
 
 /* =========================================================
-   PAYMENT STATUS
-========================================================= */
-
-app.get(
-    "/api/payment-status/:paymentId",
-    async (req, res) => {
-
-        try {
-
-            const paymentId =
-                req.params.paymentId;
-
-            if (!paymentId) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error: "PAYMENT_ID_REQUIRED"
-
-                });
-
-            }
-
-            const options = {
-
-                hostname: "api.nowpayments.io",
-
-                path:
-                    `/v1/payment/${encodeURIComponent(paymentId)}`,
-
-                method: "GET",
-
-                headers: {
-
-                    "x-api-key":
-                        NOWPAYMENTS_API_KEY
-
-                }
-
-            };
-
-            const paymentReq =
-                https.request(options, (apiRes) => {
-
-                    let data = "";
-
-                    apiRes.on("data", (chunk) => {
-
-                        data += chunk;
-
-                    });
-
-                    apiRes.on("end", async () => {
-
-                        let result;
-
-                        try {
-
-                            result = JSON.parse(data);
-
-                        } catch (error) {
-
-                            return res.status(502).json({
-
-                                success: false,
-
-                                error:
-                                    "INVALID_NOWPAYMENTS_RESPONSE"
-
-                            });
-
-                        }
-
-                        if (
-                            apiRes.statusCode < 200 ||
-                            apiRes.statusCode >= 300
-                        ) {
-
-                            return res.status(400).json({
-
-                                success: false,
-
-                                error:
-                                    result.message ||
-                                    result.error ||
-                                    "PAYMENT_STATUS_ERROR"
-
-                            });
-
-                        }
-
-                        const status =
-                            result.payment_status ||
-                            "waiting";
-
-                        /*
-                           Statuts considérés comme payés.
-                        */
-
-                        const isPaid =
-                            [
-                                "finished",
-                                "confirmed"
-                            ].includes(status);
-
-                        try {
-
-                            await Player.updateOne(
-
-                                {
-                                    paymentId:
-                                        String(paymentId)
-                                },
-
-                                {
-
-                                    $set: {
-
-                                        paymentStatus: status,
-
-                                        paid: isPaid,
-
-                                        updatedAt: new Date()
-
-                                    }
-
-                                }
-
-                            );
-
-                        } catch (dbError) {
-
-                            console.error(
-                                "Erreur update paiement :",
-                                dbError
-                            );
-
-                        }
-
-                        res.json({
-
-                            success: true,
-
-                            paymentId,
-
-                            status,
-
-                            paid: isPaid
-
-                        });
-
-                    });
-
-                });
-
-            paymentReq.on("error", (error) => {
-
-                console.error(
-                    "Erreur status NOWPayments:",
-                    error
-                );
-
-                res.status(500).json({
-
-                    success: false,
-
-                    error:
-                        "PAYMENT_STATUS_CONNECTION_ERROR"
-
-                });
-
-            });
-
-            paymentReq.end();
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-
-                success: false,
-
-                error: "PAYMENT_STATUS_SERVER_ERROR"
-
-            });
-
-        }
-
-    }
-);
-
-/* =========================================================
    IPN NOWPAYMENTS
 ========================================================= */
 
@@ -762,50 +515,58 @@ app.post("/api/ipn", async (req, res) => {
 
     try {
 
+        console.log("📩 IPN NOWPayments reçu :");
+
         console.log(
-            "📩 NOWPayments IPN :",
-            req.body
+            JSON.stringify(req.body, null, 2)
         );
 
-        const data = req.body || {};
+        const data = req.body;
 
-        const paymentId =
-            data.payment_id
-                ? String(data.payment_id)
-                : null;
+        const orderId =
+            data.order_id;
 
-        const status =
-            data.payment_status || "waiting";
+        const paymentStatus =
+            data.payment_status ||
+            "unknown";
 
-        if (paymentId) {
+        console.log(
+            "🧾 Order :",
+            orderId
+        );
 
-            const isPaid =
-                [
-                    "finished",
-                    "confirmed"
-                ].includes(status);
+        console.log(
+            "💳 Status :",
+            paymentStatus
+        );
 
-            await Player.updateOne(
+        if (mongoConnected && orderId) {
 
-                {
-                    paymentId
-                },
+            const parts =
+                String(orderId).split("_");
 
-                {
+            const playerId =
+                parts.length >= 2
+                    ? parts[1]
+                    : null;
 
-                    $set: {
+            if (playerId) {
 
-                        paymentStatus: status,
+                await Player.updateMany(
 
-                        paid: isPaid,
+                    {
+                        playerId
+                    },
 
-                        updatedAt: new Date()
-
+                    {
+                        $set: {
+                            paymentStatus
+                        }
                     }
 
-                }
+                );
 
-            );
+            }
 
         }
 
@@ -816,8 +577,8 @@ app.post("/api/ipn", async (req, res) => {
     } catch (error) {
 
         console.error(
-            "Erreur IPN:",
-            error
+            "❌ IPN error :",
+            error.message
         );
 
         res.status(200).json({
@@ -832,80 +593,80 @@ app.post("/api/ipn", async (req, res) => {
    TOTAL DES MISES
 ========================================================= */
 
-app.get(
-    "/api/total-stakes",
-    async (req, res) => {
+app.get("/api/total-stakes", async (req, res) => {
 
-        try {
+    if (!mongoConnected) {
 
-            const result =
-                await Player.aggregate([
-
-                    {
-                        $match: {
-
-                            roundId:
-                                getCurrentRoundId(),
-
-                            paid: true
-
-                        }
-
-                    },
-
-                    {
-                        $group: {
-
-                            _id: null,
-
-                            total: {
-                                $sum: "$amount"
-                            }
-
-                        }
-
-                    }
-
-                ]);
-
-            const total =
-                result.length > 0
-                    ? result[0].total
-                    : 0;
-
-            res.json({
-
-                success: true,
-
-                totalStakes:
-                    Number(total.toFixed(2))
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "Erreur total-stakes:",
-                error
-            );
-
-            res.status(500).json({
-
-                success: false,
-
-                error: "TOTAL_STAKES_ERROR",
-
-                totalStakes: 0
-
-            });
-
-        }
+        return res.json({
+            success: true,
+            totalStakes: 0,
+            mongo: false
+        });
 
     }
-);
+
+    try {
+
+        const result =
+            await Player.aggregate([
+
+                {
+                    $match: {
+                        amount: {
+                            $gte: MIN_BET
+                        }
+                    }
+                },
+
+                {
+                    $group: {
+                        _id: null,
+                        total: {
+                            $sum: "$amount"
+                        }
+                    }
+                }
+
+            ]);
+
+        const totalStakes =
+            result.length
+                ? Number(result[0].total || 0)
+                : 0;
+
+        res.json({
+
+            success: true,
+
+            totalStakes:
+                Number(totalStakes.toFixed(2))
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "❌ total-stakes :",
+            error.message
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            error:
+                "TOTAL_STAKES_ERROR",
+
+            totalStakes: 0
+
+        });
+
+    }
+
+});
 
 /* =========================================================
-   PLAYER STATS
+   STATS JOUEUR
 ========================================================= */
 
 app.get(
@@ -914,28 +675,42 @@ app.get(
 
         try {
 
+            if (!mongoConnected) {
+
+                return res.json({
+
+                    success: true,
+
+                    totalTaps: 0,
+
+                    totalUsdt: 0,
+
+                    history: []
+
+                });
+
+            }
+
             const playerId =
                 req.params.playerId;
 
             const records =
-                await Player.find({
-                    playerId
-                })
-                .sort({ createdAt: -1 })
-                .limit(20)
-                .lean();
+                await Player
+                    .find({ playerId })
+                    .sort({ createdAt: -1 })
+                    .lean();
 
             const totalTaps =
                 records.reduce(
-                    (sum, player) =>
-                        sum + (player.score || 0),
+                    (sum, p) =>
+                        sum + Number(p.score || 0),
                     0
                 );
 
             const totalUsdt =
                 records.reduce(
-                    (sum, player) =>
-                        sum + (player.amount || 0),
+                    (sum, p) =>
+                        sum + Number(p.amount || 0),
                     0
                 );
 
@@ -948,19 +723,19 @@ app.get(
                 totalUsdt,
 
                 history:
-                    records.map((player) => ({
+                    records.map(p => ({
 
                         date:
-                            player.createdAt,
+                            p.createdAt,
 
                         score:
-                            player.score || 0,
+                            p.score || 0,
 
                         amount:
-                            player.amount || 0,
+                            p.amount || 0,
 
                         paymentStatus:
-                            player.paymentStatus
+                            p.paymentStatus || "pending"
 
                     }))
 
@@ -969,15 +744,16 @@ app.get(
         } catch (error) {
 
             console.error(
-                "Erreur player stats:",
-                error
+                "❌ player-stats :",
+                error.message
             );
 
             res.status(500).json({
 
                 success: false,
 
-                error: "PLAYER_STATS_ERROR"
+                error:
+                    "PLAYER_STATS_ERROR"
 
             });
 
@@ -992,23 +768,71 @@ app.get(
 
 async function broadcastLeaderboard() {
 
+    if (!mongoConnected) {
+
+        io.emit(
+            "leaderboard",
+            []
+        );
+
+        return;
+
+    }
+
     try {
 
         const topPlayers =
-            await Player.find({
+            await Player.aggregate([
 
-                roundId:
-                    getCurrentRoundId(),
+                {
+                    $match: {
+                        paymentStatus: {
+                            $in: [
+                                "finished",
+                                "confirmed",
+                                "sending",
+                                "partially_paid"
+                            ]
+                        },
 
-                paid: true
+                        amount: {
+                            $gte: MIN_BET
+                        }
+                    }
+                },
 
-            })
-            .sort({ score: -1 })
-            .limit(5)
-            .select(
-                "playerId playerName score"
-            )
-            .lean();
+                {
+                    $group: {
+
+                        _id:
+                            "$playerId",
+
+                        playerName:
+                            {
+                                $last:
+                                    "$playerName"
+                            },
+
+                        score:
+                            {
+                                $sum:
+                                    "$score"
+                            }
+
+                    }
+                },
+
+                {
+                    $sort: {
+                        score: -1
+                    }
+                },
+
+                {
+                    $limit: 5
+                }
+
+            ]);
 
         io.emit(
             "leaderboard",
@@ -1018,8 +842,8 @@ async function broadcastLeaderboard() {
     } catch (error) {
 
         console.error(
-            "Erreur leaderboard:",
-            error
+            "❌ leaderboard :",
+            error.message
         );
 
     }
@@ -1030,32 +854,23 @@ async function broadcastLeaderboard() {
    TIMER
 ========================================================= */
 
-setInterval(async () => {
+let timerLeft = GAME_DURATION;
+
+setInterval(() => {
 
     timerLeft--;
 
     if (timerLeft <= 0) {
 
-        /*
-           Nouvelle partie
-        */
-
-        timerLeft = GAME_DURATION;
-
-        roundId =
-            Math.floor(Date.now() / 1000);
+        timerLeft =
+            GAME_DURATION;
 
         console.log(
-            "🔥 NOUVELLE PARTIE :",
-            roundId
+            "🔥 NOUVELLE PARTIE"
         );
 
         io.emit(
-            "newRound",
-            {
-                roundId,
-                timerLeft
-            }
+            "newGame"
         );
 
     }
@@ -1064,17 +879,6 @@ setInterval(async () => {
         "timer",
         timerLeft
     );
-
-    /*
-       Actualisation leaderboard toutes les secondes
-       mais seulement si nécessaire.
-    */
-
-    if (timerLeft % 5 === 0) {
-
-        await broadcastLeaderboard();
-
-    }
 
 }, 1000);
 
@@ -1094,11 +898,6 @@ io.on("connection", (socket) => {
         timerLeft
     );
 
-    socket.emit(
-        "onlineCount",
-        io.engine.clientsCount
-    );
-
     socket.on("join", async (data) => {
 
         socket.data = data || {};
@@ -1112,23 +911,20 @@ io.on("connection", (socket) => {
 
     });
 
-    /* ===============================
+    /* -----------------------------------------
        CHAT
-    =============================== */
+    ----------------------------------------- */
 
     socket.on(
         "chatMessage",
         (msg) => {
 
-            const name =
-                cleanName(
-                    msg?.playerName
-                );
+            if (!msg) return;
 
             const message =
                 String(
-                    msg?.message ||
-                    msg?.text ||
+                    msg.message ||
+                    msg.text ||
                     ""
                 )
                 .trim()
@@ -1140,7 +936,12 @@ io.on("connection", (socket) => {
                 "chatMessage",
                 {
 
-                    playerName: name,
+                    playerName:
+                        String(
+                            msg.playerName ||
+                            "Anonyme"
+                        )
+                        .substring(0, 30),
 
                     message
 
@@ -1150,9 +951,9 @@ io.on("connection", (socket) => {
         }
     );
 
-    /* ===============================
+    /* -----------------------------------------
        TAP
-    =============================== */
+    ----------------------------------------- */
 
     socket.on(
         "tap",
@@ -1160,86 +961,41 @@ io.on("connection", (socket) => {
 
             try {
 
-                if (!data?.playerId) {
+                if (
+                    !mongoConnected ||
+                    !data ||
+                    !data.playerId
+                ) {
                     return;
                 }
 
-                const playerId =
-                    String(data.playerId);
+                await Player.create({
 
-                /*
-                   On récupère le joueur payé
-                   de la partie actuelle.
-                */
+                    playerId:
+                        data.playerId,
 
-                const player =
-                    await Player.findOne({
+                    playerName:
+                        data.playerName ||
+                        "Anonyme",
 
-                        playerId,
+                    score:
+                        Number(data.taps) || 1,
 
-                        roundId:
-                            getCurrentRoundId(),
+                    amount:
+                        0,
 
-                        paid: true
+                    paymentStatus:
+                        "finished"
 
-                    });
+                });
 
-                /*
-                   PAS DE PAIEMENT =
-                   PAS DE TAP.
-                */
-
-                if (!player) {
-
-                    socket.emit(
-                        "tapRejected",
-                        {
-                            reason:
-                                "PAYMENT_REQUIRED"
-                        }
-                    );
-
-                    return;
-
-                }
-
-                /*
-                   Un tap = +1.
-                   On ne fait plus Player.create()
-                   à chaque clic.
-                */
-
-                await Player.updateOne(
-
-                    {
-                        _id:
-                            player._id
-                    },
-
-                    {
-
-                        $inc: {
-                            score: 1
-                        },
-
-                        $set: {
-                            updatedAt:
-                                new Date()
-                        }
-
-                    }
-
-                );
-
-                socket.emit(
-                    "tapAccepted"
-                );
+                await broadcastLeaderboard();
 
             } catch (error) {
 
                 console.error(
-                    "Erreur tap:",
-                    error
+                    "❌ Erreur tap :",
+                    error.message
                 );
 
             }
@@ -1247,9 +1003,9 @@ io.on("connection", (socket) => {
         }
     );
 
-    /* ===============================
+    /* -----------------------------------------
        DISCONNECT
-    =============================== */
+    ----------------------------------------- */
 
     socket.on(
         "disconnect",
@@ -1271,21 +1027,8 @@ io.on("connection", (socket) => {
 });
 
 /* =========================================================
-   START
+   START SERVER
 ========================================================= */
-
-/*
-   IMPORTANT :
-   Le callback NOWPayments doit connaître l'URL Railway.
-*/
-
-const BACKEND_URL =
-    process.env.BACKEND_URL ||
-    "https://miltape-backend-production.up.railway.app";
-
-/*
-   Cette variable est utilisée dans create-payment.
-*/
 
 server.listen(
     PORT,
@@ -1301,11 +1044,11 @@ server.listen(
         );
 
         console.log(
-            `🪙 Paiement : USDT TRC20`
+            "🪙 Paiement : USDT TRC20"
         );
 
         console.log(
-            `🌐 Backend : ${BACKEND_URL}`
+            "⏱️ Partie : 10 minutes"
         );
 
     }
