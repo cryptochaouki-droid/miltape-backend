@@ -230,7 +230,7 @@ app.post("/api/admin/login", (req, res) => {
         if (password === adminPassword) {
             return res.json({ success: true });
         } else {
-            return.status(401).json({ success: false, error: "Mot de passe incorrect" });
+            return res.status(401).json({ success: false, error: "Mot de passe incorrect" });
         }
     } catch (error) {
         console.error("ADMIN LOGIN ERROR:", error);
