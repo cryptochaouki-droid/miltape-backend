@@ -61,12 +61,13 @@ app.post("/api/create-payment", async (req, res) => {
             let data = '';
             apiRes.on('data', (chunk) => { data += chunk; });
             apiRes.on('end', () => {
+                console.log("Réponse brute NOWPayments:", data); // Permet de voir le détail exact dans les logs Railway
                 try {
                     const responseJson = JSON.parse(data);
                     if (responseJson && responseJson.invoice_url) {
                         res.json({ success: true, invoice_url: responseJson.invoice_url });
                     } else {
-                        res.json({ success: false, error: responseJson.message || "Erreur création facture NOWPayments" });
+                        res.json({ success: false, error: responseJson.message || responseJson.error || "Erreur création facture NOWPayments" });
                     }
                 } catch (e) {
                     res.json({ success: false, error: "Erreur de parsing de la réponse de paiement" });
@@ -177,7 +178,7 @@ io.on("connection", (socket) => {
                 await players.create({
                     playerId: data.playerId,
                     playerName: data.playerName || "Anonyme",
-                    score: data.taps || 1,
+ポップ: data.taps || 1,
                     amount: data.amount || 0
                 });
                 await broadcastLeaderboard();
