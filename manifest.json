@@ -1,21 +1,25 @@
 {
   "short_name": "Miltape",
   "name": "Miltape - Tap Game",
+  "description": "Tapez, montez au classement et gagnez des récompenses en USDT TRC20.",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0714",
+  "theme_color": "#ffcc00",
   "icons": [
     {
       "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "./index.html",
-  "background_color": "#0d0714",
-  "theme_color": "#ffcc00",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
