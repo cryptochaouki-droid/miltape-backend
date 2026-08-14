@@ -506,46 +506,6 @@
 
 
     <!-- =====================================================
-         CHOIX DE MISE LIBRE (MINIMUM 1$)
-    ====================================================== -->
-
-    <section class="bet-section">
-
-        <div class="section-title">
-
-            <span data-i18n="bet_title">
-                CHOISIS TA MISE
-            </span>
-
-            <strong>
-                <span id="selectedBet">
-                    $1
-                </span>
-            </strong>
-
-        </div>
-
-
-        <div style="margin-top: 10px;">
-            <div style="display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.3); border: 2px solid #ffcc00; border-radius: 12px; padding: 10px 15px;">
-                <span style="color: #ffcc00; font-size: 22px; font-weight: bold; margin-right: 8px;">$</span>
-                <input
-                    id="customBetInput"
-                    type="number"
-                    min="1"
-                    step="0.1"
-                    value="1"
-                    placeholder="Entre ta mise"
-                    style="background: transparent; border: none; color: #ffffff; font-size: 22px; font-weight: bold; width: 100%; outline: none; text-align: center;"
-                >
-            </div>
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
          BOUTON JOUER
     ====================================================== -->
 
@@ -764,7 +724,7 @@
 
 
 <!-- =======================================================
-     MODAL ENTRÉE (AVEC CASE À COCHER CONDITIONS)
+     MODAL ENTRÉE (AVEC CHOIX DE MISE & CONDITIONS)
 ======================================================== -->
 
 <div
@@ -801,6 +761,27 @@
         </p>
 
 
+        <!-- CHOISIS TA MISE INTÉGRÉ DANS LA MODALE -->
+        <div style="margin: 15px 0; text-align: left; background: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 11px; color: #ffcc00; font-weight: bold;" data-i18n="bet_title">CHOISIS TA MISE</span>
+                <strong id="selectedBet" style="color: #ffcc00; font-size: 14px;">$1</strong>
+            </div>
+            <div style="display: flex; align-items: center; background: rgba(0, 0, 0, 0.3); border: 2px solid #ffcc00; border-radius: 10px; padding: 8px 12px;">
+                <span style="color: #ffcc00; font-size: 18px; font-weight: bold; margin-right: 6px;">$</span>
+                <input
+                    id="customBetInput"
+                    type="number"
+                    min="1"
+                    step="0.1"
+                    value="1"
+                    placeholder="Entre ta mise"
+                    style="background: transparent; border: none; color: #ffffff; font-size: 18px; font-weight: bold; width: 100%; outline: none;"
+                >
+            </div>
+        </div>
+
+
         <div style="margin: 15px 0; text-align: left;">
             <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;" data-i18n="modal_label_name">
                 TON PSEUDO :
@@ -815,6 +796,7 @@
             >
         </div>
 
+
         <div style="margin: 15px 0; text-align: left;">
             <label for="customCryptoAddress" style="display: block; font-size: 11px; margin-bottom: 5px; color: #ffcc00; font-weight: bold;" data-i18n="modal_label_crypto">
                 ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :
@@ -828,16 +810,6 @@
             >
         </div>
 
-
-        <div style="margin: 15px 0; text-align: left;">
-            <label style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;" data-i18n="modal_selected_bet">
-                MISE SÉLECTIONNÉE :
-            </label>
-            <div style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
-                <span data-i18n="modal_selected_bet">MISE SÉLECTIONNÉE</span>
-                <strong id="entryBet" style="color: #ffcc00; font-size: 16px;">$1</strong>
-            </div>
-        </div>
 
         <!-- CASE À COCHER OBLIGATOIRE DES CONDITIONS -->
         <div style="margin: 20px 0; text-align: left; background: rgba(255, 255, 255, 0.03); padding: 10px; border-radius: 8px; border: 1px dashed rgba(255, 204, 0, 0.3);">
@@ -903,7 +875,7 @@
 
 <script>
 
-// Dictionnaire des traductions enrichi avec le texte de la case à cocher
+// Dictionnaire des traductions enrichi
 const translations = {
     fr: {
         menu_title: "🧭 Menu Miltape",
@@ -939,7 +911,6 @@ const translations = {
         modal_p1: "Tu vas rejoindre le",
         modal_label_name: "TON PSEUDO :",
         modal_label_crypto: "ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :",
-        modal_selected_bet: "MISE SÉLECTIONNÉE",
         checkbox_accept_text: "J'accepte les <strong>Conditions d'Utilisation</strong> et certifie avoir pris connaissance des règles et des droits réservés.",
         modal_crypto_payment: "PAIEMENT CRYPTO",
         modal_secure: "Sécurisé par NOWPayments.",
@@ -989,7 +960,6 @@ const translations = {
         modal_p1: "You are about to join the",
         modal_label_name: "YOUR PSEUDO:",
         modal_label_crypto: "CRYPTO ADDRESS (USDT TRC20 FOR PAYOUTS):",
-        modal_selected_bet: "SELECTED BET",
         checkbox_accept_text: "I accept the <strong>Terms of Service</strong> and confirm I have read the rules and copyright notice.",
         modal_crypto_payment: "CRYPTO PAYMENT",
         modal_secure: "Secured by NOWPayments.",
@@ -1098,7 +1068,6 @@ document.addEventListener(
 
         const customBetInput = document.getElementById("customBetInput");
         const selectedBetSpan = document.getElementById("selectedBet");
-        const entryBetSpan = document.getElementById("entryBet");
 
         if (customBetInput) {
             customBetInput.addEventListener("input", function () {
@@ -1106,7 +1075,6 @@ document.addEventListener(
                 if (val === "" || isNaN(val)) val = "0";
                 
                 if (selectedBetSpan) selectedBetSpan.textContent = "$" + val;
-                if (entryBetSpan) entryBetSpan.textContent = "$" + val;
             });
         }
 
