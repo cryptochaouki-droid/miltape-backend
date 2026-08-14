@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     console.log("🚀 Initialisation du script frontend Miltape...");
 
-    // Connexion Socket.io avec reconnexion automatique
     const socket = io(BACKEND_URL, {
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -11,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
         timeout: 20000
     });
 
-    // Éléments du DOM
     const timerDisplay = document.getElementById("timer");
     const tapButton = document.getElementById("tapButton");
     const tapCountDisplay = document.getElementById("tapCount");
@@ -23,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
-    // Éléments du menu latéral et modale dynamique
     const myGamesButton = document.getElementById("menuGamesBtn") || document.getElementById("myGamesButton"); 
     const modalContent = document.getElementById("dynamicModalBody") || document.getElementById("modalContent");
     const dynamicModal = document.getElementById("dynamicModal");
@@ -49,8 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
         tapMessage.textContent = "🔥 MODE TEST ACTIF - TAPE !";
     }
 
-    // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne, Classement) ---
-    
     socket.on("connect", () => {
         console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
         socket.emit("join", { playerId, playerName });
@@ -63,27 +58,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Réception du Chrono en direct
     socket.on("timer", (timeLeft) => {
-        console.log("⏱️ Chrono reçu du serveur :", timeLeft);
         if (timerDisplay) {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
             timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        } else {
-            console.warn("⚠️ Élément DOM 'timer' introuvable !");
         }
     });
 
-    // Nombre de joueurs en ligne
     socket.on("onlineCount", (count) => {
         if (onlineCount) {
-            const onlineTextLabel = "EN LIGNE";
-            onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} ${onlineTextLabel}`;
+            onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} EN LIGNE`;
         }
     });
 
-    // Classement Top 5 en direct
     socket.on("leaderboard", (players) => {
         if (leaderboardList) {
             if (!players || players.length === 0) {
@@ -99,9 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Réception des messages du Chat en direct
     socket.on("chatMessage", (msg) => {
-        console.log("💬 Message de chat reçu :", msg);
         if (chatMessages) {
             const messageElement = document.createElement("div");
             messageElement.classList.add("chat-message");
@@ -111,12 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
             messageElement.innerHTML = `<strong>${senderName}</strong>: ${messageText}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        } else {
-            console.warn("⚠️ Élément DOM 'chatMessages' introuvable !");
         }
     });
 
-    // Envoi de messages dans le chat
     if (chatSend && chatInput) {
         chatSend.addEventListener("click", () => {
             const text = chatInput.value.trim();
@@ -133,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Gestion des Taps
     if (tapButton) {
         tapButton.addEventListener("click", () => {
             localTaps++;
@@ -144,7 +126,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- 2. FONCTION MODALE ---
     function openDynamicModal(title, htmlContent) {
         if (dynamicModal && modalContent) {
             const titleElem = document.getElementById("dynamicModalTitle");
@@ -158,7 +139,6 @@ document.addEventListener("DOMContentLoaded", () => {
         closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
     }
 
-    // --- 3. CHARGER LE TOTAL DES MISES ---
     async function loadTotalStakes() {
         try {
             const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
@@ -174,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTotalStakes();
     setInterval(loadTotalStakes, 15000);
 
-    // --- 4. CHARGER LES STATS DU JOUEUR ("Mes parties") ---
     async function loadPlayerStats() {
         if (!playerId) {
             alert("Tu dois d'abord participer à un challenge !");
@@ -185,11 +164,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
-            
-            if (!res.ok) {
-                throw new Error(`Erreur serveur (${res.status})`);
-            }
-
             const data = await res.json();
 
             if (data.success && modalContent) {
@@ -197,27 +171,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h3>Mes Statistiques</h3>
                     <p>Total Taps : <strong>${data.totalTaps || localTaps}</strong></p>
                     <p>Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
-                    <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
-                    <h4>Historique récent</h4>
-                    <ul>
-                        ${data.history && data.history.length > 0 ? data.history.map(h => `<li>Partie du ${new Date(h.date).toLocaleDateString()} : ${h.score} taps</li>`).join('') : '<li>Aucune partie payée enregistrée.</li>'}
-                    </ul>
                 `;
-            } else {
-                if (modalContent) {
-                    modalContent.innerHTML = `
-                        <p style="color: #ffcc00; margin-bottom: 10px;">Total Taps actuels : <strong>${localTaps}</strong></p>
-                        <p style="font-size: 11px; color: #888;">ID Joueur : ${playerId}</p>
-                    `;
-                }
             }
         } catch (e) {
-            console.error("Erreur chargement stats:", e);
             if (modalContent) {
-                modalContent.innerHTML = `
-                    <p>Total Taps locaux : <strong>${localTaps}</strong></p>
-                    <p style="font-size: 11px; color: #aaa; margin-top: 8px;">Impossible de récupérer l'historique distant pour le moment.</p>
-                `;
+                modalContent.innerHTML = `<p>Total Taps locaux : <strong>${localTaps}</strong></p>`;
             }
         }
     }
