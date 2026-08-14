@@ -1,4 +1,4 @@
-Document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     const socket = io(BACKEND_URL);
 
@@ -47,10 +47,7 @@ Document.addEventListener("DOMContentLoaded", () => {
             const dataJoin = await resJoin.json();
             if (!dataJoin.success) {
                 alert(dataJoin.error || "Erreur lors de l'enregistrement du profil.");
-                if (confirmButton) {
-                    confirmButton.textContent = "PAYER ET ENTRER 🔥";
-                    confirmButton.disabled = false;
-                }
+                resetConfirmButton();
                 return;
             }
 
@@ -71,18 +68,20 @@ Document.addEventListener("DOMContentLoaded", () => {
                 window.location.href = dataPayment.invoice_url;
             } else {
                 alert(dataPayment.error || "Erreur lors de la création de la facture de paiement.");
-                if (confirmButton) {
-                    confirmButton.textContent = "PAYER ET ENTRER 🔥";
-                    confirmButton.disabled = false;
-                }
+                resetConfirmButton();
             }
         } catch (err) {
             console.error("Erreur réseau /payAndJoin:", err);
             alert("Erreur de connexion au serveur.");
-            if (confirmButton) {
-                confirmButton.textContent = "PAYER ET ENTRER 🔥";
-                confirmButton.disabled = false;
-            }
+            resetConfirmButton();
+        }
+    }
+
+    // Utilitaire pour réinitialiser l'état du bouton de confirmation en cas d'erreur
+    function resetConfirmButton() {
+        if (confirmButton) {
+            confirmButton.textContent = "PAYER ET ENTRER 🔥";
+            confirmButton.disabled = false;
         }
     }
 
