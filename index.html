@@ -19,8 +19,14 @@
 <link rel="icon" href="miltape-logo-art.jpg">
 <link rel="stylesheet" href="./style.css">
 
-<!-- TronWeb -->
+<!-- =========================================================
+     TRON
+========================================================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
+
+<!-- TRON WALLET ADAPTER -->
+<script src="https://cdn.jsdelivr.net/npm/@tronweb3/tronwallet-adapters@latest/dist/index.umd.min.js"></script>
 
 <style>
 
@@ -312,6 +318,63 @@
 }
 
 /* =========================================================
+   WALLET SELECTOR
+========================================================= */
+
+#walletSelector {
+    display:none;
+    margin-top:12px;
+    padding:12px;
+    background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,204,0,.25);
+    border-radius:12px;
+}
+
+#walletSelector.show {
+    display:block;
+}
+
+.wallet-selector-title {
+    text-align:center;
+    color:#ffcc00;
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.wallet-choice {
+    width:100%;
+    padding:12px;
+    margin-top:7px;
+    border:1px solid rgba(255,204,0,.25);
+    border-radius:9px;
+    background:#1a1028;
+    color:#fff;
+    font-size:13px;
+    font-weight:bold;
+    cursor:pointer;
+    text-align:left;
+}
+
+.wallet-choice:hover {
+    background:rgba(255,204,0,.12);
+    border-color:#ffcc00;
+}
+
+.wallet-choice:disabled {
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.wallet-help {
+    margin-top:10px;
+    text-align:center;
+    color:#888;
+    font-size:10px;
+    line-height:1.4;
+}
+
+/* =========================================================
    PAYMENT
 ========================================================= */
 
@@ -506,17 +569,13 @@
 
 <body>
 
-
 <!-- =========================================================
      MENU
 ========================================================= -->
 
 <div id="sideMenu" class="side-menu">
 
-    <button
-        id="closeMenu"
-        class="close-menu"
-    >
+    <button id="closeMenu" class="close-menu">
         &times;
     </button>
 
@@ -609,7 +668,6 @@
 
 <div id="menuOverlay" class="menu-overlay"></div>
 
-
 <!-- =========================================================
      DYNAMIC MODAL
 ========================================================= -->
@@ -632,20 +690,15 @@
 
 </div>
 
-
 <!-- =========================================================
      APP
 ========================================================= -->
 
 <div class="app">
 
-
 <header class="top-header">
 
-    <button
-        class="menu-button"
-        id="menuButton"
-    >
+    <button class="menu-button" id="menuButton">
         ☰
     </button>
 
@@ -684,10 +737,7 @@
 
     </div>
 
-    <button
-        class="wallet-button"
-        id="walletButton"
-    >
+    <button class="wallet-button" id="walletButton">
 
         💰
         <span id="globalTotalStakes">
@@ -697,7 +747,6 @@
     </button>
 
 </header>
-
 
 <!-- =========================================================
      HERO
@@ -728,7 +777,6 @@
     </div>
 
 </section>
-
 
 <!-- =========================================================
      RULES
@@ -786,7 +834,6 @@
 
 </section>
 
-
 <!-- =========================================================
      TIMER
 ========================================================= -->
@@ -806,7 +853,6 @@
     </span>
 
 </section>
-
 
 <!-- =========================================================
      STATS
@@ -846,7 +892,6 @@
 
 </section>
 
-
 <!-- =========================================================
      PLAY
 ========================================================= -->
@@ -874,7 +919,6 @@
     ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
 
 </div>
-
 
 <!-- =========================================================
      TAP
@@ -906,7 +950,6 @@
 
 </section>
 
-
 <!-- =========================================================
      LEADERBOARD
 ========================================================= -->
@@ -937,7 +980,6 @@
     </div>
 
 </section>
-
 
 <!-- =========================================================
      CHAT
@@ -992,7 +1034,6 @@
 
 </section>
 
-
 <!-- =========================================================
      REFERRAL
 ========================================================= -->
@@ -1017,7 +1058,6 @@
 
 </section>
 
-
 <footer>
 
     <strong>
@@ -1036,7 +1076,6 @@
 
 </div>
 
-
 <!-- =========================================================
      ENTRY MODAL
 ========================================================= -->
@@ -1051,7 +1090,6 @@
 >
     ✕
 </button>
-
 
 <div class="modal-icon">
     🔥
@@ -1069,7 +1107,6 @@
     </strong>.
 
 </p>
-
 
 <!-- =========================================================
      BET
@@ -1118,7 +1155,6 @@
 
 </div>
 
-
 <!-- =========================================================
      PSEUDO
 ========================================================= -->
@@ -1165,9 +1201,8 @@
 
 </div>
 
-
 <!-- =========================================================
-     WALLET
+     MULTI WALLET
 ========================================================= -->
 
 <div class="wallet-connect-box">
@@ -1191,17 +1226,59 @@
         style="display:none;"
     ></div>
 
-    <!-- ⭐ SEUL BOUTON DE CONNEXION ⭐ -->
-
     <button
         id="connectWalletButton"
         class="wallet-button-main"
+        type="button"
     >
         🔗 CONNECTER MON WALLET
     </button>
 
-</div>
+    <div id="walletSelector">
 
+        <div class="wallet-selector-title">
+            CHOISIS TON WALLET TRON
+        </div>
+
+        <button
+            type="button"
+            class="wallet-choice"
+            data-wallet="tronlink"
+        >
+            🔵 TronLink
+        </button>
+
+        <button
+            type="button"
+            class="wallet-choice"
+            data-wallet="okx"
+        >
+            ⚫ OKX Wallet
+        </button>
+
+        <button
+            type="button"
+            class="wallet-choice"
+            data-wallet="tokenpocket"
+        >
+            🟠 TokenPocket
+        </button>
+
+        <button
+            type="button"
+            class="wallet-choice"
+            data-wallet="walletconnect"
+        >
+            🔗 WalletConnect
+        </button>
+
+        <div class="wallet-help">
+            Les wallets doivent prendre en charge le réseau TRON.
+        </div>
+
+    </div>
+
+</div>
 
 <!-- =========================================================
      PAYMENT
@@ -1231,7 +1308,6 @@
 </div>
 
 </div>
-
 
 <!-- =========================================================
      TERMS
@@ -1285,7 +1361,6 @@ et les règles de Miltape.
 
 </div>
 
-
 <!-- =========================================================
      LOADER
 ========================================================= -->
@@ -1301,7 +1376,6 @@ et les règles de Miltape.
 
 </div>
 
-
 <!-- =========================================================
      TX
 ========================================================= -->
@@ -1310,7 +1384,6 @@ et les règles de Miltape.
     id="txInfo"
     class="tx-info"
 ></div>
-
 
 <!-- =========================================================
      PENDING
@@ -1344,9 +1417,8 @@ et les règles de Miltape.
 
 </div>
 
-
 <!-- =========================================================
-     CONFIRM PAYMENT
+     CONFIRM
 ========================================================= -->
 
 <button
@@ -1356,7 +1428,6 @@ et les règles de Miltape.
 >
     🔒 CONNECTE TON WALLET CI-DESSUS
 </button>
-
 
 <button
     id="cancelEntryBottom"
@@ -1369,21 +1440,18 @@ et les règles de Miltape.
 
 </div>
 
-
 <!-- =========================================================
      SOCKET.IO
 ========================================================= -->
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-
 <script>
 
 document.addEventListener("DOMContentLoaded", () => {
 
-
 /* =========================================================
-   CONFIGURATION
+   CONFIG
 ========================================================= */
 
 const BACKEND_URL =
@@ -1398,24 +1466,17 @@ const USDT_CONTRACT =
 const MIN_USDT =
     0.000001;
 
-
 /* =========================================================
    SOCKET
 ========================================================= */
 
 const socket =
     io(BACKEND_URL, {
-
         reconnection:true,
-
         reconnectionAttempts:Infinity,
-
         reconnectionDelay:1000,
-
         timeout:20000
-
     });
-
 
 /* =========================================================
    DOM
@@ -1484,6 +1545,12 @@ const walletAddressElement =
 const connectWalletButton =
     document.getElementById("connectWalletButton");
 
+const walletSelector =
+    document.getElementById("walletSelector");
+
+const walletChoices =
+    document.querySelectorAll(".wallet-choice");
+
 const confirmButton =
     document.getElementById("confirmBetButton");
 
@@ -1502,15 +1569,12 @@ const pendingBox =
 const checkPendingButton =
     document.getElementById("checkPendingButton");
 
-
 /* =========================================================
    PLAYER
 ========================================================= */
 
 let playerId =
-    localStorage.getItem(
-        "miltape_player_id"
-    );
+    localStorage.getItem("miltape_player_id");
 
 if (!playerId) {
 
@@ -1522,7 +1586,6 @@ if (!playerId) {
         "miltape_player_id",
         playerId
     );
-
 }
 
 let playerName =
@@ -1540,6 +1603,9 @@ let paidForCurrentGame = false;
 
 let currentBet = 0;
 
+let selectedWallet = null;
+
+let activeWalletAdapter = null;
 
 /* =========================================================
    SOCKET CONNECT
@@ -1563,7 +1629,6 @@ socket.on("connect", () => {
 
 });
 
-
 socket.on("disconnect", () => {
 
     console.log(
@@ -1571,7 +1636,6 @@ socket.on("disconnect", () => {
     );
 
 });
-
 
 /* =========================================================
    TIMER
@@ -1600,11 +1664,9 @@ socket.on("timer", seconds => {
 
         tapMessage.textContent =
             "⏱️ PARTIE TERMINÉE";
-
     }
 
 });
-
 
 /* =========================================================
    NEW GAME
@@ -1631,7 +1693,6 @@ socket.on("newGame", () => {
 
 });
 
-
 /* =========================================================
    ONLINE
 ========================================================= */
@@ -1657,30 +1718,23 @@ socket.on("onlineCount", count => {
 
 });
 
-
 /* =========================================================
    LEADERBOARD
 ========================================================= */
 
 socket.on("leaderboard", players => {
 
-    if (
-        !players ||
-        !players.length
-    ) {
+    if (!players || !players.length) {
 
         leaderboardList.innerHTML = `
 
             <div class="empty-ranking">
-
                 Aucun joueur pour le moment
-
             </div>
 
         `;
 
         return;
-
     }
 
     leaderboardList.innerHTML =
@@ -1744,7 +1798,6 @@ socket.on("leaderboard", players => {
 
 });
 
-
 /* =========================================================
    CHAT
 ========================================================= */
@@ -1774,18 +1827,15 @@ socket.on("chatMessage", msg => {
     element.innerHTML =
         `<strong>${name}</strong>: ${text}`;
 
-    chatMessages.appendChild(
-        element
-    );
+    chatMessages.appendChild(element);
 
     chatMessages.scrollTop =
         chatMessages.scrollHeight;
 
 });
 
-
 /* =========================================================
-   SEND CHAT
+   CHAT SEND
 ========================================================= */
 
 chatSend.addEventListener(
@@ -1797,17 +1847,12 @@ chatInput.addEventListener(
     "keypress",
     event => {
 
-        if (
-            event.key === "Enter"
-        ) {
-
+        if (event.key === "Enter") {
             sendChat();
-
         }
 
     }
 );
-
 
 function sendChat() {
 
@@ -1835,7 +1880,6 @@ function sendChat() {
 
 }
 
-
 /* =========================================================
    TAP
 ========================================================= */
@@ -1851,7 +1895,6 @@ tapButton.addEventListener(
             );
 
             return;
-
         }
 
         localTaps++;
@@ -1878,34 +1921,23 @@ tapButton.addEventListener(
     }
 );
 
-
 /* =========================================================
    MENU
 ========================================================= */
 
 const sideMenu =
-    document.getElementById(
-        "sideMenu"
-    );
+    document.getElementById("sideMenu");
 
 const menuOverlay =
-    document.getElementById(
-        "menuOverlay"
-    );
-
+    document.getElementById("menuOverlay");
 
 function toggleMenu() {
 
-    sideMenu.classList.toggle(
-        "show"
-    );
+    sideMenu.classList.toggle("show");
 
-    menuOverlay.classList.toggle(
-        "show"
-    );
+    menuOverlay.classList.toggle("show");
 
 }
-
 
 document
 .getElementById("menuButton")
@@ -1914,7 +1946,6 @@ document
     toggleMenu
 );
 
-
 document
 .getElementById("closeMenu")
 .addEventListener(
@@ -1922,12 +1953,10 @@ document
     toggleMenu
 );
 
-
 menuOverlay.addEventListener(
     "click",
     toggleMenu
 );
-
 
 /* =========================================================
    DYNAMIC MODAL
@@ -1948,7 +1977,6 @@ const dynamicModalBody =
         "dynamicModalBody"
     );
 
-
 function openDynamicModal(
     title,
     html
@@ -1966,7 +1994,6 @@ function openDynamicModal(
 
 }
 
-
 document
 .getElementById(
     "closeDynamicModal"
@@ -1982,15 +2009,12 @@ document
     }
 );
 
-
 /* =========================================================
    RULES
 ========================================================= */
 
 document
-.getElementById(
-    "menuRulesBtn"
-)
+.getElementById("menuRulesBtn")
 .addEventListener(
     "click",
     () => {
@@ -2029,7 +2053,6 @@ document
     }
 );
 
-
 /* =========================================================
    ENTRY MODAL
 ========================================================= */
@@ -2038,15 +2061,12 @@ enterButton.addEventListener(
     "click",
     () => {
 
-        modal.classList.add(
-            "show"
-        );
+        modal.classList.add("show");
 
         updateConfirmButton();
 
     }
 );
-
 
 document
 .getElementById("cancelEntry")
@@ -2055,7 +2075,6 @@ document
     closeEntry
 );
 
-
 document
 .getElementById("cancelEntryBottom")
 .addEventListener(
@@ -2063,15 +2082,15 @@ document
     closeEntry
 );
 
-
 function closeEntry() {
 
-    modal.classList.remove(
+    modal.classList.remove("show");
+
+    walletSelector.classList.remove(
         "show"
     );
 
 }
-
 
 /* =========================================================
    BET
@@ -2086,9 +2105,7 @@ customBetInput.addEventListener(
                 customBetInput.value
             );
 
-        if (
-            !Number.isFinite(amount)
-        ) {
+        if (!Number.isFinite(amount)) {
 
             currentBet = 0;
 
@@ -2101,7 +2118,6 @@ customBetInput.addEventListener(
             updateConfirmButton();
 
             return;
-
         }
 
         amount =
@@ -2131,33 +2147,332 @@ customBetInput.addEventListener(
     }
 );
 
-
 /* =========================================================
-   TRON WALLET
+   WALLET ADAPTER DETECTION
 ========================================================= */
 
-function getTronWallet() {
+function getAdapterLibrary() {
 
-    if (
-        window.tronWeb &&
-        window.tronWeb.defaultAddress &&
-        window.tronWeb.defaultAddress.base58
-    ) {
-
-        return window.tronWeb;
-
-    }
-
-    return null;
+    return (
+        window.TronWalletAdapters ||
+        window.TronWalletAdapter ||
+        null
+    );
 
 }
 
+/*
+ * Essaie de récupérer les classes disponibles
+ * sans casser la page si le CDN change.
+ */
+
+function getWalletAdapterClasses() {
+
+    const lib =
+        getAdapterLibrary();
+
+    if (!lib) {
+
+        return {};
+
+    }
+
+    return {
+
+        TronLinkAdapter:
+            lib.TronLinkAdapter,
+
+        TokenPocketAdapter:
+            lib.TokenPocketAdapter,
+
+        BitKeepAdapter:
+            lib.BitKeepAdapter,
+
+        OKXWalletAdapter:
+            lib.OKXWalletAdapter,
+
+        WalletConnectAdapter:
+            lib.WalletConnectAdapter
+
+    };
+
+}
 
 /* =========================================================
-   REQUEST TRONLINK ACCESS
+   WALLET SELECTOR
 ========================================================= */
 
-async function requestTronLink() {
+connectWalletButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            walletConnected &&
+            walletAddress
+        ) {
+
+            disconnectWallet();
+
+            return;
+
+        }
+
+        walletSelector.classList.toggle(
+            "show"
+        );
+
+    }
+);
+
+/* =========================================================
+   WALLET CHOICE
+========================================================= */
+
+walletChoices.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        async () => {
+
+            const walletType =
+                button.dataset.wallet;
+
+            await connectSelectedWallet(
+                walletType
+            );
+
+        }
+    );
+
+});
+
+/* =========================================================
+   CONNECT SELECTED WALLET
+========================================================= */
+
+async function connectSelectedWallet(
+    walletType
+) {
+
+    if (walletConnected) {
+
+        return true;
+
+    }
+
+    walletChoices.forEach(
+        button => {
+            button.disabled = true;
+        }
+    );
+
+    walletStatusText.textContent =
+        "Connexion du wallet...";
+
+    try {
+
+        /*
+         * ---------------------------------------------------
+         * TRONLINK
+         * ---------------------------------------------------
+         */
+
+        if (
+            walletType === "tronlink"
+        ) {
+
+            return await connectTronLink();
+
+        }
+
+        /*
+         * ---------------------------------------------------
+         * ADAPTERS
+         * ---------------------------------------------------
+         */
+
+        const classes =
+            getWalletAdapterClasses();
+
+        let AdapterClass = null;
+
+        if (
+            walletType === "okx"
+        ) {
+
+            AdapterClass =
+                classes.OKXWalletAdapter;
+
+        }
+
+        if (
+            walletType === "tokenpocket"
+        ) {
+
+            AdapterClass =
+                classes.TokenPocketAdapter;
+
+        }
+
+        if (
+            walletType === "walletconnect"
+        ) {
+
+            AdapterClass =
+                classes.WalletConnectAdapter;
+
+        }
+
+        if (
+            AdapterClass
+        ) {
+
+            try {
+
+                const adapter =
+                    new AdapterClass();
+
+                activeWalletAdapter =
+                    adapter;
+
+                await adapter.connect();
+
+                const address =
+                    adapter.address;
+
+                if (address) {
+
+                    walletAddress =
+                        address;
+
+                    walletConnected =
+                        true;
+
+                    selectedWallet =
+                        walletType;
+
+                    localStorage.setItem(
+                        "miltape_wallet",
+                        address
+                    );
+
+                    localStorage.setItem(
+                        "miltape_wallet_type",
+                        walletType
+                    );
+
+                    updateWalletUI();
+
+                    walletSelector.classList.remove(
+                        "show"
+                    );
+
+                    return true;
+
+                }
+
+            } catch(error) {
+
+                console.error(
+                    "Adapter error:",
+                    error
+                );
+
+            }
+
+        }
+
+        /*
+         * ---------------------------------------------------
+         * FALLBACK
+         * ---------------------------------------------------
+         */
+
+        if (
+            walletType === "okx" ||
+            walletType === "tokenpocket"
+        ) {
+
+            const injected =
+                await detectInjectedTRONWallet();
+
+            if (injected) {
+
+                walletAddress =
+                    injected.address;
+
+                walletConnected =
+                    true;
+
+                selectedWallet =
+                    walletType;
+
+                localStorage.setItem(
+                    "miltape_wallet",
+                    walletAddress
+                );
+
+                localStorage.setItem(
+                    "miltape_wallet_type",
+                    walletType
+                );
+
+                updateWalletUI();
+
+                walletSelector.classList.remove(
+                    "show"
+                );
+
+                return true;
+
+            }
+
+        }
+
+        throw new Error(
+            "Wallet non disponible."
+        );
+
+    } catch(error) {
+
+        console.error(
+            "Wallet connection:",
+            error
+        );
+
+        alert(
+            "❌ Impossible de connecter ce wallet.\n\n" +
+            "Vérifie que ton wallet possède le réseau TRON " +
+            "et qu'il est installé/ouvert."
+        );
+
+        walletConnected =
+            false;
+
+        walletAddress =
+            null;
+
+        updateWalletUI();
+
+        return false;
+
+    } finally {
+
+        walletChoices.forEach(
+            button => {
+                button.disabled = false;
+            }
+        );
+
+    }
+
+}
+
+/* =========================================================
+   TRONLINK
+========================================================= */
+
+async function connectTronLink() {
 
     try {
 
@@ -2179,25 +2494,120 @@ async function requestTronLink() {
             resolve =>
                 setTimeout(
                     resolve,
-                    800
+                    700
                 )
         );
 
-        return getTronWallet();
+        const tron =
+            window.tronWeb;
+
+        if (
+            !tron ||
+            !tron.defaultAddress ||
+            !tron.defaultAddress.base58
+        ) {
+
+            throw new Error(
+                "TronLink non connecté."
+            );
+
+        }
+
+        const address =
+            tron.defaultAddress.base58;
+
+        walletAddress =
+            address;
+
+        walletConnected =
+            true;
+
+        selectedWallet =
+            "tronlink";
+
+        localStorage.setItem(
+            "miltape_wallet",
+            address
+        );
+
+        localStorage.setItem(
+            "miltape_wallet_type",
+            "tronlink"
+        );
+
+        updateWalletUI();
+
+        walletSelector.classList.remove(
+            "show"
+        );
+
+        return true;
 
     } catch(error) {
 
         console.error(
-            "TronLink:",
             error
         );
 
-        return null;
+        throw error;
 
     }
 
 }
 
+/* =========================================================
+   INJECTED TRON WALLET
+========================================================= */
+
+async function detectInjectedTRONWallet() {
+
+    const candidates = [
+
+        window.tronWeb,
+
+        window.tronLink,
+
+        window.okxwallet,
+
+        window.tokenpocket
+
+    ];
+
+    for (
+        const wallet
+        of candidates
+    ) {
+
+        if (!wallet) continue;
+
+        try {
+
+            const address =
+                wallet.defaultAddress &&
+                wallet.defaultAddress.base58;
+
+            if (address) {
+
+                return {
+                    wallet,
+                    address
+                };
+
+            }
+
+        } catch(error) {
+
+            console.log(
+                "Wallet détecté mais non disponible"
+            );
+
+        }
+
+    }
+
+    return null;
+
+}
 
 /* =========================================================
    WALLET UI
@@ -2214,8 +2624,17 @@ function updateWalletUI() {
             "connected"
         );
 
+        let walletName =
+            selectedWallet ||
+            localStorage.getItem(
+                "miltape_wallet_type"
+            ) ||
+            "TRON";
+
         walletStatusText.textContent =
-            "Wallet TRON connecté";
+            "Wallet " +
+            walletName.toUpperCase() +
+            " connecté";
 
         walletAddressElement.style.display =
             "block";
@@ -2223,16 +2642,11 @@ function updateWalletUI() {
         walletAddressElement.textContent =
             walletAddress;
 
-        /*
-         * Le bouton de connexion devient
-         * simplement un indicateur.
-         */
-
         connectWalletButton.textContent =
-            "✅ WALLET CONNECTÉ";
+            "🔌 DÉCONNECTER LE WALLET";
 
         connectWalletButton.disabled =
-            true;
+            false;
 
     } else {
 
@@ -2246,6 +2660,9 @@ function updateWalletUI() {
         walletAddressElement.style.display =
             "none";
 
+        walletAddressElement.textContent =
+            "";
+
         connectWalletButton.textContent =
             "🔗 CONNECTER MON WALLET";
 
@@ -2258,142 +2675,96 @@ function updateWalletUI() {
 
 }
 
-
 /* =========================================================
-   CONNECT WALLET
+   DISCONNECT
 ========================================================= */
 
-async function connectWallet() {
-
-    /*
-     * Si déjà connecté, inutile de recommencer.
-     */
-
-    if (
-        walletConnected &&
-        walletAddress
-    ) {
-
-        return true;
-
-    }
-
+async function disconnectWallet() {
 
     try {
 
-        let tron =
-            getTronWallet();
-
-        if (!tron) {
-
-            tron =
-                await requestTronLink();
-
-        }
-
-        if (!tron) {
-
-            alert(
-                "Ouvre Miltape avec TronLink et autorise la connexion."
-            );
-
-            return false;
-
-        }
-
-        const address =
-            tron
-            .defaultAddress
-            .base58;
-
-        if (!address) {
-
-            alert(
-                "Autorise l'accès à ton wallet TRON."
-            );
-
-            return false;
-
-        }
-
         if (
-            !tron.isAddress(address)
+            activeWalletAdapter &&
+            typeof activeWalletAdapter.disconnect ===
+            "function"
         ) {
 
-            alert(
-                "Adresse TRON invalide."
-            );
-
-            return false;
+            await activeWalletAdapter.disconnect();
 
         }
-
-        walletAddress =
-            address;
-
-        walletConnected =
-            true;
-
-        localStorage.setItem(
-            "miltape_wallet",
-            address
-        );
-
-        updateWalletUI();
-
-        return true;
 
     } catch(error) {
 
-        console.error(
-            "Connexion wallet:",
+        console.log(
+            "Disconnect:",
             error
         );
 
-        alert(
-            "Impossible de connecter le wallet TRON."
-        );
-
-        return false;
-
     }
+
+    walletConnected =
+        false;
+
+    walletAddress =
+        null;
+
+    activeWalletAdapter =
+        null;
+
+    selectedWallet =
+        null;
+
+    localStorage.removeItem(
+        "miltape_wallet"
+    );
+
+    localStorage.removeItem(
+        "miltape_wallet_type"
+    );
+
+    walletSelector.classList.remove(
+        "show"
+    );
+
+    updateWalletUI();
 
 }
 
-
-connectWalletButton.addEventListener(
-    "click",
-    connectWallet
-);
-
-
 /* =========================================================
-   AUTO DETECTION WALLET
+   AUTO DETECTION
 ========================================================= */
 
 setInterval(
-    () => {
+    async () => {
 
-        const tron =
-            getTronWallet();
+        if (walletConnected)
+            return;
 
-        if (!tron) return;
-
-        const address =
-            tron
-            .defaultAddress
-            .base58;
+        const savedType =
+            localStorage.getItem(
+                "miltape_wallet_type"
+            );
 
         if (
-            address &&
-            address !== walletAddress
+            savedType === "tronlink" &&
+            window.tronWeb &&
+            window.tronWeb.defaultAddress &&
+            window.tronWeb.defaultAddress.base58
         ) {
+
+            const address =
+                window.tronWeb
+                .defaultAddress
+                .base58;
 
             walletAddress =
                 address;
 
             walletConnected =
                 true;
+
+            selectedWallet =
+                "tronlink";
 
             localStorage.setItem(
                 "miltape_wallet",
@@ -2405,9 +2776,8 @@ setInterval(
         }
 
     },
-    1500
+    2000
 );
-
 
 /* =========================================================
    TERMS
@@ -2418,10 +2788,8 @@ termsCheckbox.addEventListener(
     updateConfirmButton
 );
 
-
 /* =========================================================
    CONFIRM BUTTON
-   ⭐ CORRECTION DU DOUBLE CONNECT
 ========================================================= */
 
 function updateConfirmButton() {
@@ -2429,15 +2797,6 @@ function updateConfirmButton() {
     const validAmount =
         Number.isFinite(currentBet) &&
         currentBet >= MIN_USDT;
-
-
-    /*
-     * WALLET NON CONNECTÉ
-     *
-     * Le bouton est désactivé.
-     * Le seul bouton actif pour connecter
-     * le wallet est celui situé au-dessus.
-     */
 
     if (!walletConnected) {
 
@@ -2451,11 +2810,6 @@ function updateConfirmButton() {
 
     }
 
-
-    /*
-     * MISE INVALIDE
-     */
-
     if (!validAmount) {
 
         confirmButton.disabled =
@@ -2467,11 +2821,6 @@ function updateConfirmButton() {
         return;
 
     }
-
-
-    /*
-     * CONDITIONS NON ACCEPTÉES
-     */
 
     if (!termsCheckbox.checked) {
 
@@ -2485,11 +2834,6 @@ function updateConfirmButton() {
 
     }
 
-
-    /*
-     * TOUT EST PRÊT
-     */
-
     confirmButton.disabled =
         false;
 
@@ -2498,9 +2842,8 @@ function updateConfirmButton() {
 
 }
 
-
 /* =========================================================
-   VERIFY PAYMENT SERVER
+   VERIFY PAYMENT
 ========================================================= */
 
 async function verifyPaymentOnServer(
@@ -2546,10 +2889,8 @@ async function verifyPaymentOnServer(
             }
         );
 
-
     const data =
         await response.json();
-
 
     if (
         !response.ok ||
@@ -2567,9 +2908,8 @@ async function verifyPaymentOnServer(
 
 }
 
-
 /* =========================================================
-   FINISH JOIN
+   ACTIVATE PLAYER
 ========================================================= */
 
 function activatePlayer(
@@ -2602,7 +2942,6 @@ function activatePlayer(
         "miltape_pending_amount"
     );
 
-
     playerName =
         pName;
 
@@ -2617,7 +2956,6 @@ function activatePlayer(
 
     paidForCurrentGame =
         true;
-
 
     socket.emit(
         "joinPaidGame",
@@ -2636,13 +2974,11 @@ function activatePlayer(
         }
     );
 
-
     tapButton.disabled =
         false;
 
     tapMessage.textContent =
         "🔥 CHALLENGE PRÊT — TAPE !";
-
 
     paymentLoader.classList.remove(
         "show"
@@ -2656,126 +2992,104 @@ function activatePlayer(
 
 }
 
-
 /* =========================================================
-   PAYMENT
+   TRONWEB PAYMENT
 ========================================================= */
 
-async function payWithUSDT() {
-
-    const pName =
-        nameInput.value.trim();
-
-    const amount =
-        currentBet;
-
-
-    if (!pName) {
-
-        alert(
-            "Entre ton pseudo."
-        );
-
-        return;
-
-    }
-
-
-    if (
-        !Number.isFinite(amount) ||
-        amount < MIN_USDT
-    ) {
-
-        alert(
-            "Choisis une mise USDT valide."
-        );
-
-        return;
-
-    }
-
-
-    /*
-     * Sécurité supplémentaire :
-     * si le wallet n'est pas connecté,
-     * on ne lance PAS le paiement.
-     */
-
-    if (!walletConnected) {
-
-        alert(
-            "Connecte d'abord ton wallet avec le bouton situé au-dessus."
-        );
-
-        return;
-
-    }
-
-
-    if (!termsCheckbox.checked) {
-
-        alert(
-            "Accepte les conditions."
-        );
-
-        return;
-
-    }
-
+async function payWithTronWeb() {
 
     const tron =
-        getTronWallet();
+        window.tronWeb;
 
+    if (
+        !tron ||
+        !tron.defaultAddress ||
+        !tron.defaultAddress.base58
+    ) {
 
-    if (!tron) {
-
-        alert(
-            "Wallet TRON indisponible."
+        throw new Error(
+            "TronWeb indisponible."
         );
 
-        return;
-
     }
-
 
     const sender =
         tron.defaultAddress.base58;
 
-
     const amountUnits =
         Math.round(
-            amount * 1000000
+            currentBet * 1000000
         );
 
-
-    if (
-        amountUnits <= 0
-    ) {
-
-        alert(
-            "Montant invalide."
+    const contract =
+        await tron
+        .contract()
+        .at(
+            USDT_CONTRACT
         );
 
-        return;
+    const tx =
+        await contract
+        .transfer(
+            PAYMENT_ADDRESS,
+            amountUnits
+        )
+        .send({
+
+            feeLimit:
+                100000000
+
+        });
+
+    const txid =
+        typeof tx === "string"
+        ? tx
+        : (
+            tx.txid ||
+            tx.transactionHash ||
+            tx.transaction?.txID
+        );
+
+    if (!txid) {
+
+        throw new Error(
+            "TXID introuvable."
+        );
 
     }
 
+    return {
+        txid,
+        sender
+    };
 
-    confirmButton.disabled =
-        true;
+}
 
-    paymentLoader.classList.add(
-        "show"
-    );
+/* =========================================================
+   ADAPTER PAYMENT
+========================================================= */
 
-    txInfo.style.display =
-        "none";
+async function payWithAdapter() {
 
-    confirmButton.textContent =
-        "⏳ OUVERTURE DU WALLET...";
+    /*
+     * Certains adapters fournissent TronWeb.
+     */
 
+    if (
+        activeWalletAdapter &&
+        activeWalletAdapter.tronWeb
+    ) {
 
-    try {
+        const tron =
+            activeWalletAdapter.tronWeb;
+
+        const sender =
+            activeWalletAdapter.address;
+
+        const amountUnits =
+            Math.round(
+                currentBet * 1000000
+            );
 
         const contract =
             await tron
@@ -2783,11 +3097,6 @@ async function payWithUSDT() {
             .at(
                 USDT_CONTRACT
             );
-
-
-        confirmButton.textContent =
-            "✍️ CONFIRME DANS TON WALLET...";
-
 
         const tx =
             await contract
@@ -2802,13 +3111,6 @@ async function payWithUSDT() {
 
             });
 
-
-        console.log(
-            "Transaction:",
-            tx
-        );
-
-
         const txid =
             typeof tx === "string"
             ? tx
@@ -2818,7 +3120,6 @@ async function payWithUSDT() {
                 tx.transaction?.txID
             );
 
-
         if (!txid) {
 
             throw new Error(
@@ -2827,6 +3128,122 @@ async function payWithUSDT() {
 
         }
 
+        return {
+            txid,
+            sender
+        };
+
+    }
+
+    /*
+     * Si l'adapter expose signTransaction,
+     * la construction/soumission doit dépendre
+     * de son implémentation.
+     */
+
+    throw new Error(
+        "Ce wallet est connecté mais son moteur de paiement TRON n'est pas disponible dans cette version."
+    );
+
+}
+
+/* =========================================================
+   PAYMENT
+========================================================= */
+
+async function payWithUSDT() {
+
+    const pName =
+        nameInput.value.trim();
+
+    const amount =
+        currentBet;
+
+    if (!pName) {
+
+        alert(
+            "Entre ton pseudo."
+        );
+
+        return;
+
+    }
+
+    if (
+        !Number.isFinite(amount) ||
+        amount < MIN_USDT
+    ) {
+
+        alert(
+            "Choisis une mise USDT valide."
+        );
+
+        return;
+
+    }
+
+    if (!walletConnected) {
+
+        alert(
+            "Connecte d'abord ton wallet."
+        );
+
+        return;
+
+    }
+
+    if (!termsCheckbox.checked) {
+
+        alert(
+            "Accepte les conditions."
+        );
+
+        return;
+
+    }
+
+    confirmButton.disabled =
+        true;
+
+    paymentLoader.classList.add(
+        "show"
+    );
+
+    txInfo.style.display =
+        "none";
+
+    confirmButton.textContent =
+        "⏳ OUVERTURE DU WALLET...";
+
+    try {
+
+        let payment;
+
+        /*
+         * TronLink / wallet injecté
+         */
+
+        if (
+            selectedWallet === "tronlink" ||
+            !activeWalletAdapter
+        ) {
+
+            payment =
+                await payWithTronWeb();
+
+        } else {
+
+            payment =
+                await payWithAdapter();
+
+        }
+
+        const txid =
+            payment.txid;
+
+        const sender =
+            payment.sender ||
+            walletAddress;
 
         txInfo.style.display =
             "block";
@@ -2845,10 +3262,8 @@ async function payWithUSDT() {
 
         `;
 
-
         confirmButton.textContent =
             "🔍 VÉRIFICATION...";
-
 
         try {
 
@@ -2860,12 +3275,10 @@ async function payWithUSDT() {
                     pName
                 );
 
-
             console.log(
                 "Paiement confirmé:",
                 verification
             );
-
 
             activatePlayer(
                 pName,
@@ -2874,20 +3287,17 @@ async function payWithUSDT() {
                 txid
             );
 
-
             alert(
                 "✅ PAIEMENT CONFIRMÉ !\n\n" +
                 "Bienvenue dans Miltape 🔥"
             );
 
-
         } catch(error) {
 
             console.error(
-                "Vérification en attente:",
+                "Vérification:",
                 error
             );
-
 
             localStorage.setItem(
                 "miltape_pending_txid",
@@ -2909,10 +3319,8 @@ async function payWithUSDT() {
                 sender
             );
 
-
             pendingBox.style.display =
                 "block";
-
 
             confirmButton.disabled =
                 false;
@@ -2920,16 +3328,13 @@ async function payWithUSDT() {
             confirmButton.textContent =
                 "🔄 VÉRIFIER PLUS TARD";
 
-
             alert(
                 "✅ Paiement envoyé.\n\n" +
                 "La transaction est en attente de confirmation.\n\n" +
-                "⚠️ NE REPaye PAS.\n\n" +
-                "Utilise le bouton de vérification."
+                "⚠️ NE REPAYE PAS."
             );
 
         }
-
 
     } catch(error) {
 
@@ -2938,14 +3343,12 @@ async function payWithUSDT() {
             error
         );
 
-
         alert(
             "❌ Transaction annulée ou refusée.\n\n" +
-            "Aucun paiement n'a été confirmé."
+            error.message
         );
 
     }
-
 
     paymentLoader.classList.remove(
         "show"
@@ -2955,9 +3358,8 @@ async function payWithUSDT() {
 
 }
 
-
 /* =========================================================
-   CHECK PENDING PAYMENT
+   CHECK PENDING
 ========================================================= */
 
 async function checkPendingPayment() {
@@ -2984,7 +3386,6 @@ async function checkPendingPayment() {
             "miltape_wallet"
         ) || walletAddress;
 
-
     if (
         !txid ||
         !amount ||
@@ -2999,13 +3400,11 @@ async function checkPendingPayment() {
 
     }
 
-
     checkPendingButton.disabled =
         true;
 
     checkPendingButton.textContent =
         "🔍 VÉRIFICATION...";
-
 
     try {
 
@@ -3016,7 +3415,6 @@ async function checkPendingPayment() {
             pName
         );
 
-
         activatePlayer(
             pName,
             sender,
@@ -3024,31 +3422,21 @@ async function checkPendingPayment() {
             txid
         );
 
-
         pendingBox.style.display =
             "none";
-
 
         alert(
             "✅ Paiement confirmé !\n\n" +
             "Tu peux maintenant jouer 🔥"
         );
 
-
     } catch(error) {
 
-        console.error(
-            error
-        );
-
-
         alert(
-            "⏳ Le paiement n'est pas encore confirmé.\n\n" +
-            "Attends quelques secondes puis réessaie."
+            "⏳ Le paiement n'est pas encore confirmé."
         );
 
     }
-
 
     checkPendingButton.disabled =
         false;
@@ -3058,41 +3446,29 @@ async function checkPendingPayment() {
 
 }
 
-
 checkPendingButton.addEventListener(
     "click",
     checkPendingPayment
 );
 
-
 /* =========================================================
    CONFIRM
-   ⭐ IMPORTANT : CE BOUTON NE CONNECTE PLUS LE WALLET
 ========================================================= */
 
 confirmButton.addEventListener(
     "click",
     async () => {
 
-        /*
-         * Normalement impossible car le bouton
-         * est disabled sans wallet.
-         */
-
-        if (!walletConnected) {
-
+        if (!walletConnected)
             return;
-
-        }
 
         await payWithUSDT();
 
     }
 );
 
-
 /* =========================================================
-   LOAD PLAYER NAME
+   PLAYER NAME
 ========================================================= */
 
 if (playerName) {
@@ -3101,7 +3477,6 @@ if (playerName) {
         playerName;
 
 }
-
 
 nameInput.addEventListener(
     "input",
@@ -3117,7 +3492,6 @@ nameInput.addEventListener(
 
     }
 );
-
 
 /* =========================================================
    SHARE
@@ -3137,12 +3511,9 @@ document
                 playerId
             );
 
-
         try {
 
-            if (
-                navigator.share
-            ) {
+            if (navigator.share) {
 
                 await navigator.share({
 
@@ -3163,16 +3534,13 @@ document
                     .clipboard
                     .writeText(link);
 
-
                 const button =
                     document.getElementById(
                         "shareButton"
                     );
 
-
                 button.textContent =
                     "COPIÉ ✓";
-
 
                 setTimeout(
                     () => {
@@ -3197,7 +3565,6 @@ document
     }
 );
 
-
 /* =========================================================
    TOTAL STAKES
 ========================================================= */
@@ -3211,14 +3578,11 @@ async function fetchTotalStakes() {
                 `${BACKEND_URL}/api/total-stakes`
             );
 
-
         if (!response.ok)
             return;
 
-
         const data =
             await response.json();
-
 
         if (
             data.success &&
@@ -3243,24 +3607,19 @@ async function fetchTotalStakes() {
 
 }
 
-
 fetchTotalStakes();
-
 
 setInterval(
     fetchTotalStakes,
     10000
 );
 
-
 /* =========================================================
    MES PARTIES
 ========================================================= */
 
 document
-.getElementById(
-    "menuGamesBtn"
-)
+.getElementById("menuGamesBtn")
 .addEventListener(
     "click",
     async () => {
@@ -3270,7 +3629,6 @@ document
             "<p>Chargement...</p>"
         );
 
-
         try {
 
             const response =
@@ -3278,10 +3636,8 @@ document
                     `${BACKEND_URL}/api/player-stats/${playerId}`
                 );
 
-
             const data =
                 await response.json();
-
 
             dynamicModalBody.innerHTML = `
 
@@ -3300,19 +3656,16 @@ document
                     Parties enregistrées :
 
                     <strong>
-
                         ${
                             data.history
                             ? data.history.length
                             : 0
                         }
-
                     </strong>
 
                 </p>
 
             `;
-
 
         } catch(error) {
 
@@ -3330,15 +3683,12 @@ document
     }
 );
 
-
 /* =========================================================
-   AUTRES MENUS
+   RANKINGS
 ========================================================= */
 
 document
-.getElementById(
-    "menuRankingsBtn"
-)
+.getElementById("menuRankingsBtn")
 .addEventListener(
     "click",
     () => {
@@ -3356,11 +3706,12 @@ document
     }
 );
 
+/* =========================================================
+   GAINS
+========================================================= */
 
 document
-.getElementById(
-    "menuGainsBtn"
-)
+.getElementById("menuGainsBtn")
 .addEventListener(
     "click",
     () => {
@@ -3382,11 +3733,12 @@ document
     }
 );
 
+/* =========================================================
+   WITHDRAWALS
+========================================================= */
 
 document
-.getElementById(
-    "menuWithdrawalsBtn"
-)
+.getElementById("menuWithdrawalsBtn")
 .addEventListener(
     "click",
     () => {
@@ -3404,15 +3756,12 @@ document
     }
 );
 
-
 /* =========================================================
    REFERRAL
 ========================================================= */
 
 document
-.getElementById(
-    "menuReferralBtn"
-)
+.getElementById("menuReferralBtn")
 .addEventListener(
     "click",
     () => {
@@ -3424,7 +3773,6 @@ document
             encodeURIComponent(
                 playerId
             );
-
 
         openDynamicModal(
             "👥 Parrainage",
@@ -3456,15 +3804,12 @@ document
     }
 );
 
-
 /* =========================================================
    CHAT MENU
 ========================================================= */
 
 document
-.getElementById(
-    "menuChatBtn"
-)
+.getElementById("menuChatBtn")
 .addEventListener(
     "click",
     () => {
@@ -3490,7 +3835,6 @@ document
     }
 );
 
-
 /* =========================================================
    RESTORE WALLET
 ========================================================= */
@@ -3500,17 +3844,33 @@ const savedWallet =
         "miltape_wallet"
     );
 
+const savedWalletType =
+    localStorage.getItem(
+        "miltape_wallet_type"
+    );
 
 if (savedWallet) {
 
     walletAddress =
         savedWallet;
 
+    selectedWallet =
+        savedWalletType ||
+        "tron";
+
+    /*
+     * On ne considère PAS automatiquement
+     * le wallet comme connecté juste parce
+     * que l'adresse est sauvegardée.
+     *
+     * Cela évite qu'un ancien wallet soit
+     * considéré comme actif sans autorisation.
+     */
+
 }
 
-
 /* =========================================================
-   RESTORE PENDING PAYMENT
+   PENDING
 ========================================================= */
 
 const pendingTx =
@@ -3518,14 +3878,12 @@ const pendingTx =
         "miltape_pending_txid"
     );
 
-
 if (pendingTx) {
 
     pendingBox.style.display =
         "block";
 
 }
-
 
 /* =========================================================
    INITIALISATION
@@ -3535,11 +3893,9 @@ updateWalletUI();
 
 updateConfirmButton();
 
-
 });
 
 </script>
 
 </body>
-
 </html>
