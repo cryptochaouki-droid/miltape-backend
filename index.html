@@ -1,1015 +1,149 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
->
-
-<meta name="theme-color" content="#090014">
-
-<meta
-    name="mobile-web-app-capable"
-    content="yes"
->
-
-<meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
->
-
-<title>Miltape World Challenge</title>
-
-<link
-    rel="icon"
-    href="miltape-logo-art.jpg"
->
-
-<link
-    rel="stylesheet"
-    href="./style.css"
->
-
-<style>
-
-.hero-combined {
-
-    position:relative;
-
-    width:100%;
-
-    height:220px;
-
-    background:
-        url('tap-art.jpg')
-        center/cover
-        no-repeat;
-
-    border-radius:16px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    text-align:center;
-
-    overflow:hidden;
-
-    margin-bottom:15px;
-
-    border:1px solid
-        rgba(255,255,255,.1);
-
-}
-
-.hero-combined::before {
-
-    content:"";
-
-    position:absolute;
-
-    inset:0;
-
-    background:
-        rgba(9,0,20,.45);
-
-}
-
-.hero-content {
-
-    position:relative;
-
-    z-index:1;
-
-}
-
-.hero-content h1 {
-
-    font-size:26px;
-
-    font-weight:900;
-
-    color:#fff;
-
-    margin:0;
-
-}
-
-.hero-content h1 span {
-
-    display:block;
-
-    font-size:18px;
-
-    color:#ffcc00;
-
-    letter-spacing:2px;
-
-    margin-top:5px;
-
-}
-
-.slogan {
-
-    font-size:12px;
-
-    color:#fff;
-
-    margin-top:8px;
-
-}
-
-.side-menu {
-
-    position:fixed;
-
-    top:0;
-
-    left:-300px;
-
-    width:280px;
-
-    height:100%;
-
-    background:#0f051d;
-
-    border-right:
-        1px solid
-        rgba(255,204,0,.2);
-
-    z-index:1000;
-
-    transition:left .3s;
-
-    padding:20px;
-
-    box-sizing:border-box;
-
-    overflow-y:auto;
-
-}
-
-.side-menu.show {
-
-    left:0;
-
-}
-
-.close-menu {
-
-    background:none;
-
-    border:none;
-
-    color:#fff;
-
-    font-size:28px;
-
-    cursor:pointer;
-
-    float:right;
-
-}
-
-.side-menu-content {
-
-    margin-top:40px;
-
-}
-
-.side-menu-content h3 {
-
-    color:#ffcc00;
-
-}
-
-.menu-block {
-
-    margin-bottom:15px;
-
-    background:
-        rgba(255,255,255,.03);
-
-    padding:12px;
-
-    border-radius:10px;
-
-}
-
-.menu-block label,
-.menu-block h4 {
-
-    display:block;
-
-    font-size:13px;
-
-    color:#ffcc00;
-
-    margin-bottom:8px;
-
-    font-weight:bold;
-
-}
-
-.menu-block select {
-
-    width:100%;
-
-    padding:8px;
-
-    border-radius:6px;
-
-    background:#1a1a2e;
-
-    color:#fff;
-
-    border:1px solid #444;
-
-}
-
-.menu-nav-btn {
-
-    display:block;
-
-    width:100%;
-
-    background:transparent;
-
-    border:none;
-
-    color:#fff;
-
-    text-align:left;
-
-    font-size:14px;
-
-    padding:10px 12px;
-
-    margin-bottom:6px;
-
-    cursor:pointer;
-
-    border-radius:8px;
-
-}
-
-.menu-nav-btn:hover {
-
-    background:
-        rgba(255,204,0,.15);
-
-    color:#ffcc00;
-
-}
-
-.menu-overlay {
-
-    position:fixed;
-
-    inset:0;
-
-    background:
-        rgba(0,0,0,.7);
-
-    display:none;
-
-    z-index:999;
-
-}
-
-.menu-overlay.show {
-
-    display:block;
-
-}
-
-.legal-modal {
-
-    position:fixed;
-
-    inset:0;
-
-    background:
-        rgba(0,0,0,.8);
-
-    display:none;
-
-    align-items:center;
-
-    justify-content:center;
-
-    z-index:2000;
-
-    padding:20px;
-
-    box-sizing:border-box;
-
-}
-
-.legal-modal.show {
-
-    display:flex;
-
-}
-
-.legal-content {
-
-    background:#120624;
-
-    border:1px solid #ffcc00;
-
-    border-radius:16px;
-
-    max-width:500px;
-
-    width:100%;
-
-    max-height:80vh;
-
-    overflow-y:auto;
-
-    padding:20px;
-
-    box-sizing:border-box;
-
-    color:#fff;
-
-    position:relative;
-
-}
-
-.legal-content h3 {
-
-    color:#ffcc00;
-
-}
-
-.legal-content p {
-
-    color:#bbb;
-
-    line-height:1.5;
-
-}
-
-.legal-close {
-
-    position:absolute;
-
-    top:15px;
-
-    right:15px;
-
-    background:none;
-
-    border:none;
-
-    color:#fff;
-
-    font-size:22px;
-
-}
-
-.confirm-button:disabled {
-
-    opacity:.5;
-
-    cursor:not-allowed;
-
-}
-
-.chat-message {
-
-    margin-bottom:8px;
-
-    font-size:13px;
-
-    color:#ddd;
-
-    word-break:break-word;
-
-}
-
-.chat-message strong {
-
-    color:#ffcc00;
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Miltape World Challenge</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Socket.io client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-
 <body>
 
-<!-- =====================================================
-     MENU
-===================================================== -->
-
-<div id="sideMenu" class="side-menu">
-
-<button
-    id="closeMenu"
-    class="close-menu"
-    type="button"
->
-    &times;
-</button>
-
-<div class="side-menu-content">
-
-<h3>🧭 Menu Miltape</h3>
-
-<div class="menu-block">
-
-<button class="menu-nav-btn" id="menuGamesBtn">
-🎮 Mes parties
-</button>
-
-<button class="menu-nav-btn" id="menuRankingsBtn">
-🏆 Mes classements
-</button>
-
-<button class="menu-nav-btn" id="menuGainsBtn">
-💰 Mes gains
-</button>
-
-<button class="menu-nav-btn" id="menuWithdrawalsBtn">
-💸 Mes retraits
-</button>
-
-<button class="menu-nav-btn" id="menuReferralBtn">
-👥 Parrainage
-</button>
-
-<button class="menu-nav-btn" id="menuChatBtn">
-💬 Chat
-</button>
-
-<button class="menu-nav-btn" id="menuRulesBtn">
-📜 Règles
-</button>
-
-<button class="menu-nav-btn" id="menuSettingsBtn">
-⚙️ Paramètres
-</button>
-
-</div>
-
-<div class="menu-block">
-
-<label>
-🌐 Langue / Language
-</label>
-
-<select id="languageSelect">
-
-<option value="fr">
-Français
-</option>
-
-<option value="en">
-English
-</option>
-
-</select>
-
-</div>
-
-<div class="menu-block">
-
-<h4>
-🛡️ Support & Confiance
-</h4>
-
-<p
-style="
-font-size:12px;
-color:#b8b8b8;
-"
->
-Une question ? Un problème ?
-</p>
-
-<a
-href="https://t.me/ton_canal_telegram"
-target="_blank"
-class="support-link"
->
-📢 Telegram officiel
-</a>
-
-<div style="margin-top:8px">
-
-<a
-href="mailto:miltapesupport@gmail.com"
-style="
-color:#ffcc00;
-text-decoration:none;
-"
->
-📧 support@miltape.com
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<div
-id="menuOverlay"
-class="menu-overlay"
-></div>
-
-<!-- =====================================================
-     MODAL DYNAMIQUE
-===================================================== -->
-
-<div
-id="dynamicModal"
-class="legal-modal"
->
-
-<div class="legal-content">
-
-<button
-id="closeDynamicModal"
-class="legal-close"
->
-&times;
-</button>
-
-<h3 id="dynamicModalTitle">
-Titre
-</h3>
-
-<div
-id="dynamicModalBody"
-style="margin-top:15px"
-></div>
-
-</div>
-
-</div>
-
-<!-- =====================================================
-     APP
-===================================================== -->
-
-<div class="app">
-
-<header class="top-header">
-
-<button
-class="menu-button"
-id="menuButton"
-type="button"
->
-☰
-</button>
-
-<div class="online">
-
-<strong id="onlineCount">
-
-<span
-style="
-display:inline-block;
-width:8px;
-height:8px;
-background:#2ecc71;
-border-radius:50%;
-margin-right:5px;
-"
-></span>
-
-1 EN LIGNE
-
-</strong>
-
-</div>
-
-</header>
-
-<!-- HERO -->
-
-<section class="hero-combined">
-
-<div class="hero-content">
-
-<h1>
-
-MILTAPE
-
-<span>
-WORLD CHALLENGE
-</span>
-
-</h1>
-
-<p class="slogan">
-
-<strong>
-TAPE.
-</strong>
-
-CLASSE-TOI.
-
-<strong>
-GAGNE.
-</strong>
-
-</p>
-
-</div>
-
-</section>
-
-<!-- RULES -->
-
-<section class="rules">
-
-<div class="rule">
-
-<span class="rule-icon">
-⏱️
-</span>
-
-<strong>
-10 MINUTES
-</strong>
-
-<small>
-PAR PARTIE
-</small>
-
-</div>
-
-<div class="rule">
-
-<span class="rule-icon">
-🏆
-</span>
-
-<strong>
-TOP 5
-</strong>
-
-<small>
-SEULEMENT
-</small>
-
-</div>
-
-</section>
-
-<!-- TIMER -->
-
-<section class="timer-card">
-
-<small>
-CHALLENGE EN COURS
-</small>
-
-<div
-id="timer"
-class="timer"
->
-10:00
-</div>
-
-<span>
-TEMPS RESTANT
-</span>
-
-</section>
-
-<!-- STATS -->
-
-<section
-class="stats"
-style="
-display:flex;
-justify-content:center;
-"
->
-
-<div
-class="stat-box"
-style="
-width:100%;
-max-width:300px;
-"
->
-
-<small>
-TES TAPS
-</small>
-
-<strong
-id="tapCount"
-style="
-font-size:28px;
-color:#ffcc00;
-"
->
-0
-</strong>
-
-</div>
-
-</section>
-
-<!-- PLAY -->
-
-<button
-id="enterChallenge"
-class="main-play-button"
-type="button"
->
-
-<span>
-JOUER MAINTENANT
-</span>
-
-<b>
-➜
-</b>
-
-</button>
-
-<div
-id="tapMessage"
-class="tap-message"
->
-⚡ CLIQUE SUR JOUER POUR COMMENCER
-</div>
-
-<!-- TAP -->
-
-<section class="tap-zone">
-
-<button
-id="tapButton"
-class="tap-button"
-type="button"
-disabled
->
-
-<span class="tap-glow"></span>
-
-<strong>
-TAP
-</strong>
-
-<small>
-
-<span id="tapButtonCount">
-0
-</span>
-
-</small>
-
-</button>
-
-</section>
-
-<!-- LEADERBOARD -->
-
-<section class="leaderboard">
-
-<div class="section-title">
-
-<span>
-🏆 CLASSEMENT
-</span>
-
-<strong>
-TOP 5
-</strong>
-
-</div>
-
-<div
-id="leaderboardList"
-class="leaderboard-list"
->
-
-<div class="empty-ranking">
-
-Aucun joueur pour le moment
-
-</div>
-
-</div>
-
-</section>
-
-<!-- CHAT -->
-
-<section class="chat-section">
-
-<div class="section-title">
-
-<span>
-💬 CHAT GLOBAL
-</span>
-
-<strong>
-LIVE
-</strong>
-
-</div>
-
-<div
-id="chatMessages"
-class="chat-messages"
->
-
-<div class="chat-message">
-
-<strong>
-Miltape:
-</strong>
-
-Bienvenue dans le World Challenge 🔥
-
-</div>
-
-</div>
-
-<div class="chat-input-box">
-
-<input
-id="chatInput"
-type="text"
-maxlength="250"
-placeholder="Écris un message..."
-autocomplete="off"
->
-
-<button
-id="chatSend"
-type="button"
->
-➤
-</button>
-
-</div>
-
-</section>
-
-<!-- REFERRAL -->
-
-<section class="referral">
-
-<div>
-
-<strong>
-👥 INVITE TES AMIS
-</strong>
-
-<small>
-Partage Miltape World Challenge
-</small>
-
-</div>
-
-<button
-id="shareButton"
-type="button"
->
-PARTAGER
-</button>
-
-</section>
-
-<footer>
-
-<strong>
-MILTAPE
-</strong>
-
-<span>
-WORLD CHALLENGE
-</span>
-
-</footer>
-
-</div>
-
-<!-- =====================================================
-     ENTRY MODAL (SIMPLE SANS PAIEMENT)
-===================================================== -->
-
-<div
-id="entryModal"
-class="modal"
->
-
-<div class="modal-content">
-
-<button
-id="cancelEntry"
-class="modal-close"
-type="button"
->
-✕
-</button>
-
-<div class="modal-icon">
-🔥
-</div>
-
-<h2>
-PRÊT À JOUER ?
-</h2>
-
-<p>
-
-Entre ton pseudo pour rejoindre le
-
-<strong>
-Miltape World Challenge
-</strong>
-
-</p>
-
-<!-- PSEUDO -->
-
-<div
-style="
-margin:15px 0;
-text-align:left;
-"
->
-
-<label
-for="customPlayerName"
-style="
-display:block;
-font-size:11px;
-margin-bottom:5px;
-color:#b8b8b8;
-font-weight:bold;
-"
->
-TON PSEUDO :
-</label>
-
-<input
-id="customPlayerName"
-type="text"
-maxlength="15"
-placeholder="Entre ton pseudo..."
-autocomplete="off"
-style="
-width:100%;
-padding:12px;
-border-radius:10px;
-border:1px solid #444;
-background:#1a1a2e;
-color:#fff;
-font-size:14px;
-box-sizing:border-box;
-"
->
-
-</div>
-
-<button
-id="confirmBetButton"
-class="confirm-button"
-type="button"
->
-COMMENCER À JOUER 🔥
-</button>
-
-<button
-id="cancelEntryBottom"
-class="cancel-button"
-type="button"
->
-ANNULER
-</button>
-
-</div>
-
-</div>
-
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
-<script src="script.js?v=3"></script>
-
+    <div class="app">
+
+        <!-- HEADER -->
+        <header class="top-header">
+            <button class="menu-button" id="menuBtn">☰</button>
+            <div class="online">
+                <span class="online-dot"></span>
+                <span>En ligne: <strong id="onlineCount">1</strong></span>
+            </div>
+            <div class="wallet-box">
+                <small>SCORE</small>
+                <strong id="headerScore">0</strong>
+            </div>
+            <button class="wallet-button" id="walletBtn">💎</button>
+        </header>
+
+        <!-- RULES -->
+        <section class="rules">
+            <div class="rule">
+                <span class="rule-icon">⚡</span>
+                <strong>Tap</strong>
+                <small>Clique un max</small>
+            </div>
+            <div class="rule">
+                <span class="rule-icon">⏱️</span>
+                <strong>Timer</strong>
+                <small>10 Minutes</small>
+            </div>
+            <div class="rule">
+                <span class="rule-icon">🏆</span>
+                <strong>Top</strong>
+                <small>Classement live</small>
+            </div>
+        </section>
+
+        <!-- TIMER -->
+        <section class="timer-card">
+            <small>PROCHAINE MANCHE</small>
+            <div class="timer" id="timer">10:00</div>
+            <span>TEMPS RESTANT</span>
+        </section>
+
+        <!-- STATS -->
+        <section class="stats">
+            <div class="stat-box">
+                <small>CLICS</small>
+                <strong id="statTaps">0</strong>
+            </div>
+            <div class="stat-box">
+                <small>TOTAL</small>
+                <strong id="statTotal">0</strong>
+            </div>
+            <div class="stat-box">
+                <small>RANG</small>
+                <strong id="statRank">-</strong>
+            </div>
+            <div class="stat-box">
+                <small>NIVEAU</small>
+                <strong id="statLevel">1</strong>
+            </div>
+        </section>
+
+        <!-- LEVEL -->
+        <section class="level-section">
+            <div class="level-header">
+                <span>Niveau <strong id="levelNumber">1</strong></span>
+                <span id="levelProgressText">0 / 100 Taps</span>
+            </div>
+            <div class="level-bar">
+                <div class="level-progress" id="levelProgress" style="width: 0%;"></div>
+            </div>
+        </section>
+
+        <!-- MESSAGE -->
+        <div class="tap-message" id="tapMessage">Tape le bouton pour marquer des points !</div>
+
+        <!-- TAP ZONE -->
+        <section class="tap-zone">
+            <button class="tap-button" id="tapButton">
+                <div class="tap-glow"></div>
+                <strong>TAP</strong>
+                <small id="tapCountDisplay">0</small>
+            </button>
+        </section>
+
+        <!-- LEADERBOARD -->
+        <section class="leaderboard">
+            <div class="section-title">
+                <span>Classement Live</span>
+                <strong>Top 5</strong>
+            </div>
+            <div class="leaderboard-list" id="leaderboardList">
+                <div class="empty-ranking">Chargement du classement...</div>
+            </div>
+        </section>
+
+        <!-- CHAT -->
+        <section class="chat-section">
+            <div class="section-title">
+                <span>Chat en direct</span>
+                <strong>Global</strong>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-box">
+                <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="250">
+                <button id="chatSendBtn">></button>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer>
+            <strong>MILTAPE</strong>
+            <span>WORLD CHALLENGE</span>
+            <small>Version 2.0 - Railway Connected</small>
+        </footer>
+
+    </div>
+
+    <!-- MODAL MENU -->
+    <div class="modal" id="menuModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <div class="modal-icon">⚙️</div>
+            <h2>Menu Miltape</h2>
+            <p>Bienvenue sur Miltape World Challenge. Tape pour grimper dans le classement en direct !</p>
+            <div class="entry-info">
+                <span>Ton ID Joueur</span>
+                <strong id="modalPlayerId" style="font-size: 11px;">-</strong>
+            </div>
+            <button class="confirm-button" id="modalCloseBtn">Fermer</button>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script src="script.js"></script>
 </body>
-
 </html>
