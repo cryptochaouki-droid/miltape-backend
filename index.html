@@ -27,7 +27,6 @@
     >
 
     <style>
-        /* Style intégré pour fusionner l'image de fond et le titre */
         .hero-combined {
             position: relative;
             width: 100%;
@@ -75,7 +74,6 @@
             text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
         }
 
-        /* Styles pour le menu latéral (3 traits) */
         .side-menu {
             position: fixed;
             top: 0;
@@ -130,7 +128,6 @@
             border: 1px solid #444;
         }
         
-        /* Styles pour les boutons du nouveau menu */
         .menu-nav-btn {
             display: block;
             width: 100%;
@@ -165,7 +162,6 @@
             font-weight: bold;
         }
 
-        /* Fonds et modales */
         .menu-overlay {
             position: fixed;
             top: 0;
@@ -235,23 +231,26 @@
             cursor: not-allowed;
             filter: grayscale(50%);
         }
+        
+        .chat-message {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #ddd;
+            word-break: break-word;
+        }
+        .chat-message strong {
+            color: #ffcc00;
+        }
     </style>
 
 </head>
 
-
 <body>
 
-<!-- =====================================================
-     MENU LATÉRAL (OPTIONS DEMANDÉES)
-====================================================== -->
 <div id="sideMenu" class="side-menu">
     <button id="closeMenu" class="close-menu" type="button">&times;</button>
-    
     <div class="side-menu-content">
         <h3 data-i18n="menu_title">🧭 Menu Miltape</h3>
-        
-        <!-- Navigation Principale -->
         <div class="menu-block" style="padding: 8px;">
             <button class="menu-nav-btn" id="menuGamesBtn">🎮 Mes parties</button>
             <button class="menu-nav-btn" id="menuRankingsBtn">🏆 Mes classements</button>
@@ -262,8 +261,6 @@
             <button class="menu-nav-btn" id="menuRulesBtn">📜 Règles</button>
             <button class="menu-nav-btn" id="menuSettingsBtn">⚙️ Paramètres</button>
         </div>
-
-        <!-- Section Langue -->
         <div class="menu-block">
             <label for="languageSelect">🌐 Langue / Language</label>
             <select id="languageSelect">
@@ -271,8 +268,6 @@
                 <option value="en">English</option>
             </select>
         </div>
-
-        <!-- Section Confiance & Support / Contact -->
         <div class="menu-block trust-contact-box">
             <h4 data-i18n="support_title">🛡️ Support & Confiance</h4>
             <p id="support_desc" style="font-size: 12px; color: #b8b8b8; margin-bottom: 8px;" data-i18n="support_desc">
@@ -291,454 +286,132 @@
 </div>
 <div id="menuOverlay" class="menu-overlay"></div>
 
-
-<!-- =====================================================
-     MODALE GÉNÉRALE POUR LES OPTIONS DU MENU
-====================================================== -->
 <div id="dynamicModal" class="legal-modal">
     <div class="legal-content">
         <button id="closeDynamicModal" class="legal-close">&times;</button>
         <h3 id="dynamicModalTitle">Titre</h3>
-        <div id="dynamicModalBody" style="margin-top: 15px;">
-            <!-- Contenu injecté dynamiquement -->
-        </div>
+        <div id="dynamicModalBody" style="margin-top: 15px;"></div>
     </div>
 </div>
 
-
 <div class="app">
-
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
     <header class="top-header">
-
-        <button
-            class="menu-button"
-            id="menuButton"
-            type="button"
-        >
-            ☰
-        </button>
-
-
+        <button class="menu-button" id="menuButton" type="button">☰</button>
         <div class="online">
-
             <strong id="onlineCount">
                 <span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> <span id="onlineText">1 EN LIGNE</span>
             </strong>
-
         </div>
-
-
         <div class="wallet-box">
-
-            <small>
-                MISE USDT
-            </small>
-
-            <strong id="displayBet">
-                $1
-            </strong>
-
+            <small>MISE USDT</small>
+            <strong id="displayBet">$1</strong>
         </div>
-
-
-        <button
-            class="wallet-button"
-            type="button"
-            id="walletButton"
-        >
-            💰
-        </button>
-
+        <button class="wallet-button" type="button" id="walletButton">💰</button>
     </header>
 
-
-
-    <!-- =====================================================
-         HERO FUSIONNÉ (IMAGE + TITRE EN HAUT)
-    ====================================================== -->
     <section class="hero-combined">
-
         <div class="hero-content">
-
-            <h1>
-                MILTAPE
-                <span>
-                    WORLD CHALLENGE
-                </span>
-            </h1>
-
-            <p class="slogan" data-i18n="slogan_text">
-
-                <strong>TAPE.</strong>
-
-                CLASSE-TOI.
-
-                <strong>GAGNE.</strong>
-
-            </p>
-
+            <h1>MILTAPE<span>WORLD CHALLENGE</span></h1>
+            <p class="slogan" data-i18n="slogan_text"><strong>TAPE.</strong> CLASSE-TOI. <strong>GAGNE.</strong></p>
         </div>
-
     </section>
 
-
-
-    <!-- =====================================================
-         RÈGLES
-    ====================================================== -->
     <section class="rules">
-
         <div class="rule">
-
-            <span class="rule-icon">
-                ⏱️
-            </span>
-
-            <strong data-i18n="rule_time">
-                10 MINUTES
-            </strong>
-
-            <small data-i18n="rule_time_sub">
-                PAR PARTIE
-            </small>
-
+            <span class="rule-icon">⏱️</span>
+            <strong data-i18n="rule_time">10 MINUTES</strong>
+            <small data-i18n="rule_time_sub">PAR PARTIE</small>
         </div>
-
-
         <div class="rule">
-
-            <span class="rule-icon">
-                🏆
-            </span>
-
-            <strong data-i18n="rule_top">
-                TOP 5
-            </strong>
-
-            <small data-i18n="rule_top_sub">
-                SEULEMENT
-            </small>
-
+            <span class="rule-icon">🏆</span>
+            <strong data-i18n="rule_top">TOP 5</strong>
+            <small data-i18n="rule_top_sub">SEULEMENT</small>
         </div>
-
-
         <div class="rule">
-
-            <span class="rule-icon">
-                🪙
-            </span>
-
-            <strong>
-                USDT
-            </strong>
-
-            <small>
-                TRC20
-            </small>
-
+            <span class="rule-icon">🪙</span>
+            <strong>USDT</strong>
+            <small>TRC20</small>
         </div>
-
     </section>
 
-
-
-    <!-- =====================================================
-         TIMER
-    ====================================================== -->
     <section class="timer-card">
-
-        <small data-i18n="timer_title">
-            CHALLENGE EN COURS
-        </small>
-
-        <div
-            id="timer"
-            class="timer"
-        >
-            10:00
-        </div>
-
-        <span data-i18n="timer_sub">
-            TEMPS RESTANT
-        </span>
-
+        <small data-i18n="timer_title">CHALLENGE EN COURS</small>
+        <div id="timer" class="timer">10:00</div>
+        <span data-i18n="timer_sub">TEMPS RESTANT</span>
     </section>
 
-
-
-    <!-- =====================================================
-         STATISTIQUES (TES TAPS UNIQUEMENT)
-    ====================================================== -->
     <section class="stats" style="display: flex; justify-content: center;">
-
         <div class="stat-box" style="width: 100%; max-width: 300px;">
-
-            <small data-i18n="stats_taps">
-                TES TAPS
-            </small>
-
-            <strong id="tapCount" style="font-size: 28px; color: #ffcc00;">
-                0
-            </strong>
-
+            <small data-i18n="stats_taps">TES TAPS</small>
+            <strong id="tapCount" style="font-size: 28px; color: #ffcc00;">0</strong>
         </div>
-
     </section>
 
-
-
-    <!-- =====================================================
-         BOUTON JOUER
-    ====================================================== -->
-    <button
-        id="enterChallenge"
-        class="main-play-button"
-        type="button"
-    >
-
-        <span data-i18n="play_btn">
-            JOUER MAINTENANT
-        </span>
-
-        <b>
-            ➜
-        </b>
-
+    <button id="enterChallenge" class="main-play-button" type="button">
+        <span data-i18n="play_btn">JOUER MAINTENANT</span>
+        <b>➜</b>
     </button>
 
-
-
-    <!-- =====================================================
-         MESSAGE
-    ====================================================== -->
-    <div
-        id="tapMessage"
-        class="tap-message"
-        data-i18n="tap_msg_first"
-    >
+    <div id="tapMessage" class="tap-message" data-i18n="tap_msg_first">
         ⚡ ENTER CHALLENGE FIRST
     </div>
 
-
-
-    <!-- =====================================================
-         ZONE TAP
-    ====================================================== -->
     <section class="tap-zone">
-
-        <button
-            id="tapButton"
-            class="tap-button"
-            type="button"
-            disabled
-        >
-
+        <button id="tapButton" class="tap-button" type="button" disabled>
             <span class="tap-glow"></span>
-
-            <strong>
-                TAP
-            </strong>
-
-            <small>
-                <span id="tapButtonCount">
-                    0
-                </span>
-            </small>
-
+            <strong>TAP</strong>
+            <small><span id="tapButtonCount">0</span></small>
         </button>
-
     </section>
 
-
-
-    <!-- =====================================================
-         TOP 5
-    ====================================================== -->
     <section class="leaderboard">
-
         <div class="section-title">
-
-            <span>
-                🏆 <span data-i18n="leaderboard_title">CLASSEMENT</span>
-            </span>
-
-            <strong>
-                TOP 5
-            </strong>
-
+            <span>🏆 <span data-i18n="leaderboard_title">CLASSEMENT</span></span>
+            <strong>TOP 5</strong>
         </div>
-
-
-        <div
-            id="leaderboardList"
-            class="leaderboard-list"
-        >
-
-            <div class="empty-ranking" data-i18n="empty_ranking">
-                Aucun joueur pour le moment
-            </div>
-
+        <div id="leaderboardList" class="leaderboard-list">
+            <div class="empty-ranking" data-i18n="empty_ranking">Aucun joueur pour le moment</div>
         </div>
-
     </section>
 
-
-
-    <!-- =====================================================
-         CHAT GLOBAL
-    ====================================================== -->
     <section class="chat-section">
-
         <div class="section-title">
-
-            <span>
-                💬 <span data-i18n="chat_title">CHAT GLOBAL</span>
-            </span>
-
-            <strong>
-                LIVE
-            </strong>
-
+            <span>💬 <span data-i18n="chat_title">CHAT GLOBAL</span></span>
+            <strong>LIVE</strong>
         </div>
-
-
-        <div
-            id="chatMessages"
-            class="chat-messages"
-        >
-
+        <div id="chatMessages" class="chat-messages">
             <div class="chat-message">
-
-                <strong>
-                    Miltape:
-                </strong>
-
-                <span data-i18n="chat_welcome">Bienvenue dans le World Challenge 🔥</span>
-
+                <strong>Miltape:</strong> <span data-i18n="chat_welcome">Bienvenue dans le World Challenge 🔥</span>
             </div>
-
         </div>
-
-
         <div class="chat-input-box">
-
-            <input
-                id="chatInput"
-                type="text"
-                maxlength="250"
-                placeholder="Écris un message..."
-                autocomplete="off"
-            >
-
-            <button
-                id="chatSend"
-                type="button"
-            >
-                ➤
-            </button>
-
+            <input id="chatInput" type="text" maxlength="250" placeholder="Écris un message..." autocomplete="off">
+            <button id="chatSend" type="button">➤</button>
         </div>
-
     </section>
 
-
-
-    <!-- =====================================================
-         PARRAINAGE
-    ====================================================== -->
     <section class="referral">
-
         <div>
-
-            <strong data-i18n="ref_title">
-                👥 INVITE TES AMIS
-            </strong>
-
-            <small data-i18n="ref_sub">
-                Partage Miltape World Challenge
-            </small>
-
+            <strong data-i18n="ref_title">👥 INVITE TES AMIS</strong>
+            <small data-i18n="ref_sub">Partage Miltape World Challenge</small>
         </div>
-
-
-        <button
-            id="shareButton"
-            type="button"
-            data-i18n="share_btn"
-        >
-            PARTAGER
-        </button>
-
+        <button id="shareButton" type="button" data-i18n="share_btn">PARTAGER</button>
     </section>
 
-
-
-    <!-- =====================================================
-         FOOTER
-    ====================================================== -->
     <footer>
-
-        <strong>
-            MILTAPE
-        </strong>
-
-        <span>
-            WORLD CHALLENGE
-        </span>
-
-        <small data-i18n="footer_sub">
-            CRYPTOMONNAIE • NOWPAYMENTS
-        </small>
-
+        <strong>MILTAPE</strong>
+        <span>WORLD CHALLENGE</span>
+        <small data-i18n="footer_sub">CRYPTOMONNAIE • NOWPAYMENTS</small>
     </footer>
-
-
-
 </div>
 
-
-
-<!-- =======================================================
-     MODAL ENTRÉE (AVEC CHOIX DE MISE & CONDITIONS)
-======================================================== -->
-<div
-    id="entryModal"
-    class="modal"
->
-
+<div id="entryModal" class="modal">
     <div class="modal-content">
-
-        <button
-            id="cancelEntry"
-            class="modal-close"
-            type="button"
-        >
-            ✕
-        </button>
-
-
-        <div class="modal-icon">
-            🔥
-        </div>
-
-
-        <h2 data-i18n="modal_h2">
-            PRÊT À JOUER ?
-        </h2>
-
-
-        <p>
-            <span data-i18n="modal_p1">Tu vas rejoindre le</span>
-            <strong>
-                Miltape World Challenge
-            </strong>.
-        </p>
-
-
-        <!-- CHOISIS TA MISE INTÉGRÉ DANS LA MODALE -->
+        <button id="cancelEntry" class="modal-close" type="button">✕</button>
+        <div class="modal-icon">🔥</div>
+        <h2 data-i18n="modal_h2">PRÊT À JOUER ?</h2>
+        <p><span data-i18n="modal_p1">Tu vas rejoindre le</span> <strong>Miltape World Challenge</strong>.</p>
+        
         <div style="margin: 15px 0; text-align: left; background: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 204, 0, 0.3);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="font-size: 11px; color: #ffcc00; font-weight: bold;" data-i18n="bet_title">CHOISIS TA MISE</span>
@@ -746,114 +419,43 @@
             </div>
             <div style="display: flex; align-items: center; background: rgba(0, 0, 0, 0.3); border: 2px solid #ffcc00; border-radius: 10px; padding: 8px 12px;">
                 <span style="color: #ffcc00; font-size: 18px; font-weight: bold; margin-right: 6px;">$</span>
-                <input
-                    id="customBetInput"
-                    type="number"
-                    min="1"
-                    step="0.1"
-                    value="1"
-                    placeholder="Entre ta mise"
-                    style="background: transparent; border: none; color: #ffffff; font-size: 18px; font-weight: bold; width: 100%; outline: none;"
-                >
+                <input id="customBetInput" type="number" min="1" step="0.1" value="1" placeholder="Entre ta mise" style="background: transparent; border: none; color: #ffffff; font-size: 18px; font-weight: bold; width: 100%; outline: none;">
             </div>
         </div>
 
-
         <div style="margin: 15px 0; text-align: left;">
-            <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;" data-i18n="modal_label_name">
-                TON PSEUDO :
-            </label>
-            <input
-                id="customPlayerName"
-                type="text"
-                maxlength="15"
-                placeholder="Entre ton pseudo..."
-                autocomplete="off"
-                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box;"
-            >
+            <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;" data-i18n="modal_label_name">TON PSEUDO :</label>
+            <input id="customPlayerName" type="text" maxlength="15" placeholder="Entre ton pseudo..." autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box;">
         </div>
 
-
         <div style="margin: 15px 0; text-align: left;">
-            <label for="customCryptoAddress" style="display: block; font-size: 11px; margin-bottom: 5px; color: #ffcc00; font-weight: bold;" data-i18n="modal_label_crypto">
-                ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :
-            </label>
-            <input
-                id="customCryptoAddress"
-                type="text"
-                placeholder="Votre adresse USDT TRC20..."
-                autocomplete="off"
-                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ffcc00; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box;"
-            >
+            <label for="customCryptoAddress" style="display: block; font-size: 11px; margin-bottom: 5px; color: #ffcc00; font-weight: bold;" data-i18n="modal_label_crypto">ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :</label>
+            <input id="customCryptoAddress" type="text" placeholder="Votre adresse USDT TRC20..." autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ffcc00; background: #1a1a2e; color: #fff; font-size: 14px; box-sizing: border-box;">
         </div>
 
-
-        <!-- CASE À COCHER OBLIGATOIRE DES CONDITIONS -->
         <div style="margin: 20px 0; text-align: left; background: rgba(255, 255, 255, 0.03); padding: 10px; border-radius: 8px; border: 1px dashed rgba(255, 204, 0, 0.3);">
             <label style="display: flex; align-items: flex-start; cursor: pointer; font-size: 12px; color: #ccc; line-height: 1.4;">
-                <input 
-                    id="acceptTermsCheckbox" 
-                    type="checkbox" 
-                    style="margin-right: 10px; margin-top: 2px; width: 16px; height: 16px; accent-color: #ffcc00; cursor: pointer;"
-                >
-                <span data-i18n="checkbox_accept_text">
-                    J'accepte les <strong>Conditions d'Utilisation</strong> et certifie avoir pris connaissance des règles et des droits réservés.
-                </span>
+                <input id="acceptTermsCheckbox" type="checkbox" style="margin-right: 10px; margin-top: 2px; width: 16px; height: 16px; accent-color: #ffcc00; cursor: pointer;">
+                <span data-i18n="checkbox_accept_text">J'accepte les <strong>Conditions d'Utilisation</strong> et certifie avoir pris connaissance des règles et des droits réservés.</span>
             </label>
         </div>
 
-
         <div class="demo-warning">
-
             🟢 <span data-i18n="modal_crypto_payment">PAIEMENT CRYPTO</span>
-
-            <small data-i18n="modal_secure">
-                Sécurisé par NOWPayments.
-            </small>
-
+            <small data-i18n="modal_secure">Sécurisé par NOWPayments.</small>
         </div>
 
-
-        <button
-            id="confirmBetButton"
-            class="confirm-button"
-            type="button"
-            disabled
-            data-i18n="modal_confirm_btn"
-        >
-            PAYER ET ENTRER 🔥
-        </button>
-
-
-        <button
-            id="cancelEntryBottom"
-            class="cancel-button"
-            type="button"
-            data-i18n="modal_cancel_btn"
-        >
-            ANNULER
-        </button>
-
+        <button id="confirmBetButton" class="confirm-button" type="button" disabled data-i18n="modal_confirm_btn">PAYER ET ENTRER 🔥</button>
+        <button id="cancelEntryBottom" class="cancel-button" type="button" data-i18n="modal_cancel_btn">ANNULER</button>
     </div>
-
 </div>
 
-
-
-<!-- =======================================================
-     SCRIPT
-======================================================== -->
+<!-- Scripts Socket.io et logique du jeu intégrée -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="script.js"></script>
-
-
 <script>
-
 const translations = {
     fr: {
         menu_title: "🧭 Menu Miltape",
-        rules_title: "📖 Comment ça marche ?",
-        rules_desc: "Miltape World Challenge est un jeu de rapidité en ligne. Tape le plus de fois possible en 10 minutes, entre dans le <strong>Top 5</strong> et remporte des gains en USDT (TRC20) versés automatiquement !",
         support_title: "🛡️ Support & Confiance",
         support_desc: "Une question ? Un problème de paiement ? Contactez-nous :",
         telegram_btn: "📢 Canal Telegram officiel",
@@ -889,8 +491,6 @@ const translations = {
     },
     en: {
         menu_title: "🧭 Miltape Menu",
-        rules_title: "📖 How it works?",
-        rules_desc: "Miltape World Challenge is an online speed game. Tap as many times as possible in 10 minutes, make it to the <strong>Top 5</strong> and win automated USDT (TRC20) payouts!",
         support_title: "🛡️ Support & Trust",
         support_desc: "Any questions? A payment issue? Contact us:",
         telegram_btn: "📢 Official Telegram Channel",
@@ -927,347 +527,335 @@ const translations = {
 };
 
 function changeLanguage(lang) {
-    const elements = document.querySelectorAll("[data-i18n]");
-    elements.forEach(el => {
+    document.querySelectorAll("[data-i18n]").forEach(el => {
         const key = el.getAttribute("data-i18n");
         if (translations[lang] && translations[lang][key]) {
             el.innerHTML = translations[lang][key];
         }
     });
-
     const onlineCount = document.getElementById("onlineCount");
     if (onlineCount) {
         const countNum = onlineCount.textContent.replace(/[^0-9]/g, '') || "1";
         onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${countNum} ${translations[lang].online_text}`;
     }
-
     localStorage.setItem("miltape_lang", lang);
 }
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+document.addEventListener("DOMContentLoaded", () => {
+    const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+    
+    // Connexion Socket.io avec reconnexion automatique
+    const socket = io(BACKEND_URL, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        timeout: 20000
+    });
 
-        const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+    const timerDisplay = document.getElementById("timer");
+    const tapButton = document.getElementById("tapButton");
+    const tapCountDisplay = document.getElementById("tapCount");
+    const tapButtonCountDisplay = document.getElementById("tapButtonCount");
+    const tapMessage = document.getElementById("tapMessage");
+    const onlineCount = document.getElementById("onlineCount");
+    const leaderboardList = document.getElementById("leaderboardList");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const chatSend = document.getElementById("chatSend");
 
-        // Gestion du menu latéral (3 traits)
-        const menuButton = document.getElementById("menuButton");
-        const sideMenu = document.getElementById("sideMenu");
-        const menuOverlay = document.getElementById("menuOverlay");
-        const closeMenu = document.getElementById("closeMenu");
+    let localTaps = 0;
+    let playerId = localStorage.getItem("miltape_player_id");
+    if (!playerId) {
+        playerId = 'player_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem("miltape_player_id", playerId);
+    }
+    let playerName = localStorage.getItem("miltape_player_name");
 
-        function toggleMenu() {
-            if (sideMenu && menuOverlay) {
-                sideMenu.classList.toggle("show");
-                menuOverlay.classList.toggle("show");
-            }
+    if (playerName) {
+        if (tapButton) tapButton.disabled = false;
+        if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
+    }
+
+    socket.on("connect", () => {
+        console.log("Connecté au serveur WebSocket ! ID:", socket.id);
+        socket.emit("join", { playerId, playerName: playerName || "Anonyme" });
+    });
+
+    // Réception du Chrono en direct
+    socket.on("timer", (timeLeft) => {
+        if (timerDisplay) {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
+    });
 
-        if (menuButton) menuButton.addEventListener("click", toggleMenu);
-        if (closeMenu) closeMenu.addEventListener("click", toggleMenu);
-        if (menuOverlay) menuOverlay.addEventListener("click", toggleMenu);
+    // Nombre de joueurs en ligne
+    socket.on("onlineCount", (count) => {
+        if (onlineCount) {
+            const currentLang = localStorage.getItem("miltape_lang") || "fr";
+            const onlineTextLabel = translations[currentLang]?.online_text || "EN LIGNE";
+            onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} ${onlineTextLabel}`;
+        }
+    });
 
-        // Gestion de la modale dynamique pour les options du menu
-        const dynamicModal = document.getElementById("dynamicModal");
-        const closeDynamicModal = document.getElementById("closeDynamicModal");
-        const dynamicModalTitle = document.getElementById("dynamicModalTitle");
-        const dynamicModalBody = document.getElementById("dynamicModalBody");
-
-        function openDynamicModal(title, htmlContent) {
-            if (dynamicModal && dynamicModalTitle && dynamicModalBody) {
-                dynamicModalTitle.textContent = title;
-                dynamicModalBody.innerHTML = htmlContent;
-                dynamicModal.classList.add("show");
-                toggleMenu(); // Fermer le menu latéral
+    // Classement Top 5 en direct
+    socket.on("leaderboard", (players) => {
+        if (leaderboardList) {
+            if (!players || players.length === 0) {
+                leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
+                return;
             }
+            leaderboardList.innerHTML = players.map((p, index) => `
+                <div class="leaderboard-item" style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <span>#${index + 1} <strong>${p.playerName || 'Anonyme'}</strong></span>
+                    <span style="color: #ffcc00;">${p.score || 0} taps</span>
+                </div>
+            `).join('');
         }
+    });
 
-        if (closeDynamicModal && dynamicModal) {
-            closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
-            window.addEventListener("click", (e) => {
-                if (e.target === dynamicModal) dynamicModal.classList.remove("show");
-            });
+    // Réception des messages du Chat en direct
+    socket.on("chatMessage", (msg) => {
+        if (chatMessages) {
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("chat-message");
+            messageElement.innerHTML = `<strong>${msg.name || 'Anonyme'}</strong>: ${msg.text}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+    });
 
-        let playerId = localStorage.getItem("miltape_player_id");
-        if (!playerId) {
-            playerId = 'player_' + Math.random().toString(36).substring(2, 11);
-            localStorage.setItem("miltape_player_id", playerId);
-        }
-
-        // Association dynamique des 8 options du menu connectées au backend
-        document.getElementById("menuGamesBtn").addEventListener("click", async () => {
-            openDynamicModal("🎮 Mes parties", "Chargement de vos parties...");
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
-                const data = await res.json();
-                if (data.success) {
-                    dynamicModalBody.innerHTML = `
-                        <p>Total Taps enregistrés : <strong>${data.totalTaps || 0}</strong></p>
-                        <p>Total Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
-                        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
-                        <p style="font-size: 11px; color: #ffcc00;">Historique de vos participations actives.</p>
-                    `;
-                } else {
-                    dynamicModalBody.innerHTML = "<p>Aucune partie enregistrée pour le moment. Jouez pour commencer !</p>";
-                }
-            } catch (e) {
-                dynamicModalBody.innerHTML = "<p>Impossible de récupérer l'historique des parties (erreur serveur).</p>";
+    // Envoi de messages dans le chat
+    if (chatSend && chatInput) {
+        chatSend.addEventListener("click", () => {
+            const text = chatInput.value.trim();
+            if (text) {
+                socket.emit("chatMessage", { name: playerName || "Anonyme", text: text });
+                chatInput.value = "";
             }
         });
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") chatSend.click();
+        });
+    }
 
-        document.getElementById("menuRankingsBtn").addEventListener("click", async () => {
-            openDynamicModal("🏆 Mes classements", "Chargement de votre classement...");
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/leaderboard`);
-                const data = await res.json();
-                if (data.success && data.players) {
-                    const playerRank = data.players.find(p => p.playerId === playerId);
-                    if (playerRank) {
-                        dynamicModalBody.innerHTML = `
-                            <p>Votre position actuelle : <strong>#${playerRank.position}</strong></p>
-                            <p>Score : <strong>${playerRank.score} taps</strong></p>
-                        `;
-                    } else {
-                        dynamicModalBody.innerHTML = "<p>Vous n'êtes pas encore classé dans le Top actuel. Tapez plus vite !</p>";
-                    }
-                } else {
-                    dynamicModalBody.innerHTML = "<p>Classement indisponible.</p>";
-                }
-            } catch (e) {
-                dynamicModalBody.innerHTML = "<p>Erreur de connexion au serveur.</p>";
+    // Gestion des Taps
+    if (tapButton) {
+        tapButton.addEventListener("click", () => {
+            if (!playerName) {
+                alert("Entre ton pseudo en cliquant sur 'JOUER MAINTENANT' !");
+                return;
             }
+            localTaps++;
+            if (tapCountDisplay) tapCountDisplay.textContent = localTaps;
+            if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = localTaps;
+            
+            socket.emit("tap", { playerId, playerName, taps: 1 });
         });
+    }
 
-        document.getElementById("menuGainsBtn").addEventListener("click", () => {
-            openDynamicModal("💰 Mes gains", "<p>Vos gains sont versés automatiquement aux joueurs du <strong>Top 5</strong> à la fin de chaque session de 10 minutes directement sur votre adresse USDT TRC20 enregistrée.</p>");
-        });
+    // Gestion du menu latéral
+    const menuButton = document.getElementById("menuButton");
+    const sideMenu = document.getElementById("sideMenu");
+    const menuOverlay = document.getElementById("menuOverlay");
+    const closeMenu = document.getElementById("closeMenu");
 
-        document.getElementById("menuWithdrawalsBtn").addEventListener("click", () => {
-            openDynamicModal("💸 Mes retraits", "<p>Les paiements sont entièrement automatisés via NOWPayments et la blockchain TRC20. Aucun retrait manuel n'est requis.</p>");
-        });
+    function toggleMenu() {
+        if (sideMenu && menuOverlay) {
+            sideMenu.classList.toggle("show");
+            menuOverlay.classList.toggle("show");
+        }
+    }
+    if (menuButton) menuButton.addEventListener("click", toggleMenu);
+    if (closeMenu) closeMenu.addEventListener("click", toggleMenu);
+    if (menuOverlay) menuOverlay.addEventListener("click", toggleMenu);
 
-        document.getElementById("menuReferralBtn").addEventListener("click", () => {
-            openDynamicModal("👥 Parrainage", `<p>Partagez votre lien unique pour inviter vos amis :</p><input type="text" readonly value="${window.location.href}?ref=${playerId}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:8px;" onclick="this.select();">`);
-        });
+    const dynamicModal = document.getElementById("dynamicModal");
+    const closeDynamicModal = document.getElementById("closeDynamicModal");
+    const dynamicModalTitle = document.getElementById("dynamicModalTitle");
+    const dynamicModalBody = document.getElementById("dynamicModalBody");
 
-        document.getElementById("menuChatBtn").addEventListener("click", () => {
+    function openDynamicModal(title, htmlContent) {
+        if (dynamicModal && dynamicModalTitle && dynamicModalBody) {
+            dynamicModalTitle.textContent = title;
+            dynamicModalBody.innerHTML = htmlContent;
+            dynamicModal.classList.add("show");
             toggleMenu();
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    }
+    if (closeDynamicModal && dynamicModal) {
+        closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
+    }
+
+    // Options du menu latéral
+    document.getElementById("menuGamesBtn").addEventListener("click", async () => {
+        openDynamicModal("🎮 Mes parties", "Chargement de vos parties...");
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
+            const data = await res.json();
+            if (data.success) {
+                dynamicModalBody.innerHTML = `
+                    <p>Total Taps enregistrés : <strong>${data.totalTaps || localTaps}</strong></p>
+                    <p>Total Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
+                `;
+            } else {
+                dynamicModalBody.innerHTML = `<p>Total Taps actuels : <strong>${localTaps}</strong></p><p>Aucune partie payée enregistrée pour le moment.</p>`;
+            }
+        } catch (e) {
+            dynamicModalBody.innerHTML = `<p>Total Taps locaux : <strong>${localTaps}</strong></p>`;
+        }
+    });
+
+    document.getElementById("menuRankingsBtn").addEventListener("click", () => {
+        openDynamicModal("🏆 Mes classements", "<p>Consultez le Top 5 directement sur l'écran principal du jeu en direct !</p>");
+    });
+    document.getElementById("menuGainsBtn").addEventListener("click", () => {
+        openDynamicModal("💰 Mes gains", "<p>Vos gains sont versés automatiquement aux joueurs du <strong>Top 5</strong> à la fin de chaque session.</p>");
+    });
+    document.getElementById("menuWithdrawalsBtn").addEventListener("click", () => {
+        openDynamicModal("💸 Mes retraits", "<p>Paiements automatisés via NOWPayments et la blockchain TRC20.</p>");
+    });
+    document.getElementById("menuReferralBtn").addEventListener("click", () => {
+        openDynamicModal("👥 Parrainage", `<p>Partagez votre lien unique :</p><input type="text" readonly value="${window.location.href}?ref=${playerId}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:8px;" onclick="this.select();">`);
+    });
+    document.getElementById("menuChatBtn").addEventListener("click", () => {
+        toggleMenu();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+    document.getElementById("menuRulesBtn").addEventListener("click", () => {
+        openDynamicModal("📜 Règles", "<p>Tapez un maximum de fois en 10 minutes pour intégrer le Top 5.</p>");
+    });
+    document.getElementById("menuSettingsBtn").addEventListener("click", () => {
+        const currentName = localStorage.getItem("miltape_player_name") || "";
+        const currentCrypto = localStorage.getItem("miltape_crypto_address") || "";
+        openDynamicModal("⚙️ Paramètres", `
+            <div style="margin-bottom: 10px;">
+                <label style="font-size:11px; color:#ffcc00;">Pseudo :</label>
+                <input id="settingsPseudo" type="text" value="${currentName}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size:11px; color:#ffcc00;">Adresse USDT TRC20 :</label>
+                <input id="settingsCrypto" type="text" value="${currentCrypto}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:4px;">
+            </div>
+            <button id="saveSettingsBtn" style="background:#ffcc00; color:#000; border:none; padding:10px; width:100%; font-weight:bold; border-radius:6px; cursor:pointer;">ENREGISTRER</button>
+        `);
+        setTimeout(() => {
+            const saveBtn = document.getElementById("saveSettingsBtn");
+            if (saveBtn) {
+                saveBtn.addEventListener("click", () => {
+                    const newName = document.getElementById("settingsPseudo").value.trim();
+                    const newCrypto = document.getElementById("settingsCrypto").value.trim();
+                    if (newName) localStorage.setItem("miltape_player_name", newName);
+                    if (newCrypto) localStorage.setItem("miltape_crypto_address", newCrypto);
+                    alert("Paramètres enregistrés !");
+                    dynamicModal.classList.remove("show");
+                    location.reload();
+                });
+            }
+        }, 100);
+    });
+
+    const languageSelect = document.getElementById("languageSelect");
+    const savedLang = localStorage.getItem("miltape_lang") || "fr";
+    if (languageSelect) {
+        languageSelect.value = savedLang;
+        changeLanguage(savedLang);
+        languageSelect.addEventListener("change", function() {
+            changeLanguage(this.value);
         });
+    }
 
-        document.getElementById("menuRulesBtn").addEventListener("click", () => {
-            openDynamicModal("📜 Règles", "<p><strong>Miltape World Challenge</strong> : Tapez un maximum de fois en 10 minutes. À la fin du chrono, les joueurs du <strong>Top 5</strong> remportent automatiquement les gains de la cagnotte reversés en USDT (TRC20).</p>");
+    const modal = document.getElementById("entryModal");
+    const enterButton = document.getElementById("enterChallenge");
+    if (enterButton && modal) {
+        enterButton.addEventListener("click", () => modal.classList.add("show"));
+    }
+
+    const customBetInput = document.getElementById("customBetInput");
+    const selectedBetSpan = document.getElementById("selectedBet");
+    const displayBet = document.getElementById("displayBet");
+    if (customBetInput) {
+        customBetInput.addEventListener("input", function() {
+            let val = this.value || "0";
+            if (selectedBetSpan) selectedBetSpan.textContent = "$" + val;
+            if (displayBet) displayBet.textContent = "$" + val;
         });
+    }
 
-        document.getElementById("menuSettingsBtn").addEventListener("click", () => {
-            const currentName = localStorage.getItem("miltape_player_name") || "";
-            const currentCrypto = localStorage.getItem("miltape_crypto_address") || "";
-            openDynamicModal("⚙️ Paramètres", `
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size:11px; color:#ffcc00;">Pseudo :</label>
-                    <input id="settingsPseudo" type="text" value="${currentName}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:4px;">
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label style="font-size:11px; color:#ffcc00;">Adresse USDT TRC20 :</label>
-                    <input id="settingsCrypto" type="text" value="${currentCrypto}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:4px;">
-                </div>
-                <button id="saveSettingsBtn" style="background:#ffcc00; color:#000; border:none; padding:10px; width:100%; font-weight:bold; border-radius:6px; cursor:pointer;">ENREGISTRER</button>
-            `);
-
-            setTimeout(() => {
-                const saveBtn = document.getElementById("saveSettingsBtn");
-                if (saveBtn) {
-                    saveBtn.addEventListener("click", () => {
-                        const newName = document.getElementById("settingsPseudo").value.trim();
-                        const newCrypto = document.getElementById("settingsCrypto").value.trim();
-                        if (newName) localStorage.setItem("miltape_player_name", newName);
-                        if (newCrypto) localStorage.setItem("miltape_crypto_address", newCrypto);
-                        alert("Paramètres enregistrés avec succès !");
-                        dynamicModal.classList.remove("show");
-                    });
-                }
-            }, 100);
+    const acceptTermsCheckbox = document.getElementById("acceptTermsCheckbox");
+    const confirmButton = document.getElementById("confirmBetButton");
+    if (acceptTermsCheckbox && confirmButton) {
+        acceptTermsCheckbox.addEventListener("change", function() {
+            confirmButton.disabled = !this.checked;
         });
+    }
 
-        // Gestion de la langue au démarrage
-        const languageSelect = document.getElementById("languageSelect");
-        const savedLang = localStorage.getItem("miltape_lang") || "fr";
-        if (languageSelect) {
-            languageSelect.value = savedLang;
-            changeLanguage(savedLang);
+    const nameInput = document.getElementById("customPlayerName");
+    const cryptoInput = document.getElementById("customCryptoAddress");
+    if (playerName && nameInput) nameInput.value = playerName;
+    const savedCrypto = localStorage.getItem("miltape_crypto_address");
+    if (savedCrypto && cryptoInput) cryptoInput.value = savedCrypto;
 
-            languageSelect.addEventListener("change", function () {
-                changeLanguage(this.value);
-            });
-        }
+    if (confirmButton) {
+        confirmButton.addEventListener("click", async () => {
+            const pName = nameInput ? nameInput.value.trim() : "";
+            const cAddress = cryptoInput ? cryptoInput.value.trim() : "";
+            const amount = customBetInput ? customBetInput.value : "1";
 
-        const enterButton = document.getElementById("enterChallenge");
-        const modal = document.getElementById("entryModal");
+            if (!pName || !cAddress) {
+                alert("Entre un pseudo et une adresse crypto valide !");
+                return;
+            }
 
-        if (enterButton && modal) {
-            enterButton.addEventListener("click", function () {
-                modal.classList.add("show");
-            });
-        }
+            localStorage.setItem("miltape_player_name", pName);
+            localStorage.setItem("miltape_crypto_address", cAddress);
+            confirmButton.textContent = "CHARGEMENT...";
+            confirmButton.disabled = true;
 
-        const customBetInput = document.getElementById("customBetInput");
-        const selectedBetSpan = document.getElementById("selectedBet");
-        const displayBet = document.getElementById("displayBet");
-
-        if (customBetInput) {
-            customBetInput.addEventListener("input", function () {
-                let val = customBetInput.value;
-                if (val === "" || isNaN(val)) val = "0";
-                
-                if (selectedBetSpan) selectedBetSpan.textContent = "$" + val;
-                if (displayBet) displayBet.textContent = "$" + val;
-            });
-        }
-
-        const acceptTermsCheckbox = document.getElementById("acceptTermsCheckbox");
-        const confirmButton = document.getElementById("confirmBetButton");
-
-        if (acceptTermsCheckbox && confirmButton) {
-            acceptTermsCheckbox.addEventListener("change", function () {
-                confirmButton.disabled = !acceptTermsCheckbox.checked;
-            });
-        }
-
-        const savedName = localStorage.getItem("miltape_player_name");
-        const nameInput = document.getElementById("customPlayerName");
-        if (savedName && nameInput) {
-            nameInput.value = savedName;
-        }
-
-        const savedCrypto = localStorage.getItem("miltape_crypto_address");
-        const cryptoInput = document.getElementById("customCryptoAddress");
-        if (savedCrypto && cryptoInput) {
-            cryptoInput.value = savedCrypto;
-        }
-
-        if (confirmButton) {
-            confirmButton.addEventListener("click", async function () {
-                if (acceptTermsCheckbox && !acceptTermsCheckbox.checked) {
-                    alert("Veuillez accepter les conditions d'utilisation pour continuer.");
-                    return;
-                }
-
-                const playerName = nameInput ? nameInput.value.trim() : "";
-                const cryptoAddress = cryptoInput ? cryptoInput.value.trim() : "";
-                const amount = customBetInput ? customBetInput.value : "1";
-
-                if (!playerName) {
-                    alert("Entre un pseudo valide !");
-                    return;
-                }
-
-                if (!cryptoAddress) {
-                    alert("Veuillez entrer votre adresse crypto (USDT TRC20) pour recevoir vos gains automatiques !");
-                    return;
-                }
-
-                localStorage.setItem("miltape_player_name", playerName);
-                localStorage.setItem("miltape_crypto_address", cryptoAddress);
-                
-                confirmButton.textContent = "CHARGEMENT...";
-                confirmButton.disabled = true;
-
-                try {
-                    const joinRes = await fetch(`${BACKEND_URL}/api/join`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ playerId, playerName, cryptoAddress })
-                    });
-                    const joinData = await joinRes.json();
-
-                    if (!joinData.success) {
-                        alert(joinData.error || "Erreur lors de l'inscription.");
-                        confirmButton.textContent = "PAYER ET ENTRER 🔥";
-                        confirmButton.disabled = false;
-                        return;
-                    }
-
-                    const payRes = await fetch(`${BACKEND_URL}/api/create-payment`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ playerId, playerName, amount })
-                    });
-                    const payData = await payRes.json();
-
-                    if (payData.success && payData.invoice_url) {
-                        window.location.href = payData.invoice_url;
-                    } else {
-                        alert("Erreur de paiement : " + (payData.error || "Inconnue"));
-                        confirmButton.textContent = "PAYER ET ENTRER 🔥";
-                        confirmButton.disabled = false;
-                    }
-
-                } catch (err) {
-                    console.error("Erreur réseau :", err);
-                    alert("Impossible de joindre le serveur de paiement.");
+            try {
+                const payRes = await fetch(`${BACKEND_URL}/api/create-payment`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ playerId, playerName: pName, amount })
+                });
+                const payData = await payRes.json();
+                if (payData.success && payData.invoice_url) {
+                    window.location.href = payData.invoice_url;
+                } else {
+                    alert("Erreur de paiement : " + (payData.error || "Inconnue"));
                     confirmButton.textContent = "PAYER ET ENTRER 🔥";
                     confirmButton.disabled = false;
                 }
-            });
-        }
-
-        const cancelBottom = document.getElementById("cancelEntryBottom");
-        const cancelTop = document.getElementById("cancelEntry");
-
-        if (cancelBottom && modal) {
-            cancelBottom.addEventListener("click", function () {
-                modal.classList.remove("show");
-            });
-        }
-
-        if (cancelTop && modal) {
-            cancelTop.addEventListener("click", function () {
-                modal.classList.remove("show");
-            });
-        }
-
-        const shareButton = document.getElementById("shareButton");
-
-        if (shareButton) {
-            shareButton.addEventListener("click", async function () {
-                const shareData = {
-                    title: "Miltape World Challenge",
-                    text: "🔥 Viens jouer au Miltape World Challenge !",
-                    url: window.location.href
-                };
-
-                try {
-                    if (navigator.share) {
-                        await navigator.share(shareData);
-                    } else {
-                        await navigator.clipboard.writeText(window.location.href);
-                        shareButton.textContent = "COPIÉ ✓";
-                        setTimeout(function () {
-                            shareButton.textContent = "PARTAGER";
-                        }, 2000);
-                    }
-                } catch (error) {
-                    console.log("Share cancelled");
-                }
-            });
-        }
-
-        const walletButton = document.getElementById("walletButton");
-
-        if (walletButton) {
-            walletButton.addEventListener("click", function () {
-                alert("💰 MODES DE PAIEMENT\n\nTes paiements et gains sont gérés en cryptomonnaies (USDT TRC20) via NOWPayments.");
-            });
-        }
-
+            } catch (err) {
+                alert("Impossible de joindre le serveur de paiement.");
+                confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                confirmButton.disabled = false;
+            }
+        });
     }
 
-);
+    const cancelBottom = document.getElementById("cancelEntryBottom");
+    const cancelTop = document.getElementById("cancelEntry");
+    if (cancelBottom && modal) cancelBottom.addEventListener("click", () => modal.classList.remove("show"));
+    if (cancelTop && modal) cancelTop.addEventListener("click", () => modal.classList.remove("show"));
 
+    const shareButton = document.getElementById("shareButton");
+    if (shareButton) {
+        shareButton.addEventListener("click", async () => {
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title: "Miltape", text: "Viens jouer !", url: window.location.href });
+                } else {
+                    await navigator.clipboard.writeText(window.location.href);
+                    shareButton.textContent = "COPIÉ ✓";
+                    setTimeout(() => shareButton.textContent = "PARTAGER", 2000);
+                }
+            } catch (e) {}
+        });
+    }
+});
 </script>
 
-
 </body>
-
 </html>
