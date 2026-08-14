@@ -1,570 +1,227 @@
-const express = require("express");
-const cors = require("cors");
-const http = require("http");
-const { Server } = require("socket.io");
-const { MongoClient } = require("mongodb");
-const axios = require("axios");
-
-const app = express();
-const server = http.createServer(app);
-
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
-
-app.use(cors());
-app.use(express.json());
-
-const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-let db;
-let games;
-let players;
-let messages;
-let payments;
-
-async function connectMongoDB() {
-    if (!MONGODB_URI) {
-        throw new Error("MONGODB_URI n'est pas configurée dans Railway");
-    }
-
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    db = client.db("miltape");
-
-    games = db.collection("games");
-    players = db.collection("players");
-    messages = db.collection("messages");
-    payments = db.collection("payments");
-
-    console.log("✅ MongoDB connecté");
-}
-
-
-/* =====================================================
-   FONCTION DE VERSEMENT AUTOMATIQUE (PAYOUT NOWPAYMENTS)
-===================================================== */
-
-async function distributePrizesForGame(gameId) {
-    try {
-        const apiKey = process.env.NOWPAYMENTS_API_KEY;
-        if (!apiKey) {
-            console.error("❌ Impossible de distribuer les gains : NOWPAYMENTS_API_KEY absente");
-            return;
-        }
-
-        const topPlayers = await players
-            .find({ gameId: gameId })
-            .sort({ score: -1 })
-            .limit(5)
-            .toArray();
-
-        if (topPlayers.length === 0) {
-            console.log("ℹ️ Aucun joueur dans cette partie pour distribuer les gains.");
-            return;
-        }
-
-        console.log(`🎁 Distribution des gains pour le top ${topPlayers.length} de la partie ${gameId}`);
-        const prizes = [5, 3, 2, 1, 1];
-
-        for (let i = 0; i < topPlayers.length; i++) {
-            const player = topPlayers[i];
-            const prizeAmount = prizes[i] || 1;
-
-            if (!player.cryptoAddress) {
-                console.log(`⚠️ Le joueur ${player.playerName} n'a pas d'adresse crypto enregistrée.`);
-                continue;
-            }
-
-            try {
-                console.log(`💸 Envoi de ${prizeAmount} USDT à ${player.playerName} (${player.cryptoAddress})...`);
-
-                const response = await axios.post('https://api.nowpayments.io/v1/payout', {
-                    withdrawals: [
-                        {
-                            address: player.cryptoAddress,
-                            currency: 'usdttrc20',
-                            amount: prizeAmount,
-                            ipn_url: "https://miltape-backend-production.up.railway.app/api/ipn"
-                        }
-                    ]
-                }, {
-                    headers: {
-                        'x-api-key': apiKey,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                console.log(`✅ Gain envoyé avec succès au joueur ${player.playerName} :`, response.data);
-
-                if (payments) {
-                    await payments.insertOne({
-                        playerId: player.playerId,
-                        playerName: player.playerName,
-                        gameId: gameId,
-                        amount: prizeAmount,
-                        currency: 'usdttrc20',
-                        payoutResponse: response.data,
-                        createdAt: new Date()
-                    });
-                }
-            } catch (payoutError) {
-                console.error(`❌ Erreur versement pour ${player.playerName}:`, payoutError.response?.data || payoutError.message);
-            }
-        }
-    } catch (error) {
-        console.error("❌ ERREUR GLOBALE DISTRIBUTE PRIZES:", error);
-    }
-}
-
-
-/* =====================================================
-   PARTIE ACTIVE (GÉRÉE AVEC PAUSE DE 10 SECONDES)
-===================================================== */
-
-async function getActiveGame() {
-    const now = new Date();
-
-    let game = await games.findOne({
-        status: { $in: ["running", "break"] },
-        endsAt: { $gt: now }
+document.addEventListener("DOMContentLoaded", () => {
+    const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+    
+    // Connexion Socket.io avec reconnexion automatique
+    const socket = io(BACKEND_URL, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        timeout: 20000
     });
 
-    if (!game) {
-        const expiredGame = await games.findOne({
-            status: { $in: ["running", "break"] },
-            endsAt: { $lte: now }
-        });
+    // Éléments du DOM
+    const timerDisplay = document.getElementById("timer");
+    const tapButton = document.getElementById("tapButton");
+    const tapCountDisplay = document.getElementById("tapCount");
+    const tapButtonCountDisplay = document.getElementById("tapButtonCount");
+    const tapMessage = document.getElementById("tapMessage");
+    const onlineCount = document.getElementById("onlineCount");
+    const leaderboardList = document.getElementById("leaderboardList");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const chatSend = document.getElementById("chatSend");
 
-        if (expiredGame) {
-            if (expiredGame.status === "running") {
-                await distributePrizesForGame(expiredGame._id);
+    // Éléments d'inscription / paiement
+    const confirmButton = document.getElementById("confirmButton") || document.getElementById("confirmBetButton");
+    const playerNameInput = document.getElementById("playerNameInput") || document.getElementById("customPlayerName");
+    const cryptoAddressInput = document.getElementById("cryptoAddressInput") || document.getElementById("customCryptoAddress");
+    const customBetInput = document.getElementById("customBetInput");
 
-                const breakEndsAt = new Date(now.getTime() + 10 * 1000);
-                await games.updateOne(
-                    { _id: expiredGame._id },
-                    { $set: { status: "break", endsAt: breakEndsAt } }
-                );
-                game = await games.findOne({ _id: expiredGame._id });
-                console.log("⏸️ Fin de partie : Début de la pause de mise de 10 secondes");
-            } else if (expiredGame.status === "break") {
-                await games.updateOne(
-                    { _id: expiredGame._id },
-                    { $set: { status: "finished" } }
-                );
+    // Éléments du menu latéral et modale dynamique
+    const myGamesButton = document.getElementById("menuGamesBtn") || document.getElementById("myGamesButton"); 
+    const modalContent = document.getElementById("dynamicModalBody") || document.getElementById("modalContent");
+    const dynamicModal = document.getElementById("dynamicModal");
+    const closeDynamicModal = document.getElementById("closeDynamicModal");
 
-                const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
-                const result = await games.insertOne({
-                    status: "running",
-                    startsAt: now,
-                    endsAt,
-                    createdAt: now
-                });
-
-                game = await games.findOne({ _id: result.insertedId });
-                console.log("🎮 Nouvelle partie globale de 10 minutes créée");
-                io.emit("game:restart");
-            }
-        } else {
-            const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
-            const result = await games.insertOne({
-                status: "running",
-                startsAt: now,
-                endsAt,
-                createdAt: now
-            });
-
-            game = await games.findOne({ _id: result.insertedId });
-            console.log("🎮 Première partie globale initialisée");
-        }
+    let localTaps = 0;
+    let playerId = localStorage.getItem("miltape_player_id");
+    if (!playerId) {
+        playerId = 'player_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem("miltape_player_id", playerId);
+    }
+    
+    // Forçage d'un pseudo par défaut pour débloquer le test immédiatement s'il n'existe pas
+    let playerName = localStorage.getItem("miltape_player_name");
+    if (!playerName) {
+        playerName = "JoueurTest";
+        localStorage.setItem("miltape_player_name", playerName);
     }
 
-    return game;
-}
+    // Déblocage automatique et direct du bouton TAP pour les tests
+    if (tapButton) {
+        tapButton.disabled = false;
+    }
+    if (tapMessage) {
+        tapMessage.textContent = "🔥 MODE TEST ACTIF - TAPE !";
+    }
 
-
-/* =====================================================
-   ROUTES API
-===================================================== */
-
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        project: "Miltape World Challenge",
-        status: "online",
-        database: db ? "connected" : "not connected"
+    // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne, Classement) ---
+    
+    socket.on("connect", () => {
+        console.log("Connecté au serveur WebSocket ! ID:", socket.id);
+        socket.emit("join", { playerId, playerName });
     });
-});
 
-app.post("/api/admin/login", (req, res) => {
-    try {
-        const { password } = req.body;
-        const adminPassword = process.env.ADMIN_PASSWORD;
-
-        if (!adminPassword) {
-            return res.status(500).json({ success: false, error: "ADMIN_PASSWORD non configuré" });
-        }
-
-        if (password === adminPassword) {
-            return res.json({ success: true });
-        } else {
-            return res.status(401).json({ success: false, error: "Mot de passe incorrect" });
-        }
-    } catch (error) {
-        res.status(500).json({ success: false, error: "SERVER_ERROR" });
-    }
-});
-
-app.get("/api/admin/stats", async (req, res) => {
-    try {
-        if (!db) return res.status(500).json({ success: false, error: "DB_NOT_CONNECTED" });
-
-        const totalPlayers = await players.countDocuments();
-        const activeGame = await getActiveGame();
-        
-        const pipeline = [{ $group: { _id: null, totalTaps: { $sum: "$score" } } }];
-        const tapResult = await players.aggregate(pipeline).toArray();
-        const totalTapsAll = tapResult.length > 0 ? tapResult[0].totalTaps : 0;
-
-        const recentPlayers = await players.find({}).sort({ createdAt: -1 }).limit(20).toArray();
-
-        res.json({
-            success: true,
-            stats: { totalPlayers, totalTapsAll, currentGameStatus: activeGame.status, currentGameEndsAt: activeGame.endsAt },
-            recentPlayers: recentPlayers.map(p => ({ playerId: p.playerId, playerName: p.playerName, score: p.score, createdAt: p.createdAt }))
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "ADMIN_ERROR" });
-    }
-});
-
-app.get("/api/game", async (req, res) => {
-    try {
-        const game = await getActiveGame();
-        const now = new Date();
-        const timeLeftSec = Math.max(0, Math.floor((new Date(game.endsAt) - now) / 1000));
-
-        res.json({
-            success: true,
-            game: { id: game._id.toString(), status: game.status, timeLeft: timeLeftSec, startsAt: game.startsAt, endsAt: game.endsAt }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "GAME_ERROR" });
-    }
-});
-
-app.get("/api/pot", async (req, res) => {
-    try {
-        if (!payments) return res.json({ success: true, totalPot: 0 });
-
-        const pipeline = [
-            { $match: { paymentStatus: { $in: ["finished", "confirmed"] } } },
-            { $group: { _id: null, totalPot: { $sum: "$priceAmount" } } }
-        ];
-
-        const result = await payments.aggregate(pipeline).toArray();
-        const totalPot = result.length > 0 ? result[0].totalPot : 0;
-
-        res.json({ success: true, totalPot });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "POT_ERROR" });
-    }
-});
-
-app.get("/api/total-stakes", async (req, res) => {
-    try {
-        if (!payments) return res.json({ success: true, totalStakes: 0 });
-
-        const pipeline = [
-            { $match: { paymentStatus: { $in: ["finished", "confirmed"] } } },
-            { $group: { _id: null, totalStakes: { $sum: "$priceAmount" } } }
-        ];
-
-        const result = await payments.aggregate(pipeline).toArray();
-        const totalStakes = result.length > 0 ? result[0].totalStakes : 0;
-
-        res.json({ success: true, totalStakes });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "TOTAL_STAKES_ERROR" });
-    }
-});
-
-app.post("/api/join", async (req, res) => {
-    try {
-        const playerId = String(req.body.playerId || "");
-        const playerName = String(req.body.playerName || "").trim().slice(0, 30);
-        const cryptoAddress = String(req.body.cryptoAddress || "").trim();
-
-        if (!playerId || !playerName) {
-            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
-        }
-
-        const game = await getActiveGame();
-
-        const existingPlayer = await players.findOne({
-            gameId: game._id,
-            playerId: { $ne: playerId },
-            playerName: { $regex: new RegExp("^" + playerName + "$", "i") }
-        });
-
-        if (existingPlayer) {
-            return res.status(400).json({ success: false, error: "Ce pseudo est déjà pris !" });
-        }
-
-        await players.updateOne(
-            { playerId, gameId: game._id },
-            {
-                $set: { playerId, playerName, gameId: game._id, cryptoAddress: cryptoAddress || "", updatedAt: new Date() },
-                $setOnInsert: { score: 0, createdAt: new Date() }
-            },
-            { upsert: true }
-        );
-
-        res.json({ success: true, game: { id: game._id.toString(), status: game.status, endsAt: game.endsAt } });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "JOIN_ERROR" });
-    }
-});
-
-app.post("/api/tap", async (req, res) => {
-    try {
-        const playerId = String(req.body.playerId || "");
-        const tapCount = parseInt(req.body.taps || req.body.count || 1, 10);
-
-        if (!playerId) return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
-
-        const game = await getActiveGame();
-        if (game.status === "break" || new Date() >= new Date(game.endsAt)) {
-            return res.status(400).json({ success: false, error: "GAME_BREAK_OR_FINISHED" });
-        }
-
-        const result = await players.findOneAndUpdate(
-            { playerId, gameId: game._id },
-            { $inc: { score: tapCount }, $set: { updatedAt: new Date() } },
-            { returnDocument: "after" }
-        );
-
-        if (!result) return res.status(400).json({ success: false, error: "PLAYER_NOT_IN_GAME" });
-
-        const topPlayers = await players.find({ gameId: game._id }).sort({ score: -1 }).limit(5).toArray();
-        io.emit("leaderboard", topPlayers);
-
-        res.json({ success: true, score: result.score });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "TAP_ERROR" });
-    }
-});
-
-app.get("/api/leaderboard", async (req, res) => {
-    try {
-        const game = await getActiveGame();
-        const topPlayers = await players.find({ gameId: game._id }).sort({ score: -1 }).limit(5).toArray();
-
-        res.json({
-            success: true,
-            players: topPlayers.map((player, index) => ({
-                position: index + 1,
-                playerId: player.playerId,
-                playerName: player.playerName,
-                score: player.score
-            }))
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "LEADERBOARD_ERROR" });
-    }
-});
-
-app.get("/api/chat", async (req, res) => {
-    try {
-        const chat = await messages.find({}).sort({ createdAt: -1 }).limit(100).toArray();
-        res.json({
-            success: true,
-            messages: chat.reverse().map(message => ({
-                playerName: message.playerName || message.name || "Anonyme",
-                message: message.message || message.text || "",
-                createdAt: message.createdAt
-            }))
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "CHAT_ERROR" });
-    }
-});
-
-app.post("/api/chat", async (req, res) => {
-    try {
-        const playerId = String(req.body.playerId || "");
-        const playerName = String(req.body.playerName || req.body.name || "Anonyme").trim().slice(0, 30);
-        const message = String(req.body.message || req.body.text || "").trim().slice(0, 250);
-
-        if (!message) {
-            return res.status(400).json({ success: false, error: "MESSAGE_REQUIRED" });
-        }
-
-        const newMessage = { playerId, playerName, message, createdAt: new Date() };
-        await messages.insertOne(newMessage);
-        
-        io.emit("chatMessage", newMessage);
-
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "CHAT_SEND_ERROR" });
-    }
-});
-
-app.post("/api/create-payment", async (req, res) => {
-    try {
-        const { playerId, playerName, amount } = req.body;
-        if (!playerId || !amount) return res.status(400).json({ success: false, error: "PLAYER_AND_AMOUNT_REQUIRED" });
-
-        const apiKey = process.env.NOWPAYMENTS_API_KEY;
-        if (!apiKey) return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
-
-        let finalAmount = parseFloat(amount);
-        if (isNaN(finalAmount) || finalAmount < 1) finalAmount = 1;
-
-        const response = await fetch("https://api.nowpayments.io/v1/invoice", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-            body: JSON.stringify({
-                price_amount: finalAmount,
-                price_currency: "usd",
-                order_id: playerId,
-                order_description: `Mise Miltape pour ${playerName || playerId}`,
-                ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn",
-                success_url: "https://cryptochaouki-droid.github.io/miltape-backend/",
-                cancel_url: "https://cryptochaouki-droid.github.io/miltape-backend/"
-            })
-        });
-
-        const invoiceData = await response.json();
-        if (!response.ok) return res.status(400).json({ success: false, error: invoiceData.message || "INVOICE_API_ERROR" });
-
-        res.json({ success: true, invoice_url: invoiceData.invoice_url, payment_id: invoiceData.id });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
-    }
-});
-
-app.post("/api/ipn", async (req, res) => {
-    try {
-        const paymentData = req.body;
-        const paymentId = paymentData.payment_id;
-        const paymentStatus = paymentData.payment_status; 
-        const orderId = paymentData.order_id; 
-        const priceAmount = paymentData.price_amount;
-        const payCurrency = paymentData.pay_currency;
-
-        if (!paymentId) return res.status(400).json({ success: false, error: "INVALID_IPN_DATA" });
-
-        if (payments) {
-            await payments.updateOne(
-                { paymentId: String(paymentId) },
-                { 
-                    $set: { paymentStatus, orderId, priceAmount, payCurrency, rawdata: paymentData, updatedAt: new Date() },
-                    $setOnInsert: { createdAt: new Date() }
-                },
-                { upsert: true }
-            );
-        }
-
-        return res.status(200).json({ success: true });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: "IPN_HANDLER_ERROR" });
-    }
-});
-
-
-/* =====================================================
-   SOCKET.IO CORRIGÉ (CHAT ROBUSTE)
-===================================================== */
-
-io.on("connection", socket => {
-    console.log("👤 Joueur connecté :", socket.id);
-    io.emit("onlineCount", io.engine.clientsCount);
-
-    socket.on("join", async (data) => {
-        if (data && data.playerId && data.playerName) {
-            socket.playerId = data.playerId;
-            socket.playerName = data.playerName;
+    socket.on("connect_error", (err) => {
+        console.error("Erreur de connexion WebSocket :", err);
+        if (tapMessage) {
+            tapMessage.textContent = "🔴 Connexion au serveur perdue...";
         }
     });
 
-    socket.on("chatMessage", async (msg) => {
-        if (msg) {
-            const chatObj = { 
-                playerId: msg.playerId || socket.playerId || "",
-                playerName: msg.playerName || msg.name || socket.playerName || "Anonyme", 
-                message: msg.message || msg.text || "", 
-                createdAt: new Date() 
-            };
-            if (chatObj.message) {
-                if (messages) await messages.insertOne(chatObj);
-                io.emit("chatMessage", chatObj);
-            }
+    // Réception du Chrono en direct
+    socket.on("timer", (timeLeft) => {
+        if (timerDisplay) {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
     });
 
-    socket.on("tap", async (data) => {
+    // Nombre de joueurs en ligne
+    socket.on("onlineCount", (count) => {
+        if (onlineCount) {
+            const onlineTextLabel = "EN LIGNE";
+            onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} ${onlineTextLabel}`;
+        }
+    });
+
+    // Classement Top 5 en direct
+    socket.on("leaderboard", (players) => {
+        if (leaderboardList) {
+            if (!players || players.length === 0) {
+                leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
+                return;
+            }
+            leaderboardList.innerHTML = players.map((p, index) => `
+                <div class="leaderboard-item" style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <span>#${index + 1} <strong>${p.playerName || 'Anonyme'}</strong></span>
+                    <span style="color: #ffcc00;">${p.score || 0} taps</span>
+                </div>
+            `).join('');
+        }
+    });
+
+    // Réception des messages du Chat en direct
+    socket.on("chatMessage", (msg) => {
+        if (chatMessages) {
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("chat-message");
+            const senderName = msg.playerName || msg.name || 'Anonyme';
+            const messageText = msg.message || msg.text || '';
+            messageElement.innerHTML = `<strong>${senderName}</strong>: ${messageText}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+
+    // Envoi de messages dans le chat
+    if (chatSend && chatInput) {
+        chatSend.addEventListener("click", () => {
+            const text = chatInput.value.trim();
+            if (text) {
+                socket.emit("chatMessage", { playerId: playerId, playerName: playerName, message: text });
+                chatInput.value = "";
+            }
+        });
+
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                chatSend.click();
+            }
+        });
+    }
+
+    // Gestion des Taps
+    if (tapButton) {
+        tapButton.addEventListener("click", () => {
+            localTaps++;
+            if (tapCountDisplay) tapCountDisplay.textContent = localTaps;
+            if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = localTaps;
+            
+            socket.emit("tap", { playerId, playerName, taps: 1 });
+        });
+    }
+
+    // --- 2. FONCTION MODALE ---
+    function openDynamicModal(title, htmlContent) {
+        if (dynamicModal && modalContent) {
+            const titleElem = document.getElementById("dynamicModalTitle");
+            if (titleElem) titleElem.textContent = title;
+            modalContent.innerHTML = htmlContent;
+            dynamicModal.classList.add("show");
+        }
+    }
+
+    if (closeDynamicModal && dynamicModal) {
+        closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
+    }
+
+    // --- 3. CHARGER LE TOTAL DES MISES ---
+    async function loadTotalStakes() {
         try {
-            if (!data || !data.playerId) return;
-            const game = await getActiveGame();
-            if (game.status === "break" || new Date() >= new Date(game.endsAt)) return;
-
-            const count = parseInt(data.taps || data.count || 1, 10);
-            await players.findOneAndUpdate(
-                { playerId: data.playerId, gameId: game._id },
-                { $inc: { score: count }, $set: { updatedAt: new Date() } },
-                { upsert: true }
-            );
-
-            const topPlayers = await players.find({ gameId: game._id }).sort({ score: -1 }).limit(5).toArray();
-            io.emit("leaderboard", topPlayers);
-        } catch (e) {
-            console.error("Erreur socket tap:", e);
-        }
-    });
-
-    socket.on("disconnect", () => {
-        console.log("👋 Joueur déconnecté :", socket.id);
-        io.emit("onlineCount", io.engine.clientsCount);
-    });
-});
-
-
-/* =====================================================
-   START
-===================================================== */
-
-async function startServer() {
-    try {
-        await connectMongoDB();
-
-        setInterval(async () => {
-            try {
-                if (!db) return;
-                const game = await getActiveGame();
-                const now = new Date();
-                const endsAt = new Date(game.endsAt);
-                const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
-
-                io.emit("timer", timeLeftSec);
-            } catch (e) {
-                console.error("Erreur timer global:", e);
+            const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
+            const data = await res.json();
+            if (data.success) {
+                const headerMiseText = document.querySelector(".fa-sack-dollar")?.nextSibling || document.getElementById("headerMiseAmount");
+                if (headerMiseText && headerMiseText.nodeType === Node.TEXT_NODE) {
+                    headerMiseText.nodeValue = ` $${data.totalStakes}`;
+                }
             }
-        }, 1000);
-
-        server.listen(PORT, "0.0.0.0", () => {
-            console.log(`🚀 Miltape lancé sur le port ${PORT}`);
-        });
-
-    } catch (error) {
-        console.error("❌ ERREUR SERVEUR :", error.message);
-        process.exit(1);
+        } catch (e) { console.error("Erreur total stakes:", e); }
     }
-}
+    loadTotalStakes();
+    setInterval(loadTotalStakes, 15000);
 
-startServer();
+    // --- 4. CHARGER LES STATS DU JOUEUR ("Mes parties") ---
+    async function loadPlayerStats() {
+        if (!playerId) {
+            alert("Tu dois d'abord participer à un challenge !");
+            return;
+        }
+
+        openDynamicModal("🎮 Mes parties", "Chargement de tes données...");
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
+            
+            if (!res.ok) {
+                throw new Error(`Erreur serveur (${res.status})`);
+            }
+
+            const data = await res.json();
+
+            if (data.success && modalContent) {
+                modalContent.innerHTML = `
+                    <h3>Mes Statistiques</h3>
+                    <p>Total Taps : <strong>${data.totalTaps || localTaps}</strong></p>
+                    <p>Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
+                    <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+                    <h4>Historique récent</h4>
+                    <ul>
+                        ${data.history && data.history.length > 0 ? data.history.map(h => `<li>Partie du ${new Date(h.date).toLocaleDateString()} : ${h.score} taps</li>`).join('') : '<li>Aucune partie payée enregistrée.</li>'}
+                    </ul>
+                `;
+            } else {
+                if (modalContent) {
+                    modalContent.innerHTML = `
+                        <p style="color: #ffcc00; margin-bottom: 10px;">Total Taps actuels : <strong>${localTaps}</strong></p>
+                        <p style="font-size: 11px; color: #888;">ID Joueur : ${playerId}</p>
+                    `;
+                }
+            }
+        } catch (e) {
+            console.error("Erreur chargement stats:", e);
+            if (modalContent) {
+                modalContent.innerHTML = `
+                    <p>Total Taps locaux : <strong>${localTaps}</strong></p>
+                    <p style="font-size: 11px; color: #aaa; margin-top: 8px;">Impossible de récupérer l'historique distant pour le moment.</p>
+                `;
+            }
+        }
+    }
+
+    if (myGamesButton) {
+        myGamesButton.addEventListener("click", loadPlayerStats);
+    }
+});
