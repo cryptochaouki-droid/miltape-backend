@@ -50,23 +50,55 @@ app.get("/api/total-stakes", (req, res) => {
     res.json({ success: true, totalStakes: 0 });
 });
 
+// Fonction pour calculer et diffuser le Top 5 en direct
+async function broadcastLeaderboard() {
+    try {
+        // Agrégation pour sommer les scores par joueur sur la session en cours
+        const topPlayers = await players.aggregate([
+            {
+                $group: {
+                    _id: "$playerId",
+                    playerName: { $last: "$playerName" },
+                    score: { $sum: "$score" }
+                }
+            },
+            { $sort: { score: -1 } },
+            { $limit: 5 }
+        ]);
+        io.emit("leaderboard", topPlayers);
+    } catch (e) {
+        console.error("Erreur calcul leaderboard:", e);
+    }
+}
+
 let timerLeft = 600;
-setInterval(() => {
+setInterval(async () => {
     timerLeft--;
-    if (timerLeft <= 0) timerLeft = 600;
+    if (timerLeft <= 0) {
+        timerLeft = 600;
+        // Fin de partie : tu pourras archiver les gagnants du Top 5 ici si besoin
+        // Optionnel : reset des scores en base pour un nouveau round propre
+        // await players.deleteMany({}); 
+    }
     io.emit("timer", timerLeft);
 }, 1000);
 
 io.on("connection", (socket) => {
     console.log("👤 Joueur connecté :", socket.id);
 
-    socket.on("join", (data) => {
+    socket.on("join", async (data) => {
         socket.data = data;
         io.emit("onlineCount", io.engine.clientsCount);
+        // Envoyer le classement immédiatement au joueur qui se connecte
+        await broadcastLeaderboard();
     });
 
     socket.on("chatMessage", (msg) => {
-        io.emit("chatMessage", msg);
+        const chatData = {
+            playerName: msg.playerName || "Anonyme",
+            message: msg.message || msg.text || ""
+        };
+        io.emit("chatMessage", chatData);
     });
 
     socket.on("tap", async (data) => {
@@ -77,6 +109,8 @@ io.on("connection", (socket) => {
                     playerName: data.playerName || "Anonyme",
                     score: data.taps || 1
                 });
+                // Met à jour le classement pour tout le monde en temps réel à chaque tap
+                await broadcastLeaderboard();
             }
         } catch (e) {
             console.error("Erreur enregistrement tap:", e);
