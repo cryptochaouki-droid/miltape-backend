@@ -26,72 +26,27 @@ const playerSchema = new mongoose.Schema({
     playerId: String,
     playerName: String,
     score: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 }, // Stocke la mise du joueur
     createdAt: { type: Date, default: Date.now }
 });
 const players = mongoose.model("Player", playerSchema);
 
-// Route de création de paiement sécurisée via le module natif https
-app.post("/api/create-payment", async (req, res) => {
+// Route pour retourner la somme totale misée par tous les joueurs
+app.get("/api/total-stakes", async (req, res) => {
     try {
-        const { playerId, playerName, amount } = req.body;
-        const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY;
-
-        if (!NOWPAYMENTS_API_KEY) {
-            return res.json({
-                success: true,
-                invoice_url: "https://nowpayments.io/"
-            });
-        }
-
-        const dataToSend = JSON.stringify({
-            price_amount: parseFloat(amount || 1),
-            price_currency: "usd",
-            pay_currency: "usdttrc20",
-            order_id: `${playerId}_${Date.now()}`,
-            order_description: `Mise Miltape World Challenge - ${playerName || 'Anonyme'}`,
-            success_url: "https://cryptochaouki-droid.github.io/?success=true",
-            cancel_url: "https://cryptochaouki-droid.github.io/?cancel=true"
-        });
-
-        const options = {
-            hostname: 'api.nowpayments.io',
-            path: '/v1/invoice',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': NOWPAYMENTS_API_KEY,
-                'Content-Length': Buffer.byteLength(dataToSend)
-            }
-        };
-
-        const paymentReq = https.request(options, (paymentRes) => {
-            let responseData = '';
-            paymentRes.on('data', (chunk) => { responseData += chunk; });
-            paymentRes.on('end', () => {
-                try {
-                    const paymentData = JSON.parse(responseData);
-                    if (paymentData && paymentData.invoice_url) {
-                        res.json({ success: true, invoice_url: paymentData.invoice_url });
-                    } else {
-                        res.status(400).json({ success: false, error: paymentData.message || "Erreur NOWPayments" });
-                    }
-                } catch (err) {
-                    res.status(500).json({ success: false, error: "PARSE_ERROR" });
+        const result = await players.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$amount" }
                 }
-            });
-        });
-
-        paymentReq.on('error', (e) => {
-            console.error("Erreur requête HTTPS NOWPayments:", e);
-            res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
-        });
-
-        paymentReq.write(dataToSend);
-        paymentReq.end();
-
+            }
+        ]);
+        const totalStakes = result.length > 0 ? result[0].total : 0;
+        res.json({ success: true, totalStakes });
     } catch (e) {
-        console.error("Erreur API paiement:", e);
-        res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
+        console.error("Erreur calcul total-stakes:", e);
+        res.status(500).json({ success: false, error: "TOTAL_STAKES_ERROR", totalStakes: 0 });
     }
 });
 
@@ -100,20 +55,17 @@ app.get("/api/player-stats/:playerId", async (req, res) => {
         const { playerId } = req.params;
         const playerRecords = await players.find({ playerId }).lean();
         const totalTaps = playerRecords.reduce((sum, p) => sum + (p.score || 0), 0);
+        const totalUsdt = playerRecords.reduce((sum, p) => sum + (p.amount || 0), 0);
         
         res.json({
             success: true,
             totalTaps,
-            totalUsdt: 0,
+            totalUsdt,
             history: playerRecords.map(p => ({ date: p.createdAt, score: p.score || 0 }))
         });
     } catch (e) {
         res.status(500).json({ success: false, error: "PLAYER_STATS_ERROR" });
     }
-});
-
-app.get("/api/total-stakes", (req, res) => {
-    res.json({ success: true, totalStakes: 0 });
 });
 
 // Fonction pour calculer et diffuser le Top 5 en direct
@@ -168,7 +120,8 @@ io.on("connection", (socket) => {
                 await players.create({
                     playerId: data.playerId,
                     playerName: data.playerName || "Anonyme",
-                    score: data.taps || 1
+                    score: data.taps || 1,
+                    amount: data.amount || 0
                 });
                 await broadcastLeaderboard();
             }
