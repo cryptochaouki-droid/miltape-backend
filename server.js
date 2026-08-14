@@ -384,8 +384,8 @@ app.get("/api/chat", async (req, res) => {
         res.json({
             success: true,
             messages: chat.reverse().map(message => ({
-                playerName: message.playerName,
-                message: message.message,
+                playerName: message.playerName || message.name || "Anonyme",
+                message: message.message || message.text || "",
                 createdAt: message.createdAt
             }))
         });
@@ -397,14 +397,14 @@ app.get("/api/chat", async (req, res) => {
 app.post("/api/chat", async (req, res) => {
     try {
         const playerId = String(req.body.playerId || "");
-        const playerName = String(req.body.name || req.body.playerName || "").trim().slice(0, 30);
-        const message = String(req.body.text || req.body.message || "").trim().slice(0, 250);
+        const playerName = String(req.body.playerName || req.body.name || "Anonyme").trim().slice(0, 30);
+        const message = String(req.body.message || req.body.text || "").trim().slice(0, 250);
 
-        if (!playerId || !playerName || !message) {
+        if (!message) {
             return res.status(400).json({ success: false, error: "MESSAGE_REQUIRED" });
         }
 
-        const newMessage = { playerId, playerName: playerName, message: message, createdAt: new Date() };
+        const newMessage = { playerId, playerName, message, createdAt: new Date() };
         await messages.insertOne(newMessage);
         
         io.emit("chatMessage", newMessage);
@@ -479,7 +479,7 @@ app.post("/api/ipn", async (req, res) => {
 
 
 /* =====================================================
-   SOCKET.IO CORRIGÉ
+   SOCKET.IO CORRIGÉ (CHAT ROBUSTE)
 ===================================================== */
 
 io.on("connection", socket => {
@@ -494,10 +494,17 @@ io.on("connection", socket => {
     });
 
     socket.on("chatMessage", async (msg) => {
-        if (msg && msg.text) {
-            const chatObj = { playerName: msg.playerName || msg.name || "Anonyme", message: msg.text || msg.message, createdAt: new Date() };
-            if (messages) await messages.insertOne(chatObj);
-            io.emit("chatMessage", chatObj);
+        if (msg) {
+            const chatObj = { 
+                playerId: msg.playerId || socket.playerId || "",
+                playerName: msg.playerName || msg.name || socket.playerName || "Anonyme", 
+                message: msg.message || msg.text || "", 
+                createdAt: new Date() 
+            };
+            if (chatObj.message) {
+                if (messages) await messages.insertOne(chatObj);
+                io.emit("chatMessage", chatObj);
+            }
         }
     });
 
