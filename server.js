@@ -31,6 +31,63 @@ const playerSchema = new mongoose.Schema({
 });
 const players = mongoose.model("Player", playerSchema);
 
+// Route pour créer un paiement via NOWPayments
+app.post("/api/create-payment", async (req, res) => {
+    try {
+        const { playerId, playerName, amount } = req.body;
+        const numericAmount = parseFloat(amount) || 1;
+
+        // Appel à l'API NOWPayments (Sandbox ou Live selon ta clé)
+        const paymentData = JSON.stringify({
+            price_amount: numericAmount,
+            price_currency: "usd",
+            pay_currency: "usdttrc20",
+            ipn_callback_url: "https://miltape-backend-production.up.railway.app/api/ipn",
+            order_id: `${playerId}_${Date.now()}`,
+            order_description: `Mise Miltape World Challenge - ${playerName}`
+        });
+
+        const options = {
+            hostname: 'api.nowpayments.io',
+            path: '/v1/payment',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': process.env.NOWPAYMENTS_API_KEY || 'TA_CLE_API_NOWPAYMENTS'
+            }
+        };
+
+        const paymentReq = https.request(options, (apiRes) => {
+            let data = '';
+            apiRes.on('data', (chunk) => { data += chunk; });
+            apiRes.on('end', () => {
+                try {
+                    const responseJson = JSON.parse(data);
+                    if (responseJson && responseJson.invoice_url) {
+                        res.json({ success: true, invoice_url: responseJson.invoice_url });
+                    } else {
+                        res.json({ success: false, error: responseJson.message || "Erreur création facture NOWPayments" });
+                    }
+                } catch (e) {
+                    res.json({ success: false, error: "Erreur de parsing de la réponse de paiement" });
+                }
+            });
+        });
+
+        paymentReq.on('error', (e) => {
+            console.error("Erreur requête NOWPayments:", e);
+            res.status(500).json({ success: false, error: "Erreur de connexion au service de paiement" });
+        });
+
+        paymentReq.write(paymentData);
+        paymentReq.end();
+
+    } catch (e) {
+        console.error("Erreur /api/create-payment:", e);
+        res.status(500).json({ success: false, error: "SERVER_ERROR" });
+    }
+});
+
 // Route pour retourner la somme totale misée par tous les joueurs
 app.get("/api/total-stakes", async (req, res) => {
     try {
