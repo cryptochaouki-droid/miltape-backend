@@ -840,6 +840,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cancelBottom && modal) cancelBottom.addEventListener("click", () => modal.classList.remove("show"));
     if (cancelTop && modal) cancelTop.addEventListener("click", () => modal.classList.remove("show"));
 
+    const walletButton = document.getElementById("walletButton");
+    if (walletButton && modal) {
+        walletButton.addEventListener("click", () => modal.classList.add("show"));
+    }
+
     const shareButton = document.getElementById("shareButton");
     if (shareButton) {
         shareButton.addEventListener("click", async () => {
