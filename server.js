@@ -53,6 +53,13 @@ const TRONGRID_API_KEY =
     process.env.TRONGRID_API_KEY || "";
 
 /*
+ * Mot de passe Admin
+ * Configurable via Railway Variables (ADMIN_PASSWORD)
+ * Sinon mot de passe par défaut : "admin123"
+ */
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+
+/*
  * Durée d'une partie :
  * 10 minutes = 600 secondes
  */
@@ -81,7 +88,7 @@ const CHAIN = "TRC20";
 
 /*
  * Mise minimale :
- * strictement supérieure à 0.
+ * strictly supérieure à 0.
  */
 const MINIMUM_BET = 0;
 
@@ -206,11 +213,6 @@ const playerSchema = new mongoose.Schema(
             maxlength: 64
         },
 
-        /*
-         * IMPORTANT :
-         * Pas d'index ici.
-         * L'index unique sparse est créé plus bas.
-         */
         transactionHash: {
             type: String,
             trim: true,
@@ -250,13 +252,6 @@ const playerSchema = new mongoose.Schema(
     }
 );
 
-/*
- * Une transaction blockchain
- * ne peut être utilisée qu'une seule fois.
- *
- * sparse = les documents sans transactionHash
- * ne sont pas considérés.
- */
 playerSchema.index(
     {
         transactionHash: 1
@@ -268,9 +263,6 @@ playerSchema.index(
     }
 );
 
-/*
- * Index classement.
- */
 playerSchema.index(
     {
         gameId: 1,
@@ -560,6 +552,36 @@ app.get(
                     MAXIMUM_BET
             }
         });
+    }
+);
+
+/* =========================================================
+   ADMIN LOGIN (NOUVELLE ROUTE)
+   ========================================================= */
+
+app.post(
+    "/api/admin/login",
+    (req, res) => {
+        const password = cleanString(req.body.password, 100);
+
+        if (!password) {
+            return res.status(400).json({
+                success: false,
+                message: "Mot de passe requis."
+            });
+        }
+
+        if (password === ADMIN_PASSWORD) {
+            return res.json({
+                success: true,
+                message: "Connexion réussie."
+            });
+        } else {
+            return res.status(401).json({
+                success: false,
+                message: "Mot de passe incorrect !"
+            });
+        }
     }
 );
 
@@ -1418,10 +1440,6 @@ app.post(
                     100
                 );
 
-            /* -------------------------------------------------
-               VALIDATION
-            ------------------------------------------------- */
-
             if (!playerId) {
 
                 return res.status(400).json({
@@ -1488,10 +1506,6 @@ app.post(
                 });
             }
 
-            /* -------------------------------------------------
-               TXID DÉJÀ UTILISÉ
-            ------------------------------------------------- */
-
             const alreadyUsed =
                 await Player.findOne({
                     transactionHash:
@@ -1512,10 +1526,6 @@ app.post(
                         "Cette transaction a déjà été utilisée."
                 });
             }
-
-            /* -------------------------------------------------
-               TRONGRID
-            ------------------------------------------------- */
 
             const eventsUrl =
                 "https://api.trongrid.io/v1/transactions/" +
@@ -1561,10 +1571,6 @@ app.post(
                 )
                     ? eventData.data
                     : [];
-
-            /* -------------------------------------------------
-               RECHERCHE TRANSFERT USDT
-            ------------------------------------------------- */
 
             const expectedUnits =
                 usdtToUnits(amount);
@@ -1628,10 +1634,6 @@ app.post(
                     }
                 );
 
-            /* -------------------------------------------------
-               PAIEMENT NON TROUVÉ
-            ------------------------------------------------- */
-
             if (!paymentEvent) {
 
                 return res.status(400).json({
@@ -1646,10 +1648,6 @@ app.post(
                         "Aucun transfert USDT TRC20 correspondant exactement à la mise n'a été trouvé."
                 });
             }
-
-            /* -------------------------------------------------
-               VÉRIFICATION TXID
-            ------------------------------------------------- */
 
             if (
                 paymentEvent.transaction_id &&
@@ -1667,10 +1665,6 @@ app.post(
                         "TRANSACTION_ID_MISMATCH"
                 });
             }
-
-            /* -------------------------------------------------
-               CRÉATION ENTRÉE PAYÉE
-            ------------------------------------------------- */
 
             let player;
 
@@ -1708,10 +1702,6 @@ app.post(
 
             } catch (createError) {
 
-                /*
-                 * Protection contre deux validations
-                 * simultanées du même TXID.
-                 */
                 if (
                     createError?.code === 11000
                 ) {
@@ -1729,19 +1719,11 @@ app.post(
                 throw createError;
             }
 
-            /* -------------------------------------------------
-               MISE À JOUR CLASSEMENT
-            ------------------------------------------------- */
-
             await broadcastLeaderboard();
 
             io.emit(
                 "stakesUpdated"
             );
-
-            /* -------------------------------------------------
-               RÉPONSE
-            ------------------------------------------------- */
 
             return res.json({
 
@@ -1822,17 +1804,11 @@ io.on(
             socket.id
         );
 
-        /*
-         * Envoyer immédiatement le timer.
-         */
         socket.emit(
             "timer",
             timerLeft
         );
 
-        /*
-         * Informations partie.
-         */
         socket.emit(
             "gameInfo",
             {
@@ -1842,9 +1818,6 @@ io.on(
             }
         );
 
-        /*
-         * Classement.
-         */
         getLeaderboard()
             .then(
                 players => {
@@ -2024,10 +1997,6 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Un seul appareil/socket
-                     * par joueur.
-                     */
                     const existingSocket =
                         activePlayers.get(
                             playerId
@@ -2203,9 +2172,6 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Le joueur doit être payé.
-                     */
                     if (
                         !socket.data.playerId ||
                         !socket.data.paid
@@ -2213,10 +2179,6 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Le joueur doit être
-                     * dans la partie actuelle.
-                     */
                     if (
                         socket.data.gameId !==
                         gameId
@@ -2229,10 +2191,6 @@ io.on(
                             socket.data.playerId,
                             100
                         );
-
-                    /* -----------------------------------------
-                       ANTI-SPAM
-                       ----------------------------------------- */
 
                     const now =
                         Date.now();
@@ -2274,10 +2232,6 @@ io.on(
 
                     rate.count++;
 
-                    /* -----------------------------------------
-                       VÉRIFICATION JOUEUR
-                       ----------------------------------------- */
-
                     const player =
                         await Player.findOne({
 
@@ -2299,23 +2253,6 @@ io.on(
 
                         return;
                     }
-
-                    /* -----------------------------------------
-                       INCRÉMENTATION ATOMIQUE
-                       ----------------------------------------- */
-
-                    /*
-                     * IMPORTANT :
-                     *
-                     * On utilise $inc au lieu de :
-                     *
-                     * player.score += 1
-                     *
-                     * puis save().
-                     *
-                     * Cela évite que plusieurs taps
-                     * simultanés écrasent le score.
-                     */
 
                     const updatedPlayer =
                         await Player.findOneAndUpdate(
@@ -2348,10 +2285,6 @@ io.on(
                     socket.data.score =
                         updatedPlayer.score;
 
-                    /* -----------------------------------------
-                       SCORE DU JOUEUR
-                       ----------------------------------------- */
-
                     socket.emit(
                         "scoreUpdate",
                         {
@@ -2360,10 +2293,6 @@ io.on(
                                 updatedPlayer.score
                         }
                     );
-
-                    /* -----------------------------------------
-                       CLASSEMENT
-                       ----------------------------------------- */
 
                     await broadcastLeaderboard();
 
@@ -2430,10 +2359,6 @@ setInterval(
 
             timerLeft--;
 
-            /* -----------------------------------------------
-               FIN DE PARTIE
-               ----------------------------------------------- */
-
             if (
                 timerLeft <= 0
             ) {
@@ -2443,9 +2368,6 @@ setInterval(
                     gameId
                 );
 
-                /*
-                 * Dernier classement.
-                 */
                 const finalLeaderboard =
                     await getLeaderboard();
 
@@ -2465,10 +2387,6 @@ setInterval(
                     finalLeaderboard
                 );
 
-                /*
-                 * Bloquer les joueurs
-                 * de l'ancienne partie.
-                 */
                 for (
                     const socket of
                     io.sockets.sockets.values()
@@ -2487,9 +2405,6 @@ setInterval(
                 activePlayers.clear();
                 tapRate.clear();
 
-                /*
-                 * Nouvelle partie.
-                 */
                 gameId++;
 
                 timerLeft =
@@ -2512,9 +2427,6 @@ setInterval(
                 );
             }
 
-            /*
-             * Envoyer le timer.
-             */
             io.emit(
                 "timer",
                 timerLeft
