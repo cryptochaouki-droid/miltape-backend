@@ -53,7 +53,6 @@ app.get("/api/total-stakes", (req, res) => {
 // Fonction pour calculer et diffuser le Top 5 en direct
 async function broadcastLeaderboard() {
     try {
-        // Agrégation pour sommer les scores par joueur sur la session en cours
         const topPlayers = await players.aggregate([
             {
                 $group: {
@@ -76,9 +75,6 @@ setInterval(async () => {
     timerLeft--;
     if (timerLeft <= 0) {
         timerLeft = 600;
-        // Fin de partie : tu pourras archiver les gagnants du Top 5 ici si besoin
-        // Optionnel : reset des scores en base pour un nouveau round propre
-        // await players.deleteMany({}); 
     }
     io.emit("timer", timerLeft);
 }, 1000);
@@ -89,7 +85,6 @@ io.on("connection", (socket) => {
     socket.on("join", async (data) => {
         socket.data = data;
         io.emit("onlineCount", io.engine.clientsCount);
-        // Envoyer le classement immédiatement au joueur qui se connecte
         await broadcastLeaderboard();
     });
 
@@ -109,7 +104,6 @@ io.on("connection", (socket) => {
                     playerName: data.playerName || "Anonyme",
                     score: data.taps || 1
                 });
-                // Met à jour le classement pour tout le monde en temps réel à chaque tap
                 await broadcastLeaderboard();
             }
         } catch (e) {
