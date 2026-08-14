@@ -20,9 +20,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const cryptoAddressInput = document.getElementById("cryptoAddressInput") || document.getElementById("customCryptoAddress");
     const customBetInput = document.getElementById("customBetInput");
 
-    // Bouton "Mes parties" (Assure-toi que ton HTML a bien cet ID sur le bouton)
+    // Éléments de la modale dynamique "Mes parties"
     const myGamesButton = document.getElementById("myGamesButton"); 
-    const modalContent = document.getElementById("modalContent"); // L'élément où afficher les résultats
+    const modalContent = document.getElementById("modalContent");
+    const dynamicModal = document.getElementById("dynamicModal");
 
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
@@ -31,6 +32,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (playerId && playerName) {
         if (tapButton) tapButton.disabled = false;
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
+    }
+
+    // --- Fonction d'aide pour ouvrir la modale ---
+    function openDynamicModal(title, htmlContent) {
+        if (dynamicModal && modalContent) {
+            const titleElem = document.getElementById("dynamicModalTitle");
+            if (titleElem) titleElem.textContent = title;
+            modalContent.innerHTML = htmlContent;
+            dynamicModal.classList.add("show");
+        }
     }
 
     // --- Fonctions existantes ---
@@ -49,37 +60,51 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTotalStakes();
     setInterval(loadTotalStakes, 15000);
 
-    // --- 6. Nouvelle fonction : Charger les stats du joueur ---
+    // --- Nouvelle fonction : Charger les stats du joueur avec gestion d'erreur ---
     async function loadPlayerStats() {
         if (!playerId) {
             alert("Tu dois d'abord participer à un challenge !");
             return;
         }
 
-        try {
-            // Afficher un état de chargement dans la modale
-            if (modalContent) modalContent.innerHTML = "Chargement de tes données...";
+        openDynamicModal("🎮 Mes parties", "Chargement de tes données...");
 
+        try {
             const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
+            
+            if (!res.ok) {
+                throw new Error(`Erreur serveur (${res.status})`);
+            }
+
             const data = await res.json();
 
             if (data.success && modalContent) {
                 modalContent.innerHTML = `
                     <h3>Mes Statistiques</h3>
-                    <p>Total Taps : <strong>${data.totalTaps}</strong></p>
-                    <p>Mises validées : <strong>${data.totalUsdt} USDT</strong></p>
-                    <hr>
+                    <p>Total Taps : <strong>${data.totalTaps || 0}</strong></p>
+                    <p>Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
+                    <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
                     <h4>Historique récent</h4>
                     <ul>
-                        ${data.history.map(h => `<li>Partie du ${new Date(h.date).toLocaleDateString()} : ${h.score} taps</li>`).join('')}
+                        ${data.history && data.history.length > 0 ? data.history.map(h => `<li>Partie du ${new Date(h.date).toLocaleDateString()} : ${h.score} taps</li>`).join('') : '<li>Aucune partie enregistrée.</li>'}
                     </ul>
                 `;
             } else {
-                if (modalContent) modalContent.innerHTML = "Aucune donnée trouvée pour ce joueur.";
+                if (modalContent) {
+                    modalContent.innerHTML = `
+                        <p style="color: #ffcc00; margin-bottom: 10px;">Aucune donnée enregistrée pour le moment.</p>
+                        <p style="font-size: 11px; color: #888;">ID Joueur : ${playerId}</p>
+                    `;
+                }
             }
         } catch (e) {
             console.error("Erreur chargement stats:", e);
-            if (modalContent) modalContent.innerHTML = "Erreur de connexion au serveur.";
+            if (modalContent) {
+                modalContent.innerHTML = `
+                    <p style="color: #ff4444;">Impossible de récupérer l'historique des parties (erreur serveur).</p>
+                    <p style="font-size: 11px; color: #aaa; margin-top: 8px;">Vérifie que la route <code>/api/player-stats/:playerId</code> est bien configurée et déployée sur ton serveur Railway.</p>
+                `;
+            }
         }
     }
 
@@ -87,7 +112,4 @@ document.addEventListener("DOMContentLoaded", () => {
     if (myGamesButton) {
         myGamesButton.addEventListener("click", loadPlayerStats);
     }
-
-    // ... (Le reste de ton code original : payAndJoin, socket events, tap, leaderboard, chat) ...
-    // Note : Veille à conserver tes fonctions socket.on et autres listeners intacts ici.
 });
