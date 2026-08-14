@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Miltape - Panneau Admin</title>
-    <link rel="stylesheet" href="./style.css">
     <style>
-        body { background-color: #090014; color: #fff; font-family: sans-serif; padding: 20px; }
+        body { background-color: #090014; color: #fff; font-family: sans-serif; padding: 20px; margin: 0; }
         .admin-container { max-width: 850px; margin: 0 auto; display: none; }
         
         /* Styles de la boîte de login */
@@ -85,7 +84,7 @@
 </div>
 
 <!-- =====================================================
-     TABLEAU DE BORD ADMIN (Caché par défaut)
+     TABLEAU DE BORD ADMIN
 ====================================================== -->
 <div id="adminMainContainer" class="admin-container">
     <h1>👑 PANNEAU ADMIN — MILTAPE</h1>
@@ -96,11 +95,11 @@
     <!-- STATS GLOBALES -->
     <div class="stat-grid">
         <div class="stat-box">
-            <span>JOUEURS TOTAUX</span>
+            <span>JOUEURS CONNECTÉS</span>
             <strong id="totalPlayers">-</strong>
         </div>
         <div class="stat-box">
-            <span>TAPS CUMULÉS</span>
+            <span>ENJEUX TOTALS (USDT)</span>
             <strong id="totalTaps">-</strong>
         </div>
         <div class="stat-box">
@@ -118,7 +117,7 @@
                     <th>Rang</th>
                     <th>Pseudo</th>
                     <th>Adresse Wallet (TRON)</th>
-                    <th>Gain</th>
+                    <th>Score / Enjeu</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -149,7 +148,7 @@
     <div class="admin-card">
         <h2>💬 Surveillance du Chat Global</h2>
         <div id="adminChatBox" style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; height: 200px; overflow-y: auto; font-size: 13px;">
-            Chargement du chat...
+            En attente de messages...
         </div>
     </div>
 </div>
@@ -157,7 +156,6 @@
 <script>
 const API_URL = "https://miltape-backend-production.up.railway.app";
 
-// Gestion de la connexion Admin
 const loginBtn = document.getElementById("loginBtn");
 const adminPasswordInput = document.getElementById("adminPasswordInput");
 const loginBoxContainer = document.getElementById("loginBoxContainer");
@@ -184,22 +182,20 @@ async function handleAdminLogin() {
         const data = await res.json();
 
         if (data.success) {
-            // Masquer l'écran de login et afficher le dashboard
             loginBoxContainer.style.display = "none";
             adminMainContainer.style.display = "block";
 
-            // Charger les données une première fois puis lancer l'actualisation auto
             loadAdminData();
             if (adminInterval) clearInterval(adminInterval);
-            adminInterval = setInterval(loadAdminData, 3000);
+            adminInterval = setInterval(loadAdminData, 4000);
         } else {
-            alert("Mot de passe incorrect !");
+            alert(data.message || "Mot de passe incorrect !");
             loginBtn.textContent = "Se connecter";
             loginBtn.disabled = false;
         }
     } catch (e) {
         console.error("Erreur de connexion:", e);
-        alert("Impossible de joindre le serveur.");
+        alert("Impossible de joindre le serveur Railway.");
         loginBtn.textContent = "Se connecter";
         loginBtn.disabled = false;
     }
@@ -217,44 +213,65 @@ if (adminPasswordInput) {
 
 async function loadAdminData() {
     try {
-        // 1. Charger les stats et les joueurs
-        const resStats = await fetch(API_URL + "/api/admin/stats");
-        const dataStats = await resStats.json();
+        // 1. Charger le statut et joueurs connectés
+        const resStatus = await fetch(API_URL + "/api/status");
+        const dataStatus = await resStatus.json();
 
-        if (dataStats.success) {
-            document.getElementById("totalPlayers").textContent = dataStats.stats.totalPlayers;
-            document.getElementById("totalTaps").textContent = dataStats.stats.totalTapsAll;
-            document.getElementById("gameStatus").textContent = dataStats.stats.currentGameStatus.toUpperCase();
-
-            const tbody = document.getElementById("playersTableBody");
-            tbody.innerHTML = dataStats.recentPlayers.map(p => `
-                <tr>
-                    <td><strong>${escapeHTML(p.playerName)}</strong></td>
-                    <td style="color: #ffcc00;">${p.score} taps</td>
-                    <td style="font-size: 11px; color: #888;">${p.playerId}</td>
-                </tr>
-            `).join("");
+        if (dataStatus.success) {
+            document.getElementById("gameStatus").textContent = `PARTIE #${dataStatus.gameId} (${dataStatus.timerLeft}s)`;
         }
 
-        // 2. Charger la liste des gagnants à payer
+        const resOnline = await fetch(API_URL + "/api/online");
+        const dataOnline = await resOnline.json();
+        if (dataOnline.success) {
+            document.getElementById("totalPlayers").textContent = dataOnline.online;
+        }
+
+        // 2. Enjeux totaux
+        const resStakes = await fetch(API_URL + "/api/total-stakes");
+        const dataStakes = await resStakes.json();
+        if (dataStakes.success) {
+            document.getElementById("totalTaps").textContent = `${dataStakes.totalStakes} USDT`;
+        }
+
+        // 3. Charger les Stats spécifiques si l'API admin personnalisée existe
+        try {
+            const resStats = await fetch(API_URL + "/api/admin/stats");
+            const dataStats = await resStats.json();
+
+            if (dataStats.success && dataStats.recentPlayers) {
+                const tbody = document.getElementById("playersTableBody");
+                tbody.innerHTML = dataStats.recentPlayers.map(p => `
+                    <tr>
+                        <td><strong>${escapeHTML(p.playerName)}</strong></td>
+                        <td style="color: #ffcc00;">${p.score || 0} taps</td>
+                        <td style="font-size: 11px; color: #888;">${p.playerId}</td>
+                    </tr>
+                `).join("");
+            }
+        } catch (err) {
+            document.getElementById("playersTableBody").innerHTML = `<tr><td colspan="3" style="color:#888;">Utilisez les fonctionnalités Socket pour voir le détail exact des joueurs en temps réel.</td></tr>`;
+        }
+
+        // 4. Charger les gagnants
         try {
             const resPayouts = await fetch(API_URL + "/api/admin/payouts");
             const dataPayouts = await resPayouts.json();
 
-            if (dataPayouts.success) {
+            if (dataPayouts.success && dataPayouts.winners) {
                 const payoutsTbody = document.getElementById("payoutsTableBody");
 
-                if (!dataPayouts.winners || dataPayouts.winners.length === 0) {
+                if (dataPayouts.winners.length === 0) {
                     payoutsTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Aucun paiement en attente.</td></tr>`;
                 } else {
-                    payoutsTbody.innerHTML = dataPayouts.winners.map(w => `
+                    payoutsTbody.innerHTML = dataPayouts.winners.map((w, index) => `
                         <tr>
-                            <td><strong>${w.rank === 1 ? '🥇' : w.rank === 2 ? '🥈' : w.rank === 3 ? '🥉' : '🏅'} ${w.rank}e</strong></td>
-                            <td><strong>${escapeHTML(w.playerName)}</strong></td>
-                            <td style="font-size: 12px; color: #00d2ff; font-family: monospace;">${w.wallet}</td>
-                            <td style="color: #00ff66; font-weight: bold;">${w.prize} USDT</td>
+                            <td><strong>${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅'} ${index + 1}e</strong></td>
+                            <td><strong>${escapeHTML(w.playerName || 'Anonyme')}</strong></td>
+                            <td style="font-size: 12px; color: #00d2ff; font-family: monospace;">${w.wallet || w.cryptoAddress || 'Non renseigné'}</td>
+                            <td style="color: #00ff66; font-weight: bold;">${w.score || 0} Taps (${w.amount || 0} USDT)</td>
                             <td>
-                                <button onclick="copyWalletAddress('${w.wallet}', this)" style="background:#00d2ff; color:#000; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                                <button onclick="copyWalletAddress('${w.wallet || w.cryptoAddress}', this)" style="background:#00d2ff; color:#000; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">
                                     📋 Copier Wallet
                                 </button>
                             </td>
@@ -263,29 +280,16 @@ async function loadAdminData() {
                 }
             }
         } catch (errPayouts) {
-            console.log("Section payouts non activée sur l'API pour l'instant.");
-        }
-
-        // 3. Charger le chat
-        const resChat = await fetch(API_URL + "/api/chat");
-        const dataChat = await resChat.json();
-        if (dataChat.success) {
-            const chatBox = document.getElementById("adminChatBox");
-            chatBox.innerHTML = dataChat.messages.map(m => `
-                <div style="margin-bottom: 5px;">
-                    <strong style="color: #ffcc00;">${escapeHTML(m.playerName)}:</strong> ${escapeHTML(m.message)}
-                </div>
-            `).join("");
-            chatBox.scrollTop = chatBox.scrollHeight;
+            document.getElementById("payoutsTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Les paiements s'actualisent automatiquement à la fin de chaque partie.</td></tr>`;
         }
 
     } catch (e) {
-        console.error("Erreur chargement admin:", e);
+        console.error("Erreur de chargement du panneau admin :", e);
     }
 }
 
 function copyWalletAddress(wallet, btnElement) {
-    if (!wallet || wallet === "Non connecté" || wallet === "undefined") {
+    if (!wallet || wallet === "Non renseigné" || wallet === "undefined") {
         alert("Ce joueur n'a pas renseigné d'adresse wallet valide !");
         return;
     }
@@ -302,7 +306,7 @@ function copyWalletAddress(wallet, btnElement) {
 }
 
 function escapeHTML(str) {
-    return String(str).replace(/[&<>'"]/g, 
+    return String(str || '').replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
