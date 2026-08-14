@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="./style.css">
     <style>
         body { background-color: #090014; color: #fff; font-family: sans-serif; padding: 20px; }
-        .admin-container { max-width: 800px; margin: 0 auto; display: none; }
+        .admin-container { max-width: 850px; margin: 0 auto; display: none; }
         
         /* Styles de la boîte de login */
         #loginBoxContainer {
@@ -109,6 +109,25 @@
         </div>
     </div>
 
+    <!-- PAIEMENTS ET GAGNANTS EN ATTENTE -->
+    <div class="admin-card" style="border-color: #00d2ff;">
+        <h2 style="color: #00d2ff;">🏆 Gagnants & Paiements en Attente</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rang</th>
+                    <th>Pseudo</th>
+                    <th>Adresse Wallet (TRON)</th>
+                    <th>Gain</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="payoutsTableBody">
+                <tr><td colspan="5">Chargement des gagnants...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
     <!-- DERNIERS JOUEURS -->
     <div class="admin-card">
         <h2>👥 Derniers Joueurs Inscrits / Actifs</h2>
@@ -198,7 +217,7 @@ if (adminPasswordInput) {
 
 async function loadAdminData() {
     try {
-        // Charger les stats et les joueurs
+        // 1. Charger les stats et les joueurs
         const resStats = await fetch(API_URL + "/api/admin/stats");
         const dataStats = await resStats.json();
 
@@ -217,7 +236,37 @@ async function loadAdminData() {
             `).join("");
         }
 
-        // Charger le chat
+        // 2. Charger la liste des gagnants à payer
+        try {
+            const resPayouts = await fetch(API_URL + "/api/admin/payouts");
+            const dataPayouts = await resPayouts.json();
+
+            if (dataPayouts.success) {
+                const payoutsTbody = document.getElementById("payoutsTableBody");
+
+                if (!dataPayouts.winners || dataPayouts.winners.length === 0) {
+                    payoutsTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Aucun paiement en attente.</td></tr>`;
+                } else {
+                    payoutsTbody.innerHTML = dataPayouts.winners.map(w => `
+                        <tr>
+                            <td><strong>${w.rank === 1 ? '🥇' : w.rank === 2 ? '🥈' : w.rank === 3 ? '🥉' : '🏅'} ${w.rank}e</strong></td>
+                            <td><strong>${escapeHTML(w.playerName)}</strong></td>
+                            <td style="font-size: 12px; color: #00d2ff; font-family: monospace;">${w.wallet}</td>
+                            <td style="color: #00ff66; font-weight: bold;">${w.prize} USDT</td>
+                            <td>
+                                <button onclick="copyWalletAddress('${w.wallet}', this)" style="background:#00d2ff; color:#000; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                                    📋 Copier Wallet
+                                </button>
+                            </td>
+                        </tr>
+                    `).join("");
+                }
+            }
+        } catch (errPayouts) {
+            console.log("Section payouts non activée sur l'API pour l'instant.");
+        }
+
+        // 3. Charger le chat
         const resChat = await fetch(API_URL + "/api/chat");
         const dataChat = await resChat.json();
         if (dataChat.success) {
@@ -233,6 +282,23 @@ async function loadAdminData() {
     } catch (e) {
         console.error("Erreur chargement admin:", e);
     }
+}
+
+function copyWalletAddress(wallet, btnElement) {
+    if (!wallet || wallet === "Non connecté" || wallet === "undefined") {
+        alert("Ce joueur n'a pas renseigné d'adresse wallet valide !");
+        return;
+    }
+    
+    navigator.clipboard.writeText(wallet);
+    const originalText = btnElement.textContent;
+    btnElement.textContent = "✅ Copié !";
+    btnElement.style.background = "#00ff66";
+
+    setTimeout(() => {
+        btnElement.textContent = originalText;
+        btnElement.style.background = "#00d2ff";
+    }, 2000);
 }
 
 function escapeHTML(str) {
