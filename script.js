@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     
-    // Connexion Socket.io avec options de reconnexion automatique pour ne pas bloquer le chrono/chat
+    // Connexion Socket.io avec reconnexion automatique
     const socket = io(BACKEND_URL, {
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -41,7 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
     }
 
-    // --- Gestion de la connexion Socket ---
+    // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne) ---
+    
     socket.on("connect", () => {
         console.log("Connecté au serveur WebSocket ! ID:", socket.id);
         if (tapMessage && !playerId) {
@@ -56,7 +57,53 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Fonction d'aide pour ouvrir la modale ---
+    // Réception du Chrono en direct
+    socket.on("timer", (timeLeft) => {
+        if (timerDisplay) {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+    });
+
+    // Nombre de joueurs en ligne
+    socket.on("onlineCount", (count) => {
+        if (onlineCount) {
+            onlineCount.textContent = count;
+        }
+    });
+
+    // Réception des messages du Chat en direct
+    socket.on("chatMessage", (msg) => {
+        if (chatMessages) {
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("chat-message");
+            messageElement.innerHTML = `<strong>${msg.name || 'Anonyme'}</strong>: ${msg.text}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+
+    // Envoi de messages dans le chat
+    if (chatSend && chatInput) {
+        chatSend.addEventListener("click", () => {
+            const text = chatInput.value.trim();
+            if (text && playerName) {
+                socket.emit("chatMessage", { name: playerName, text: text });
+                chatInput.value = "";
+            } else if (!playerName) {
+                alert("Entre ton pseudo d'abord !");
+            }
+        });
+
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                chatSend.click();
+            }
+        });
+    }
+
+    // --- 2. FONCTION MODALE ---
     function openDynamicModal(title, htmlContent) {
         if (dynamicModal && modalContent) {
             const titleElem = document.getElementById("dynamicModalTitle");
@@ -66,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Charger le total des mises ---
+    // --- 3. CHARGER LE TOTAL DES MISES ---
     async function loadTotalStakes() {
         try {
             const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
@@ -82,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTotalStakes();
     setInterval(loadTotalStakes, 15000);
 
-    // --- Charger les stats du joueur avec gestion d'erreur ---
+    // --- 4. CHARGER LES STATS DU JOUEUR ("Mes parties") ---
     async function loadPlayerStats() {
         if (!playerId) {
             alert("Tu dois d'abord participer à un challenge !");
@@ -130,7 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Écouteur pour le bouton "Mes parties"
     if (myGamesButton) {
         myGamesButton.addEventListener("click", loadPlayerStats);
     }
