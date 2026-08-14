@@ -185,9 +185,9 @@ async function getActiveGame() {
             const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
             const result = await games.insertOne({
                 status: "running",
-                startsAt: now,
-                endsAt,
-                createdAt: now
+                    startsAt: now,
+                    endsAt,
+                    createdAt: now
             });
 
             game = await games.findOne({ _id: result.insertedId });
@@ -324,7 +324,7 @@ app.get("/api/pot", async (req, res) => {
             { $group: { _id: null, totalPot: { $sum: "$priceAmount" } } }
         ];
 
-        const result = await payments.aggregate(pipeline).toArray();
+        const result = aliasPayments = await payments.aggregate(pipeline).toArray();
         const totalPot = result.length > 0 ? result[0].totalPot : 0;
 
         res.json({
@@ -334,6 +334,31 @@ app.get("/api/pot", async (req, res) => {
     } catch (error) {
         console.error("POT ERROR:", error);
         res.status(500).json({ success: false, error: "POT_ERROR" });
+    }
+});
+
+// Route additionnelle / alias demandée pour totaliser les mises
+app.get("/api/total-stakes", async (req, res) => {
+    try {
+        if (!payments) {
+            return res.json({ success: true, totalStakes: 0 });
+        }
+
+        const pipeline = [
+            { $match: { paymentStatus: { $in: ["finished", "confirmed"] } } },
+            { $group: { _id: null, totalStakes: { $sum: "$priceAmount" } } }
+        ];
+
+        const result = await payments.aggregate(pipeline).toArray();
+        const totalStakes = result.length > 0 ? result[0].totalStakes : 0;
+
+        res.json({
+            success: true,
+            totalStakes: totalStakes
+        });
+    } catch (error) {
+        console.error("TOTAL STAKES ERROR:", error);
+        res.status(500).json({ success: false, error: "TOTAL_STAKES_ERROR" });
     }
 });
 
