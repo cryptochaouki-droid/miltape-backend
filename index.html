@@ -615,23 +615,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Réception des messages du Chat en direct
+    // Réception des messages du Chat en direct (Corrigé pour correspondre au backend)
     socket.on("chatMessage", (msg) => {
         if (chatMessages) {
             const messageElement = document.createElement("div");
             messageElement.classList.add("chat-message");
-            messageElement.innerHTML = `<strong>${msg.name || 'Anonyme'}</strong>: ${msg.text}`;
+            const senderName = msg.playerName || msg.name || 'Anonyme';
+            const messageText = msg.message || msg.text || '';
+            messageElement.innerHTML = `<strong>${senderName}</strong>: ${messageText}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
 
-    // Envoi de messages dans le chat
+    // Envoi de messages dans le chat (Corrigé pour envoyer les bonnes propriétés)
     if (chatSend && chatInput) {
         chatSend.addEventListener("click", () => {
             const text = chatInput.value.trim();
             if (text) {
-                socket.emit("chatMessage", { name: playerName || "Anonyme", text: text });
+                socket.emit("chatMessage", { playerId: playerId, playerName: playerName || "Anonyme", message: text });
                 chatInput.value = "";
             }
         });
