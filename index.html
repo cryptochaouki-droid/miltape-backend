@@ -948,6 +948,8 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
 
+        const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+
         // Gestion du menu latéral (3 traits)
         const menuButton = document.getElementById("menuButton");
         const sideMenu = document.getElementById("sideMenu");
@@ -987,25 +989,66 @@ document.addEventListener(
             });
         }
 
-        // Association des 8 options du menu aux actions correspondantes
-        document.getElementById("menuGamesBtn").addEventListener("click", () => {
-            openDynamicModal("🎮 Mes parties", "<p>Retrouvez l'historique de vos parties jouées, vos scores enregistrés et vos participations validées en USDT.</p>");
+        let playerId = localStorage.getItem("miltape_player_id");
+        if (!playerId) {
+            playerId = 'player_' + Math.random().toString(36).substring(2, 11);
+            localStorage.setItem("miltape_player_id", playerId);
+        }
+
+        // Association dynamique des 8 options du menu connectées au backend
+        document.getElementById("menuGamesBtn").addEventListener("click", async () => {
+            openDynamicModal("🎮 Mes parties", "Chargement de vos parties...");
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
+                const data = await res.json();
+                if (data.success) {
+                    dynamicModalBody.innerHTML = `
+                        <p>Total Taps enregistrés : <strong>${data.totalTaps || 0}</strong></p>
+                        <p>Total Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
+                        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+                        <p style="font-size: 11px; color: #ffcc00;">Historique de vos participations actives.</p>
+                    `;
+                } else {
+                    dynamicModalBody.innerHTML = "<p>Aucune partie enregistrée pour le moment. Jouez pour commencer !</p>";
+                }
+            } catch (e) {
+                dynamicModalBody.innerHTML = "<p>Impossible de récupérer l'historique des parties (erreur serveur).</p>";
+            }
         });
 
-        document.getElementById("menuRankingsBtn").addEventListener("click", () => {
-            openDynamicModal("🏆 Mes classements", "<p>Consultez vos positions historiques dans le Top 5 global et vos qualifications de sessions précédentes.</p>");
+        document.getElementById("menuRankingsBtn").addEventListener("click", async () => {
+            openDynamicModal("🏆 Mes classements", "Chargement de votre classement...");
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/leaderboard`);
+                const data = await res.json();
+                if (data.success && data.players) {
+                    const playerRank = data.players.find(p => p.playerId === playerId);
+                    if (playerRank) {
+                        dynamicModalBody.innerHTML = `
+                            <p>Votre position actuelle : <strong>#${playerRank.position}</strong></p>
+                            <p>Score : <strong>${playerRank.score} taps</strong></p>
+                        `;
+                    } else {
+                        dynamicModalBody.innerHTML = "<p>Vous n'êtes pas encore classé dans le Top actuel. Tapez plus vite !</p>";
+                    }
+                } else {
+                    dynamicModalBody.innerHTML = "<p>Classement indisponible.</p>";
+                }
+            } catch (e) {
+                dynamicModalBody.innerHTML = "<p>Erreur de connexion au serveur.</p>";
+            }
         });
 
         document.getElementById("menuGainsBtn").addEventListener("click", () => {
-            openDynamicModal("💰 Mes gains", "<p>Visualisez l'ensemble de vos récompenses en USDT acquises lors de vos victoires dans le Top 5.</p>");
+            openDynamicModal("💰 Mes gains", "<p>Vos gains sont versés automatiquement aux joueurs du <strong>Top 5</strong> à la fin de chaque session de 10 minutes directement sur votre adresse USDT TRC20 enregistrée.</p>");
         });
 
         document.getElementById("menuWithdrawalsBtn").addEventListener("click", () => {
-            openDynamicModal("💸 Mes retraits", "<p>Vos retraits de gains s'effectuent automatiquement vers votre adresse crypto (USDT TRC20) enregistrée dès la fin du challenge.</p>");
+            openDynamicModal("💸 Mes retraits", "<p>Les paiements sont entièrement automatisés via NOWPayments et la blockchain TRC20. Aucun retrait manuel n'est requis.</p>");
         });
 
         document.getElementById("menuReferralBtn").addEventListener("click", () => {
-            openDynamicModal("👥 Parrainage", "<p>Partagez votre lien de parrainage unique pour inviter vos amis et faire grandir la communauté Miltape !</p>");
+            openDynamicModal("👥 Parrainage", `<p>Partagez votre lien unique pour inviter vos amis :</p><input type="text" readonly value="${window.location.href}?ref=${playerId}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:8px;" onclick="this.select();">`);
         });
 
         document.getElementById("menuChatBtn").addEventListener("click", () => {
@@ -1018,7 +1061,33 @@ document.addEventListener(
         });
 
         document.getElementById("menuSettingsBtn").addEventListener("click", () => {
-            openDynamicModal("⚙️ Paramètres", "<p>Gérez vos préférences de jeu, votre pseudo enregistré et votre adresse de portefeuille USDT TRC20 par défaut.</p>");
+            const currentName = localStorage.getItem("miltape_player_name") || "";
+            const currentCrypto = localStorage.getItem("miltape_crypto_address") || "";
+            openDynamicModal("⚙️ Paramètres", `
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size:11px; color:#ffcc00;">Pseudo :</label>
+                    <input id="settingsPseudo" type="text" value="${currentName}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size:11px; color:#ffcc00;">Adresse USDT TRC20 :</label>
+                    <input id="settingsCrypto" type="text" value="${currentCrypto}" style="width:100%; padding:8px; background:#1a1a2e; color:#fff; border:1px solid #444; border-radius:6px; margin-top:4px;">
+                </div>
+                <button id="saveSettingsBtn" style="background:#ffcc00; color:#000; border:none; padding:10px; width:100%; font-weight:bold; border-radius:6px; cursor:pointer;">ENREGISTRER</button>
+            `);
+
+            setTimeout(() => {
+                const saveBtn = document.getElementById("saveSettingsBtn");
+                if (saveBtn) {
+                    saveBtn.addEventListener("click", () => {
+                        const newName = document.getElementById("settingsPseudo").value.trim();
+                        const newCrypto = document.getElementById("settingsCrypto").value.trim();
+                        if (newName) localStorage.setItem("miltape_player_name", newName);
+                        if (newCrypto) localStorage.setItem("miltape_crypto_address", newCrypto);
+                        alert("Paramètres enregistrés avec succès !");
+                        dynamicModal.classList.remove("show");
+                    });
+                }
+            }, 100);
         });
 
         // Gestion de la langue au démarrage
@@ -1032,8 +1101,6 @@ document.addEventListener(
                 changeLanguage(this.value);
             });
         }
-
-        const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
 
         const enterButton = document.getElementById("enterChallenge");
         const modal = document.getElementById("entryModal");
@@ -1065,12 +1132,6 @@ document.addEventListener(
             acceptTermsCheckbox.addEventListener("change", function () {
                 confirmButton.disabled = !acceptTermsCheckbox.checked;
             });
-        }
-
-        let playerId = localStorage.getItem("miltape_player_id");
-        if (!playerId) {
-            playerId = 'player_' + Math.random().toString(36).substring(2, 11);
-            localStorage.setItem("miltape_player_id", playerId);
         }
 
         const savedName = localStorage.getItem("miltape_player_name");
