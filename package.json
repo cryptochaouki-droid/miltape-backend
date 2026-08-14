@@ -1,138 +1,16 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-const cors = require("cors");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
-
-const MONGO_URI = process.env.MONGO_URI || "TA_CHAINE_MONGODB_ATLAS";
-const client = new MongoClient(MONGO_URI, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
-});
-
-let db, playersCollection;
-
-async function startServer() {
-    try {
-        await client.connect();
-        db = client.db("miltape");
-        playersCollection = db.collection("players");
-        console.log("✅ MongoDb connecté avec succès !");
-    } catch (err) {
-        console.error("Erreur MongoDB :", err);
-    }
+{
+  "name": "miltape-backend",
+  "version": "1.0.0",
+  "description": "Miltape World Challenge Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.1",
+    "socket.io": "^4.7.5"
+  }
 }
-startServer();
-
-app.get("/api/player-stats/:playerId", async (req, res) => {
-    try {
-        if (!playersCollection) {
-            return res.status(500).json({ success: false, error: "DB_NOT_READY" });
-        }
-        const { playerId } = req.params;
-        const playerRecords = await playersCollection.find({ playerId }).toArray();
-        const totalTaps = playerRecords.reduce((sum, p) => sum + (p.score || 0), 0);
-        
-        res.json({
-            success: true,
-            totalTaps,
-            totalUsdt: 0,
-            history: playerRecords.map(p => ({ date: p.createdAt, score: p.score || 0 }))
-        });
-    } catch (e) {
-        res.status(500).json({ success: false, error: "PLAYER_STATS_ERROR" });
-    }
-});
-
-app.get("/api/total-stakes", (req, res) => {
-    res.json({ success: true, totalStakes: 0 });
-});
-
-// Fonction pour calculer et diffuser le Top 5 en direct
-async function broadcastLeaderboard() {
-    try {
-        if (!playersCollection) return;
-        const topPlayers = await playersCollection.aggregate([
-            {
-                $group: {
-                    _id: "$playerId",
-                    playerName: { $last: "$playerName" },
-                    score: { $sum: "$score" }
-                }
-            },
-            { $sort: { score: -1 } },
-            { $limit: 5 }
-        ]).toArray();
-        io.emit("leaderboard", topPlayers);
-    } catch (e) {
-        console.error("Erreur calcul leaderboard:", e);
-    }
-}
-
-let timerLeft = 600;
-setInterval(async () => {
-    timerLeft--;
-    if (timerLeft <= 0) {
-        timerLeft = 600;
-    }
-    io.emit("timer", timerLeft);
-}, 1000);
-
-io.on("connection", (socket) => {
-    console.log("👤 Joueur connecté :", socket.id);
-
-    socket.on("join", async (data) => {
-        socket.data = data;
-        io.emit("onlineCount", io.engine.clientsCount);
-        await broadcastLeaderboard();
-    });
-
-    socket.on("chatMessage", (msg) => {
-        const chatData = {
-            playerName: msg.playerName || "Anonyme",
-            message: msg.message || msg.text || ""
-        };
-        io.emit("chatMessage", chatData);
-    });
-
-    socket.on("tap", async (data) => {
-        try {
-            if (data && data.playerId && playersCollection) {
-                await playersCollection.insertOne({
-                    playerId: data.playerId,
-                    playerName: data.playerName || "Anonyme",
-                    score: data.taps || 1,
-                    createdAt: new Date()
-                });
-                await broadcastLeaderboard();
-            }
-        } catch (e) {
-            console.error("Erreur enregistrement tap:", e);
-        }
-    });
-
-    socket.on("disconnect", () => {
-        console.log("🔌 Joueur déconnecté :", socket.id);
-        io.emit("onlineCount", io.engine.clientsCount);
-    });
-});
-
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Miltape lancé sur le port ${PORT}`);
-});
