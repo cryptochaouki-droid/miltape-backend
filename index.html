@@ -10,8 +10,13 @@
 <meta name="theme-color" content="#090014">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <title>Miltape World Challenge</title>
+
+<!-- Configuration PWA -->
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 
 <link rel="icon" href="miltape-logo-art.jpg">
 <link rel="stylesheet" href="./style.css">
@@ -393,7 +398,7 @@
 
 .bet-header {
     display:flex;
-    justify-space:between;
+    justify-content:space-between;
     align-items:center;
     margin-bottom:8px;
 }
@@ -3105,6 +3110,18 @@ updateWalletUI();
 updateConfirmButton();
 
 });
+
+/* =========================================================
+   PWA SERVICE WORKER REGISTRATION
+========================================================= */
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('PWA Service Worker actif !', reg))
+            .catch(err => console.error('Erreur enregistrement Service Worker:', err));
+    });
+}
 </script>
 
 </body>
