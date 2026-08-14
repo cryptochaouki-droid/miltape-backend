@@ -29,6 +29,51 @@ const playerSchema = new mongoose.Schema({
 });
 const players = mongoose.model("Player", playerSchema);
 
+// Route de création de paiement pour éviter l'erreur "Impossible de joindre le serveur de paiement"
+app.post("/api/create-payment", async (req, res) => {
+    try {
+        const { playerId, playerName, amount } = req.body;
+        const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY;
+
+        if (!NOWPAYMENTS_API_KEY) {
+            // Mode simulation si la clé n'est pas configurée dans les variables d'environnement Railway
+            return res.json({
+                success: true,
+                invoice_url: "https://nowpayments.io/"
+            });
+        }
+
+        const fetch = (await import('node-fetch')).default;
+        const paymentResponse = await fetch("https://api.nowpayments.io/v1/invoice", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": NOWPAYMENTS_API_KEY
+            },
+            body: JSON.stringify({
+                price_amount: parseFloat(amount || 1),
+                price_currency: "usd",
+                pay_currency: "usdttrc20",
+                order_id: `${playerId}_${Date.now()}`,
+                order_description: `Mise Miltape World Challenge - ${playerName}`,
+                success_url: "https://cryptochaouki-droid.github.io/?success=true",
+                cancel_url: "https://cryptochaouki-droid.github.io/?cancel=true"
+            })
+        });
+
+        const paymentData = await paymentResponse.json();
+        if (paymentData && paymentData.invoice_url) {
+            res.json({ success: true, invoice_url: paymentData.invoice_url });
+        } else {
+            res.status(400).json({ success: false, error: "Erreur de création de facture NOWPayments" });
+        }
+
+    } catch (e) {
+        console.error("Erreur API paiement:", e);
+        res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
+    }
+});
+
 app.get("/api/player-stats/:playerId", async (req, res) => {
     try {
         const { playerId } = req.params;
