@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+Document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     const socket = io(BACKEND_URL);
 
@@ -14,14 +14,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
-    // Éléments d'inscription / paiement / crypto
-    const joinButton = document.getElementById("joinButton");
-    const playerNameInput = document.getElementById("playerNameInput");
-    const cryptoAddressInput = document.getElementById("cryptoAddressInput");
+    // Éléments d'inscription / paiement / crypto (correspondant à la modale HTML)
+    const confirmButton = document.getElementById("confirmButton") || document.getElementById("confirmBetButton");
+    const playerNameInput = document.getElementById("playerNameInput") || document.getElementById("customPlayerName");
+    const cryptoAddressInput = document.getElementById("cryptoAddressInput") || document.getElementById("customCryptoAddress");
+    const customBetInput = document.getElementById("customBetInput");
 
     let localTaps = 0;
-    const playerId = localStorage.getItem("miltape_player_id");
-    const playerName = localStorage.getItem("miltape_player_name");
+    let playerId = localStorage.getItem("miltape_player_id");
+    let playerName = localStorage.getItem("miltape_player_name");
 
     // Activer le bouton tape si le joueur a un profil enregistré
     if (playerId && playerName) {
@@ -30,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Fonction pour lancer le paiement NOWPayments et enregistrer le profil
-    async function payAndJoin(currentId, name, cryptoAddress) {
+    async function payAndJoin(currentId, name, cryptoAddress, amount) {
         try {
             // 1. Enregistrer d'abord le profil et l'adresse crypto sur le serveur
             const resJoin = await fetch(`${BACKEND_URL}/api/join`, {
@@ -46,17 +47,21 @@ document.addEventListener("DOMContentLoaded", () => {
             const dataJoin = await resJoin.json();
             if (!dataJoin.success) {
                 alert(dataJoin.error || "Erreur lors de l'enregistrement du profil.");
+                if (confirmButton) {
+                    confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                    confirmButton.disabled = false;
+                }
                 return;
             }
 
-            // 2. Créer la facture de paiement sur NOWPayments (montant par défaut : 1$)
+            // 2. Créer la facture de paiement sur NOWPayments
             const resPayment = await fetch(`${BACKEND_URL}/api/create-payment`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     playerId: currentId,
                     playerName: name,
-                    amount: 1
+                    amount: amount
                 })
             });
 
@@ -66,18 +71,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.location.href = dataPayment.invoice_url;
             } else {
                 alert(dataPayment.error || "Erreur lors de la création de la facture de paiement.");
+                if (confirmButton) {
+                    confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                    confirmButton.disabled = false;
+                }
             }
         } catch (err) {
             console.error("Erreur réseau /payAndJoin:", err);
             alert("Erreur de connexion au serveur.");
+            if (confirmButton) {
+                confirmButton.textContent = "PAYER ET ENTRER 🔥";
+                confirmButton.disabled = false;
+            }
         }
     }
 
-    // Gestion du bouton pour rejoindre / payer
-    if (joinButton) {
-        joinButton.addEventListener("click", async () => {
+    // Gestion du bouton pour rejoindre / payer depuis la modale
+    if (confirmButton) {
+        confirmButton.addEventListener("click", async () => {
+            const acceptTermsCheckbox = document.getElementById("acceptTermsCheckbox");
+            if (acceptTermsCheckbox && !acceptTermsCheckbox.checked) {
+                alert("Veuillez accepter les conditions d'utilisation pour continuer.");
+                return;
+            }
+
             const name = playerNameInput ? playerNameInput.value.trim() : "";
             const cryptoAddress = cryptoAddressInput ? cryptoAddressInput.value.trim() : "";
+            const amount = customBetInput ? parseFloat(customBetInput.value) || 1 : 1;
 
             if (!name) {
                 alert("Veuillez entrer un pseudo !");
@@ -94,12 +114,17 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!currentId) {
                 currentId = 'player_' + Math.random().toString(36).substring(2, 15);
                 localStorage.setItem("miltape_player_id", currentId);
+                playerId = currentId;
             }
             localStorage.setItem("miltape_player_name", name);
             localStorage.setItem("miltape_crypto_address", cryptoAddress);
+            playerName = name;
+
+            confirmButton.textContent = "CHARGEMENT...";
+            confirmButton.disabled = true;
 
             // Lancer le processus d'enregistrement et de redirection vers le paiement
-            await payAndJoin(currentId, name, cryptoAddress);
+            await payAndJoin(currentId, name, cryptoAddress, amount);
         });
     }
 
