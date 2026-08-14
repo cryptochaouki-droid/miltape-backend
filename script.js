@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+Document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     
     // Connexion Socket.io avec reconnexion automatique
@@ -102,23 +102,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Réception des messages du Chat en direct
+    // CORRECTION : Réception des messages du Chat en direct avec les bonnes propriétés (playerName et message)
     socket.on("chatMessage", (msg) => {
         if (chatMessages) {
             const messageElement = document.createElement("div");
             messageElement.classList.add("chat-message");
-            messageElement.innerHTML = `<strong>${msg.name || 'Anonyme'}</strong>: ${msg.text}`;
+            const senderName = msg.playerName || msg.name || 'Anonyme';
+            const messageText = msg.message || msg.text || '';
+            messageElement.innerHTML = `<strong>${senderName}</strong>: ${messageText}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
 
-    // Envoi de messages dans le chat
+    // CORRECTION : Envoi de messages dans le chat avec playerName et message
     if (chatSend && chatInput) {
         chatSend.addEventListener("click", () => {
             const text = chatInput.value.trim();
             if (text) {
-                socket.emit("chatMessage", { name: playerName, text: text });
+                socket.emit("chatMessage", { playerId: playerId, playerName: playerName, message: text });
                 chatInput.value = "";
             }
         });
