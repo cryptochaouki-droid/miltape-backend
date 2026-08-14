@@ -10,10 +10,14 @@ document.addEventListener("DOMContentLoaded", () => {
         timeout: 20000
     });
 
+    // Éléments du DOM
     const timerDisplay = document.getElementById("timer");
     const tapButton = document.getElementById("tapButton");
     const tapCountDisplay = document.getElementById("tapCount");
     const tapButtonCountDisplay = document.getElementById("tapButtonCount");
+    const headerScore = document.getElementById("headerScore");
+    const statTaps = document.getElementById("statTaps");
+    const statTotal = document.getElementById("statTotal");
     const tapMessage = document.getElementById("tapMessage");
     const onlineCount = document.getElementById("onlineCount");
     const leaderboardList = document.getElementById("leaderboardList");
@@ -21,13 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
-    // Éléments de la modale de démarrage
-    const enterChallengeBtn = document.getElementById("enterChallenge");
-    const entryModal = document.getElementById("entryModal");
-    const cancelEntryBtn = document.getElementById("cancelEntry");
-    const cancelEntryBottom = document.getElementById("cancelEntryBottom");
-    const confirmBetButton = document.getElementById("confirmBetButton");
-    const customPlayerName = document.getElementById("customPlayerName");
+    // Éléments du Menu / Modale 3 traits (☰)
+    const menuBtn = document.getElementById("menuBtn");
+    const menuModal = document.getElementById("menuModal");
+    const closeModal = document.getElementById("closeModal");
+    const modalCloseBtn = document.getElementById("modalCloseBtn");
+    const modalPlayerId = document.getElementById("modalPlayerId");
 
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
@@ -38,54 +41,31 @@ document.addEventListener("DOMContentLoaded", () => {
     
     let playerName = localStorage.getItem("miltape_player_name");
     if (!playerName) {
-        playerName = "JoueurTest";
+        playerName = "JoueurTest" + Math.floor(Math.random() * 1000);
         localStorage.setItem("miltape_player_name", playerName);
     }
 
-    if (customPlayerName) {
-        customPlayerName.value = playerName;
-    }
-
-    // Gestion de l'ouverture/fermeture de la modale d'entrée
-    if (enterChallengeBtn && entryModal) {
-        enterChallengeBtn.addEventListener("click", () => {
-            entryModal.classList.add("show");
+    // Gestion de l'ouverture/fermeture du menu (3 traits)
+    if (menuBtn && menuModal) {
+        menuBtn.addEventListener("click", () => {
+            if (modalPlayerId) modalPlayerId.textContent = playerId;
+            menuModal.classList.add("show");
         });
     }
 
-    const closeEntryModal = () => {
-        if (entryModal) entryModal.classList.remove("show");
+    const closeMenuModal = () => {
+        if (menuModal) menuModal.classList.remove("show");
     };
 
-    if (cancelEntryBtn) cancelEntryBtn.addEventListener("click", closeEntryModal);
-    if (cancelEntryBottom) cancelEntryBottom.addEventListener("click", closeEntryModal);
+    if (closeModal) closeModal.addEventListener("click", closeMenuModal);
+    if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeMenuModal);
 
-    // Validation du pseudo et activation du jeu
-    if (confirmBetButton) {
-        confirmBetButton.addEventListener("click", () => {
-            const enteredName = customPlayerName ? customPlayerName.value.trim() : "";
-            if (enteredName) {
-                playerName = enteredName;
-                localStorage.setItem("miltape_player_name", playerName);
-            }
-
-            closeEntryModal();
-
-            // Activer le bouton de tap et le jeu
-            if (tapButton) {
-                tapButton.disabled = false;
-            }
-            if (tapMessage) {
-                tapMessage.textContent = "🔥 À TOI DE TAPPER !";
-            }
-
-            // Rejoindre la room / notifier le serveur
-            socket.emit("join", { playerId, playerName });
-        });
-    }
-
+    // Connexion WebSocket
     socket.on("connect", () => {
         console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
+        if (tapMessage) {
+            tapMessage.textContent = "🔥 À TOI DE TAPPER !";
+        }
         socket.emit("join", { playerId, playerName });
     });
 
@@ -96,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Timer
     socket.on("timer", (timeLeft) => {
         if (timerDisplay) {
             const minutes = Math.floor(timeLeft / 60);
@@ -104,61 +85,76 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Nombre de joueurs en ligne
     socket.on("onlineCount", (count) => {
         if (onlineCount) {
-            onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} EN LIGNE`;
+            onlineCount.textContent = count;
         }
     });
 
+    // Classement Live
     socket.on("leaderboard", (players) => {
         if (leaderboardList) {
             if (!players || players.length === 0) {
                 leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
                 return;
             }
-            leaderboardList.innerHTML = players.map((p, index) => `
-                <div class="leaderboard-item" style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <span>#${index + 1} <strong>${p.playerName || 'Anonyme'}</strong></span>
-                    <span style="color: #ffcc00;">${p.score || 0} taps</span>
-                </div>
-            `).join('');
+            leaderboardList.innerHTML = players.map((p, index) => {
+                const isMe = p._id === playerId;
+                return `
+                    <div class="leaderboard-item">
+                        <div class="rank">#${index + 1}</div>
+                        <div class="player-name">${p.playerName || 'Anonyme'} ${isMe ? '(toi)' : ''}</div>
+                        <div class="player-score">${p.score || 0} ⚡</div>
+                    </div>
+                `;
+            }).join('');
         }
     });
 
+    // Chat en direct
     socket.on("chatMessage", (msg) => {
         if (chatMessages) {
             const messageElement = document.createElement("div");
             messageElement.classList.add("chat-message");
-            messageElement.style.marginBottom = "5px";
             const senderName = msg.playerName || msg.name || 'Anonyme';
             const messageText = msg.message || msg.text || '';
-            messageElement.innerHTML = `<strong>${senderName}</strong>: ${messageText}`;
+            messageElement.innerHTML = `<strong>${senderName}:</strong> ${messageText}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
 
     if (chatSend && chatInput) {
-        chatSend.addEventListener("click", () => {
+        const sendMsg = () => {
             const text = chatInput.value.trim();
             if (text) {
                 socket.emit("chatMessage", { playerId: playerId, playerName: playerName, message: text });
                 chatInput.value = "";
             }
-        });
+        };
 
+        chatSend.addEventListener("click", sendMsg);
         chatInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
-                chatSend.click();
+                sendMsg();
             }
         });
     }
 
+    // Bouton de Tap principal
     if (tapButton) {
         tapButton.addEventListener("click", () => {
             localTaps++;
             if (tapCountDisplay) tapCountDisplay.textContent = localTaps;
             if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = localTaps;
+            if (headerScore) headerScore.textContent = localTaps;
+            if (statTaps) statTaps.textContent = localTaps;
+            if (statTotal) statTotal.textContent = localTaps;
+
+            // Effet visuel du clic
+            tapButton.classList.add("tap-active");
+            setTimeout(() => tapButton.classList.remove("tap-active"), 80);
             
             socket.emit("tap", { playerId, playerName, taps: 1 });
         });
