@@ -27,13 +27,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const cryptoAddressInput = document.getElementById("cryptoAddressInput") || document.getElementById("customCryptoAddress");
     const customBetInput = document.getElementById("customBetInput");
 
-    // Éléments de la modale dynamique "Mes parties"
-    const myGamesButton = document.getElementById("myGamesButton"); 
-    const modalContent = document.getElementById("modalContent");
+    // Éléments du menu latéral et modale dynamique
+    const myGamesButton = document.getElementById("menuGamesBtn") || document.getElementById("myGamesButton"); 
+    const modalContent = document.getElementById("dynamicModalBody") || document.getElementById("modalContent");
     const dynamicModal = document.getElementById("dynamicModal");
+    const closeDynamicModal = document.getElementById("closeDynamicModal");
 
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
+    if (!playerId) {
+        playerId = 'player_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem("miltape_player_id", playerId);
+    }
     let playerName = localStorage.getItem("miltape_player_name");
 
     if (playerId && playerName) {
@@ -41,11 +46,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
     }
 
-    // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne) ---
+    // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne, Classement) ---
     
     socket.on("connect", () => {
         console.log("Connecté au serveur WebSocket ! ID:", socket.id);
-        if (tapMessage && !playerId) {
+        socket.emit("join", { playerId, playerName: playerName || "Anonyme" });
+        if (tapMessage && !playerName) {
             tapMessage.textContent = "🟢 Connecté au serveur";
         }
     });
@@ -69,7 +75,24 @@ document.addEventListener("DOMContentLoaded", () => {
     // Nombre de joueurs en ligne
     socket.on("onlineCount", (count) => {
         if (onlineCount) {
-            onlineCount.textContent = count;
+            const onlineTextLabel = "EN LIGNE";
+            onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${count} ${onlineTextLabel}`;
+        }
+    });
+
+    // Classement Top 5 en direct
+    socket.on("leaderboard", (players) => {
+        if (leaderboardList) {
+            if (!players || players.length === 0) {
+                leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
+                return;
+            }
+            leaderboardList.innerHTML = players.map((p, index) => `
+                <div class="leaderboard-item" style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <span>#${index + 1} <strong>${p.playerName || 'Anonyme'}</strong></span>
+                    <span style="color: #ffcc00;">${p.score || 0} taps</span>
+                </div>
+            `).join('');
         }
     });
 
@@ -103,6 +126,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Gestion des Taps
+    if (tapButton) {
+        tapButton.addEventListener("click", () => {
+            if (!playerName) {
+                alert("Entre ton pseudo en cliquant sur 'JOUER MAINTENANT' !");
+                return;
+            }
+            localTaps++;
+            if (tapCountDisplay) tapCountDisplay.textContent = localTaps;
+            if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = localTaps;
+            
+            socket.emit("tap", { playerId, playerName, taps: 1 });
+        });
+    }
+
     // --- 2. FONCTION MODALE ---
     function openDynamicModal(title, htmlContent) {
         if (dynamicModal && modalContent) {
@@ -111,6 +149,10 @@ document.addEventListener("DOMContentLoaded", () => {
             modalContent.innerHTML = htmlContent;
             dynamicModal.classList.add("show");
         }
+    }
+
+    if (closeDynamicModal && dynamicModal) {
+        closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
     }
 
     // --- 3. CHARGER LE TOTAL DES MISES ---
@@ -150,18 +192,18 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.success && modalContent) {
                 modalContent.innerHTML = `
                     <h3>Mes Statistiques</h3>
-                    <p>Total Taps : <strong>${data.totalTaps || 0}</strong></p>
+                    <p>Total Taps : <strong>${data.totalTaps || localTaps}</strong></p>
                     <p>Mises validées : <strong>${data.totalUsdt || 0} USDT</strong></p>
                     <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
                     <h4>Historique récent</h4>
                     <ul>
-                        ${data.history && data.history.length > 0 ? data.history.map(h => `<li>Partie du ${new Date(h.date).toLocaleDateString()} : ${h.score} taps</li>`).join('') : '<li>Aucune partie enregistrée.</li>'}
+                        ${data.history && data.history.length > 0 ? data.history.map(h => `<li>Partie du ${new Date(h.date).toLocaleDateString()} : ${h.score} taps</li>`).join('') : '<li>Aucune partie payée enregistrée.</li>'}
                     </ul>
                 `;
             } else {
                 if (modalContent) {
                     modalContent.innerHTML = `
-                        <p style="color: #ffcc00; margin-bottom: 10px;">Aucune donnée enregistrée pour le moment.</p>
+                        <p style="color: #ffcc00; margin-bottom: 10px;">Total Taps actuels : <strong>${localTaps}</strong></p>
                         <p style="font-size: 11px; color: #888;">ID Joueur : ${playerId}</p>
                     `;
                 }
@@ -170,8 +212,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Erreur chargement stats:", e);
             if (modalContent) {
                 modalContent.innerHTML = `
-                    <p style="color: #ff4444;">Impossible de récupérer l'historique des parties (erreur serveur).</p>
-                    <p style="font-size: 11px; color: #aaa; margin-top: 8px;">Vérifie que la route <code>/api/player-stats/:playerId</code> est bien configurée et déployée sur ton serveur Railway.</p>
+                    <p>Total Taps locaux : <strong>${localTaps}</strong></p>
+                    <p style="font-size: 11px; color: #aaa; margin-top: 8px;">Impossible de récupérer l'historique distant pour le moment.</p>
                 `;
             }
         }
