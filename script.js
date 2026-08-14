@@ -20,6 +20,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const cryptoAddressInput = document.getElementById("cryptoAddressInput") || document.getElementById("customCryptoAddress");
     const customBetInput = document.getElementById("customBetInput");
 
+    // Élément affichant le total des mises en haut à droite (ex: icône de la bourse / label de mise)
+    const miseUsdtDisplay = document.querySelector(".mise-usdt-display") || document.getElementById("totalStakesDisplay");
+
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
     let playerName = localStorage.getItem("miltape_player_name");
@@ -29,6 +32,43 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tapButton) tapButton.disabled = false;
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
     }
+
+    // Charger et afficher le total réel de toutes les mises des joueurs
+    async function loadTotalStakes() {
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
+            const data = await res.json();
+            if (data.success) {
+                // Si l'élément existe dans l'interface, on met à jour le montant global réel
+                const targetElement = miseUsdtDisplay || document.querySelector("span:contains('$')") || document.querySelector(".fa-sack-dollar + span, [class*='mise']");
+                
+                // Recherche alternative si la classe exacte varie dans le HTML
+                const headerMiseText = document.querySelector(".fa-sack-dollar")?.nextSibling || document.getElementById("headerMiseAmount");
+                
+                if (headerMiseText && headerMiseText.nodeType === Node.TEXT_NODE) {
+                    headerMiseText.nodeValue = ` $${data.totalStakes}`;
+                } else if (miseUsdtDisplay) {
+                    miseUsdtDisplay.textContent = `$${data.totalStakes}`;
+                } else {
+                    // Sélection générique basée sur l'apparence de la capture (le bloc à côté du sac d'argent)
+                    const bagIconContainer = document.querySelector(".fa-sack-dollar, .bi-wallet, .ri-wallet-line")?.parentElement || document.querySelector("div > span:contains('$')");
+                    // On cherche l'élément textuel ou numérique du haut
+                    const allSpans = document.querySelectorAll("header span, nav span, .top-bar span");
+                    allSpans.forEach(span => {
+                        if (span.textContent.startsWith("$")) {
+                            span.textContent = `$${data.totalStakes}`;
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Erreur lors du chargement du total des mises:", e);
+        }
+    }
+
+    // Charger le total au démarrage puis l'actualiser régulièrement ou via socket
+    loadTotalStakes();
+    setInterval(loadTotalStakes, 15000); // Actualisation toutes les 15 secondes
 
     // Fonction pour lancer le paiement NOWPayments et enregistrer le profil
     async function payAndJoin(currentId, name, cryptoAddress, amount) {
