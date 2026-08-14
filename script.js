@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+    const USDT_TRON_ADDRESS = "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
     
     console.log("🚀 Initialisation du script frontend Miltape...");
 
@@ -10,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         timeout: 20000
     });
 
-    // Éléments du DOM
+    // Éléments du DOM (Jeu / Chat)
     const timerDisplay = document.getElementById("timer");
     const tapButton = document.getElementById("tapButton");
     const tapCountDisplay = document.getElementById("tapCount");
@@ -32,6 +33,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalCloseBtn = document.getElementById("modalCloseBtn");
     const modalPlayerId = document.getElementById("modalPlayerId");
 
+    // Éléments de Paiement / Wallet
+    const walletConnectBtn = document.querySelector(".btn-wallet, #chooseWalletBtn"); 
+    const addressCopyBox = document.querySelector(".address-box, #tronAddressDisplay");
+
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
     if (!playerId) {
@@ -45,7 +50,37 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("miltape_player_name", playerName);
     }
 
-    // Gestion de l'ouverture/fermeture du menu (3 traits)
+    // --- 1. GESTION DES BOUTONS WALLET & PAIEMENT ---
+    const handleWalletAction = async () => {
+        // Si un wallet TRON est disponible (ex: DApp Browser TronLink)
+        if (window.tronWeb && window.tronWeb.ready) {
+            try {
+                const userAddress = window.tronWeb.defaultAddress.base58;
+                alert("Portefeuille connecté : " + userAddress);
+            } catch (err) {
+                console.error("Erreur de connexion wallet:", err);
+            }
+        } else {
+            // Sur Chrome mobile classique : Copie de l'adresse USDT
+            try {
+                await navigator.clipboard.writeText(USDT_TRON_ADDRESS);
+                alert("📋 Adresse USDT TRC20 copiée dans le presse-papier !\n\nAdresse : " + USDT_TRON_ADDRESS + "\n\nOuvre ton application crypto (Binance, Trust Wallet...) pour effectuer le virement.");
+            } catch (err) {
+                alert("Adresse de paiement USDT TRC20 :\n" + USDT_TRON_ADDRESS);
+            }
+        }
+    };
+
+    if (walletConnectBtn) {
+        walletConnectBtn.addEventListener("click", handleWalletAction);
+    }
+
+    if (addressCopyBox) {
+        addressCopyBox.style.cursor = "pointer";
+        addressCopyBox.addEventListener("click", handleWalletAction);
+    }
+
+    // --- 2. GESTION DU MENU MODAL ---
     if (menuBtn && menuModal) {
         menuBtn.addEventListener("click", () => {
             if (modalPlayerId) modalPlayerId.textContent = playerId;
@@ -60,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (closeModal) closeModal.addEventListener("click", closeMenuModal);
     if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeMenuModal);
 
-    // Connexion WebSocket
+    // --- 3. CONNEXION WEBSOCKET & EVENTS ---
     socket.on("connect", () => {
         console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
         if (tapMessage) {
@@ -85,14 +120,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Nombre de joueurs en ligne
+    // Joueurs en ligne
     socket.on("onlineCount", (count) => {
         if (onlineCount) {
             onlineCount.textContent = count;
         }
     });
 
-    // Classement Live
+    // Classement
     socket.on("leaderboard", (players) => {
         if (leaderboardList) {
             if (!players || players.length === 0) {
@@ -112,14 +147,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Chat en direct
+    // Chat sécurisé (SÉCURITÉ XSS)
     socket.on("chatMessage", (msg) => {
         if (chatMessages) {
             const messageElement = document.createElement("div");
             messageElement.classList.add("chat-message");
+            
             const senderName = msg.playerName || msg.name || 'Anonyme';
             const messageText = msg.message || msg.text || '';
-            messageElement.innerHTML = `<strong>${senderName}:</strong> ${messageText}`;
+            
+            const strongTag = document.createElement("strong");
+            strongTag.textContent = senderName + ": ";
+            
+            const textNode = document.createTextNode(messageText);
+            
+            messageElement.appendChild(strongTag);
+            messageElement.appendChild(textNode);
+            
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -142,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Bouton de Tap principal
+    // --- 4. BOUTON DE TAP PRINCIPAL ---
     if (tapButton) {
         tapButton.addEventListener("click", () => {
             localTaps++;
@@ -152,7 +196,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (statTaps) statTaps.textContent = localTaps;
             if (statTotal) statTotal.textContent = localTaps;
 
-            // Effet visuel du clic
             tapButton.classList.add("tap-active");
             setTimeout(() => tapButton.classList.remove("tap-active"), 80);
             
