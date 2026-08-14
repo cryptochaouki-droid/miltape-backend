@@ -402,125 +402,6 @@
 
 }
 
-/* =====================================================
-   PAYMENT BOX
-===================================================== */
-
-.payment-box {
-
-    margin-top:15px;
-
-    padding:15px;
-
-    border-radius:12px;
-
-    background:
-        rgba(255,204,0,.06);
-
-    border:
-        1px solid
-        rgba(255,204,0,.35);
-
-    display:none;
-
-}
-
-.payment-box.show {
-
-    display:block;
-
-}
-
-.payment-title {
-
-    color:#ffcc00;
-
-    font-weight:bold;
-
-    font-size:14px;
-
-    margin-bottom:10px;
-
-}
-
-.payment-address {
-
-    background:#08030d;
-
-    border:1px solid #444;
-
-    border-radius:8px;
-
-    padding:10px;
-
-    color:#fff;
-
-    font-size:11px;
-
-    word-break:break-all;
-
-    margin-bottom:8px;
-
-}
-
-.copy-payment {
-
-    width:100%;
-
-    border:none;
-
-    border-radius:8px;
-
-    padding:10px;
-
-    background:#ffcc00;
-
-    color:#000;
-
-    font-weight:bold;
-
-    cursor:pointer;
-
-}
-
-.payment-status {
-
-    margin-top:10px;
-
-    text-align:center;
-
-    color:#fff;
-
-    font-size:12px;
-
-}
-
-.payment-spinner {
-
-    display:inline-block;
-
-    width:12px;
-
-    height:12px;
-
-    border:2px solid rgba(255,255,255,.3);
-
-    border-top-color:#ffcc00;
-
-    border-radius:50%;
-
-    animation:spin .8s linear infinite;
-
-}
-
-@keyframes spin {
-
-    to {
-        transform:rotate(360deg);
-    }
-
-}
-
 </style>
 
 </head>
@@ -613,7 +494,7 @@ font-size:12px;
 color:#b8b8b8;
 "
 >
-Une question ? Un problème de paiement ?
+Une question ? Un problème ?
 </p>
 
 <a
@@ -717,34 +598,6 @@ margin-right:5px;
 
 </div>
 
-<div class="wallet-box">
-
-<small>
-MISE USDT
-</small>
-
-<strong id="displayBet">
-$13
-</strong>
-
-</div>
-
-<button
-class="wallet-button"
-id="walletButton"
-type="button"
->
-
-<span>
-💰
-</span>
-
-<span id="globalTotalStakes">
-$0
-</span>
-
-</button>
-
 </header>
 
 <!-- HERO -->
@@ -813,22 +666,6 @@ TOP 5
 
 <small>
 SEULEMENT
-</small>
-
-</div>
-
-<div class="rule">
-
-<span class="rule-icon">
-🪙
-</span>
-
-<strong>
-USDT
-</strong>
-
-<small>
-TRC20
 </small>
 
 </div>
@@ -914,7 +751,7 @@ JOUER MAINTENANT
 id="tapMessage"
 class="tap-message"
 >
-⚡ ENTRE D'ABORD DANS LE CHALLENGE
+⚡ CLIQUE SUR JOUER POUR COMMENCER
 </div>
 
 <!-- TAP -->
@@ -1066,16 +903,12 @@ MILTAPE
 WORLD CHALLENGE
 </span>
 
-<small>
-CRYPTOMONNAIE • NOWPAYMENTS
-</small>
-
 </footer>
 
 </div>
 
 <!-- =====================================================
-     ENTRY MODAL
+     ENTRY MODAL (SIMPLE SANS PAIEMENT)
 ===================================================== -->
 
 <div
@@ -1103,113 +936,13 @@ PRÊT À JOUER ?
 
 <p>
 
-Tu vas rejoindre le
+Entre ton pseudo pour rejoindre le
 
 <strong>
 Miltape World Challenge
 </strong>
 
 </p>
-
-<!-- MISE -->
-
-<div
-style="
-margin:15px 0;
-text-align:left;
-background:rgba(0,0,0,.2);
-padding:12px;
-border-radius:12px;
-border:1px solid rgba(255,204,0,.3);
-"
->
-
-<div
-style="
-display:flex;
-justify-content:space-between;
-margin-bottom:8px;
-"
->
-
-<span
-style="
-font-size:11px;
-color:#ffcc00;
-font-weight:bold;
-"
->
-CHOISIS TA MISE
-</span>
-
-<strong
-id="selectedBet"
-style="
-color:#ffcc00;
-font-size:14px;
-"
->
-$13
-</strong>
-
-</div>
-
-<div
-style="
-display:flex;
-align-items:center;
-background:rgba(0,0,0,.3);
-border:2px solid #ffcc00;
-border-radius:10px;
-padding:8px 12px;
-"
->
-
-<span
-style="
-color:#ffcc00;
-font-size:18px;
-font-weight:bold;
-margin-right:6px;
-"
->
-$
-</span>
-
-<input
-id="customBetInput"
-type="number"
-min="13"
-step="1"
-value="13"
-inputmode="decimal"
-style="
-background:transparent;
-border:none;
-color:#fff;
-font-size:18px;
-font-weight:bold;
-width:100%;
-outline:none;
-"
->
-
-</div>
-
-<small
-style="
-display:block;
-margin-top:7px;
-color:#aaa;
-"
->
-Mise minimum :
-<strong style="color:#ffcc00">
-13 USDT
-</strong>
-</small>
-
-</div>
 
 <!-- PSEUDO -->
 
@@ -1253,129 +986,12 @@ box-sizing:border-box;
 
 </div>
 
-<!-- ADRESSE GAIN -->
-
-<div
-style="
-margin:15px 0;
-text-align:left;
-"
->
-
-<label
-for="customCryptoAddress"
-style="
-display:block;
-font-size:11px;
-margin-bottom:5px;
-color:#ffcc00;
-font-weight:bold;
-"
->
-
-ADRESSE USDT TRC20
-POUR TES GAINS :
-
-</label>
-
-<input
-id="customCryptoAddress"
-type="text"
-placeholder="Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-autocomplete="off"
-style="
-width:100%;
-padding:12px;
-border-radius:10px;
-border:1px solid #ffcc00;
-background:#1a1a2e;
-color:#fff;
-font-size:14px;
-box-sizing:border-box;
-"
->
-
-<small
-style="
-display:block;
-margin-top:5px;
-color:#888;
-"
->
-Elle doit commencer par T et contenir 34 caractères.
-</small>
-
-</div>
-
-<!-- CONDITIONS -->
-
-<div
-style="
-margin:20px 0;
-text-align:left;
-background:rgba(255,255,255,.03);
-padding:10px;
-border-radius:8px;
-border:1px dashed rgba(255,204,0,.3);
-"
->
-
-<label
-style="
-display:flex;
-align-items:flex-start;
-cursor:pointer;
-font-size:12px;
-color:#ccc;
-line-height:1.4;
-"
->
-
-<input
-id="acceptTermsCheckbox"
-type="checkbox"
-style="
-margin-right:10px;
-margin-top:2px;
-width:16px;
-height:16px;
-accent-color:#ffcc00;
-"
->
-
-<span>
-
-J'accepte les
-<strong>
-Conditions d'Utilisation
-</strong>
-et les règles du jeu.
-
-</span>
-
-</label>
-
-</div>
-
-<!-- PAYMENT -->
-
-<div class="demo-warning">
-
-🟢 PAIEMENT CRYPTO
-
-<small>
-USDT TRC20 • Minimum 13 USDT
-</small>
-
-</div>
-
 <button
 id="confirmBetButton"
 class="confirm-button"
 type="button"
-disabled
 >
-PAYER ET ENTRER 🔥
+COMMENCER À JOUER 🔥
 </button>
 
 <button
@@ -1386,69 +1002,13 @@ type="button"
 ANNULER
 </button>
 
-<!-- PAYMENT BOX -->
-
-<div
-id="paymentBox"
-class="payment-box"
->
-
-<div class="payment-title">
-
-💳 PAIEMENT USDT TRC20
-
-</div>
-
-<div>
-
-Envoie exactement :
-
-<strong
-id="paymentAmount"
-style="color:#ffcc00"
->
---
-</strong>
-
-USDT
-
-</div>
-
-<div
-id="paymentAddress"
-class="payment-address"
->
-Chargement...
-</div>
-
-<button
-id="copyPaymentAddress"
-class="copy-payment"
-type="button"
->
-📋 COPIER L'ADRESSE
-</button>
-
-<div
-id="paymentStatus"
-class="payment-status"
->
-
-<span class="payment-spinner"></span>
-
-En attente du paiement...
-
-</div>
-
-</div>
-
 </div>
 
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-<script src="script.js?v=2"></script>
+<script src="script.js?v=3"></script>
 
 </body>
 
