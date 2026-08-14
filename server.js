@@ -178,7 +178,7 @@ io.on("connection", (socket) => {
                 await players.create({
                     playerId: data.playerId,
                     playerName: data.playerName || "Anonyme",
-ポップ: data.taps || 1,
+                    score: data.taps || 1,
                     amount: data.amount || 0
                 });
                 await broadcastLeaderboard();
