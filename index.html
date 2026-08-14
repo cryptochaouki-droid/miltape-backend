@@ -345,11 +345,11 @@
         <div class="wallet-box">
 
             <small>
-                CRYPTO
+                MISE USDT
             </small>
 
-            <strong id="balance">
-                USDT
+            <strong id="displayBet">
+                $1
             </strong>
 
         </div>
@@ -1068,6 +1068,7 @@ document.addEventListener(
 
         const customBetInput = document.getElementById("customBetInput");
         const selectedBetSpan = document.getElementById("selectedBet");
+        const displayBet = document.getElementById("displayBet");
 
         if (customBetInput) {
             customBetInput.addEventListener("input", function () {
@@ -1075,6 +1076,7 @@ document.addEventListener(
                 if (val === "" || isNaN(val)) val = "0";
                 
                 if (selectedBetSpan) selectedBetSpan.textContent = "$" + val;
+                if (displayBet) displayBet.textContent = "$" + val;
             });
         }
 
