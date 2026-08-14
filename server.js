@@ -82,7 +82,6 @@ async function distributePrizesForGame(gameId) {
             const prizeAmount = prizes[i] || 1; // 1$ par défaut si hors du tableau spécifique
 
             // Vérifier si le joueur a renseigné une adresse crypto de retrait (stockée dans son profil ou sa session)
-            // Si le joueur n'a pas d'adresse, on passe au suivant pour éviter de bloquer
             if (!player.cryptoAddress) {
                 console.log(`⚠️ Le joueur ${player.playerName} (ID: ${player.playerId}) n'a pas d'adresse crypto enregistrée pour recevoir ses gains.`);
                 continue;
@@ -311,6 +310,35 @@ app.get("/api/game", async (req, res) => {
 
 
 /* =====================================================
+   TOTAL DES MISES / CAGNOTTE (POUR LE SAC D'ARGENT)
+===================================================== */
+
+app.get("/api/pot", async (req, res) => {
+    try {
+        if (!payments) {
+            return res.json({ success: true, totalPot: 0 });
+        }
+
+        const pipeline = [
+            { $match: { paymentStatus: { $in: ["finished", "confirmed"] } } },
+            { $group: { _id: null, totalPot: { $sum: "$priceAmount" } } }
+        ];
+
+        const result = await payments.aggregate(pipeline).toArray();
+        const totalPot = result.length > 0 ? result[0].totalPot : 0;
+
+        res.json({
+            success: true,
+            totalPot: totalPot
+        });
+    } catch (error) {
+        console.error("POT ERROR:", error);
+        res.status(500).json({ success: false, error: "POT_ERROR" });
+    }
+});
+
+
+/* =====================================================
    JOIN (AVEC ENREGISTREMENT DE L'ADRESSE CRYPTO DU JOUEUR)
 ===================================================== */
 
@@ -318,7 +346,7 @@ app.post("/api/join", async (req, res) => {
     try {
         const playerId = String(req.body.playerId || "");
         const playerName = String(req.body.playerName || "").trim().slice(0, 30);
-        const cryptoAddress = String(req.body.cryptoAddress || "").trim(); // Récupération de l'adresse pour les gains
+        const cryptoAddress = String(req.body.cryptoAddress || "").trim();
 
         if (!playerId || !playerName) {
             return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
