@@ -39,21 +39,27 @@ document.addEventListener("DOMContentLoaded", () => {
         playerId = 'player_' + Math.random().toString(36).substring(2, 11);
         localStorage.setItem("miltape_player_id", playerId);
     }
+    
+    // Forçage d'un pseudo par défaut pour débloquer le test immédiatement s'il n'existe pas
     let playerName = localStorage.getItem("miltape_player_name");
+    if (!playerName) {
+        playerName = "JoueurTest";
+        localStorage.setItem("miltape_player_name", playerName);
+    }
 
-    if (playerId && playerName) {
-        if (tapButton) tapButton.disabled = false;
-        if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
+    // Déblocage automatique et direct du bouton TAP pour les tests
+    if (tapButton) {
+        tapButton.disabled = false;
+    }
+    if (tapMessage) {
+        tapMessage.textContent = "🔥 MODE TEST ACTIF - TAPE !";
     }
 
     // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne, Classement) ---
     
     socket.on("connect", () => {
         console.log("Connecté au serveur WebSocket ! ID:", socket.id);
-        socket.emit("join", { playerId, playerName: playerName || "Anonyme" });
-        if (tapMessage && !playerName) {
-            tapMessage.textContent = "🟢 Connecté au serveur";
-        }
+        socket.emit("join", { playerId, playerName });
     });
 
     socket.on("connect_error", (err) => {
@@ -111,11 +117,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (chatSend && chatInput) {
         chatSend.addEventListener("click", () => {
             const text = chatInput.value.trim();
-            if (text && playerName) {
+            if (text) {
                 socket.emit("chatMessage", { name: playerName, text: text });
                 chatInput.value = "";
-            } else if (!playerName) {
-                alert("Entre ton pseudo d'abord !");
             }
         });
 
@@ -129,10 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Gestion des Taps
     if (tapButton) {
         tapButton.addEventListener("click", () => {
-            if (!playerName) {
-                alert("Entre ton pseudo en cliquant sur 'JOUER MAINTENANT' !");
-                return;
-            }
             localTaps++;
             if (tapCountDisplay) tapCountDisplay.textContent = localTaps;
             if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = localTaps;
