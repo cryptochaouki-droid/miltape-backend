@@ -170,7 +170,7 @@
     <button id="closeMenu" class="close-menu" type="button">&times;</button>
     
     <div class="side-menu-content">
-        <h3>🧭 Menu Miltape</h3>
+        <h3 data-i18n="menu_title">🧭 Menu Miltape</h3>
         
         <!-- Section Langue -->
         <div class="menu-block">
@@ -183,19 +183,19 @@
 
         <!-- Section Règles / Explications -->
         <div class="menu-block">
-            <h4>📖 Comment ça marche ?</h4>
-            <p style="font-size: 13px; color: #ccc; line-height: 1.4;">
+            <h4 data-i18n="rules_title">📖 Comment ça marche ?</h4>
+            <p id="rules_desc" style="font-size: 13px; color: #ccc; line-height: 1.4;" data-i18n="rules_desc">
                 Miltape World Challenge est un jeu de rapidité en ligne. Tape le plus de fois possible en 10 minutes, entre dans le <strong>Top 5</strong> et remporte des gains en USDT (TRC20) versés automatiquement !
             </p>
         </div>
 
         <!-- Section Confiance & Support / Contact -->
         <div class="menu-block trust-contact-box">
-            <h4>🛡️ Support & Confiance</h4>
-            <p style="font-size: 12px; color: #b8b8b8; margin-bottom: 8px;">
+            <h4 data-i18n="support_title">🛡️ Support & Confiance</h4>
+            <p id="support_desc" style="font-size: 12px; color: #b8b8b8; margin-bottom: 8px;" data-i18n="support_desc">
                 Une question ? Un problème de paiement ? Contactez-nous :
             </p>
-            <a href="https://t.me/ton_canal_telegram" target="_blank" class="support-link tg-btn">
+            <a href="https://t.me/ton_canal_telegram" target="_blank" class="support-link tg-btn" data-i18n="telegram_btn">
                 📢 Canal Telegram officiel
             </a>
             <div style="margin-top: 8px; font-size: 12px; color: #ffcc00;">
@@ -228,7 +228,7 @@
         <div class="online">
 
             <strong id="onlineCount">
-                <span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> 1 EN LIGNE
+                <span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> <span id="onlineText">1 EN LIGNE</span>
             </strong>
 
         </div>
@@ -274,7 +274,7 @@
                 </span>
             </h1>
 
-            <p class="slogan">
+            <p class="slogan" data-i18n="slogan_text">
 
                 <strong>TAPE.</strong>
 
@@ -302,11 +302,11 @@
                 ⏱️
             </span>
 
-            <strong>
+            <strong data-i18n="rule_time">
                 10 MINUTES
             </strong>
 
-            <small>
+            <small data-i18n="rule_time_sub">
                 PAR PARTIE
             </small>
 
@@ -319,11 +319,11 @@
                 🏆
             </span>
 
-            <strong>
+            <strong data-i18n="rule_top">
                 TOP 5
             </strong>
 
-            <small>
+            <small data-i18n="rule_top_sub">
                 SEULEMENT
             </small>
 
@@ -356,7 +356,7 @@
 
     <section class="timer-card">
 
-        <small>
+        <small data-i18n="timer_title">
             CHALLENGE EN COURS
         </small>
 
@@ -367,7 +367,7 @@
             10:00
         </div>
 
-        <span>
+        <span data-i18n="timer_sub">
             TEMPS RESTANT
         </span>
 
@@ -383,7 +383,7 @@
 
         <div class="stat-box" style="width: 100%; max-width: 300px;">
 
-            <small>
+            <small data-i18n="stats_taps">
                 TES TAPS
             </small>
 
@@ -405,7 +405,7 @@
 
         <div class="section-title">
 
-            <span>
+            <span data-i18n="bet_title">
                 CHOISIS TA MISE
             </span>
 
@@ -447,7 +447,7 @@
         type="button"
     >
 
-        <span>
+        <span data-i18n="play_btn">
             JOUER MAINTENANT
         </span>
 
@@ -466,6 +466,7 @@
     <div
         id="tapMessage"
         class="tap-message"
+        data-i18n="tap_msg_first"
     >
         ⚡ ENTER CHALLENGE FIRST
     </div>
@@ -512,7 +513,7 @@
         <div class="section-title">
 
             <span>
-                🏆 CLASSEMENT
+                🏆 <span data-i18n="leaderboard_title">CLASSEMENT</span>
             </span>
 
             <strong>
@@ -527,7 +528,7 @@
             class="leaderboard-list"
         >
 
-            <div class="empty-ranking">
+            <div class="empty-ranking" data-i18n="empty_ranking">
                 Aucun joueur pour le moment
             </div>
 
@@ -546,7 +547,7 @@
         <div class="section-title">
 
             <span>
-                💬 CHAT GLOBAL
+                💬 <span data-i18n="chat_title">CHAT GLOBAL</span>
             </span>
 
             <strong>
@@ -567,7 +568,7 @@
                     Miltape:
                 </strong>
 
-                Bienvenue dans le World Challenge 🔥
+                <span data-i18n="chat_welcome">Bienvenue dans le World Challenge 🔥</span>
 
             </div>
 
@@ -605,11 +606,11 @@
 
         <div>
 
-            <strong>
+            <strong data-i18n="ref_title">
                 👥 INVITE TES AMIS
             </strong>
 
-            <small>
+            <small data-i18n="ref_sub">
                 Partage Miltape World Challenge
             </small>
 
@@ -619,6 +620,7 @@
         <button
             id="shareButton"
             type="button"
+            data-i18n="share_btn"
         >
             PARTAGER
         </button>
@@ -641,7 +643,7 @@
             WORLD CHALLENGE
         </span>
 
-        <small>
+        <small data-i18n="footer_sub">
             CRYPTOMONNAIE • NOWPAYMENTS
         </small>
 
@@ -678,13 +680,13 @@
         </div>
 
 
-        <h2>
+        <h2 data-i18n="modal_h2">
             PRÊT À JOUER ?
         </h2>
 
 
         <p>
-            Tu vas rejoindre le
+            <span data-i18n="modal_p1">Tu vas rejoindre le</span>
             <strong>
                 Miltape World Challenge
             </strong>.
@@ -692,7 +694,7 @@
 
 
         <div style="margin: 15px 0; text-align: left;">
-            <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;">
+            <label for="customPlayerName" style="display: block; font-size: 11px; margin-bottom: 5px; color: #b8b8b8; font-weight: bold;" data-i18n="modal_label_name">
                 TON PSEUDO :
             </label>
             <input
@@ -706,7 +708,7 @@
         </div>
 
         <div style="margin: 15px 0; text-align: left;">
-            <label for="customCryptoAddress" style="display: block; font-size: 11px; margin-bottom: 5px; color: #ffcc00; font-weight: bold;">
+            <label for="customCryptoAddress" style="display: block; font-size: 11px; margin-bottom: 5px; color: #ffcc00; font-weight: bold;" data-i18n="modal_label_crypto">
                 ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :
             </label>
             <input
@@ -721,7 +723,7 @@
 
         <div class="entry-info">
 
-            <span>
+            <span data-i18n="modal_selected_bet">
                 MISE SÉLECTIONNÉE
             </span>
 
@@ -734,9 +736,9 @@
 
         <div class="demo-warning">
 
-            🟢 PAIEMENT CRYPTO
+            🟢 <span data-i18n="modal_crypto_payment">PAIEMENT CRYPTO</span>
 
-            <small>
+            <small data-i18n="modal_secure">
                 Sécurisé par NOWPayments.
             </small>
 
@@ -747,6 +749,7 @@
             id="confirmBetButton"
             class="confirm-button"
             type="button"
+            data-i18n="modal_confirm_btn"
         >
             PAYER ET ENTRER 🔥
         </button>
@@ -756,6 +759,7 @@
             id="cancelEntryBottom"
             class="cancel-button"
             type="button"
+            data-i18n="modal_cancel_btn"
         >
             ANNULER
         </button>
@@ -778,6 +782,102 @@
 
 <script>
 
+// Dictionnaire des traductions
+const translations = {
+    fr: {
+        menu_title: "🧭 Menu Miltape",
+        rules_title: "📖 Comment ça marche ?",
+        rules_desc: "Miltape World Challenge est un jeu de rapidité en ligne. Tape le plus de fois possible en 10 minutes, entre dans le <strong>Top 5</strong> et remporte des gains en USDT (TRC20) versés automatiquement !",
+        support_title: "🛡️ Support & Confiance",
+        support_desc: "Une question ? Un problème de paiement ? Contactez-nous :",
+        telegram_btn: "📢 Canal Telegram officiel",
+        online_text: "EN LIGNE",
+        slogan_text: "<strong>TAPE.</strong> CLASSE-TOI. <strong>GAGNE.</strong>",
+        rule_time: "10 MINUTES",
+        rule_time_sub: "PAR PARTIE",
+        rule_top: "TOP 5",
+        rule_top_sub: "SEULEMENT",
+        timer_title: "CHALLENGE EN COURS",
+        timer_sub: "TEMPS RESTANT",
+        stats_taps: "TES TAPS",
+        bet_title: "CHOISIS TA MISE",
+        play_btn: "JOUER MAINTENANT",
+        tap_msg_first: "⚡ ENTER CHALLENGE FIRST",
+        leaderboard_title: "CLASSEMENT",
+        empty_ranking: "Aucun joueur pour le moment",
+        chat_title: "CHAT GLOBAL",
+        chat_welcome: "Bienvenue dans le World Challenge 🔥",
+        ref_title: "👥 INVITE TES AMIS",
+        ref_sub: "Partage Miltape World Challenge",
+        share_btn: "PARTAGER",
+        footer_sub: "CRYPTOMONNAIE • NOWPAYMENTS",
+        modal_h2: "PRÊT À JOUER ?",
+        modal_p1: "Tu vas rejoindre le",
+        modal_label_name: "TON PSEUDO :",
+        modal_label_crypto: "ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :",
+        modal_selected_bet: "MISE SÉLECTIONNÉE",
+        modal_crypto_payment: "PAIEMENT CRYPTO",
+        modal_secure: "Sécurisé par NOWPayments.",
+        modal_confirm_btn: "PAYER ET ENTRER 🔥",
+        modal_cancel_btn: "ANNULER"
+    },
+    en: {
+        menu_title: "🧭 Miltape Menu",
+        rules_title: "📖 How it works?",
+        rules_desc: "Miltape World Challenge is an online speed game. Tap as many times as possible in 10 minutes, make it to the <strong>Top 5</strong> and win automated USDT (TRC20) payouts!",
+        support_title: "🛡️ Support & Trust",
+        support_desc: "Any questions? A payment issue? Contact us:",
+        telegram_btn: "📢 Official Telegram Channel",
+        online_text: "ONLINE",
+        slogan_text: "<strong>TAP.</strong> RANK. <strong>WIN.</strong>",
+        rule_time: "10 MINUTES",
+        rule_time_sub: "PER GAME",
+        rule_top: "TOP 5",
+        rule_top_sub: "ONLY",
+        timer_title: "CURRENT CHALLENGE",
+        timer_sub: "TIME REMAINING",
+        stats_taps: "YOUR TAPS",
+        bet_title: "CHOOSE YOUR BET",
+        play_btn: "PLAY NOW",
+        tap_msg_first: "⚡ ENTER CHALLENGE FIRST",
+        leaderboard_title: "LEADERBOARD",
+        empty_ranking: "No players yet",
+        chat_title: "GLOBAL CHAT",
+        chat_welcome: "Welcome to the World Challenge 🔥",
+        ref_title: "👥 INVITE FRIENDS",
+        ref_sub: "Share Miltape World Challenge",
+        share_btn: "SHARE",
+        footer_sub: "CRYPTOCURRENCY • NOWPAYMENTS",
+        modal_h2: "READY TO PLAY?",
+        modal_p1: "You are about to join the",
+        modal_label_name: "YOUR PSEUDO:",
+        modal_label_crypto: "CRYPTO ADDRESS (USDT TRC20 FOR PAYOUTS):",
+        modal_selected_bet: "SELECTED BET",
+        modal_crypto_payment: "CRYPTO PAYMENT",
+        modal_secure: "Secured by NOWPayments.",
+        modal_confirm_btn: "PAY & ENTER 🔥",
+        modal_cancel_btn: "CANCEL"
+    }
+};
+
+function changeLanguage(lang) {
+    const elements = document.querySelectorAll("[data-i18n]");
+    elements.forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (translations[lang] && translations[lang][key]) {
+            el.innerHTML = translations[lang][key];
+        }
+    });
+
+    const onlineCount = document.getElementById("onlineCount");
+    if (onlineCount) {
+        const countNum = onlineCount.textContent.replace(/[^0-9]/g, '') || "1";
+        onlineCount.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background-color:#2ecc71; border-radius:50%; margin-right:5px;"></span> ${countNum} ${translations[lang].online_text}`;
+    }
+
+    localStorage.setItem("miltape_lang", lang);
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     function () {
@@ -798,6 +898,18 @@ document.addEventListener(
         if (menuButton) menuButton.addEventListener("click", toggleMenu);
         if (closeMenu) closeMenu.addEventListener("click", toggleMenu);
         if (menuOverlay) menuOverlay.addEventListener("click", toggleMenu);
+
+        // Gestion de la langue au démarrage
+        const languageSelect = document.getElementById("languageSelect");
+        const savedLang = localStorage.getItem("miltape_lang") || "fr";
+        if (languageSelect) {
+            languageSelect.value = savedLang;
+            changeLanguage(savedLang);
+
+            languageSelect.addEventListener("change", function () {
+                changeLanguage(this.value);
+            });
+        }
 
         const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
 
