@@ -109,7 +109,7 @@
             margin-bottom: 20px;
         }
         .menu-block {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: rgba(255, 255, 255, 0.03);
             padding: 12px;
             border-radius: 10px;
@@ -129,6 +129,28 @@
             color: #fff;
             border: 1px solid #444;
         }
+        
+        /* Styles pour les boutons du nouveau menu */
+        .menu-nav-btn {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #fff;
+            text-align: left;
+            font-size: 14px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s, color 0.2s;
+            text-decoration: none;
+        }
+        .menu-nav-btn:hover {
+            background: rgba(255, 204, 0, 0.15);
+            color: #ffcc00;
+        }
+
         .trust-contact-box {
             border-left: 3px solid #2ecc71;
         }
@@ -142,23 +164,8 @@
             font-size: 12px;
             font-weight: bold;
         }
-        /* Liens légaux dans le menu */
-        .legal-link-btn {
-            display: block;
-            background: transparent;
-            border: none;
-            color: #ccc;
-            text-align: left;
-            font-size: 13px;
-            padding: 6px 0;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .legal-link-btn:hover {
-            color: #ffcc00;
-        }
 
-        /* Fond sombre semi-transparent */
+        /* Fonds et modales */
         .menu-overlay {
             position: fixed;
             top: 0;
@@ -173,7 +180,6 @@
             display: block;
         }
 
-        /* Styles spécifiques pour les modales textuelles (légales) */
         .legal-modal {
             position: fixed;
             top: 0;
@@ -224,7 +230,6 @@
             cursor: pointer;
         }
 
-        /* Style pour désactiver le bouton de validation si non coché */
         .confirm-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -238,7 +243,7 @@
 <body>
 
 <!-- =====================================================
-     MENU LATÉRAL (LES 3 TRAITS)
+     MENU LATÉRAL (OPTIONS DEMANDÉES)
 ====================================================== -->
 <div id="sideMenu" class="side-menu">
     <button id="closeMenu" class="close-menu" type="button">&times;</button>
@@ -246,6 +251,18 @@
     <div class="side-menu-content">
         <h3 data-i18n="menu_title">🧭 Menu Miltape</h3>
         
+        <!-- Navigation Principale -->
+        <div class="menu-block" style="padding: 8px;">
+            <button class="menu-nav-btn" id="menuGamesBtn">🎮 Mes parties</button>
+            <button class="menu-nav-btn" id="menuRankingsBtn">🏆 Mes classements</button>
+            <button class="menu-nav-btn" id="menuGainsBtn">💰 Mes gains</button>
+            <button class="menu-nav-btn" id="menuWithdrawalsBtn">💸 Mes retraits</button>
+            <button class="menu-nav-btn" id="menuReferralBtn">👥 Parrainage</button>
+            <button class="menu-nav-btn" id="menuChatBtn">💬 Chat</button>
+            <button class="menu-nav-btn" id="menuRulesBtn">📜 Règles</button>
+            <button class="menu-nav-btn" id="menuSettingsBtn">⚙️ Paramètres</button>
+        </div>
+
         <!-- Section Langue -->
         <div class="menu-block">
             <label for="languageSelect">🌐 Langue / Language</label>
@@ -253,21 +270,6 @@
                 <option value="fr">Français</option>
                 <option value="en">English</option>
             </select>
-        </div>
-
-        <!-- Section Règles / Explications -->
-        <div class="menu-block">
-            <h4 data-i18n="rules_title">📖 Comment ça marche ?</h4>
-            <p id="rules_desc" style="font-size: 13px; color: #ccc; line-height: 1.4;" data-i18n="rules_desc">
-                Miltape World Challenge est un jeu de rapidité en ligne. Tape le plus de fois possible en 10 minutes, entre dans le <strong>Top 5</strong> et remporte des gains en USDT (TRC20) versés automatiquement !
-            </p>
-        </div>
-
-        <!-- Section Mentions Légales & Droits -->
-        <div class="menu-block">
-            <h4 data-i18n="legal_menu_title">⚖️ Informations Légales</h4>
-            <button id="openTerms" class="legal-link-btn" data-i18n="terms_link">📜 Conditions d'Utilisation (TOS)</button>
-            <button id="openCopyright" class="legal-link-btn" data-i18n="copyright_link">©️ Droits Réservés & Copyright</button>
         </div>
 
         <!-- Section Confiance & Support / Contact -->
@@ -291,37 +293,24 @@
 
 
 <!-- =====================================================
-     MODALES LÉGALES (CONDITIONS & COPYRIGHT)
+     MODALE GÉNÉRALE POUR LES OPTIONS DU MENU
 ====================================================== -->
-<div id="termsModal" class="legal-modal">
+<div id="dynamicModal" class="legal-modal">
     <div class="legal-content">
-        <button id="closeTerms" class="legal-close">&times;</button>
-        <h3 data-i18n="terms_modal_title">📜 Conditions d'Utilisation</h3>
-        <p data-i18n="terms_p1">1. <strong>Acceptation :</strong> En participant au Miltape World Challenge, vous acceptez sans réserve les présentes conditions d'utilisation.</p>
-        <p data-i18n="terms_p2">2. <strong>Participation et Paiements :</strong> Les frais d'inscription et les participations aux challenges sont traités de manière sécurisée en cryptomonnaie (USDT TRC20) via notre partenaire de paiement NOWPayments.</p>
-        <p data-i18n="terms_p3">3. <strong>Gains et Classement :</strong> Les récompenses sont distribuées automatiquement aux joueurs du Top 5 à la fin du temps réglementaire de chaque session, conformément aux règles affichées sur la plateforme.</p>
-        <p data-i18n="terms_p4">4. <strong>100% Fair-Play :</strong> L'utilisation de bots, scripts de triche ou manipulations logicielles entraînera la disqualification immédiate et définitive du joueur sans remboursement.</p>
-    </div>
-</div>
-
-<div id="copyrightModal" class="legal-modal">
-    <div class="legal-content">
-        <button id="closeCopyright" class="legal-close">&times;</button>
-        <h3 data-i18n="copyright_modal_title">©️ Droits Réservés & Propriété</h3>
-        <p data-i18n="copyright_p1">© 2026 <strong>Miltape World Challenge</strong>. Tous droits réservés.</p>
-        <p data-i18n="copyright_p2">Tous les éléments graphiques, les interfaces, les logos, le code source, les scripts, les textes ainsi que les concepts du jeu *Miltape* sont la propriété exclusive de l'éditeur.</p>
-        <p data-i18n="copyright_p3">Toute reproduction, distribution, modification ou exploitation non autorisée de tout ou partie du contenu de ce site, sous quelque forme que ce soit, est strictement interdite et fera l'objet de poursuites judiciaires.</p>
+        <button id="closeDynamicModal" class="legal-close">&times;</button>
+        <h3 id="dynamicModalTitle">Titre</h3>
+        <div id="dynamicModalBody" style="margin-top: 15px;">
+            <!-- Contenu injecté dynamiquement -->
+        </div>
     </div>
 </div>
 
 
 <div class="app">
 
-
     <!-- =====================================================
          HEADER
     ====================================================== -->
-
     <header class="top-header">
 
         <button
@@ -370,7 +359,6 @@
     <!-- =====================================================
          HERO FUSIONNÉ (IMAGE + TITRE EN HAUT)
     ====================================================== -->
-
     <section class="hero-combined">
 
         <div class="hero-content">
@@ -401,7 +389,6 @@
     <!-- =====================================================
          RÈGLES
     ====================================================== -->
-
     <section class="rules">
 
         <div class="rule">
@@ -461,7 +448,6 @@
     <!-- =====================================================
          TIMER
     ====================================================== -->
-
     <section class="timer-card">
 
         <small data-i18n="timer_title">
@@ -486,7 +472,6 @@
     <!-- =====================================================
          STATISTIQUES (TES TAPS UNIQUEMENT)
     ====================================================== -->
-
     <section class="stats" style="display: flex; justify-content: center;">
 
         <div class="stat-box" style="width: 100%; max-width: 300px;">
@@ -508,7 +493,6 @@
     <!-- =====================================================
          BOUTON JOUER
     ====================================================== -->
-
     <button
         id="enterChallenge"
         class="main-play-button"
@@ -530,7 +514,6 @@
     <!-- =====================================================
          MESSAGE
     ====================================================== -->
-
     <div
         id="tapMessage"
         class="tap-message"
@@ -544,7 +527,6 @@
     <!-- =====================================================
          ZONE TAP
     ====================================================== -->
-
     <section class="tap-zone">
 
         <button
@@ -575,7 +557,6 @@
     <!-- =====================================================
          TOP 5
     ====================================================== -->
-
     <section class="leaderboard">
 
         <div class="section-title">
@@ -609,7 +590,6 @@
     <!-- =====================================================
          CHAT GLOBAL
     ====================================================== -->
-
     <section class="chat-section">
 
         <div class="section-title">
@@ -669,7 +649,6 @@
     <!-- =====================================================
          PARRAINAGE
     ====================================================== -->
-
     <section class="referral">
 
         <div>
@@ -700,7 +679,6 @@
     <!-- =====================================================
          FOOTER
     ====================================================== -->
-
     <footer>
 
         <strong>
@@ -726,7 +704,6 @@
 <!-- =======================================================
      MODAL ENTRÉE (AVEC CHOIX DE MISE & CONDITIONS)
 ======================================================== -->
-
 <div
     id="entryModal"
     class="modal"
@@ -866,24 +843,17 @@
 <!-- =======================================================
      SCRIPT
 ======================================================== -->
-
-<!-- Bibliothèque Socket.io indispensable -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
 <script src="script.js"></script>
 
 
 <script>
 
-// Dictionnaire des traductions enrichi
 const translations = {
     fr: {
         menu_title: "🧭 Menu Miltape",
         rules_title: "📖 Comment ça marche ?",
         rules_desc: "Miltape World Challenge est un jeu de rapidité en ligne. Tape le plus de fois possible en 10 minutes, entre dans le <strong>Top 5</strong> et remporte des gains en USDT (TRC20) versés automatiquement !",
-        legal_menu_title: "⚖️ Informations Légales",
-        terms_link: "📜 Conditions d'Utilisation (TOS)",
-        copyright_link: "©️ Droits Réservés & Copyright",
         support_title: "🛡️ Support & Confiance",
         support_desc: "Une question ? Un problème de paiement ? Contactez-nous :",
         telegram_btn: "📢 Canal Telegram officiel",
@@ -911,28 +881,16 @@ const translations = {
         modal_p1: "Tu vas rejoindre le",
         modal_label_name: "TON PSEUDO :",
         modal_label_crypto: "ADRESSE CRYPTO (USDT TRC20 POUR LES GAINS) :",
-        checkbox_accept_text: "J'accepte les <strong>Conditions d'Utilisation</strong> et certifie avoir pris connaissance des règles et des droits réservés.",
+        checkbox_accept_text: "J'accepte les <strong>Conditions d'Utilisation</strong> et certifie avoir pris connaissance des règles.",
         modal_crypto_payment: "PAIEMENT CRYPTO",
         modal_secure: "Sécurisé par NOWPayments.",
         modal_confirm_btn: "PAYER ET ENTRER 🔥",
-        modal_cancel_btn: "ANNULER",
-        terms_modal_title: "📜 Conditions d'Utilisation",
-        terms_p1: "1. <strong>Acceptation :</strong> En participant au Miltape World Challenge, vous acceptez sans réserve les présentes conditions d'utilisation.",
-        terms_p2: "2. <strong>Participation et Paiements :</strong> Les frais d'inscription et les participations aux challenges sont traités de manière sécurisée en cryptomonnaie (USDT TRC20) via notre partenaire de paiement NOWPayments.",
-        terms_p3: "3. <strong>Gains et Classement :</strong> Les récompenses sont distribuées automatiquement aux joueurs du Top 5 à la fin du temps réglementaire de chaque session, conformément aux règles affichées sur la plateforme.",
-        terms_p4: "4. <strong>100% Fair-Play :</strong> L'utilisation de bots, scripts de triche ou manipulations logicielles entraînera la disqualification immédiate et définitive du joueur sans remboursement.",
-        copyright_modal_title: "©️ Droits Réservés & Propriété",
-        copyright_p1: "© 2026 <strong>Miltape World Challenge</strong>. Tous droits réservés.",
-        copyright_p2: "Tous les éléments graphiques, les interfaces, les logos, le code source, les scripts, les textes ainsi que les concepts du jeu *Miltape* sont la propriété exclusive de l'éditeur.",
-        copyright_p3: "Toute reproduction, distribution, modification ou exploitation non autorisée de tout ou partie du contenu de ce site, sous quelque forme que ce soit, est strictement interdite et fera l'objet de poursuites judiciaires."
+        modal_cancel_btn: "ANNULER"
     },
     en: {
         menu_title: "🧭 Miltape Menu",
         rules_title: "📖 How it works?",
         rules_desc: "Miltape World Challenge is an online speed game. Tap as many times as possible in 10 minutes, make it to the <strong>Top 5</strong> and win automated USDT (TRC20) payouts!",
-        legal_menu_title: "⚖️ Legal Information",
-        terms_link: "📜 Terms of Service (TOS)",
-        copyright_link: "©️ Copyright & Rights Reserved",
         support_title: "🛡️ Support & Trust",
         support_desc: "Any questions? A payment issue? Contact us:",
         telegram_btn: "📢 Official Telegram Channel",
@@ -960,20 +918,11 @@ const translations = {
         modal_p1: "You are about to join the",
         modal_label_name: "YOUR PSEUDO:",
         modal_label_crypto: "CRYPTO ADDRESS (USDT TRC20 FOR PAYOUTS):",
-        checkbox_accept_text: "I accept the <strong>Terms of Service</strong> and confirm I have read the rules and copyright notice.",
+        checkbox_accept_text: "I accept the <strong>Terms of Service</strong> and confirm I have read the rules.",
         modal_crypto_payment: "CRYPTO PAYMENT",
         modal_secure: "Secured by NOWPayments.",
         modal_confirm_btn: "PAY & ENTER 🔥",
-        modal_cancel_btn: "CANCEL",
-        terms_modal_title: "📜 Terms of Service",
-        terms_p1: "1. <strong>Acceptance:</strong> By participating in the Miltape World Challenge, you fully accept these terms of service.",
-        terms_p2: "2. <strong>Participation & Payments:</strong> Challenge entry fees and payments are securely processed in cryptocurrency (USDT TRC20) via NOWPayments.",
-        terms_p3: "3. <strong>Payouts & Ranking:</strong> Rewards are automatically distributed to Top 5 players at the end of each session timer, according to platform rules.",
-        terms_p4: "4. <strong>100% Fair-Play:</strong> The use of bots, cheat scripts, or software manipulation will lead to immediate and permanent disqualification without refunds.",
-        copyright_modal_title: "©️ Copyright & Ownership",
-        copyright_p1: "© 2026 <strong>Miltape World Challenge</strong>. All rights reserved.",
-        copyright_p2: "All graphic assets, interfaces, logos, source code, scripts, text elements, and core concepts of the *Miltape* game are the exclusive property of the publisher.",
-        copyright_p3: "Any unauthorized reproduction, distribution, modification, or exploitation of all or part of this platform's contents in any form is strictly prohibited and subject to legal action."
+        modal_cancel_btn: "CANCEL"
     }
 };
 
@@ -1016,31 +965,60 @@ document.addEventListener(
         if (closeMenu) closeMenu.addEventListener("click", toggleMenu);
         if (menuOverlay) menuOverlay.addEventListener("click", toggleMenu);
 
-        // Gestion des modales légales (Conditions et Copyright)
-        const termsModal = document.getElementById("termsModal");
-        const copyrightModal = document.getElementById("copyrightModal");
-        const openTerms = document.getElementById("openTerms");
-        const openCopyright = document.getElementById("openCopyright");
-        const closeTerms = document.getElementById("closeTerms");
-        const closeCopyright = document.getElementById("closeCopyright");
+        // Gestion de la modale dynamique pour les options du menu
+        const dynamicModal = document.getElementById("dynamicModal");
+        const closeDynamicModal = document.getElementById("closeDynamicModal");
+        const dynamicModalTitle = document.getElementById("dynamicModalTitle");
+        const dynamicModalBody = document.getElementById("dynamicModalBody");
 
-        if (openTerms && termsModal) {
-            openTerms.addEventListener("click", () => termsModal.classList.add("show"));
-        }
-        if (closeTerms && termsModal) {
-            closeTerms.addEventListener("click", () => termsModal.classList.remove("show"));
-        }
-
-        if (openCopyright && copyrightModal) {
-            openCopyright.addEventListener("click", () => copyrightModal.classList.add("show"));
-        }
-        if (closeCopyright && copyrightModal) {
-            closeCopyright.addEventListener("click", () => copyrightModal.classList.remove("show"));
+        function openDynamicModal(title, htmlContent) {
+            if (dynamicModal && dynamicModalTitle && dynamicModalBody) {
+                dynamicModalTitle.textContent = title;
+                dynamicModalBody.innerHTML = htmlContent;
+                dynamicModal.classList.add("show");
+                toggleMenu(); // Fermer le menu latéral
+            }
         }
 
-        window.addEventListener("click", (e) => {
-            if (e.target === termsModal) termsModal.classList.remove("show");
-            if (e.target === copyrightModal) copyrightModal.classList.remove("show");
+        if (closeDynamicModal && dynamicModal) {
+            closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
+            window.addEventListener("click", (e) => {
+                if (e.target === dynamicModal) dynamicModal.classList.remove("show");
+            });
+        }
+
+        // Association des 8 options du menu aux actions correspondantes
+        document.getElementById("menuGamesBtn").addEventListener("click", () => {
+            openDynamicModal("🎮 Mes parties", "<p>Retrouvez l'historique de vos parties jouées, vos scores enregistrés et vos participations validées en USDT.</p>");
+        });
+
+        document.getElementById("menuRankingsBtn").addEventListener("click", () => {
+            openDynamicModal("🏆 Mes classements", "<p>Consultez vos positions historiques dans le Top 5 global et vos qualifications de sessions précédentes.</p>");
+        });
+
+        document.getElementById("menuGainsBtn").addEventListener("click", () => {
+            openDynamicModal("💰 Mes gains", "<p>Visualisez l'ensemble de vos récompenses en USDT acquises lors de vos victoires dans le Top 5.</p>");
+        });
+
+        document.getElementById("menuWithdrawalsBtn").addEventListener("click", () => {
+            openDynamicModal("💸 Mes retraits", "<p>Vos retraits de gains s'effectuent automatiquement vers votre adresse crypto (USDT TRC20) enregistrée dès la fin du challenge.</p>");
+        });
+
+        document.getElementById("menuReferralBtn").addEventListener("click", () => {
+            openDynamicModal("👥 Parrainage", "<p>Partagez votre lien de parrainage unique pour inviter vos amis et faire grandir la communauté Miltape !</p>");
+        });
+
+        document.getElementById("menuChatBtn").addEventListener("click", () => {
+            toggleMenu();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        });
+
+        document.getElementById("menuRulesBtn").addEventListener("click", () => {
+            openDynamicModal("📜 Règles", "<p><strong>Miltape World Challenge</strong> : Tapez un maximum de fois en 10 minutes. À la fin du chrono, les joueurs du <strong>Top 5</strong> remportent automatiquement les gains de la cagnotte reversés en USDT (TRC20).</p>");
+        });
+
+        document.getElementById("menuSettingsBtn").addEventListener("click", () => {
+            openDynamicModal("⚙️ Paramètres", "<p>Gérez vos préférences de jeu, votre pseudo enregistré et votre adresse de portefeuille USDT TRC20 par défaut.</p>");
         });
 
         // Gestion de la langue au démarrage
@@ -1080,7 +1058,6 @@ document.addEventListener(
             });
         }
 
-        // Gestion de l'activation du bouton selon la case à cocher
         const acceptTermsCheckbox = document.getElementById("acceptTermsCheckbox");
         const confirmButton = document.getElementById("confirmBetButton");
 
@@ -1090,7 +1067,6 @@ document.addEventListener(
             });
         }
 
-        // Gestion ou création d'un ID unique joueur persistant
         let playerId = localStorage.getItem("miltape_player_id");
         if (!playerId) {
             playerId = 'player_' + Math.random().toString(36).substring(2, 11);
@@ -1109,7 +1085,6 @@ document.addEventListener(
             cryptoInput.value = savedCrypto;
         }
 
-        // Bouton de confirmation de paiement et d'entrée
         if (confirmButton) {
             confirmButton.addEventListener("click", async function () {
                 if (acceptTermsCheckbox && !acceptTermsCheckbox.checked) {
@@ -1138,7 +1113,6 @@ document.addEventListener(
                 confirmButton.disabled = true;
 
                 try {
-                    // 1. Enregistrement / Jointure dans la partie avec l'adresse crypto
                     const joinRes = await fetch(`${BACKEND_URL}/api/join`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -1153,7 +1127,6 @@ document.addEventListener(
                         return;
                     }
 
-                    // 2. Création de la facture NOWPayments
                     const payRes = await fetch(`${BACKEND_URL}/api/create-payment`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -1162,7 +1135,6 @@ document.addEventListener(
                     const payData = await payRes.json();
 
                     if (payData.success && payData.invoice_url) {
-                        // Redirection vers la page de paiement officielle NOWPayments
                         window.location.href = payData.invoice_url;
                     } else {
                         alert("Erreur de paiement : " + (payData.error || "Inconnue"));
