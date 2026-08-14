@@ -68,10 +68,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================================================
+       FONCTIONS UTILITAIRES
+    ========================================================= */
+    function updateScoreDisplays(value) {
+        if (tapCountDisplay) tapCountDisplay.textContent = value;
+        if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = value;
+        if (headerScore) headerScore.textContent = value;
+        if (statTaps) statTaps.textContent = value;
+        if (statTotal) statTotal.textContent = value;
+    }
+
+    function escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /* =========================================================
        1. GESTION DES BOUTONS WALLET & PAIEMENT
     ========================================================= */
     const handleWalletAction = async () => {
-        // Vérification présence de TronWeb (navigateurs DApp comme TronLink / Trust)
         if (window.tronWeb && window.tronWeb.ready) {
             try {
                 const userAddress = window.tronWeb.defaultAddress.base58;
@@ -80,7 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Erreur de connexion wallet:", err);
             }
         } else {
-            // Fallback pour navigateurs classiques (Copie presse-papier)
             try {
                 await navigator.clipboard.writeText(USDT_TRON_ADDRESS);
                 alert(
@@ -138,12 +156,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Reinitialisation lors d'une nouvelle partie
+    socket.on("newGame", () => {
+        localTaps = 0;
+        updateScoreDisplays(0);
+        if (tapMessage) tapMessage.textContent = "🔥 NOUVELLE PARTIE !";
+    });
+
     // Minuteur
     socket.on("timer", (timeLeft) => {
         if (timerDisplay) {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+            const seconds = Math.max(0, Number(timeLeft) || 0);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
         }
     });
 
@@ -229,12 +255,8 @@ document.addEventListener("DOMContentLoaded", () => {
         tapButton.addEventListener("click", () => {
             localTaps++;
 
-            // Mise à jour de tous les affichages du score
-            if (tapCountDisplay) tapCountDisplay.textContent = localTaps;
-            if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = localTaps;
-            if (headerScore) headerScore.textContent = localTaps;
-            if (statTaps) statTaps.textContent = localTaps;
-            if (statTotal) statTotal.textContent = localTaps;
+            // Mise à jour visuelle des scores
+            updateScoreDisplays(localTaps);
 
             // Animation visuelle
             tapButton.classList.add("tap-active");
@@ -243,17 +265,5 @@ document.addEventListener("DOMContentLoaded", () => {
             // Envoi au serveur
             socket.emit("tap", { playerId, playerName, taps: 1 });
         });
-    }
-
-    /* =========================================================
-       FONCTION UTILITAIRE (SÉCURITÉ)
-    ========================================================= */
-    function escapeHTML(str) {
-        return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
     }
 });
