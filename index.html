@@ -74,12 +74,138 @@
             letter-spacing: 1px;
             text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
         }
+
+        /* Styles pour le menu latéral (3 traits) */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 280px;
+            height: 100%;
+            background: #0f051d;
+            border-right: 1px solid rgba(255, 204, 0, 0.2);
+            z-index: 1000;
+            transition: left 0.3s ease-in-out;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .side-menu.show {
+            left: 0;
+        }
+        .close-menu {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            float: right;
+        }
+        .side-menu-content {
+            margin-top: 40px;
+        }
+        .side-menu-content h3 {
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+        .menu-block {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 10px;
+        }
+        .menu-block label, .menu-block h4 {
+            display: block;
+            font-size: 13px;
+            color: #ffcc00;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .menu-block select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #444;
+        }
+        .trust-contact-box {
+            border-left: 3px solid #2ecc71;
+        }
+        .support-link {
+            display: inline-block;
+            padding: 8px 12px;
+            background: #0088cc;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        /* Fond sombre semi-transparent */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 999;
+        }
+        .menu-overlay.show {
+            display: block;
+        }
     </style>
 
 </head>
 
 
 <body>
+
+<!-- =====================================================
+     MENU LATÉRAL (LES 3 TRAITS)
+====================================================== -->
+<div id="sideMenu" class="side-menu">
+    <button id="closeMenu" class="close-menu" type="button">&times;</button>
+    
+    <div class="side-menu-content">
+        <h3>🧭 Menu Miltape</h3>
+        
+        <!-- Section Langue -->
+        <div class="menu-block">
+            <label for="languageSelect">🌐 Langue / Language</label>
+            <select id="languageSelect">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+
+        <!-- Section Règles / Explications -->
+        <div class="menu-block">
+            <h4>📖 Comment ça marche ?</h4>
+            <p style="font-size: 13px; color: #ccc; line-height: 1.4;">
+                Miltape World Challenge est un jeu de rapidité en ligne. Tape le plus de fois possible en 10 minutes, entre dans le <strong>Top 5</strong> et remporte des gains en USDT (TRC20) versés automatiquement !
+            </p>
+        </div>
+
+        <!-- Section Confiance & Support / Contact -->
+        <div class="menu-block trust-contact-box">
+            <h4>🛡️ Support & Confiance</h4>
+            <p style="font-size: 12px; color: #b8b8b8; margin-bottom: 8px;">
+                Une question ? Un problème de paiement ? Contactez-nous :
+            </p>
+            <a href="https://t.me/ton_canal_telegram" target="_blank" class="support-link tg-btn">
+                📢 Canal Telegram officiel
+            </a>
+            <div style="margin-top: 8px; font-size: 12px; color: #ffcc00;">
+                📧 support@miltape.com
+            </div>
+        </div>
+    </div>
+</div>
+<div id="menuOverlay" class="menu-overlay"></div>
+
 
 <div class="app">
 
@@ -655,6 +781,23 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
+        // Gestion du menu latéral (3 traits)
+        const menuButton = document.getElementById("menuButton");
+        const sideMenu = document.getElementById("sideMenu");
+        const menuOverlay = document.getElementById("menuOverlay");
+        const closeMenu = document.getElementById("closeMenu");
+
+        function toggleMenu() {
+            if (sideMenu && menuOverlay) {
+                sideMenu.classList.toggle("show");
+                menuOverlay.classList.toggle("show");
+            }
+        }
+
+        if (menuButton) menuButton.addEventListener("click", toggleMenu);
+        if (closeMenu) closeMenu.addEventListener("click", toggleMenu);
+        if (menuOverlay) menuOverlay.addEventListener("click", toggleMenu);
 
         const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
 
