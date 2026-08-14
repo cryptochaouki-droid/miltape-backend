@@ -1,6 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
-    const socket = io(BACKEND_URL);
+    
+    // Connexion Socket.io avec options de reconnexion automatique pour ne pas bloquer le chrono/chat
+    const socket = io(BACKEND_URL, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        timeout: 20000
+    });
 
     // Éléments du DOM
     const timerDisplay = document.getElementById("timer");
@@ -34,6 +41,21 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
     }
 
+    // --- Gestion de la connexion Socket ---
+    socket.on("connect", () => {
+        console.log("Connecté au serveur WebSocket ! ID:", socket.id);
+        if (tapMessage && !playerId) {
+            tapMessage.textContent = "🟢 Connecté au serveur";
+        }
+    });
+
+    socket.on("connect_error", (err) => {
+        console.error("Erreur de connexion WebSocket :", err);
+        if (tapMessage) {
+            tapMessage.textContent = "🔴 Connexion au serveur perdue...";
+        }
+    });
+
     // --- Fonction d'aide pour ouvrir la modale ---
     function openDynamicModal(title, htmlContent) {
         if (dynamicModal && modalContent) {
@@ -44,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Fonctions existantes ---
+    // --- Charger le total des mises ---
     async function loadTotalStakes() {
         try {
             const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
@@ -60,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTotalStakes();
     setInterval(loadTotalStakes, 15000);
 
-    // --- Nouvelle fonction : Charger les stats du joueur avec gestion d'erreur ---
+    // --- Charger les stats du joueur avec gestion d'erreur ---
     async function loadPlayerStats() {
         if (!playerId) {
             alert("Tu dois d'abord participer à un challenge !");
