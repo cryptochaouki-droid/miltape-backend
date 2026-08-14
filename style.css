@@ -1265,39 +1265,6 @@ footer small {
     font-size: 18px;
 }
 
-.demo-warning {
-
-    padding: 10px;
-
-    margin-bottom: 12px;
-
-    border-radius: 12px;
-
-    background:
-        rgba(61,255,154,.06);
-
-    border:
-        1px solid
-        rgba(61,255,154,.16);
-
-    color: var(--green);
-
-    font-size: 10px;
-
-    font-weight: 900;
-}
-
-.demo-warning small {
-
-    display: block;
-
-    margin-top: 4px;
-
-    color: var(--muted);
-
-    font-weight: normal;
-}
-
 .confirm-button {
 
     width: 100%;
