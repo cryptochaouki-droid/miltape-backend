@@ -5,15 +5,21 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 /* =========================================================
-   APP
-========================================================= */
+   MILTAPE WORLD CHALLENGE - BACKEND
+   ========================================================= */
 
 const app = express();
+const server = http.createServer(app);
+
+/* =========================================================
+   CORS
+   ========================================================= */
 
 app.use(
     cors({
         origin: "*",
-        methods: ["GET", "POST", "OPTIONS"]
+        methods: ["GET", "POST", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"]
     })
 );
 
@@ -23,7 +29,9 @@ app.use(
     })
 );
 
-const server = http.createServer(app);
+/* =========================================================
+   SOCKET.IO
+   ========================================================= */
 
 const io = new Server(server, {
     cors: {
@@ -34,10 +42,9 @@ const io = new Server(server, {
 
 /* =========================================================
    CONFIGURATION
-========================================================= */
+   ========================================================= */
 
-const PORT =
-    Number(process.env.PORT) || 8080;
+const PORT = Number(process.env.PORT) || 8080;
 
 const MONGO_URI =
     process.env.MONGO_URI || "";
@@ -46,8 +53,8 @@ const TRONGRID_API_KEY =
     process.env.TRONGRID_API_KEY || "";
 
 /*
- * Miltape
- * 10 minutes par partie
+ * Durée d'une partie :
+ * 10 minutes = 600 secondes
  */
 const GAME_DURATION = 600;
 
@@ -64,7 +71,7 @@ const USDT_CONTRACT =
     "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
 /*
- * USDT = 6 décimales
+ * USDT possède 6 décimales
  */
 const USDT_DECIMALS = 6;
 
@@ -73,115 +80,75 @@ const TOKEN = "USDT";
 const CHAIN = "TRC20";
 
 /*
- * Mise libre.
- *
- * La mise doit être strictement > 0.
+ * Mise minimale :
+ * strictement supérieure à 0.
  */
 const MINIMUM_BET = 0;
 
 /*
- * Aucun maximum imposé.
+ * Pas de maximum.
  */
 const MAXIMUM_BET = null;
 
 /*
- * Top 5
+ * Nombre de gagnants :
+ * TOP 5
  */
 const TOP_WINNERS = 5;
 
 /*
- * Anti-spam TAP.
- *
- * Un joueur peut envoyer jusqu'à
- * MAX_TAPS_PER_SECOND taps/seconde.
- *
- * Le serveur ignore les taps supplémentaires.
+ * Anti-spam :
+ * maximum 25 taps/seconde.
  */
 const MAX_TAPS_PER_SECOND = 25;
 
-/*
- * Nombre maximum de connexions simultanées
- * pour un même joueur.
- */
-const MAX_CONNECTIONS_PER_PLAYER = 1;
+/* =========================================================
+   ETAT DU SERVEUR
+   ========================================================= */
 
 let mongoConnected = false;
 
 /*
- * Partie actuelle.
+ * Numéro de la partie actuelle.
  */
 let gameId = 1;
 
 /*
- * Timer.
+ * Temps restant.
  */
 let timerLeft = GAME_DURATION;
 
 /*
- * Joueurs actuellement connectés.
+ * Joueurs actuellement autorisés.
  *
  * playerId -> socketId
  */
 const activePlayers = new Map();
 
 /*
- * Anti-spam.
+ * Anti-spam :
  *
  * playerId -> {
- *   startedAt,
- *   count
+ *     startedAt,
+ *     count
  * }
  */
 const tapRate = new Map();
 
 /* =========================================================
    LOGS
-========================================================= */
+   ========================================================= */
 
 console.log("======================================");
 console.log("🔥 MILTAPE WORLD CHALLENGE BACKEND");
 console.log("======================================");
 
 console.log("Port :", PORT);
-
-console.log(
-    "Partie :",
-    GAME_DURATION / 60,
-    "minutes"
-);
-
-console.log(
-    "Réseau :",
-    NETWORK
-);
-
-console.log(
-    "Token :",
-    TOKEN
-);
-
-console.log(
-    "Standard :",
-    CHAIN
-);
-
-console.log(
-    "Wallet :",
-    MILTAPE_WALLET
-);
-
-console.log(
-    "Minimum mise :",
-    MINIMUM_BET,
-    "USDT"
-);
-
-console.log(
-    "Maximum mise :",
-    MAXIMUM_BET === null
-        ? "AUCUN"
-        : MAXIMUM_BET + " USDT"
-);
+console.log("Durée :", GAME_DURATION, "secondes");
+console.log("Réseau :", NETWORK);
+console.log("Token :", TOKEN);
+console.log("Standard :", CHAIN);
+console.log("Wallet :", MILTAPE_WALLET);
 
 console.log(
     "TronGrid API Key :",
@@ -200,118 +167,95 @@ console.log(
 console.log("======================================");
 
 /* =========================================================
-   MONGODB SCHEMA
-========================================================= */
+   SCHEMA PLAYER
+   ========================================================= */
 
-const playerSchema =
-    new mongoose.Schema(
-        {
-            playerId: {
-                type: String,
-                required: true,
-                index: true,
-                trim: true,
-                maxlength: 100
-            },
-
-            playerName: {
-                type: String,
-                default: "Anonyme",
-                trim: true,
-                maxlength: 30
-            },
-
-            /*
-             * Score actuel.
-             */
-            score: {
-                type: Number,
-                default: 0,
-                min: 0
-            },
-
-            /*
-             * Mise USDT.
-             */
-            amount: {
-                type: Number,
-                required: true,
-                min: 0
-            },
-
-            /*
-             * Wallet joueur.
-             */
-            cryptoAddress: {
-                type: String,
-                default: "",
-                trim: true,
-                maxlength: 64
-            },
-
-            /*
-             * TX blockchain.
-             *
-             * IMPORTANT :
-             * pas de valeur "" par défaut.
-             *
-             * Cela évite les conflits
-             * avec l'index unique.
-             */
-            transactionHash: {
-                type: String,
-                trim: true,
-                maxlength: 100,
-                index: true,
-                default: undefined
-            },
-
-            /*
-             * pending
-             * paid
-             * rejected
-             */
-            paymentStatus: {
-                type: String,
-                enum: [
-                    "pending",
-                    "paid",
-                    "rejected"
-                ],
-                default: "pending",
-                index: true
-            },
-
-            /*
-             * Partie.
-             */
-            gameId: {
-                type: Number,
-                required: true,
-                index: true
-            },
-
-            createdAt: {
-                type: Date,
-                default: Date.now
-            },
-
-            paidAt: {
-                type: Date,
-                default: null
-            }
+const playerSchema = new mongoose.Schema(
+    {
+        playerId: {
+            type: String,
+            required: true,
+            trim: true,
+            maxlength: 100,
+            index: true
         },
-        {
-            versionKey: false
+
+        playerName: {
+            type: String,
+            default: "Anonyme",
+            trim: true,
+            maxlength: 30
+        },
+
+        score: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+
+        amount: {
+            type: Number,
+            required: true,
+            min: 0
+        },
+
+        cryptoAddress: {
+            type: String,
+            default: "",
+            trim: true,
+            maxlength: 64
+        },
+
+        /*
+         * IMPORTANT :
+         * Pas d'index ici.
+         * L'index unique sparse est créé plus bas.
+         */
+        transactionHash: {
+            type: String,
+            trim: true,
+            maxlength: 100,
+            default: undefined
+        },
+
+        paymentStatus: {
+            type: String,
+            enum: [
+                "pending",
+                "paid",
+                "rejected"
+            ],
+            default: "pending",
+            index: true
+        },
+
+        gameId: {
+            type: Number,
+            required: true,
+            index: true
+        },
+
+        createdAt: {
+            type: Date,
+            default: Date.now
+        },
+
+        paidAt: {
+            type: Date,
+            default: null
         }
-    );
+    },
+    {
+        versionKey: false
+    }
+);
 
 /*
  * Une transaction blockchain
- * ne peut être utilisée qu'une fois.
+ * ne peut être utilisée qu'une seule fois.
  *
- * sparse = les documents sans TXID
- * ne sont pas indexés.
+ * sparse = les documents sans transactionHash
+ * ne sont pas considérés.
  */
 playerSchema.index(
     {
@@ -319,28 +263,33 @@ playerSchema.index(
     },
     {
         unique: true,
-        sparse: true
+        sparse: true,
+        name: "unique_transaction_hash"
     }
 );
 
 /*
- * Index utile pour le classement.
+ * Index classement.
  */
-playerSchema.index({
-    gameId: 1,
-    paymentStatus: 1,
-    score: -1
-});
+playerSchema.index(
+    {
+        gameId: 1,
+        paymentStatus: 1,
+        score: -1
+    },
+    {
+        name: "game_payment_score"
+    }
+);
 
-const Player =
-    mongoose.model(
-        "Player",
-        playerSchema
-    );
+const Player = mongoose.model(
+    "Player",
+    playerSchema
+);
 
 /* =========================================================
-   MONGODB CONNECTION
-========================================================= */
+   CONNEXION MONGODB
+   ========================================================= */
 
 async function connectMongoDB() {
 
@@ -354,7 +303,7 @@ async function connectMongoDB() {
             "Railway > Variables > MONGO_URI"
         );
 
-        return;
+        return false;
     }
 
     try {
@@ -372,6 +321,8 @@ async function connectMongoDB() {
             "✅ MongoDB connecté"
         );
 
+        return true;
+
     } catch (error) {
 
         mongoConnected = false;
@@ -380,6 +331,8 @@ async function connectMongoDB() {
             "❌ MongoDB :",
             error.message
         );
+
+        return false;
     }
 }
 
@@ -387,7 +340,7 @@ connectMongoDB();
 
 /* =========================================================
    UTILITAIRES
-========================================================= */
+   ========================================================= */
 
 function cleanString(
     value,
@@ -398,126 +351,94 @@ function cleanString(
         value ?? ""
     )
         .trim()
-        .substring(
-            0,
-            maxLength
-        );
+        .substring(0, maxLength);
 }
 
-/*
- * Adresse TRON Base58.
- */
-function isValidTronAddress(
-    address
-) {
+/* =========================================================
+   VALIDATION ADRESSE TRON
+   ========================================================= */
+
+function isValidTronAddress(address) {
 
     const value =
-        cleanString(
-            address,
-            64
-        );
+        cleanString(address, 64);
 
-    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/
-        .test(value);
+    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(
+        value
+    );
 }
 
-/*
- * TXID TRON.
- *
- * Un TXID normal = 64 caractères hexadécimaux.
- */
-function isValidTxid(
-    txid
-) {
+/* =========================================================
+   VALIDATION TXID
+   ========================================================= */
+
+function isValidTxid(txid) {
 
     const value =
-        cleanString(
-            txid,
-            100
-        );
+        cleanString(txid, 100);
 
-    return /^[a-fA-F0-9]{64}$/
-        .test(value);
+    return /^[a-fA-F0-9]{64}$/.test(
+        value
+    );
 }
 
-/*
- * USDT -> unités blockchain.
- */
-function usdtToUnits(
-    amount
-) {
+/* =========================================================
+   USDT -> UNITÉS
+   ========================================================= */
+
+function usdtToUnits(amount) {
 
     return Math.round(
         Number(amount) *
-        Math.pow(
-            10,
-            USDT_DECIMALS
-        )
+        Math.pow(10, USDT_DECIMALS)
     );
 }
 
-/*
- * unités -> USDT.
- */
-function unitsToUsdt(
-    units
-) {
+/* =========================================================
+   UNITÉS -> USDT
+   ========================================================= */
+
+function unitsToUsdt(units) {
 
     return (
         Number(units) /
-        Math.pow(
-            10,
-            USDT_DECIMALS
-        )
+        Math.pow(10, USDT_DECIMALS)
     );
 }
 
-/*
- * Montant valide.
- */
-function isValidBet(
-    amount
-) {
+/* =========================================================
+   VALIDATION MISE
+   ========================================================= */
+
+function isValidBet(amount) {
 
     const numeric =
         Number(amount);
 
     if (
-        !Number.isFinite(
-            numeric
-        )
+        !Number.isFinite(numeric)
     ) {
         return false;
     }
 
     if (
-        numeric <=
-        MINIMUM_BET
+        numeric <= MINIMUM_BET
     ) {
         return false;
     }
 
     if (
         MAXIMUM_BET !== null &&
-        numeric >
-        MAXIMUM_BET
+        numeric > MAXIMUM_BET
     ) {
         return false;
     }
 
-    /*
-     * Maximum 6 décimales
-     * car USDT TRC20 = 6 décimales.
-     */
     const units =
-        usdtToUnits(
-            numeric
-        );
+        usdtToUnits(numeric);
 
     if (
-        !Number.isSafeInteger(
-            units
-        )
+        !Number.isSafeInteger(units)
     ) {
         return false;
     }
@@ -525,14 +446,14 @@ function isValidBet(
     return true;
 }
 
-/*
- * Headers TronGrid.
- */
+/* =========================================================
+   HEADERS TRONGRID
+   ========================================================= */
+
 function tronHeaders() {
 
     const headers = {
-        "Accept":
-            "application/json"
+        Accept: "application/json"
     };
 
     if (TRONGRID_API_KEY) {
@@ -545,9 +466,10 @@ function tronHeaders() {
     return headers;
 }
 
-/*
- * Réponse JSON sécurisée.
- */
+/* =========================================================
+   FETCH JSON
+   ========================================================= */
+
 async function fetchJson(
     url,
     options = {}
@@ -584,8 +506,8 @@ async function fetchJson(
 }
 
 /* =========================================================
-   ROUTE PRINCIPALE
-========================================================= */
+   PAGE PRINCIPALE
+   ========================================================= */
 
 app.get(
     "/",
@@ -604,10 +526,10 @@ app.get(
             mongo:
                 mongoConnected,
 
+            gameId,
+
             gameDuration:
                 GAME_DURATION,
-
-            gameId,
 
             timerLeft,
 
@@ -643,7 +565,7 @@ app.get(
 
 /* =========================================================
    STATUS
-========================================================= */
+   ========================================================= */
 
 app.get(
     "/api/status",
@@ -660,12 +582,12 @@ app.get(
             mongo:
                 mongoConnected,
 
-            gameDuration:
-                GAME_DURATION,
-
             gameId,
 
             timerLeft,
+
+            gameDuration:
+                GAME_DURATION,
 
             payment: {
 
@@ -699,7 +621,7 @@ app.get(
 
 /* =========================================================
    GAME CONFIG
-========================================================= */
+   ========================================================= */
 
 app.get(
     "/api/game-config",
@@ -756,7 +678,7 @@ app.get(
 
 /* =========================================================
    TOTAL STAKES
-========================================================= */
+   ========================================================= */
 
 app.get(
     "/api/total-stakes",
@@ -781,7 +703,6 @@ app.get(
 
                     {
                         $match: {
-
                             paymentStatus:
                                 "paid"
                         }
@@ -789,9 +710,7 @@ app.get(
 
                     {
                         $group: {
-
-                            _id:
-                                null,
+                            _id: null,
 
                             total: {
                                 $sum:
@@ -801,22 +720,21 @@ app.get(
                     }
                 ]);
 
-            const totalStakes =
+            const total =
                 result.length
                     ? Number(
-                        result[0]
-                            .total || 0
+                        result[0].total || 0
                     )
                     : 0;
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
 
                 totalStakes:
                     Number(
-                        totalStakes.toFixed(6)
+                        total.toFixed(6)
                     )
             });
 
@@ -827,7 +745,7 @@ app.get(
                 error.message
             );
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -844,7 +762,7 @@ app.get(
 
 /* =========================================================
    PLAYER STATS
-========================================================= */
+   ========================================================= */
 
 app.get(
     "/api/player-stats/:playerId",
@@ -930,7 +848,7 @@ app.get(
                     0
                 );
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
@@ -975,7 +893,7 @@ app.get(
                 error.message
             );
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -989,7 +907,7 @@ app.get(
 
 /* =========================================================
    LEADERBOARD
-========================================================= */
+   ========================================================= */
 
 async function getLeaderboard() {
 
@@ -1011,21 +929,13 @@ async function getLeaderboard() {
             },
 
             {
-                $sort: {
-
-                    createdAt:
-                        1
-                }
-            },
-
-            {
                 $group: {
 
                     _id:
                         "$playerId",
 
                     playerName: {
-                        $last:
+                        $first:
                             "$playerName"
                     },
 
@@ -1061,6 +971,10 @@ async function getLeaderboard() {
     return players;
 }
 
+/* =========================================================
+   BROADCAST LEADERBOARD
+   ========================================================= */
+
 async function broadcastLeaderboard() {
 
     try {
@@ -1089,7 +1003,7 @@ async function broadcastLeaderboard() {
 
 /* =========================================================
    CREATE ENTRY
-========================================================= */
+   ========================================================= */
 
 app.post(
     "/api/create-entry",
@@ -1200,9 +1114,6 @@ app.post(
                 });
             }
 
-            /*
-             * TXID déjà utilisé.
-             */
             if (transactionHash) {
 
                 const existing =
@@ -1245,10 +1156,6 @@ app.post(
                 gameId
             };
 
-            /*
-             * Ajouter le TXID uniquement
-             * s'il existe.
-             */
             if (transactionHash) {
 
                 document.transactionHash =
@@ -1260,15 +1167,13 @@ app.post(
                     document
                 );
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
 
                 entryId:
-                    String(
-                        player._id
-                    ),
+                    String(player._id),
 
                 gameId,
 
@@ -1307,7 +1212,7 @@ app.post(
                 error.message
             );
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -1321,7 +1226,7 @@ app.post(
 
 /* =========================================================
    SUBMIT TRANSACTION
-========================================================= */
+   ========================================================= */
 
 app.post(
     "/api/submit-transaction",
@@ -1442,7 +1347,7 @@ app.post(
 
             await player.save();
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
@@ -1461,7 +1366,7 @@ app.post(
                 error.message
             );
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -1475,7 +1380,7 @@ app.post(
 
 /* =========================================================
    VERIFY PAYMENT
-========================================================= */
+   ========================================================= */
 
 app.post(
     "/api/verify-payment",
@@ -1558,9 +1463,7 @@ app.post(
             }
 
             if (
-                !isValidTxid(
-                    txid
-                )
+                !isValidTxid(txid)
             ) {
 
                 return res.status(400).json({
@@ -1614,13 +1517,6 @@ app.post(
                TRONGRID
             ------------------------------------------------- */
 
-            /*
-             * On demande directement les événements
-             * de cette transaction.
-             *
-             * only_confirmed=true :
-             * uniquement les transactions confirmées.
-             */
             const eventsUrl =
                 "https://api.trongrid.io/v1/transactions/" +
                 encodeURIComponent(txid) +
@@ -1638,14 +1534,11 @@ app.post(
                     eventsUrl
                 );
 
-            if (
-                !eventResponse.ok
-            ) {
+            if (!eventResponse.ok) {
 
                 console.error(
-                    "TronGrid events HTTP:",
-                    eventResponse.status,
-                    eventData
+                    "TronGrid HTTP:",
+                    eventResponse.status
                 );
 
                 return res.status(400).json({
@@ -1670,34 +1563,24 @@ app.post(
                     : [];
 
             /* -------------------------------------------------
-               RECHERCHE DU TRANSFERT USDT EXACT
+               RECHERCHE TRANSFERT USDT
             ------------------------------------------------- */
 
             const expectedUnits =
-                usdtToUnits(
-                    amount
-                );
+                usdtToUnits(amount);
 
             const paymentEvent =
                 events.find(
                     event => {
 
-                        /*
-                         * Event TRC20 Transfer.
-                         */
                         if (
                             String(
                                 event.type || ""
-                            ) !==
-                            "Transfer"
+                            ) !== "Transfer"
                         ) {
-
                             return false;
                         }
 
-                        /*
-                         * Contrat USDT officiel.
-                         */
                         if (
                             String(
                                 event.token_info?.address ||
@@ -1705,13 +1588,9 @@ app.post(
                             ) !==
                             USDT_CONTRACT
                         ) {
-
                             return false;
                         }
 
-                        /*
-                         * Wallet expéditeur.
-                         */
                         if (
                             String(
                                 event.result?.from ||
@@ -1719,13 +1598,9 @@ app.post(
                             ) !==
                             walletAddress
                         ) {
-
                             return false;
                         }
 
-                        /*
-                         * Wallet Miltape.
-                         */
                         if (
                             String(
                                 event.result?.to ||
@@ -1733,13 +1608,9 @@ app.post(
                             ) !==
                             MILTAPE_WALLET
                         ) {
-
                             return false;
                         }
 
-                        /*
-                         * Montant exact.
-                         */
                         const eventAmount =
                             String(
                                 event.result?.value ||
@@ -1748,17 +1619,11 @@ app.post(
 
                         if (
                             eventAmount !==
-                            String(
-                                expectedUnits
-                            )
+                            String(expectedUnits)
                         ) {
-
                             return false;
                         }
 
-                        /*
-                         * Tout correspond.
-                         */
                         return true;
                     }
                 );
@@ -1783,13 +1648,9 @@ app.post(
             }
 
             /* -------------------------------------------------
-               PROTECTION SUPPLÉMENTAIRE
+               VÉRIFICATION TXID
             ------------------------------------------------- */
 
-            /*
-             * Vérifier que l'événement possède
-             * bien un TXID correspondant.
-             */
             if (
                 paymentEvent.transaction_id &&
                 String(
@@ -1808,48 +1669,72 @@ app.post(
             }
 
             /* -------------------------------------------------
-               CRÉATION DE L'ENTRÉE PAYÉE
+               CRÉATION ENTRÉE PAYÉE
             ------------------------------------------------- */
 
-            const player =
-                await Player.create({
+            let player;
 
-                    playerId,
+            try {
 
-                    playerName,
+                player =
+                    await Player.create({
 
-                    score:
-                        0,
+                        playerId,
 
-                    amount:
-                        Number(
-                            amount.toFixed(6)
-                        ),
+                        playerName,
 
-                    cryptoAddress:
-                        walletAddress,
+                        score:
+                            0,
 
-                    transactionHash:
-                        txid,
+                        amount:
+                            Number(
+                                amount.toFixed(6)
+                            ),
 
-                    paymentStatus:
-                        "paid",
+                        cryptoAddress:
+                            walletAddress,
 
-                    gameId,
+                        transactionHash:
+                            txid,
 
-                    paidAt:
-                        new Date()
-                });
+                        paymentStatus:
+                            "paid",
+
+                        gameId,
+
+                        paidAt:
+                            new Date()
+                    });
+
+            } catch (createError) {
+
+                /*
+                 * Protection contre deux validations
+                 * simultanées du même TXID.
+                 */
+                if (
+                    createError?.code === 11000
+                ) {
+
+                    return res.status(409).json({
+
+                        success:
+                            false,
+
+                        error:
+                            "TRANSACTION_ALREADY_USED"
+                    });
+                }
+
+                throw createError;
+            }
 
             /* -------------------------------------------------
-               LEADERBOARD
+               MISE À JOUR CLASSEMENT
             ------------------------------------------------- */
 
             await broadcastLeaderboard();
 
-            /*
-             * Total des mises modifié.
-             */
             io.emit(
                 "stakesUpdated"
             );
@@ -1858,7 +1743,7 @@ app.post(
                RÉPONSE
             ------------------------------------------------- */
 
-            res.json({
+            return res.json({
 
                 success:
                     true,
@@ -1867,9 +1752,7 @@ app.post(
                     "paid",
 
                 entryId:
-                    String(
-                        player._id
-                    ),
+                    String(player._id),
 
                 gameId,
 
@@ -1911,7 +1794,7 @@ app.post(
                 error.message
             );
 
-            res.status(500).json({
+            return res.status(500).json({
 
                 success:
                     false,
@@ -1928,7 +1811,7 @@ app.post(
 
 /* =========================================================
    SOCKET.IO
-========================================================= */
+   ========================================================= */
 
 io.on(
     "connection",
@@ -1940,7 +1823,7 @@ io.on(
         );
 
         /*
-         * Timer immédiat.
+         * Envoyer immédiatement le timer.
          */
         socket.emit(
             "timer",
@@ -1948,7 +1831,7 @@ io.on(
         );
 
         /*
-         * Infos partie.
+         * Informations partie.
          */
         socket.emit(
             "gameInfo",
@@ -1960,7 +1843,7 @@ io.on(
         );
 
         /*
-         * Classement immédiat.
+         * Classement.
          */
         getLeaderboard()
             .then(
@@ -1983,8 +1866,8 @@ io.on(
             );
 
         /* =====================================================
-           JOIN
-        ===================================================== */
+           JOIN SIMPLE
+           ===================================================== */
 
         socket.on(
             "join",
@@ -2009,6 +1892,10 @@ io.on(
                             30
                         );
 
+                    if (!playerId) {
+                        return;
+                    }
+
                     socket.data.playerId =
                         playerId;
 
@@ -2017,8 +1904,7 @@ io.on(
 
                     io.emit(
                         "onlineCount",
-                        io.engine
-                            .clientsCount
+                        io.engine.clientsCount
                     );
 
                     await broadcastLeaderboard();
@@ -2035,7 +1921,7 @@ io.on(
 
         /* =====================================================
            JOIN PAID GAME
-        ===================================================== */
+           ===================================================== */
 
         socket.on(
             "joinPaidGame",
@@ -2075,9 +1961,7 @@ io.on(
                         );
 
                     if (
-                        !isValidTxid(
-                            txid
-                        )
+                        !isValidTxid(txid)
                     ) {
 
                         socket.emit(
@@ -2110,9 +1994,6 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Vérification MongoDB.
-                     */
                     const player =
                         await Player.findOne({
 
@@ -2144,8 +2025,8 @@ io.on(
                     }
 
                     /*
-                     * Empêcher plusieurs sockets
-                     * pour le même joueur.
+                     * Un seul appareil/socket
+                     * par joueur.
                      */
                     const existingSocket =
                         activePlayers.get(
@@ -2172,9 +2053,6 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Vérifier limite.
-                     */
                     activePlayers.set(
                         playerId,
                         socket.id
@@ -2195,6 +2073,14 @@ io.on(
                     socket.data.txid =
                         player.transactionHash;
 
+                    socket.data.entryId =
+                        String(player._id);
+
+                    socket.data.score =
+                        Number(
+                            player.score || 0
+                        );
+
                     socket.emit(
                         "paidGameJoined",
                         {
@@ -2211,8 +2097,18 @@ io.on(
                                 player.playerName,
 
                             amount:
-                                player.amount
+                                player.amount,
+
+                            score:
+                                player.score || 0
                         }
+                    );
+
+                    console.log(
+                        "✅ Joueur rejoint partie :",
+                        playerId,
+                        "| Game:",
+                        gameId
                     );
 
                 } catch (error) {
@@ -2238,7 +2134,7 @@ io.on(
 
         /* =====================================================
            CHAT
-        ===================================================== */
+           ===================================================== */
 
         socket.on(
             "chatMessage",
@@ -2273,8 +2169,11 @@ io.on(
                     io.emit(
                         "chatMessage",
                         {
+
                             playerName,
+
                             message,
+
                             time:
                                 Date.now()
                         }
@@ -2292,7 +2191,7 @@ io.on(
 
         /* =====================================================
            TAP
-        ===================================================== */
+           ===================================================== */
 
         socket.on(
             "tap",
@@ -2300,15 +2199,12 @@ io.on(
 
                 try {
 
-                    if (
-                        !mongoConnected
-                    ) {
+                    if (!mongoConnected) {
                         return;
                     }
 
                     /*
-                     * Le joueur doit être authentifié
-                     * avec un paiement validé.
+                     * Le joueur doit être payé.
                      */
                     if (
                         !socket.data.playerId ||
@@ -2317,6 +2213,10 @@ io.on(
                         return;
                     }
 
+                    /*
+                     * Le joueur doit être
+                     * dans la partie actuelle.
+                     */
                     if (
                         socket.data.gameId !==
                         gameId
@@ -2330,9 +2230,10 @@ io.on(
                             100
                         );
 
-                    /*
-                     * Anti-spam.
-                     */
+                    /* -----------------------------------------
+                       ANTI-SPAM
+                       ----------------------------------------- */
+
                     const now =
                         Date.now();
 
@@ -2373,9 +2274,10 @@ io.on(
 
                     rate.count++;
 
-                    /*
-                     * Recherche de l'entrée payée.
-                     */
+                    /* -----------------------------------------
+                       VÉRIFICATION JOUEUR
+                       ----------------------------------------- */
+
                     const player =
                         await Player.findOne({
 
@@ -2398,34 +2300,71 @@ io.on(
                         return;
                     }
 
+                    /* -----------------------------------------
+                       INCRÉMENTATION ATOMIQUE
+                       ----------------------------------------- */
+
                     /*
                      * IMPORTANT :
                      *
-                     * 1 événement serveur =
-                     * 1 tap.
+                     * On utilise $inc au lieu de :
                      *
-                     * Le client ne peut pas
-                     * envoyer "taps: 1000".
+                     * player.score += 1
+                     *
+                     * puis save().
+                     *
+                     * Cela évite que plusieurs taps
+                     * simultanés écrasent le score.
                      */
-                    player.score += 1;
 
-                    await player.save();
+                    const updatedPlayer =
+                        await Player.findOneAndUpdate(
 
-                    /*
-                     * Envoyer directement le score
-                     * au joueur.
-                     */
+                            {
+                                _id:
+                                    player._id,
+
+                                gameId,
+
+                                paymentStatus:
+                                    "paid"
+                            },
+
+                            {
+                                $inc: {
+                                    score: 1
+                                }
+                            },
+
+                            {
+                                new: true
+                            }
+                        );
+
+                    if (!updatedPlayer) {
+                        return;
+                    }
+
+                    socket.data.score =
+                        updatedPlayer.score;
+
+                    /* -----------------------------------------
+                       SCORE DU JOUEUR
+                       ----------------------------------------- */
+
                     socket.emit(
                         "scoreUpdate",
                         {
+
                             score:
-                                player.score
+                                updatedPlayer.score
                         }
                     );
 
-                    /*
-                     * Actualiser classement.
-                     */
+                    /* -----------------------------------------
+                       CLASSEMENT
+                       ----------------------------------------- */
+
                     await broadcastLeaderboard();
 
                 } catch (error) {
@@ -2440,7 +2379,7 @@ io.on(
 
         /* =====================================================
            DISCONNECT
-        ===================================================== */
+           ===================================================== */
 
         socket.on(
             "disconnect",
@@ -2449,11 +2388,6 @@ io.on(
                 const playerId =
                     socket.data.playerId;
 
-                /*
-                 * Supprimer uniquement si
-                 * ce socket est encore celui
-                 * enregistré.
-                 */
                 if (
                     playerId &&
                     activePlayers.get(
@@ -2478,8 +2412,7 @@ io.on(
 
                 io.emit(
                     "onlineCount",
-                    io.engine
-                        .clientsCount
+                    io.engine.clientsCount
                 );
             }
         );
@@ -2487,8 +2420,8 @@ io.on(
 );
 
 /* =========================================================
-   TIMER
-========================================================= */
+   TIMER PARTIE
+   ========================================================= */
 
 setInterval(
     async () => {
@@ -2497,9 +2430,10 @@ setInterval(
 
             timerLeft--;
 
-            /*
-             * FIN DE PARTIE
-             */
+            /* -----------------------------------------------
+               FIN DE PARTIE
+               ----------------------------------------------- */
+
             if (
                 timerLeft <= 0
             ) {
@@ -2518,7 +2452,9 @@ setInterval(
                 io.emit(
                     "gameFinished",
                     {
+
                         gameId,
+
                         leaderboard:
                             finalLeaderboard
                     }
@@ -2530,8 +2466,8 @@ setInterval(
                 );
 
                 /*
-                 * Déconnecter l'autorisation
-                 * de la partie précédente.
+                 * Bloquer les joueurs
+                 * de l'ancienne partie.
                  */
                 for (
                     const socket of
@@ -2542,6 +2478,9 @@ setInterval(
                         false;
 
                     socket.data.gameId =
+                        null;
+
+                    socket.data.txid =
                         null;
                 }
 
@@ -2564,7 +2503,9 @@ setInterval(
                 io.emit(
                     "newGame",
                     {
+
                         gameId,
+
                         duration:
                             GAME_DURATION
                     }
@@ -2572,7 +2513,7 @@ setInterval(
             }
 
             /*
-             * Timer.
+             * Envoyer le timer.
              */
             io.emit(
                 "timer",
@@ -2593,7 +2534,7 @@ setInterval(
 
 /* =========================================================
    NETTOYAGE ANTI-SPAM
-========================================================= */
+   ========================================================= */
 
 setInterval(
     () => {
@@ -2625,8 +2566,27 @@ setInterval(
 );
 
 /* =========================================================
+   ONLINE COUNT
+   ========================================================= */
+
+app.get(
+    "/api/online",
+    (req, res) => {
+
+        res.json({
+
+            success:
+                true,
+
+            online:
+                io.engine.clientsCount
+        });
+    }
+);
+
+/* =========================================================
    HEALTH CHECK
-========================================================= */
+   ========================================================= */
 
 app.get(
     "/api/health",
@@ -2648,15 +2608,35 @@ app.get(
             timerLeft,
 
             timestamp:
-                new Date()
-                    .toISOString()
+                new Date().toISOString()
+        });
+    }
+);
+
+/* =========================================================
+   404
+   ========================================================= */
+
+app.use(
+    (req, res) => {
+
+        res.status(404).json({
+
+            success:
+                false,
+
+            error:
+                "ROUTE_NOT_FOUND",
+
+            path:
+                req.originalUrl
         });
     }
 );
 
 /* =========================================================
    ERROR HANDLER
-========================================================= */
+   ========================================================= */
 
 app.use(
     (
@@ -2684,7 +2664,7 @@ app.use(
 
 /* =========================================================
    START
-========================================================= */
+   ========================================================= */
 
 server.listen(
     PORT,
@@ -2700,7 +2680,11 @@ server.listen(
         );
 
         console.log(
-            "💰 Mise : LIBRE (> 0 USDT)"
+            "🏆 Gagnants : TOP 5"
+        );
+
+        console.log(
+            "💰 Mise : libre (> 0 USDT)"
         );
 
         console.log(
@@ -2717,9 +2701,9 @@ server.listen(
         );
 
         console.log(
-            "🛡️ Anti-spam TAP :",
+            "🛡️ Anti-spam :",
             MAX_TAPS_PER_SECOND,
-            "taps/s"
+            "taps/seconde"
         );
     }
 );
