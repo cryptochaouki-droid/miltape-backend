@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     
+    console.log("🚀 Initialisation du script frontend Miltape...");
+
     // Connexion Socket.io avec reconnexion automatique
     const socket = io(BACKEND_URL, {
         reconnection: true,
@@ -21,12 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
-    // Éléments d'inscription / paiement
-    const confirmButton = document.getElementById("confirmButton") || document.getElementById("confirmBetButton");
-    const playerNameInput = document.getElementById("playerNameInput") || document.getElementById("customPlayerName");
-    const cryptoAddressInput = document.getElementById("cryptoAddressInput") || document.getElementById("customCryptoAddress");
-    const customBetInput = document.getElementById("customBetInput");
-
     // Éléments du menu latéral et modale dynamique
     const myGamesButton = document.getElementById("menuGamesBtn") || document.getElementById("myGamesButton"); 
     const modalContent = document.getElementById("dynamicModalBody") || document.getElementById("modalContent");
@@ -40,14 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("miltape_player_id", playerId);
     }
     
-    // Forçage d'un pseudo par défaut pour débloquer le test immédiatement s'il n'existe pas
     let playerName = localStorage.getItem("miltape_player_name");
     if (!playerName) {
         playerName = "JoueurTest";
         localStorage.setItem("miltape_player_name", playerName);
     }
 
-    // Déblocage automatique et direct du bouton TAP pour les tests
     if (tapButton) {
         tapButton.disabled = false;
     }
@@ -58,12 +52,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 1. GESTION DES WEBSOCKETS (Chrono, Chat, En ligne, Classement) ---
     
     socket.on("connect", () => {
-        console.log("Connecté au serveur WebSocket ! ID:", socket.id);
+        console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
         socket.emit("join", { playerId, playerName });
     });
 
     socket.on("connect_error", (err) => {
-        console.error("Erreur de connexion WebSocket :", err);
+        console.error("❌ Erreur de connexion WebSocket :", err);
         if (tapMessage) {
             tapMessage.textContent = "🔴 Connexion au serveur perdue...";
         }
@@ -71,10 +65,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Réception du Chrono en direct
     socket.on("timer", (timeLeft) => {
+        console.log("⏱️ Chrono reçu du serveur :", timeLeft);
         if (timerDisplay) {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
             timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        } else {
+            console.warn("⚠️ Élément DOM 'timer' introuvable !");
         }
     });
 
@@ -104,14 +101,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Réception des messages du Chat en direct
     socket.on("chatMessage", (msg) => {
+        console.log("💬 Message de chat reçu :", msg);
         if (chatMessages) {
             const messageElement = document.createElement("div");
             messageElement.classList.add("chat-message");
+            messageElement.style.marginBottom = "5px";
             const senderName = msg.playerName || msg.name || 'Anonyme';
             const messageText = msg.message || msg.text || '';
             messageElement.innerHTML = `<strong>${senderName}</strong>: ${messageText}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        } else {
+            console.warn("⚠️ Élément DOM 'chatMessages' introuvable !");
         }
     });
 
