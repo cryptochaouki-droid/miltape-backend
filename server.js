@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const https = require("https");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -29,44 +30,64 @@ const playerSchema = new mongoose.Schema({
 });
 const players = mongoose.model("Player", playerSchema);
 
-// Route de création de paiement pour éviter l'erreur "Impossible de joindre le serveur de paiement"
+// Route de création de paiement sécurisée via le module natif https
 app.post("/api/create-payment", async (req, res) => {
     try {
         const { playerId, playerName, amount } = req.body;
         const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY;
 
         if (!NOWPAYMENTS_API_KEY) {
-            // Mode simulation si la clé n'est pas configurée dans les variables d'environnement Railway
             return res.json({
                 success: true,
                 invoice_url: "https://nowpayments.io/"
             });
         }
 
-        const fetch = (await import('node-fetch')).default;
-        const paymentResponse = await fetch("https://api.nowpayments.io/v1/invoice", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": NOWPAYMENTS_API_KEY
-            },
-            body: JSON.stringify({
-                price_amount: parseFloat(amount || 1),
-                price_currency: "usd",
-                pay_currency: "usdttrc20",
-                order_id: `${playerId}_${Date.now()}`,
-                order_description: `Mise Miltape World Challenge - ${playerName}`,
-                success_url: "https://cryptochaouki-droid.github.io/?success=true",
-                cancel_url: "https://cryptochaouki-droid.github.io/?cancel=true"
-            })
+        const dataToSend = JSON.stringify({
+            price_amount: parseFloat(amount || 1),
+            price_currency: "usd",
+            pay_currency: "usdttrc20",
+            order_id: `${playerId}_${Date.now()}`,
+            order_description: `Mise Miltape World Challenge - ${playerName || 'Anonyme'}`,
+            success_url: "https://cryptochaouki-droid.github.io/?success=true",
+            cancel_url: "https://cryptochaouki-droid.github.io/?cancel=true"
         });
 
-        const paymentData = await paymentResponse.json();
-        if (paymentData && paymentData.invoice_url) {
-            res.json({ success: true, invoice_url: paymentData.invoice_url });
-        } else {
-            res.status(400).json({ success: false, error: "Erreur de création de facture NOWPayments" });
-        }
+        const options = {
+            hostname: 'api.nowpayments.io',
+            path: '/v1/invoice',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': NOWPAYMENTS_API_KEY,
+                'Content-Length': Buffer.byteLength(dataToSend)
+            }
+        };
+
+        const paymentReq = https.request(options, (paymentRes) => {
+            let responseData = '';
+            paymentRes.on('data', (chunk) => { responseData += chunk; });
+            paymentRes.on('end', () => {
+                try {
+                    const paymentData = JSON.parse(responseData);
+                    if (paymentData && paymentData.invoice_url) {
+                        res.json({ success: true, invoice_url: paymentData.invoice_url });
+                    } else {
+                        res.status(400).json({ success: false, error: paymentData.message || "Erreur NOWPayments" });
+                    }
+                } catch (err) {
+                    res.status(500).json({ success: false, error: "PARSE_ERROR" });
+                }
+            });
+        });
+
+        paymentReq.on('error', (e) => {
+            console.error("Erreur requête HTTPS NOWPayments:", e);
+            res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
+        });
+
+        paymentReq.write(dataToSend);
+        paymentReq.end();
 
     } catch (e) {
         console.error("Erreur API paiement:", e);
