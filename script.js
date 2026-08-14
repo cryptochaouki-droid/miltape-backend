@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+Document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     
     console.log("🚀 Initialisation du script frontend Miltape...");
