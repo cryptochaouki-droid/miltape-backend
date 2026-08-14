@@ -306,7 +306,10 @@
             <small>MISE USDT</small>
             <strong id="displayBet">$1</strong>
         </div>
-        <button class="wallet-button" type="button" id="walletButton">💰</button>
+        <!-- Bouton du sac d'argent affichant la somme totale misée en direct -->
+        <button class="wallet-button" type="button" id="walletButton" style="font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+            <span>💰</span> <span id="globalTotalStakes">$0</span>
+        </button>
     </header>
 
     <section class="hero-combined">
@@ -562,6 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatMessages = document.getElementById("chatMessages");
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
+    const globalTotalStakes = document.getElementById("globalTotalStakes");
 
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
@@ -576,9 +580,27 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tapMessage) tapMessage.textContent = "🔥 CHALLENGE PRÊT - TAPE !";
     }
 
+    // Fonction pour récupérer et afficher la somme totale des mises en direct
+    async function fetchTotalStakes() {
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
+            const data = await res.json();
+            if (data.success && globalTotalStakes) {
+                globalTotalStakes.textContent = `$${data.totalStakes}`;
+            }
+        } catch (e) {
+            console.error("Erreur récupération total des mises:", e);
+        }
+    }
+
+    // Charger au démarrage et actualiser toutes les 5 secondes
+    fetchTotalStakes();
+    setInterval(fetchTotalStakes, 5000);
+
     socket.on("connect", () => {
         console.log("Connecté au serveur WebSocket ! ID:", socket.id);
         socket.emit("join", { playerId, playerName: playerName || "Anonyme" });
+        fetchTotalStakes();
     });
 
     // Réception du Chrono en direct
@@ -615,7 +637,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Réception des messages du Chat en direct (Corrigé pour correspondre au backend)
+    // Réception des messages du Chat en direct
     socket.on("chatMessage", (msg) => {
         if (chatMessages) {
             const messageElement = document.createElement("div");
@@ -628,7 +650,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Envoi de messages dans le chat (Corrigé pour envoyer les bonnes propriétés)
+    // Envoi de messages dans le chat
     if (chatSend && chatInput) {
         chatSend.addEventListener("click", () => {
             const text = chatInput.value.trim();
@@ -841,11 +863,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const cancelTop = document.getElementById("cancelEntry");
     if (cancelBottom && modal) cancelBottom.addEventListener("click", () => modal.classList.remove("show"));
     if (cancelTop && modal) cancelTop.addEventListener("click", () => modal.classList.remove("show"));
-
-    const walletButton = document.getElementById("walletButton");
-    if (walletButton && modal) {
-        walletButton.addEventListener("click", () => modal.classList.add("show"));
-    }
 
     const shareButton = document.getElementById("shareButton");
     if (shareButton) {
