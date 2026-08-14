@@ -28,15 +28,12 @@ let messages;
 let payments;
 
 async function connectMongoDB() {
-
     if (!MONGODB_URI) {
         throw new Error("MONGODB_URI n'est pas configurée dans Railway");
     }
 
     const client = new MongoClient(MONGODB_URI);
-
     await client.connect();
-
     db = client.db("miltape");
 
     games = db.collection("games");
@@ -60,7 +57,6 @@ async function distributePrizesForGame(gameId) {
             return;
         }
 
-        // Récupérer le Top 5 de la partie terminée trié par score décroissant
         const topPlayers = await players
             .find({ gameId: gameId })
             .sort({ score: -1 })
@@ -73,17 +69,14 @@ async function distributePrizesForGame(gameId) {
         }
 
         console.log(`🎁 Distribution des gains pour le top ${topPlayers.length} de la partie ${gameId}`);
-
-        // Définition des gains par position (Exemple modifiable : 1er = 5$, 2e = 3$, 3e = 2$, 4e = 1$, 5e = 1$)
         const prizes = [5, 3, 2, 1, 1];
 
         for (let i = 0; i < topPlayers.length; i++) {
             const player = topPlayers[i];
-            const prizeAmount = prizes[i] || 1; // 1$ par défaut si hors du tableau spécifique
+            const prizeAmount = prizes[i] || 1;
 
-            // Vérifier si le joueur a renseigné une adresse crypto de retrait (stockée dans son profil ou sa session)
             if (!player.cryptoAddress) {
-                console.log(`⚠️ Le joueur ${player.playerName} (ID: ${player.playerId}) n'a pas d'adresse crypto enregistrée pour recevoir ses gains.`);
+                console.log(`⚠️ Le joueur ${player.playerName} n'a pas d'adresse crypto enregistrée.`);
                 continue;
             }
 
@@ -108,7 +101,6 @@ async function distributePrizesForGame(gameId) {
 
                 console.log(`✅ Gain envoyé avec succès au joueur ${player.playerName} :`, response.data);
 
-                // Enregistrer le versement dans la base de données
                 if (payments) {
                     await payments.insertOne({
                         playerId: player.playerId,
@@ -120,12 +112,10 @@ async function distributePrizesForGame(gameId) {
                         createdAt: new Date()
                     });
                 }
-
             } catch (payoutError) {
-                console.error(`❌ Erreur lors du versement automatique pour ${player.playerName}:`, payoutError.response?.data || payoutError.message);
+                console.error(`❌ Erreur versement pour ${player.playerName}:`, payoutError.response?.data || payoutError.message);
             }
         }
-
     } catch (error) {
         console.error("❌ ERREUR GLOBALE DISTRIBUTE PRIZES:", error);
     }
@@ -152,10 +142,8 @@ async function getActiveGame() {
 
         if (expiredGame) {
             if (expiredGame.status === "running") {
-                // 1. La partie vient de se terminer -> On déclenche la distribution automatique des gains aux 5 premiers
                 await distributePrizesForGame(expiredGame._id);
 
-                // 2. Passage en mode pause de 10 secondes
                 const breakEndsAt = new Date(now.getTime() + 10 * 1000);
                 await games.updateOne(
                     { _id: expiredGame._id },
@@ -185,9 +173,9 @@ async function getActiveGame() {
             const endsAt = new Date(now.getTime() + 10 * 60 * 1000);
             const result = await games.insertOne({
                 status: "running",
-                    startsAt: now,
-                    endsAt,
-                    createdAt: now
+                startsAt: now,
+                endsAt,
+                createdAt: now
             });
 
             game = await games.findOne({ _id: result.insertedId });
@@ -200,7 +188,7 @@ async function getActiveGame() {
 
 
 /* =====================================================
-   TEST
+   ROUTES API
 ===================================================== */
 
 app.get("/", (req, res) => {
@@ -212,18 +200,13 @@ app.get("/", (req, res) => {
     });
 });
 
-
-/* =====================================================
-   ADMIN — CONNEXION SÉCURISÉE
-===================================================== */
-
 app.post("/api/admin/login", (req, res) => {
     try {
         const { password } = req.body;
         const adminPassword = process.env.ADMIN_PASSWORD;
 
         if (!adminPassword) {
-            return res.status(500).json({ success: false, error: "ADMIN_PASSWORD non configuré sur le serveur" });
+            return res.status(500).json({ success: false, error: "ADMIN_PASSWORD non configuré" });
         }
 
         if (password === adminPassword) {
@@ -232,28 +215,18 @@ app.post("/api/admin/login", (req, res) => {
             return res.status(401).json({ success: false, error: "Mot de passe incorrect" });
         }
     } catch (error) {
-        console.error("ADMIN LOGIN ERROR:", error);
         res.status(500).json({ success: false, error: "SERVER_ERROR" });
     }
 });
 
-
-/* =====================================================
-   PANNEAU ADMIN — STATS GLOBALES & GESTION
-===================================================== */
-
 app.get("/api/admin/stats", async (req, res) => {
     try {
-        if (!db) {
-            return res.status(500).json({ success: false, error: "DB_NOT_CONNECTED" });
-        }
+        if (!db) return res.status(500).json({ success: false, error: "DB_NOT_CONNECTED" });
 
         const totalPlayers = await players.countDocuments();
         const activeGame = await getActiveGame();
         
-        const pipeline = [
-            { $group: { _id: null, totalTaps: { $sum: "$score" } } }
-        ];
+        const pipeline = [{ $group: { _id: null, totalTaps: { $sum: "$score" } } }];
         const tapResult = await players.aggregate(pipeline).toArray();
         const totalTapsAll = tapResult.length > 0 ? tapResult[0].totalTaps : 0;
 
@@ -261,30 +234,13 @@ app.get("/api/admin/stats", async (req, res) => {
 
         res.json({
             success: true,
-            stats: {
-                totalPlayers,
-                totalTapsAll,
-                currentGameStatus: activeGame.status,
-                currentGameEndsAt: activeGame.endsAt
-            },
-            recentPlayers: recentPlayers.map(p => ({
-                playerId: p.playerId,
-                playerName: p.playerName,
-                score: p.score,
-                createdAt: p.createdAt
-            }))
+            stats: { totalPlayers, totalTapsAll, currentGameStatus: activeGame.status, currentGameEndsAt: activeGame.endsAt },
+            recentPlayers: recentPlayers.map(p => ({ playerId: p.playerId, playerName: p.playerName, score: p.score, createdAt: p.createdAt }))
         });
-
     } catch (error) {
-        console.error("ADMIN STATS ERROR:", error);
         res.status(500).json({ success: false, error: "ADMIN_ERROR" });
     }
 });
-
-
-/* =====================================================
-   GAME (RÉCUPÉRER LE STATUT ET LE TEMPS RESTANT GLOBAL)
-===================================================== */
 
 app.get("/api/game", async (req, res) => {
     try {
@@ -294,55 +250,34 @@ app.get("/api/game", async (req, res) => {
 
         res.json({
             success: true,
-            game: {
-                id: game._id.toString(),
-                status: game.status,
-                timeLeft: timeLeftSec,
-                startsAt: game.startsAt,
-                endsAt: game.endsAt
-            }
+            game: { id: game._id.toString(), status: game.status, timeLeft: timeLeftSec, startsAt: game.startsAt, endsAt: game.endsAt }
         });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, error: "GAME_ERROR" });
     }
 });
 
-
-/* =====================================================
-   TOTAL DES MISES / CAGNOTTE (POUR LE SAC D'ARGENT)
-===================================================== */
-
 app.get("/api/pot", async (req, res) => {
     try {
-        if (!payments) {
-            return res.json({ success: true, totalPot: 0 });
-        }
+        if (!payments) return res.json({ success: true, totalPot: 0 });
 
         const pipeline = [
             { $match: { paymentStatus: { $in: ["finished", "confirmed"] } } },
             { $group: { _id: null, totalPot: { $sum: "$priceAmount" } } }
         ];
 
-        const result = aliasPayments = await payments.aggregate(pipeline).toArray();
+        const result = await payments.aggregate(pipeline).toArray();
         const totalPot = result.length > 0 ? result[0].totalPot : 0;
 
-        res.json({
-            success: true,
-            totalPot: totalPot
-        });
+        res.json({ success: true, totalPot });
     } catch (error) {
-        console.error("POT ERROR:", error);
         res.status(500).json({ success: false, error: "POT_ERROR" });
     }
 });
 
-// Route additionnelle / alias demandée pour totaliser les mises
 app.get("/api/total-stakes", async (req, res) => {
     try {
-        if (!payments) {
-            return res.json({ success: true, totalStakes: 0 });
-        }
+        if (!payments) return res.json({ success: true, totalStakes: 0 });
 
         const pipeline = [
             { $match: { paymentStatus: { $in: ["finished", "confirmed"] } } },
@@ -352,20 +287,11 @@ app.get("/api/total-stakes", async (req, res) => {
         const result = await payments.aggregate(pipeline).toArray();
         const totalStakes = result.length > 0 ? result[0].totalStakes : 0;
 
-        res.json({
-            success: true,
-            totalStakes: totalStakes
-        });
+        res.json({ success: true, totalStakes });
     } catch (error) {
-        console.error("TOTAL STAKES ERROR:", error);
         res.status(500).json({ success: false, error: "TOTAL_STAKES_ERROR" });
     }
 });
-
-
-/* =====================================================
-   JOIN (AVEC ENREGISTREMENT DE L'ADRESSE CRYPTO DU JOUEUR)
-===================================================== */
 
 app.post("/api/join", async (req, res) => {
     try {
@@ -386,97 +312,57 @@ app.post("/api/join", async (req, res) => {
         });
 
         if (existingPlayer) {
-            return res.status(400).json({
-                success: false,
-                error: "Ce pseudo est déjà pris, choisis-en un autre !"
-            });
+            return res.status(400).json({ success: false, error: "Ce pseudo est déjà pris !" });
         }
 
         await players.updateOne(
             { playerId, gameId: game._id },
             {
-                $set: { 
-                    playerId, 
-                    playerName, 
-                    gameId: game._id, 
-                    cryptoAddress: cryptoAddress || "", 
-                    updatedAt: new Date() 
-                },
+                $set: { playerId, playerName, gameId: game._id, cryptoAddress: cryptoAddress || "", updatedAt: new Date() },
                 $setOnInsert: { score: 0, createdAt: new Date() }
             },
             { upsert: true }
         );
 
-        res.json({
-            success: true,
-            game: {
-                id: game._id.toString(),
-                status: game.status,
-                endsAt: game.endsAt
-            }
-        });
+        res.json({ success: true, game: { id: game._id.toString(), status: game.status, endsAt: game.endsAt } });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, error: "JOIN_ERROR" });
     }
 });
 
-
-/* =====================================================
-   TAP (OPTIMISÉ AVEC SUPPORT DU BATCH DE CLICS)
-===================================================== */
-
 app.post("/api/tap", async (req, res) => {
     try {
         const playerId = String(req.body.playerId || "");
-        const tapCount = parseInt(req.body.count || 1, 10);
+        const tapCount = parseInt(req.body.taps || req.body.count || 1, 10);
 
-        if (!playerId) {
-            return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
-        }
+        if (!playerId) return res.status(400).json({ success: false, error: "PLAYER_REQUIRED" });
 
         const game = await getActiveGame();
-
         if (game.status === "break" || new Date() >= new Date(game.endsAt)) {
             return res.status(400).json({ success: false, error: "GAME_BREAK_OR_FINISHED" });
         }
 
         const result = await players.findOneAndUpdate(
             { playerId, gameId: game._id },
-            {
-                $inc: { score: tapCount },
-                $set: { updatedAt: new Date() }
-            },
+            { $inc: { score: tapCount }, $set: { updatedAt: new Date() } },
             { returnDocument: "after" }
         );
 
-        if (!result) {
-            return res.status(400).json({ success: false, error: "PLAYER_NOT_IN_GAME" });
-        }
+        if (!result) return res.status(400).json({ success: false, error: "PLAYER_NOT_IN_GAME" });
 
-        io.emit("leaderboard:update");
+        const topPlayers = await players.find({ gameId: game._id }).sort({ score: -1 }).limit(5).toArray();
+        io.emit("leaderboard", topPlayers);
 
         res.json({ success: true, score: result.score });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, error: "TAP_ERROR" });
     }
 });
 
-
-/* =====================================================
-   LEADERBOARD TOP 5
-===================================================== */
-
 app.get("/api/leaderboard", async (req, res) => {
     try {
         const game = await getActiveGame();
-
-        const topPlayers = await players
-            .find({ gameId: game._id })
-            .sort({ score: -1 })
-            .limit(5)
-            .toArray();
+        const topPlayers = await players.find({ gameId: game._id }).sort({ score: -1 }).limit(5).toArray();
 
         res.json({
             success: true,
@@ -488,20 +374,13 @@ app.get("/api/leaderboard", async (req, res) => {
             }))
         });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, error: "LEADERBOARD_ERROR" });
     }
 });
 
-
-/* =====================================================
-   CHAT — LIRE
-===================================================== */
-
 app.get("/api/chat", async (req, res) => {
     try {
         const chat = await messages.find({}).sort({ createdAt: -1 }).limit(100).toArray();
-
         res.json({
             success: true,
             messages: chat.reverse().map(message => ({
@@ -511,67 +390,45 @@ app.get("/api/chat", async (req, res) => {
             }))
         });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, error: "CHAT_ERROR" });
     }
 });
 
-
-/* =====================================================
-   CHAT — ENVOYER
-===================================================== */
-
 app.post("/api/chat", async (req, res) => {
     try {
         const playerId = String(req.body.playerId || "");
-        const playerName = String(req.body.playerName || "").trim().slice(0, 30);
-        const message = String(req.body.message || "").trim().slice(0, 250);
+        const playerName = String(req.body.name || req.body.playerName || "").trim().slice(0, 30);
+        const message = String(req.body.text || req.body.message || "").trim().slice(0, 250);
 
         if (!playerId || !playerName || !message) {
             return res.status(400).json({ success: false, error: "MESSAGE_REQUIRED" });
         }
 
-        const newMessage = { playerId, playerName, message, createdAt: new Date() };
-
+        const newMessage = { playerId, playerName: playerName, message: message, createdAt: new Date() };
         await messages.insertOne(newMessage);
-        io.emit("chat:new", newMessage);
+        
+        io.emit("chatMessage", newMessage);
 
         res.json({ success: true });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, error: "CHAT_SEND_ERROR" });
     }
 });
 
-
-/* =====================================================
-   CRÉATION DE FACTURE NOWPAYMENTS (MONTANT SÉCURISÉ MINIMUM 1$)
-===================================================== */
-
 app.post("/api/create-payment", async (req, res) => {
     try {
         const { playerId, playerName, amount } = req.body;
-
-        if (!playerId || !amount) {
-            return res.status(400).json({ success: false, error: "PLAYER_AND_AMOUNT_REQUIRED" });
-        }
+        if (!playerId || !amount) return res.status(400).json({ success: false, error: "PLAYER_AND_AMOUNT_REQUIRED" });
 
         const apiKey = process.env.NOWPAYMENTS_API_KEY;
-        if (!apiKey) {
-            return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
-        }
+        if (!apiKey) return res.status(500).json({ success: false, error: "NOWPAYMENTS_API_KEY_NOT_CONFIGURED" });
 
         let finalAmount = parseFloat(amount);
-        if (isNaN(finalAmount) || finalAmount < 1) {
-            finalAmount = 1;
-        }
+        if (isNaN(finalAmount) || finalAmount < 1) finalAmount = 1;
 
         const response = await fetch("https://api.nowpayments.io/v1/invoice", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": apiKey
-            },
+            headers: { "Content-Type": "application/json", "x-api-key": apiKey },
             body: JSON.stringify({
                 price_amount: finalAmount,
                 price_currency: "usd",
@@ -584,86 +441,89 @@ app.post("/api/create-payment", async (req, res) => {
         });
 
         const invoiceData = await response.json();
+        if (!response.ok) return res.status(400).json({ success: false, error: invoiceData.message || "INVOICE_API_ERROR" });
 
-        if (!response.ok) {
-            console.error("Erreur API Invoice NOWPayments:", invoiceData);
-            return res.status(400).json({ success: false, error: invoiceData.message || "INVOICE_API_ERROR" });
-        }
-
-        res.json({
-            success: true,
-            invoice_url: invoiceData.invoice_url,
-            payment_id: invoiceData.id
-        });
-
+        res.json({ success: true, invoice_url: invoiceData.invoice_url, payment_id: invoiceData.id });
     } catch (error) {
-        console.error("❌ ERREUR CREATE INVOICE:", error);
         res.status(500).json({ success: false, error: "PAYMENT_SERVER_ERROR" });
     }
 });
 
-
-/* =====================================================
-   NOWPAYMENTS IPN (WEBHOOK DE PAIEMENT)
-===================================================== */
-
 app.post("/api/ipn", async (req, res) => {
     try {
         const paymentData = req.body;
-        console.log("🔔 Notification IPN reçue de NOWPayments :", paymentData);
-
         const paymentId = paymentData.payment_id;
         const paymentStatus = paymentData.payment_status; 
         const orderId = paymentData.order_id; 
         const priceAmount = paymentData.price_amount;
         const payCurrency = paymentData.pay_currency;
 
-        if (!paymentId) {
-            return res.status(400).json({ success: false, error: "INVALID_IPN_DATA" });
-        }
+        if (!paymentId) return res.status(400).json({ success: false, error: "INVALID_IPN_DATA" });
 
         if (payments) {
             await payments.updateOne(
                 { paymentId: String(paymentId) },
                 { 
-                    $set: { 
-                        paymentStatus, 
-                        orderId, 
-                        priceAmount, 
-                        payCurrency, 
-                        rawdata: paymentData,
-                        updatedAt: new Date() 
-                    },
+                    $set: { paymentStatus, orderId, priceAmount, payCurrency, rawdata: paymentData, updatedAt: new Date() },
                     $setOnInsert: { createdAt: new Date() }
                 },
                 { upsert: true }
             );
         }
 
-        if (paymentStatus === "finished" || paymentStatus === "confirmed") {
-            console.log(`✅ Paiement validé pour la commande/joueur : ${orderId}`);
-        }
-
         return res.status(200).json({ success: true });
-
     } catch (error) {
-        console.error("❌ ERREUR IPN :", error);
         return res.status(500).json({ success: false, error: "IPN_HANDLER_ERROR" });
     }
 });
 
 
 /* =====================================================
-   SOCKET.IO & CHRONO MONDIAL / PAUSE EN DIRECT
+   SOCKET.IO CORRIGÉ
 ===================================================== */
 
 io.on("connection", socket => {
     console.log("👤 Joueur connecté :", socket.id);
-    io.emit("online:count", io.engine.clientsCount);
+    io.emit("onlineCount", io.engine.clientsCount);
+
+    socket.on("join", async (data) => {
+        if (data && data.playerId && data.playerName) {
+            socket.playerId = data.playerId;
+            socket.playerName = data.playerName;
+        }
+    });
+
+    socket.on("chatMessage", async (msg) => {
+        if (msg && msg.text) {
+            const chatObj = { playerName: msg.playerName || msg.name || "Anonyme", message: msg.text || msg.message, createdAt: new Date() };
+            if (messages) await messages.insertOne(chatObj);
+            io.emit("chatMessage", chatObj);
+        }
+    });
+
+    socket.on("tap", async (data) => {
+        try {
+            if (!data || !data.playerId) return;
+            const game = await getActiveGame();
+            if (game.status === "break" || new Date() >= new Date(game.endsAt)) return;
+
+            const count = parseInt(data.taps || data.count || 1, 10);
+            await players.findOneAndUpdate(
+                { playerId: data.playerId, gameId: game._id },
+                { $inc: { score: count }, $set: { updatedAt: new Date() } },
+                { upsert: true }
+            );
+
+            const topPlayers = await players.find({ gameId: game._id }).sort({ score: -1 }).limit(5).toArray();
+            io.emit("leaderboard", topPlayers);
+        } catch (e) {
+            console.error("Erreur socket tap:", e);
+        }
+    });
 
     socket.on("disconnect", () => {
         console.log("👋 Joueur déconnecté :", socket.id);
-        io.emit("online:count", io.engine.clientsCount);
+        io.emit("onlineCount", io.engine.clientsCount);
     });
 });
 
@@ -680,15 +540,11 @@ async function startServer() {
             try {
                 if (!db) return;
                 const game = await getActiveGame();
-                
                 const now = new Date();
                 const endsAt = new Date(game.endsAt);
                 const timeLeftSec = Math.max(0, Math.floor((endsAt - now) / 1000));
 
-                io.emit("global:timer", {
-                    timeLeft: timeLeftSec,
-                    status: game.status
-                });
+                io.emit("timer", timeLeftSec);
             } catch (e) {
                 console.error("Erreur timer global:", e);
             }
