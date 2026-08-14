@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     
-    console.log("🚀 Initialisation du script frontend Miltape (Solde interne)...");
+    console.log("🚀 Initialisation du script frontend Miltape...");
 
     const socket = io(BACKEND_URL, {
         reconnection: true,
@@ -21,10 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById("chatInput");
     const chatSend = document.getElementById("chatSend");
 
-    const myGamesButton = document.getElementById("menuGamesBtn") || document.getElementById("myGamesButton"); 
-    const modalContent = document.getElementById("dynamicModalBody") || document.getElementById("modalContent");
-    const dynamicModal = document.getElementById("dynamicModal");
-    const closeDynamicModal = document.getElementById("closeDynamicModal");
+    // Éléments de la modale de démarrage
+    const enterChallengeBtn = document.getElementById("enterChallenge");
+    const entryModal = document.getElementById("entryModal");
+    const cancelEntryBtn = document.getElementById("cancelEntry");
+    const cancelEntryBottom = document.getElementById("cancelEntryBottom");
+    const confirmBetButton = document.getElementById("confirmBetButton");
+    const customPlayerName = document.getElementById("customPlayerName");
 
     let localTaps = 0;
     let playerId = localStorage.getItem("miltape_player_id");
@@ -39,11 +42,46 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("miltape_player_name", playerName);
     }
 
-    if (tapButton) {
-        tapButton.disabled = false;
+    if (customPlayerName) {
+        customPlayerName.value = playerName;
     }
-    if (tapMessage) {
-        tapMessage.textContent = "🔥 CLIQUE POUR JOUER !";
+
+    // Gestion de l'ouverture/fermeture de la modale d'entrée
+    if (enterChallengeBtn && entryModal) {
+        enterChallengeBtn.addEventListener("click", () => {
+            entryModal.classList.add("show");
+        });
+    }
+
+    const closeEntryModal = () => {
+        if (entryModal) entryModal.classList.remove("show");
+    };
+
+    if (cancelEntryBtn) cancelEntryBtn.addEventListener("click", closeEntryModal);
+    if (cancelEntryBottom) cancelEntryBottom.addEventListener("click", closeEntryModal);
+
+    // Validation du pseudo et activation du jeu
+    if (confirmBetButton) {
+        confirmBetButton.addEventListener("click", () => {
+            const enteredName = customPlayerName ? customPlayerName.value.trim() : "";
+            if (enteredName) {
+                playerName = enteredName;
+                localStorage.setItem("miltape_player_name", playerName);
+            }
+
+            closeEntryModal();
+
+            // Activer le bouton de tap et le jeu
+            if (tapButton) {
+                tapButton.disabled = false;
+            }
+            if (tapMessage) {
+                tapMessage.textContent = "🔥 À TOI DE TAPPER !";
+            }
+
+            // Rejoindre la room / notifier le serveur
+            socket.emit("join", { playerId, playerName });
+        });
     }
 
     socket.on("connect", () => {
@@ -124,108 +162,5 @@ document.addEventListener("DOMContentLoaded", () => {
             
             socket.emit("tap", { playerId, playerName, taps: 1 });
         });
-    }
-
-    function openDynamicModal(title, htmlContent) {
-        if (dynamicModal && modalContent) {
-            const titleElem = document.getElementById("dynamicModalTitle");
-            if (titleElem) titleElem.textContent = title;
-            modalContent.innerHTML = htmlContent;
-            dynamicModal.classList.add("show");
-        }
-    }
-
-    if (closeDynamicModal && dynamicModal) {
-        closeDynamicModal.addEventListener("click", () => dynamicModal.classList.remove("show"));
-    }
-
-    async function loadTotalStakes() {
-        try {
-            const res = await fetch(`${BACKEND_URL}/api/total-stakes`);
-            const data = await res.json();
-            if (data.success) {
-                const headerMiseText = document.querySelector(".fa-sack-dollar")?.nextSibling || document.getElementById("headerMiseAmount");
-                if (headerMiseText && headerMiseText.nodeType === Node.TEXT_NODE) {
-                    headerMiseText.nodeValue = ` $${data.totalStakes}`;
-                }
-            }
-        } catch (e) { console.error("Erreur total stakes:", e); }
-    }
-    loadTotalStakes();
-    setInterval(loadTotalStakes, 15000);
-
-    async function loadPlayerStats() {
-        if (!playerId) {
-            alert("Identifiant joueur introuvable !");
-            return;
-        }
-
-        openDynamicModal("🎮 Mon Profil & Solde", "Chargement de tes données...");
-
-        try {
-            const res = await fetch(`${BACKEND_URL}/api/player-stats/${playerId}`);
-            const data = await res.json();
-
-            if (data.success && modalContent) {
-                modalContent.innerHTML = `
-                    <div style="text-align: center; padding: 10px;">
-                        <h3>Mon Compte Miltape</h3>
-                        <p>Solde actuel : <strong style="color: #2ecc71; font-size: 1.2em;">${data.balance || 0} USDT</strong></p>
-                        <p>Total Taps : <strong>${data.totalTaps || localTaps}</strong></p>
-                        
-                        <div style="margin-top: 20px;">
-                            <button id="rechargeBtn" style="background: #e67e22; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px;">Recharger (13 USDT)</button>
-                            <button id="playBtn" style="background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Jouer 1 Partie (1 Click)</button>
-                        </div>
-                    </div>
-                `;
-
-                document.getElementById("rechargeBtn").addEventListener("click", async () => {
-                    modalContent.innerHTML = "<p>Génération de la facture en cours...</p>";
-                    try {
-                        const payRes = await fetch(`${BACKEND_URL}/api/create-payment`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ playerId, playerName, amount: 13 })
-                        });
-                        const payData = await payRes.json();
-                        if (payData.success && payData.invoice_url) {
-                            window.location.href = payData.invoice_url;
-                        } else {
-                            alert("Erreur lors de la création du paiement.");
-                        }
-                    } catch (err) {
-                        alert("Erreur réseau.");
-                    }
-                });
-
-                document.getElementById("playBtn").addEventListener("click", async () => {
-                    try {
-                        const playRes = await fetch(`${BACKEND_URL}/api/play-game`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ playerId, playerName })
-                        });
-                        const playData = await playRes.json();
-                        if (playData.success) {
-                            alert("✅ Partie lancée ! Amuse-toi bien.");
-                            dynamicModal.classList.remove("show");
-                        } else {
-                            alert("❌ " + (playData.message || "Solde insuffisant, recharge ton compte !"));
-                        }
-                    } catch (err) {
-                        alert("Erreur lors du lancement de la partie.");
-                    }
-                });
-            }
-        } catch (e) {
-            if (modalContent) {
-                modalContent.innerHTML = `<p>Erreur de chargement du profil.</p>`;
-            }
-        }
-    }
-
-    if (myGamesButton) {
-        myGamesButton.addEventListener("click", loadPlayerStats);
     }
 });
