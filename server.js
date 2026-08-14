@@ -215,6 +215,31 @@ app.get("/", (req, res) => {
 
 
 /* =====================================================
+   ADMIN — CONNEXION SÉCURISÉE
+===================================================== */
+
+app.post("/api/admin/login", (req, res) => {
+    try {
+        const { password } = req.body;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (!adminPassword) {
+            return res.status(500).json({ success: false, error: "ADMIN_PASSWORD non configuré sur le serveur" });
+        }
+
+        if (password === adminPassword) {
+            return res.json({ success: true });
+        } else {
+            return.status(401).json({ success: false, error: "Mot de passe incorrect" });
+        }
+    } catch (error) {
+        console.error("ADMIN LOGIN ERROR:", error);
+        res.status(500).json({ success: false, error: "SERVER_ERROR" });
+    }
+});
+
+
+/* =====================================================
    PANNEAU ADMIN — STATS GLOBALES & GESTION
 ===================================================== */
 
