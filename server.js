@@ -44,7 +44,8 @@ const io = new Server(server, {
    CONFIGURATION
    ========================================================= */
 
-const PORT = Number(process.env.PORT) || 8080;
+const PORT =
+    Number(process.env.PORT) || 8080;
 
 const MONGO_URI =
     process.env.MONGO_URI || "";
@@ -53,11 +54,18 @@ const TRONGRID_API_KEY =
     process.env.TRONGRID_API_KEY || "";
 
 /*
- * Mot de passe Admin
- * Configurable via Railway Variables (ADMIN_PASSWORD)
- * Sinon mot de passe par défaut : "admin123"
+ * Mot de passe admin.
+ *
+ * IMPORTANT :
+ * Dans Railway, crée :
+ *
+ * ADMIN_PASSWORD=ton_mot_de_passe
+ *
+ * Le mot de passe par défaut est uniquement
+ * un secours pour éviter que le serveur plante.
  */
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD =
+    process.env.ADMIN_PASSWORD || "admin123";
 
 /*
  * Durée d'une partie :
@@ -87,10 +95,13 @@ const TOKEN = "USDT";
 const CHAIN = "TRC20";
 
 /*
- * Mise minimale :
- * strictly supérieure à 0.
+ * =========================================================
+ * MISE MINIMALE
+ * =========================================================
+ *
+ * La mise commence maintenant à 1 USDT.
  */
-const MINIMUM_BET = 0;
+const MINIMUM_BET = 1;
 
 /*
  * Pas de maximum.
@@ -108,6 +119,43 @@ const TOP_WINNERS = 5;
  * maximum 25 taps/seconde.
  */
 const MAX_TAPS_PER_SECOND = 25;
+
+/*
+ * =========================================================
+ * CAGNOTTE DU SAMEDI
+ * =========================================================
+ *
+ * Pour chaque mise payée :
+ *
+ * 5 % -> cagnotte du samedi
+ *
+ * Exemple :
+ *
+ * 1 USDT -> 0.05 USDT
+ * 10 USDT -> 0.50 USDT
+ * 100 USDT -> 5 USDT
+ *
+ * Tu peux modifier ce pourcentage dans Railway :
+ *
+ * SATURDAY_JACKPOT_PERCENT=5
+ */
+const SATURDAY_JACKPOT_PERCENT =
+    Number(
+        process.env.SATURDAY_JACKPOT_PERCENT
+    ) || 5;
+
+/*
+ * Sécurité :
+ * on limite le pourcentage entre 0 et 100.
+ */
+const JACKPOT_PERCENT =
+    Math.min(
+        100,
+        Math.max(
+            0,
+            SATURDAY_JACKPOT_PERCENT
+        )
+    );
 
 /* =========================================================
    ETAT DU SERVEUR
@@ -150,12 +198,48 @@ console.log("======================================");
 console.log("🔥 MILTAPE WORLD CHALLENGE BACKEND");
 console.log("======================================");
 
-console.log("Port :", PORT);
-console.log("Durée :", GAME_DURATION, "secondes");
-console.log("Réseau :", NETWORK);
-console.log("Token :", TOKEN);
-console.log("Standard :", CHAIN);
-console.log("Wallet :", MILTAPE_WALLET);
+console.log(
+    "Port :",
+    PORT
+);
+
+console.log(
+    "Durée :",
+    GAME_DURATION,
+    "secondes"
+);
+
+console.log(
+    "Réseau :",
+    NETWORK
+);
+
+console.log(
+    "Token :",
+    TOKEN
+);
+
+console.log(
+    "Standard :",
+    CHAIN
+);
+
+console.log(
+    "Wallet :",
+    MILTAPE_WALLET
+);
+
+console.log(
+    "Mise minimale :",
+    MINIMUM_BET,
+    "USDT"
+);
+
+console.log(
+    "Cagnotte samedi :",
+    JACKPOT_PERCENT,
+    "%"
+);
 
 console.log(
     "TronGrid API Key :",
@@ -177,80 +261,81 @@ console.log("======================================");
    SCHEMA PLAYER
    ========================================================= */
 
-const playerSchema = new mongoose.Schema(
-    {
-        playerId: {
-            type: String,
-            required: true,
-            trim: true,
-            maxlength: 100,
-            index: true
-        },
+const playerSchema =
+    new mongoose.Schema(
+        {
+            playerId: {
+                type: String,
+                required: true,
+                trim: true,
+                maxlength: 100,
+                index: true
+            },
 
-        playerName: {
-            type: String,
-            default: "Anonyme",
-            trim: true,
-            maxlength: 30
-        },
+            playerName: {
+                type: String,
+                default: "Anonyme",
+                trim: true,
+                maxlength: 30
+            },
 
-        score: {
-            type: Number,
-            default: 0,
-            min: 0
-        },
+            score: {
+                type: Number,
+                default: 0,
+                min: 0
+            },
 
-        amount: {
-            type: Number,
-            required: true,
-            min: 0
-        },
+            amount: {
+                type: Number,
+                required: true,
+                min: MINIMUM_BET
+            },
 
-        cryptoAddress: {
-            type: String,
-            default: "",
-            trim: true,
-            maxlength: 64
-        },
+            cryptoAddress: {
+                type: String,
+                default: "",
+                trim: true,
+                maxlength: 64
+            },
 
-        transactionHash: {
-            type: String,
-            trim: true,
-            maxlength: 100,
-            default: undefined
-        },
+            transactionHash: {
+                type: String,
+                trim: true,
+                maxlength: 100,
+                default: undefined
+            },
 
-        paymentStatus: {
-            type: String,
-            enum: [
-                "pending",
-                "paid",
-                "rejected"
-            ],
-            default: "pending",
-            index: true
-        },
+            paymentStatus: {
+                type: String,
+                enum: [
+                    "pending",
+                    "paid",
+                    "rejected"
+                ],
+                default: "pending",
+                index: true
+            },
 
-        gameId: {
-            type: Number,
-            required: true,
-            index: true
-        },
+            gameId: {
+                type: Number,
+                required: true,
+                index: true
+            },
 
-        createdAt: {
-            type: Date,
-            default: Date.now
-        },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            },
 
-        paidAt: {
-            type: Date,
-            default: null
+            paidAt: {
+                type: Date,
+                default: null
+            }
+        },
+        {
+            versionKey: false
         }
-    },
-    {
-        versionKey: false
-    }
-);
+    );
 
 playerSchema.index(
     {
@@ -274,10 +359,11 @@ playerSchema.index(
     }
 );
 
-const Player = mongoose.model(
-    "Player",
-    playerSchema
-);
+const Player =
+    mongoose.model(
+        "Player",
+        playerSchema
+    );
 
 /* =========================================================
    CONNEXION MONGODB
@@ -343,17 +429,25 @@ function cleanString(
         value ?? ""
     )
         .trim()
-        .substring(0, maxLength);
+        .substring(
+            0,
+            maxLength
+        );
 }
 
 /* =========================================================
    VALIDATION ADRESSE TRON
    ========================================================= */
 
-function isValidTronAddress(address) {
+function isValidTronAddress(
+    address
+) {
 
     const value =
-        cleanString(address, 64);
+        cleanString(
+            address,
+            64
+        );
 
     return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(
         value
@@ -364,10 +458,15 @@ function isValidTronAddress(address) {
    VALIDATION TXID
    ========================================================= */
 
-function isValidTxid(txid) {
+function isValidTxid(
+    txid
+) {
 
     const value =
-        cleanString(txid, 100);
+        cleanString(
+            txid,
+            100
+        );
 
     return /^[a-fA-F0-9]{64}$/.test(
         value
@@ -378,11 +477,16 @@ function isValidTxid(txid) {
    USDT -> UNITÉS
    ========================================================= */
 
-function usdtToUnits(amount) {
+function usdtToUnits(
+    amount
+) {
 
     return Math.round(
         Number(amount) *
-        Math.pow(10, USDT_DECIMALS)
+        Math.pow(
+            10,
+            USDT_DECIMALS
+        )
     );
 }
 
@@ -390,11 +494,16 @@ function usdtToUnits(amount) {
    UNITÉS -> USDT
    ========================================================= */
 
-function unitsToUsdt(units) {
+function unitsToUsdt(
+    units
+) {
 
     return (
         Number(units) /
-        Math.pow(10, USDT_DECIMALS)
+        Math.pow(
+            10,
+            USDT_DECIMALS
+        )
     );
 }
 
@@ -402,19 +511,23 @@ function unitsToUsdt(units) {
    VALIDATION MISE
    ========================================================= */
 
-function isValidBet(amount) {
+function isValidBet(
+    amount
+) {
 
     const numeric =
         Number(amount);
 
     if (
-        !Number.isFinite(numeric)
+        !Number.isFinite(
+            numeric
+        )
     ) {
         return false;
     }
 
     if (
-        numeric <= MINIMUM_BET
+        numeric < MINIMUM_BET
     ) {
         return false;
     }
@@ -427,10 +540,14 @@ function isValidBet(amount) {
     }
 
     const units =
-        usdtToUnits(numeric);
+        usdtToUnits(
+            numeric
+        );
 
     if (
-        !Number.isSafeInteger(units)
+        !Number.isSafeInteger(
+            units
+        )
     ) {
         return false;
     }
@@ -445,14 +562,18 @@ function isValidBet(amount) {
 function tronHeaders() {
 
     const headers = {
-        Accept: "application/json"
+        Accept:
+            "application/json"
     };
 
-    if (TRONGRID_API_KEY) {
+    if (
+        TRONGRID_API_KEY
+    ) {
 
         headers[
             "TRON-PRO-API-KEY"
-        ] = TRONGRID_API_KEY;
+        ] =
+            TRONGRID_API_KEY;
     }
 
     return headers;
@@ -472,8 +593,10 @@ async function fetchJson(
             url,
             {
                 ...options,
+
                 headers: {
                     ...tronHeaders(),
+
                     ...(options.headers || {})
                 }
             }
@@ -498,88 +621,331 @@ async function fetchJson(
 }
 
 /* =========================================================
+   DATE DU DÉBUT DE LA CAGNOTTE
+   =========================================================
+ *
+ * La semaine de cagnotte commence chaque samedi à 00:00.
+ *
+ * On utilise l'heure UTC du serveur pour avoir un calcul
+ * stable même si Railway change de région.
+ */
+
+function getSaturdayStart() {
+
+    const now =
+        new Date();
+
+    const day =
+        now.getUTCDay();
+
+    /*
+     * JS :
+     *
+     * dimanche = 0
+     * lundi    = 1
+     * mardi    = 2
+     * mercredi = 3
+     * jeudi    = 4
+     * vendredi = 5
+     * samedi   = 6
+     */
+
+    const daysSinceSaturday =
+        (day + 1) % 7;
+
+    const saturday =
+        new Date(
+            Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate(),
+                0,
+                0,
+                0,
+                0
+            )
+        );
+
+    saturday.setUTCDate(
+        saturday.getUTCDate() -
+        daysSinceSaturday
+    );
+
+    return saturday;
+}
+
+/* =========================================================
+   DATE DU PROCHAIN SAMEDI
+   ========================================================= */
+
+function getNextSaturday() {
+
+    const start =
+        getSaturdayStart();
+
+    const next =
+        new Date(start);
+
+    next.setUTCDate(
+        next.getUTCDate() + 7
+    );
+
+    return next;
+}
+
+/* =========================================================
+   CAGNOTTE DU SAMEDI
+   ========================================================= */
+
+async function getSaturdayJackpot() {
+
+    if (!mongoConnected) {
+
+        return {
+            totalStakes: 0,
+            jackpot: 0,
+            percent: JACKPOT_PERCENT,
+            periodStart:
+                getSaturdayStart().toISOString(),
+            nextSaturday:
+                getNextSaturday().toISOString()
+        };
+    }
+
+    const periodStart =
+        getSaturdayStart();
+
+    const nextSaturday =
+        getNextSaturday();
+
+    const result =
+        await Player.aggregate([
+
+            {
+                $match: {
+
+                    paymentStatus:
+                        "paid",
+
+                    paidAt: {
+                        $gte:
+                            periodStart,
+
+                        $lt:
+                            nextSaturday
+                    }
+                }
+            },
+
+            {
+                $group: {
+
+                    _id:
+                        null,
+
+                    totalStakes: {
+                        $sum:
+                            "$amount"
+                    }
+                }
+            }
+        ]);
+
+    const totalStakes =
+        result.length
+            ? Number(
+                result[0].totalStakes || 0
+            )
+            : 0;
+
+    const jackpot =
+        totalStakes *
+        (
+            JACKPOT_PERCENT /
+            100
+        );
+
+    return {
+
+        totalStakes:
+            Number(
+                totalStakes.toFixed(6)
+            ),
+
+        jackpot:
+            Number(
+                jackpot.toFixed(6)
+            ),
+
+        percent:
+            JACKPOT_PERCENT,
+
+        periodStart:
+            periodStart.toISOString(),
+
+        nextSaturday:
+            nextSaturday.toISOString()
+    };
+}
+
+/* =========================================================
+   BROADCAST CAGNOTTE
+   ========================================================= */
+
+async function broadcastSaturdayJackpot() {
+
+    try {
+
+        const jackpot =
+            await getSaturdayJackpot();
+
+        io.emit(
+            "saturdayJackpot",
+            jackpot
+        );
+
+    } catch (error) {
+
+        console.error(
+            "❌ Jackpot broadcast:",
+            error.message
+        );
+    }
+}
+
+/* =========================================================
    PAGE PRINCIPALE
    ========================================================= */
 
 app.get(
     "/",
-    (req, res) => {
+    async (req, res) => {
 
-        res.json({
+        try {
 
-            success: true,
+            const jackpot =
+                await getSaturdayJackpot();
 
-            app:
-                "Miltape World Challenge",
+            res.json({
 
-            status:
-                "online",
+                success:
+                    true,
 
-            mongo:
-                mongoConnected,
+                app:
+                    "Miltape World Challenge",
 
-            gameId,
+                status:
+                    "online",
 
-            gameDuration:
-                GAME_DURATION,
+                mongo:
+                    mongoConnected,
 
-            timerLeft,
+                gameId,
 
-            payment: {
+                gameDuration:
+                    GAME_DURATION,
 
-                token:
-                    TOKEN,
+                timerLeft,
 
-                network:
-                    NETWORK,
+                saturdayJackpot:
+                    jackpot,
 
-                chain:
-                    CHAIN,
+                payment: {
 
-                address:
-                    MILTAPE_WALLET,
+                    token:
+                        TOKEN,
 
-                contract:
-                    USDT_CONTRACT,
+                    network:
+                        NETWORK,
 
-                decimals:
-                    USDT_DECIMALS,
+                    chain:
+                        CHAIN,
 
-                minimumBet:
-                    MINIMUM_BET,
+                    address:
+                        MILTAPE_WALLET,
 
-                maximumBet:
-                    MAXIMUM_BET
-            }
-        });
+                    contract:
+                        USDT_CONTRACT,
+
+                    decimals:
+                        USDT_DECIMALS,
+
+                    minimumBet:
+                        MINIMUM_BET,
+
+                    maximumBet:
+                        MAXIMUM_BET
+                }
+            });
+
+        } catch (error) {
+
+            console.error(
+                "❌ Root:",
+                error.message
+            );
+
+            res.status(500).json({
+
+                success:
+                    false,
+
+                error:
+                    "ROOT_ERROR"
+            });
+        }
     }
 );
 
 /* =========================================================
-   ADMIN LOGIN (NOUVELLE ROUTE)
+   ADMIN LOGIN
    ========================================================= */
 
 app.post(
     "/api/admin/login",
     (req, res) => {
-        const password = cleanString(req.body.password, 100);
+
+        const password =
+            cleanString(
+                req.body.password,
+                100
+            );
 
         if (!password) {
+
             return res.status(400).json({
-                success: false,
-                message: "Mot de passe requis."
+
+                success:
+                    false,
+
+                message:
+                    "Mot de passe requis."
             });
         }
 
-        if (password === ADMIN_PASSWORD) {
+        if (
+            password ===
+            ADMIN_PASSWORD
+        ) {
+
             return res.json({
-                success: true,
-                message: "Connexion réussie."
+
+                success:
+                    true,
+
+                message:
+                    "Connexion réussie."
             });
+
         } else {
+
             return res.status(401).json({
-                success: false,
-                message: "Mot de passe incorrect !"
+
+                success:
+                    false,
+
+                message:
+                    "Mot de passe incorrect !"
             });
         }
     }
@@ -591,53 +957,78 @@ app.post(
 
 app.get(
     "/api/status",
-    (req, res) => {
+    async (req, res) => {
 
-        res.json({
+        try {
 
-            success:
-                true,
+            const jackpot =
+                await getSaturdayJackpot();
 
-            server:
-                "online",
+            res.json({
 
-            mongo:
-                mongoConnected,
+                success:
+                    true,
 
-            gameId,
+                server:
+                    "online",
 
-            timerLeft,
+                mongo:
+                    mongoConnected,
 
-            gameDuration:
-                GAME_DURATION,
+                gameId,
 
-            payment: {
+                timerLeft,
 
-                token:
-                    TOKEN,
+                gameDuration:
+                    GAME_DURATION,
 
-                network:
-                    NETWORK,
+                saturdayJackpot:
+                    jackpot,
 
-                chain:
-                    CHAIN,
+                payment: {
 
-                wallet:
-                    MILTAPE_WALLET,
+                    token:
+                        TOKEN,
 
-                contract:
-                    USDT_CONTRACT,
+                    network:
+                        NETWORK,
 
-                decimals:
-                    USDT_DECIMALS,
+                    chain:
+                        CHAIN,
 
-                minimumBet:
-                    MINIMUM_BET,
+                    wallet:
+                        MILTAPE_WALLET,
 
-                maximumBet:
-                    MAXIMUM_BET
-            }
-        });
+                    contract:
+                        USDT_CONTRACT,
+
+                    decimals:
+                        USDT_DECIMALS,
+
+                    minimumBet:
+                        MINIMUM_BET,
+
+                    maximumBet:
+                        MAXIMUM_BET
+                }
+            });
+
+        } catch (error) {
+
+            console.error(
+                "❌ status:",
+                error.message
+            );
+
+            res.status(500).json({
+
+                success:
+                    false,
+
+                error:
+                    "STATUS_ERROR"
+            });
+        }
     }
 );
 
@@ -647,54 +1038,131 @@ app.get(
 
 app.get(
     "/api/game-config",
-    (req, res) => {
+    async (req, res) => {
 
-        res.json({
+        try {
 
-            success:
-                true,
+            const jackpot =
+                await getSaturdayJackpot();
 
-            game: {
+            res.json({
 
-                name:
-                    "Miltape World Challenge",
+                success:
+                    true,
 
-                duration:
-                    GAME_DURATION,
+                game: {
 
-                gameId,
+                    name:
+                        "Miltape World Challenge",
 
-                topWinners:
-                    TOP_WINNERS
-            },
+                    duration:
+                        GAME_DURATION,
 
-            payment: {
+                    gameId,
 
-                token:
-                    TOKEN,
+                    topWinners:
+                        TOP_WINNERS
+                },
 
-                network:
-                    NETWORK,
+                saturdayJackpot:
+                    jackpot,
 
-                chain:
-                    CHAIN,
+                jackpotConfig: {
 
-                address:
-                    MILTAPE_WALLET,
+                    percent:
+                        JACKPOT_PERCENT,
 
-                contract:
-                    USDT_CONTRACT,
+                    minimumBet:
+                        MINIMUM_BET
+                },
 
-                decimals:
-                    USDT_DECIMALS,
+                payment: {
 
-                minimumBet:
-                    MINIMUM_BET,
+                    token:
+                        TOKEN,
 
-                maximumBet:
-                    MAXIMUM_BET
-            }
-        });
+                    network:
+                        NETWORK,
+
+                    chain:
+                        CHAIN,
+
+                    address:
+                        MILTAPE_WALLET,
+
+                    contract:
+                        USDT_CONTRACT,
+
+                    decimals:
+                        USDT_DECIMALS,
+
+                    minimumBet:
+                        MINIMUM_BET,
+
+                    maximumBet:
+                        MAXIMUM_BET
+                }
+            });
+
+        } catch (error) {
+
+            console.error(
+                "❌ game-config:",
+                error.message
+            );
+
+            res.status(500).json({
+
+                success:
+                    false,
+
+                error:
+                    "GAME_CONFIG_ERROR"
+            });
+        }
+    }
+);
+
+/* =========================================================
+   API CAGNOTTE DU SAMEDI
+   ========================================================= */
+
+app.get(
+    "/api/saturday-jackpot",
+    async (req, res) => {
+
+        try {
+
+            const jackpot =
+                await getSaturdayJackpot();
+
+            return res.json({
+
+                success:
+                    true,
+
+                ...jackpot
+            });
+
+        } catch (error) {
+
+            console.error(
+                "❌ saturday-jackpot:",
+                error.message
+            );
+
+            return res.status(500).json({
+
+                success:
+                    false,
+
+                jackpot:
+                    0,
+
+                error:
+                    "SATURDAY_JACKPOT_ERROR"
+            });
+        }
     }
 );
 
@@ -725,6 +1193,7 @@ app.get(
 
                     {
                         $match: {
+
                             paymentStatus:
                                 "paid"
                         }
@@ -732,7 +1201,9 @@ app.get(
 
                     {
                         $group: {
-                            _id: null,
+
+                            _id:
+                                null,
 
                             total: {
                                 $sum:
@@ -1086,7 +1557,7 @@ app.post(
                         "INVALID_AMOUNT",
 
                     message:
-                        "La mise doit être supérieure à 0 USDT."
+                        "La mise minimale est de 1 USDT."
                 });
             }
 
@@ -1195,7 +1666,9 @@ app.post(
                     true,
 
                 entryId:
-                    String(player._id),
+                    String(
+                        player._id
+                    ),
 
                 gameId,
 
@@ -1460,7 +1933,10 @@ app.post(
                         false,
 
                     error:
-                        "INVALID_AMOUNT"
+                        "INVALID_AMOUNT",
+
+                    message:
+                        "La mise minimale est de 1 USDT."
                 });
             }
 
@@ -1573,7 +2049,9 @@ app.post(
                     : [];
 
             const expectedUnits =
-                usdtToUnits(amount);
+                usdtToUnits(
+                    amount
+                );
 
             const paymentEvent =
                 events.find(
@@ -1625,7 +2103,9 @@ app.post(
 
                         if (
                             eventAmount !==
-                            String(expectedUnits)
+                            String(
+                                expectedUnits
+                            )
                         ) {
                             return false;
                         }
@@ -1703,7 +2183,8 @@ app.post(
             } catch (createError) {
 
                 if (
-                    createError?.code === 11000
+                    createError?.code ===
+                    11000
                 ) {
 
                     return res.status(409).json({
@@ -1719,7 +2200,21 @@ app.post(
                 throw createError;
             }
 
+            /*
+             * =================================================
+             * PAIEMENT VALIDÉ
+             * =================================================
+             *
+             * Maintenant la mise compte dans :
+             *
+             * 1. le jeu
+             * 2. les statistiques
+             * 3. la cagnotte du samedi
+             */
+
             await broadcastLeaderboard();
+
+            await broadcastSaturdayJackpot();
 
             io.emit(
                 "stakesUpdated"
@@ -1734,7 +2229,9 @@ app.post(
                     "paid",
 
                 entryId:
-                    String(player._id),
+                    String(
+                        player._id
+                    ),
 
                 gameId,
 
@@ -1813,10 +2310,30 @@ io.on(
             "gameInfo",
             {
                 gameId,
+
                 duration:
                     GAME_DURATION
             }
         );
+
+        /*
+         * Envoyer immédiatement la cagnotte
+         * au nouveau joueur.
+         */
+
+        getSaturdayJackpot()
+            .then(
+                jackpot => {
+
+                    socket.emit(
+                        "saturdayJackpot",
+                        jackpot
+                    );
+                }
+            )
+            .catch(
+                () => {}
+            );
 
         getLeaderboard()
             .then(
@@ -1997,6 +2514,34 @@ io.on(
                         return;
                     }
 
+                    /*
+                     * Sécurité supplémentaire :
+                     *
+                     * impossible de rejoindre avec
+                     * une mise inférieure à 1 USDT.
+                     */
+
+                    if (
+                        Number(
+                            player.amount
+                        ) <
+                        MINIMUM_BET
+                    ) {
+
+                        socket.emit(
+                            "paidGameRejected",
+                            {
+                                success:
+                                    false,
+
+                                message:
+                                    "La mise minimale est de 1 USDT."
+                            }
+                        );
+
+                        return;
+                    }
+
                     const existingSocket =
                         activePlayers.get(
                             playerId
@@ -2043,7 +2588,9 @@ io.on(
                         player.transactionHash;
 
                     socket.data.entryId =
-                        String(player._id);
+                        String(
+                            player._id
+                        );
 
                     socket.data.score =
                         Number(
@@ -2269,12 +2816,14 @@ io.on(
 
                             {
                                 $inc: {
-                                    score: 1
+                                    score:
+                                        1
                                 }
                             },
 
                             {
-                                new: true
+                                new:
+                                    true
                             }
                         );
 
@@ -2403,6 +2952,7 @@ setInterval(
                 }
 
                 activePlayers.clear();
+
                 tapRate.clear();
 
                 gameId++;
@@ -2425,6 +2975,16 @@ setInterval(
                             GAME_DURATION
                     }
                 );
+
+                /*
+                 * La cagnotte du samedi ne dépend PAS
+                 * du numéro de partie.
+                 *
+                 * Elle continue de s'accumuler
+                 * pendant toute la semaine.
+                 */
+
+                await broadcastSaturdayJackpot();
             }
 
             io.emit(
@@ -2478,6 +3038,33 @@ setInterval(
 );
 
 /* =========================================================
+   MISE À JOUR CAGNOTTE AUTOMATIQUE
+   =========================================================
+ *
+ * Toutes les 30 secondes, on renvoie la cagnotte
+ * aux joueurs connectés.
+ */
+
+setInterval(
+    async () => {
+
+        try {
+
+            await broadcastSaturdayJackpot();
+
+        } catch (error) {
+
+            console.error(
+                "❌ Jackpot update:",
+                error.message
+            );
+        }
+
+    },
+    30000
+);
+
+/* =========================================================
    ONLINE COUNT
    ========================================================= */
 
@@ -2502,26 +3089,52 @@ app.get(
 
 app.get(
     "/api/health",
-    (req, res) => {
+    async (req, res) => {
 
-        res.json({
+        try {
 
-            success:
-                true,
+            const jackpot =
+                await getSaturdayJackpot();
 
-            server:
-                "online",
+            res.json({
 
-            mongo:
-                mongoConnected,
+                success:
+                    true,
 
-            gameId,
+                server:
+                    "online",
 
-            timerLeft,
+                mongo:
+                    mongoConnected,
 
-            timestamp:
-                new Date().toISOString()
-        });
+                gameId,
+
+                timerLeft,
+
+                saturdayJackpot:
+                    jackpot,
+
+                timestamp:
+                    new Date().toISOString()
+            });
+
+        } catch (error) {
+
+            res.status(500).json({
+
+                success:
+                    false,
+
+                server:
+                    "online",
+
+                mongo:
+                    mongoConnected,
+
+                error:
+                    "HEALTH_ERROR"
+            });
+        }
     }
 );
 
@@ -2596,7 +3209,15 @@ server.listen(
         );
 
         console.log(
-            "💰 Mise : libre (> 0 USDT)"
+            "💰 Mise minimale :",
+            MINIMUM_BET,
+            "USDT"
+        );
+
+        console.log(
+            "🎰 Cagnotte samedi :",
+            JACKPOT_PERCENT,
+            "%"
         );
 
         console.log(
