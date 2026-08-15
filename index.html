@@ -6,71 +6,170 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
     <meta name="theme-color" content="#090014">
 
-    <title>Conditions d'utilisation - Miltape</title>
+    <title>Conditions d'utilisation | Miltape World Challenge</title>
 
     <link rel="stylesheet" href="./style.css">
-    
+
     <style>
-        .legal-link-container {
+        .conditions-page {
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        .conditions-hero {
             text-align: center;
-            margin: 30px 0 20px 0;
+            padding: 35px 20px 25px;
         }
-        .legal-link {
+
+        .conditions-logo {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 2px;
+        }
+
+        .conditions-logo span {
+            display: block;
+            margin-top: 5px;
+            color: #ffcc00;
+        }
+
+        .conditions-slogan {
+            margin: 8px 0 0;
+            color: #a99bb5;
+            font-size: 10px;
+            letter-spacing: 4px;
+        }
+
+        .conditions-card {
+            margin: 0 15px;
+            padding: 20px;
+            border-radius: 18px;
+            background: rgba(20, 5, 35, 0.95);
+            border: 1px solid rgba(255, 204, 0, 0.25);
+            box-shadow:
+                0 0 25px rgba(150, 0, 255, 0.15),
+                inset 0 0 20px rgba(255, 204, 0, 0.03);
+        }
+
+        .conditions-title {
+            text-align: center;
+            color: #ffcc00;
+            font-size: 18px;
+            font-weight: 800;
+            margin: 0 0 25px;
+        }
+
+        .condition-block {
+            margin-bottom: 24px;
+        }
+
+        .condition-block h2 {
+            margin: 0 0 8px;
+            color: #ffcc00;
+            font-size: 16px;
+        }
+
+        .condition-block p {
+            margin: 0;
+            color: #dddddd;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .back-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .back-button {
             display: inline-block;
-            padding: 12px 24px;
-            background-color: #ffcc00;
+            padding: 14px 28px;
+            border-radius: 10px;
+            background: linear-gradient(
+                135deg,
+                #ffcc00,
+                #ff9900
+            );
             color: #090014;
-            font-weight: bold;
+            font-weight: 900;
             text-decoration: none;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(255, 204, 0, 0.3);
-            transition: background-color 0.2s ease;
+            box-shadow:
+                0 5px 20px rgba(255, 174, 0, 0.35);
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease;
         }
-        .legal-link:hover {
-            background-color: #e6b800;
+
+        .back-button:active {
+            transform: scale(0.96);
+        }
+
+        .back-button:hover {
+            box-shadow:
+                0 7px 25px rgba(255, 174, 0, 0.5);
+        }
+
+        .home-link {
+            display: block;
+            margin-top: 15px;
+            color: #a99bb5;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .home-link:hover {
+            color: #ffffff;
         }
     </style>
 </head>
 
 <body>
 
-<div class="app">
+<div class="app conditions-page">
 
-    <section class="hero-combined" style="padding: 30px 20px; text-align: center;">
+    <!-- =====================================================
+         EN-TÊTE
+         ===================================================== -->
 
-        <div class="hero-content">
+    <header class="conditions-hero">
 
-            <h1 style="font-size: 24px; color: white;">
-                MILTAPE
-                <span style="display: block; color: var(--gold, #ffcc00);">
-                    CONDITIONS
-                </span>
-            </h1>
+        <h1 class="conditions-logo">
+            MILTAPE
+            <span>CONDITIONS</span>
+        </h1>
 
-            <p class="slogan" style="font-size: 10px; color: var(--muted, #a99bb5); letter-spacing: 3px; margin-top: 5px;">
-                WORLD CHALLENGE
-            </p>
+        <p class="conditions-slogan">
+            WORLD CHALLENGE
+        </p>
 
-        </div>
+    </header>
 
-    </section>
 
-    <section class="chat-section">
+    <!-- =====================================================
+         CONDITIONS
+         ===================================================== -->
 
-        <div class="section-title">
-            <span>📄 CONDITIONS D'UTILISATION</span>
-        </div>
+    <main class="conditions-card">
 
-        <div style="padding:15px; color:#ccc; line-height:1.7;">
+        <h2 class="conditions-title">
+            📄 CONDITIONS D'UTILISATION
+        </h2>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
+
+        <!-- 1 -->
+
+        <section class="condition-block">
+
+            <h2>
                 1. Présentation
-            </h3>
+            </h2>
 
             <p>
                 Miltape World Challenge est une plateforme de
@@ -78,82 +177,195 @@
                 dans le temps.
             </p>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
+        </section>
+
+
+        <!-- 2 -->
+
+        <section class="condition-block">
+
+            <h2>
                 2. Fonctionnement
-            </h3>
+            </h2>
 
             <p>
-                Une partie dure 10 minutes. Les joueurs
-                participent au classement et les cinq meilleurs
-                joueurs sont affichés dans le Top 5.
+                Une partie dure exactement 10 minutes.
+                Les joueurs participent au classement et les
+                cinq meilleurs joueurs sont affichés dans le
+                Top 5.
             </p>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
-                3. Mise
-            </h3>
+        </section>
+
+
+        <!-- 3 -->
+
+        <section class="condition-block">
+
+            <h2>
+                3. Mise et participation
+            </h2>
 
             <p>
                 Les éventuelles mises et récompenses sont
                 soumises aux règles affichées sur la plateforme.
-                L'utilisateur doit vérifier les informations
-                avant toute participation.
+                L'utilisateur doit vérifier toutes les
+                informations avant toute participation.
             </p>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
-                4. Wallet
-            </h3>
+        </section>
+
+
+        <!-- 4 -->
+
+        <section class="condition-block">
+
+            <h2>
+                4. Paiements et Wallet
+            </h2>
 
             <p>
                 Les transactions en USDT sur le réseau TRON
                 (TRC20) nécessitent une adresse correcte.
                 L'utilisateur est responsable de l'adresse
-                fournie et de la vérification du réseau utilisé.
+                fournie et doit vérifier le réseau utilisé
+                avant toute transaction.
             </p>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
-                5. Responsabilité
-            </h3>
+        </section>
+
+
+        <!-- 5 -->
+
+        <section class="condition-block">
+
+            <h2>
+                5. Responsabilité de l'utilisateur
+            </h2>
 
             <p>
                 L'utilisateur est responsable de son compte,
-                de son wallet et de ses opérations.
+                de son identifiant, de son wallet et des
+                opérations effectuées depuis celui-ci.
             </p>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
-                6. Support
-            </h3>
+        </section>
+
+
+        <!-- 6 -->
+
+        <section class="condition-block">
+
+            <h2>
+                6. Transactions
+            </h2>
+
+            <p>
+                Les transactions blockchain peuvent être
+                irréversibles. Avant d'envoyer des fonds,
+                l'utilisateur doit vérifier l'adresse de
+                destination, le réseau et le montant.
+            </p>
+
+        </section>
+
+
+        <!-- 7 -->
+
+        <section class="condition-block">
+
+            <h2>
+                7. Sécurité
+            </h2>
+
+            <p>
+                Toute tentative de fraude, de manipulation du
+                classement, d'utilisation abusive du système
+                ou d'exploitation d'une faille peut entraîner
+                le blocage de la participation concernée.
+            </p>
+
+        </section>
+
+
+        <!-- 8 -->
+
+        <section class="condition-block">
+
+            <h2>
+                8. Support
+            </h2>
 
             <p>
                 Pour toute question ou problème concernant
-                l'utilisation de la plateforme, contactez le
-                support Miltape.
+                l'utilisation de la plateforme, l'utilisateur
+                peut contacter le support Miltape.
             </p>
 
-            <h3 style="color:#ffcc00; margin-top: 15px;">
-                7. Acceptation
-            </h3>
+        </section>
+
+
+        <!-- 9 -->
+
+        <section class="condition-block">
+
+            <h2>
+                9. Acceptation
+            </h2>
 
             <p>
-                L'utilisation de Miltape implique l'acceptation
-                des règles et conditions applicables à la
-                plateforme.
+                L'utilisation de Miltape World Challenge
+                implique l'acceptation des règles et conditions
+                applicables à la plateforme.
             </p>
 
-            <div class="legal-link-container">
-                <!-- Lien de retour vers la page principale du jeu -->
-                <a
-                    href="./index.html"
-                    class="legal-link"
-                >
-                    ← Retour à Miltape
-                </a>
-            </div>
+        </section>
+
+
+        <!-- =================================================
+             RETOUR AU JEU
+             ================================================= -->
+
+        <div class="back-container">
+
+            <a
+                href="./index.html"
+                class="back-button"
+            >
+                ← RETOUR À MILTAPE
+            </a>
+
+            <a
+                href="./index.html"
+                class="home-link"
+            >
+                Accéder à la page principale du jeu
+            </a>
 
         </div>
 
-    </section>
+    </main>
 
 </div>
+
+
+<!-- =========================================================
+     SÉCURITÉ NAVIGATION
+     =========================================================
+
+     Ce script ne redirige PAS automatiquement vers
+     conditions.html.
+
+     Il sert uniquement à vérifier que la page fonctionne.
+     ========================================================= -->
+
+<script>
+
+    console.log(
+        "Miltape World Challenge - Conditions chargées."
+    );
+
+</script>
 
 </body>
 </html>
