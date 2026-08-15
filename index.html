@@ -14,6 +14,28 @@
     <title>Conditions d'utilisation - Miltape</title>
 
     <link rel="stylesheet" href="./style.css">
+    
+    <style>
+        /* Style additionnel pour s'assurer que le bouton de retour est bien visible et cliquable */
+        .legal-link-container {
+            text-align: center;
+            margin: 30px 0 20px 0;
+        }
+        .legal-link {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #ffcc00;
+            color: #090014;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(255, 204, 0, 0.3);
+            transition: background-color 0.2s ease;
+        }
+        .legal-link:hover {
+            background-color: #e6b800;
+        }
+    </style>
 </head>
 
 <body>
@@ -118,14 +140,14 @@
                 plateforme.
             </p>
 
-            <br>
-
-            <a
-                href="./index.html"
-                class="legal-link"
-            >
-                ← Retour à Miltape
-            </a>
+            <div class="legal-link-container">
+                <a
+                    href="./index.html"
+                    class="legal-link"
+                >
+                    ← Retour à Miltape
+                </a>
+            </div>
 
         </div>
 
