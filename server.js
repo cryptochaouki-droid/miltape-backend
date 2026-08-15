@@ -53,101 +53,58 @@ const MONGO_URI =
 const TRONGRID_API_KEY =
     process.env.TRONGRID_API_KEY || "";
 
-/*
- * Mot de passe admin.
- *
- * IMPORTANT :
- * Dans Railway, crée :
- *
- * ADMIN_PASSWORD=ton_mot_de_passe
- *
- * Le mot de passe par défaut est uniquement
- * un secours pour éviter que le serveur plante.
- */
 const ADMIN_PASSWORD =
     process.env.ADMIN_PASSWORD || "admin123";
 
-/*
- * Durée d'une partie :
- * 10 minutes = 600 secondes
- */
+/* =========================================================
+   JEU
+   ========================================================= */
+
 const GAME_DURATION = 600;
 
-/*
- * Wallet officiel Miltape
- */
+const TOP_WINNERS = 5;
+
+const MAX_TAPS_PER_SECOND = 25;
+
+/* =========================================================
+   WALLET MILTAPE
+   ========================================================= */
+
 const MILTAPE_WALLET =
     "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
 
-/*
- * Contrat officiel USDT TRC20
- */
+/* =========================================================
+   USDT TRC20
+   ========================================================= */
+
 const USDT_CONTRACT =
     "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-/*
- * USDT possède 6 décimales
- */
 const USDT_DECIMALS = 6;
 
 const NETWORK = "TRON";
+
 const TOKEN = "USDT";
+
 const CHAIN = "TRC20";
 
-/*
- * =========================================================
- * MISE MINIMALE
- * =========================================================
- *
- * La mise commence maintenant à 1 USDT.
- */
+/* =========================================================
+   MISE
+   ========================================================= */
+
 const MINIMUM_BET = 1;
 
-/*
- * Pas de maximum.
- */
 const MAXIMUM_BET = null;
 
-/*
- * Nombre de gagnants :
- * TOP 5
- */
-const TOP_WINNERS = 5;
+/* =========================================================
+   CAGNOTTE SAMEDI
+   ========================================================= */
 
-/*
- * Anti-spam :
- * maximum 25 taps/seconde.
- */
-const MAX_TAPS_PER_SECOND = 25;
-
-/*
- * =========================================================
- * CAGNOTTE DU SAMEDI
- * =========================================================
- *
- * Pour chaque mise payée :
- *
- * 5 % -> cagnotte du samedi
- *
- * Exemple :
- *
- * 1 USDT -> 0.05 USDT
- * 10 USDT -> 0.50 USDT
- * 100 USDT -> 5 USDT
- *
- * Tu peux modifier ce pourcentage dans Railway :
- *
- * SATURDAY_JACKPOT_PERCENT=5
- */
 const SATURDAY_JACKPOT_PERCENT =
     Number(
         process.env.SATURDAY_JACKPOT_PERCENT
     ) || 5;
 
-/*
- * Sécurité :
- * on limite le pourcentage entre 0 et 100.
- */
 const JACKPOT_PERCENT =
     Math.min(
         100,
@@ -158,31 +115,21 @@ const JACKPOT_PERCENT =
     );
 
 /* =========================================================
-   ETAT DU SERVEUR
+   ETAT SERVEUR
    ========================================================= */
 
 let mongoConnected = false;
 
-/*
- * Numéro de la partie actuelle.
- */
 let gameId = 1;
 
-/*
- * Temps restant.
- */
 let timerLeft = GAME_DURATION;
 
 /*
- * Joueurs actuellement autorisés.
- *
  * playerId -> socketId
  */
 const activePlayers = new Map();
 
 /*
- * Anti-spam :
- *
  * playerId -> {
  *     startedAt,
  *     count
@@ -198,15 +145,17 @@ console.log("======================================");
 console.log("🔥 MILTAPE WORLD CHALLENGE BACKEND");
 console.log("======================================");
 
-console.log(
-    "Port :",
-    PORT
-);
+console.log("Port :", PORT);
 
 console.log(
     "Durée :",
     GAME_DURATION,
     "secondes"
+);
+
+console.log(
+    "Gagnants : TOP",
+    TOP_WINNERS
 );
 
 console.log(
@@ -337,6 +286,10 @@ const playerSchema =
         }
     );
 
+/* =========================================================
+   INDEX TRANSACTION
+   ========================================================= */
+
 playerSchema.index(
     {
         transactionHash: 1
@@ -348,14 +301,19 @@ playerSchema.index(
     }
 );
 
+/* =========================================================
+   INDEX LEADERBOARD
+   ========================================================= */
+
 playerSchema.index(
     {
         gameId: 1,
         paymentStatus: 1,
+        playerId: 1,
         score: -1
     },
     {
-        name: "game_payment_score"
+        name: "game_payment_player_score"
     }
 );
 
@@ -417,7 +375,7 @@ async function connectMongoDB() {
 connectMongoDB();
 
 /* =========================================================
-   UTILITAIRES
+   UTILITAIRE STRING
    ========================================================= */
 
 function cleanString(
@@ -621,14 +579,8 @@ async function fetchJson(
 }
 
 /* =========================================================
-   DATE DU DÉBUT DE LA CAGNOTTE
-   =========================================================
- *
- * La semaine de cagnotte commence chaque samedi à 00:00.
- *
- * On utilise l'heure UTC du serveur pour avoir un calcul
- * stable même si Railway change de région.
- */
+   DÉBUT PÉRIODE SAMEDI
+   ========================================================= */
 
 function getSaturdayStart() {
 
@@ -637,18 +589,6 @@ function getSaturdayStart() {
 
     const day =
         now.getUTCDay();
-
-    /*
-     * JS :
-     *
-     * dimanche = 0
-     * lundi    = 1
-     * mardi    = 2
-     * mercredi = 3
-     * jeudi    = 4
-     * vendredi = 5
-     * samedi   = 6
-     */
 
     const daysSinceSaturday =
         (day + 1) % 7;
@@ -675,7 +615,7 @@ function getSaturdayStart() {
 }
 
 /* =========================================================
-   DATE DU PROCHAIN SAMEDI
+   PROCHAIN SAMEDI
    ========================================================= */
 
 function getNextSaturday() {
@@ -694,7 +634,7 @@ function getNextSaturday() {
 }
 
 /* =========================================================
-   CAGNOTTE DU SAMEDI
+   CAGNOTTE SAMEDI
    ========================================================= */
 
 async function getSaturdayJackpot() {
@@ -702,11 +642,17 @@ async function getSaturdayJackpot() {
     if (!mongoConnected) {
 
         return {
+
             totalStakes: 0,
+
             jackpot: 0,
-            percent: JACKPOT_PERCENT,
+
+            percent:
+                JACKPOT_PERCENT,
+
             periodStart:
                 getSaturdayStart().toISOString(),
+
             nextSaturday:
                 getNextSaturday().toISOString()
         };
@@ -728,6 +674,7 @@ async function getSaturdayJackpot() {
                         "paid",
 
                     paidAt: {
+
                         $gte:
                             periodStart,
 
@@ -744,6 +691,7 @@ async function getSaturdayJackpot() {
                         null,
 
                     totalStakes: {
+
                         $sum:
                             "$amount"
                     }
@@ -937,17 +885,16 @@ app.post(
                     "Connexion réussie."
             });
 
-        } else {
-
-            return res.status(401).json({
-
-                success:
-                    false,
-
-                message:
-                    "Mot de passe incorrect !"
-            });
         }
+
+        return res.status(401).json({
+
+            success:
+                false,
+
+            message:
+                "Mot de passe incorrect !"
+        });
     }
 );
 
@@ -1124,7 +1071,7 @@ app.get(
 );
 
 /* =========================================================
-   API CAGNOTTE DU SAMEDI
+   API CAGNOTTE SAMEDI
    ========================================================= */
 
 app.get(
@@ -1206,6 +1153,7 @@ app.get(
                                 null,
 
                             total: {
+
                                 $sum:
                                     "$amount"
                             }
@@ -1399,8 +1347,31 @@ app.get(
 );
 
 /* =========================================================
-   LEADERBOARD
-   ========================================================= */
+   LEADERBOARD CORRIGÉ
+   =========================================================
+ *
+ * IMPORTANT :
+ *
+ * Chaque paiement crée un document Player.
+ *
+ * Si le même playerId possède plusieurs documents
+ * dans la même partie, on regroupe les documents
+ * avec le même playerId et on additionne les scores.
+ *
+ * Exemple :
+ *
+ * playerId = milina
+ * score = 10
+ *
+ * playerId = milina
+ * score = 20
+ *
+ * Résultat :
+ *
+ * milina = 30
+ *
+ * TOP 5 uniquement.
+ */
 
 async function getLeaderboard() {
 
@@ -1408,60 +1379,141 @@ async function getLeaderboard() {
         return [];
     }
 
-    const players =
-        await Player.aggregate([
+    try {
 
-            {
-                $match: {
+        const players =
+            await Player.aggregate([
 
-                    gameId,
+                /* -----------------------------------------
+                   1. FILTRER LA PARTIE ACTUELLE
+                   ----------------------------------------- */
 
-                    paymentStatus:
-                        "paid"
-                }
-            },
+                {
+                    $match: {
 
-            {
-                $group: {
+                        gameId:
+                            Number(gameId),
 
-                    _id:
-                        "$playerId",
+                        paymentStatus:
+                            "paid"
+                    }
+                },
 
-                    playerName: {
-                        $first:
-                            "$playerName"
-                    },
+                /* -----------------------------------------
+                   2. REGROUPER PAR PLAYER ID
+                   ----------------------------------------- */
 
-                    score: {
-                        $sum:
-                            "$score"
-                    },
+                {
+                    $group: {
 
-                    amount: {
-                        $sum:
-                            "$amount"
+                        _id:
+                            "$playerId",
+
+                        playerName: {
+
+                            $first:
+                                "$playerName"
+                        },
+
+                        score: {
+
+                            $sum: {
+
+                                $ifNull: [
+                                    "$score",
+                                    0
+                                ]
+                            }
+                        },
+
+                        amount: {
+
+                            $sum: {
+
+                                $ifNull: [
+                                    "$amount",
+                                    0
+                                ]
+                            }
+                        }
+                    }
+                },
+
+                /* -----------------------------------------
+                   3. CLASSER DU PLUS GRAND AU PLUS PETIT
+                   ----------------------------------------- */
+
+                {
+                    $sort: {
+
+                        score:
+                            -1,
+
+                        _id:
+                            1
+                    }
+                },
+
+                /* -----------------------------------------
+                   4. TOP 5
+                   ----------------------------------------- */
+
+                {
+                    $limit:
+                        TOP_WINNERS
+                },
+
+                /* -----------------------------------------
+                   5. FORMAT FINAL
+                   ----------------------------------------- */
+
+                {
+                    $project: {
+
+                        _id:
+                            0,
+
+                        playerId:
+                            "$_id",
+
+                        playerName: {
+
+                            $ifNull: [
+
+                                "$playerName",
+
+                                "Anonyme"
+                            ]
+                        },
+
+                        score:
+                            1,
+
+                        amount: {
+
+                            $round: [
+
+                                "$amount",
+
+                                6
+                            ]
+                        }
                     }
                 }
-            },
 
-            {
-                $sort: {
+            ]);
 
-                    score:
-                        -1,
+        return players;
 
-                    _id:
-                        1
-                }
-            },
+    } catch (error) {
 
-            {
-                $limit:
-                    TOP_WINNERS
-            }
-        ]);
+        console.error(
+            "❌ ERREUR LEADERBOARD :",
+            error
+        );
 
-    return players;
+        return [];
+    }
 }
 
 /* =========================================================
@@ -2003,6 +2055,10 @@ app.post(
                 });
             }
 
+            /* -----------------------------------------
+               TRONGRID
+               ----------------------------------------- */
+
             const eventsUrl =
                 "https://api.trongrid.io/v1/transactions/" +
                 encodeURIComponent(txid) +
@@ -2013,8 +2069,10 @@ app.post(
             const {
                 response:
                     eventResponse,
+
                 data:
                     eventData
+
             } =
                 await fetchJson(
                     eventsUrl
@@ -2052,6 +2110,10 @@ app.post(
                 usdtToUnits(
                     amount
                 );
+
+            /* -----------------------------------------
+               RECHERCHE DU TRANSFERT USDT
+               ----------------------------------------- */
 
             const paymentEvent =
                 events.find(
@@ -2146,6 +2208,10 @@ app.post(
                 });
             }
 
+            /* -----------------------------------------
+               CRÉER LE JOUEUR PAYÉ
+               ----------------------------------------- */
+
             let player;
 
             try {
@@ -2200,17 +2266,9 @@ app.post(
                 throw createError;
             }
 
-            /*
-             * =================================================
-             * PAIEMENT VALIDÉ
-             * =================================================
-             *
-             * Maintenant la mise compte dans :
-             *
-             * 1. le jeu
-             * 2. les statistiques
-             * 3. la cagnotte du samedi
-             */
+            /* -----------------------------------------
+               PAIEMENT VALIDÉ
+               ----------------------------------------- */
 
             await broadcastLeaderboard();
 
@@ -2301,14 +2359,23 @@ io.on(
             socket.id
         );
 
+        /* -----------------------------------------
+           TIMER INITIAL
+           ----------------------------------------- */
+
         socket.emit(
             "timer",
             timerLeft
         );
 
+        /* -----------------------------------------
+           GAME INFO
+           ----------------------------------------- */
+
         socket.emit(
             "gameInfo",
             {
+
                 gameId,
 
                 duration:
@@ -2316,10 +2383,9 @@ io.on(
             }
         );
 
-        /*
-         * Envoyer immédiatement la cagnotte
-         * au nouveau joueur.
-         */
+        /* -----------------------------------------
+           JACKPOT INITIAL
+           ----------------------------------------- */
 
         getSaturdayJackpot()
             .then(
@@ -2334,6 +2400,10 @@ io.on(
             .catch(
                 () => {}
             );
+
+        /* -----------------------------------------
+           LEADERBOARD INITIAL
+           ----------------------------------------- */
 
         getLeaderboard()
             .then(
@@ -2355,9 +2425,9 @@ io.on(
                 }
             );
 
-        /* =====================================================
+        /* =================================================
            JOIN SIMPLE
-           ===================================================== */
+           ================================================= */
 
         socket.on(
             "join",
@@ -2409,9 +2479,9 @@ io.on(
             }
         );
 
-        /* =====================================================
+        /* =================================================
            JOIN PAID GAME
-           ===================================================== */
+           ================================================= */
 
         socket.on(
             "joinPaidGame",
@@ -2427,6 +2497,7 @@ io.on(
                         socket.emit(
                             "paidGameRejected",
                             {
+
                                 success:
                                     false,
 
@@ -2457,6 +2528,7 @@ io.on(
                         socket.emit(
                             "paidGameRejected",
                             {
+
                                 success:
                                     false,
 
@@ -2473,6 +2545,7 @@ io.on(
                         socket.emit(
                             "paidGameRejected",
                             {
+
                                 success:
                                     false,
 
@@ -2503,6 +2576,7 @@ io.on(
                         socket.emit(
                             "paidGameRejected",
                             {
+
                                 success:
                                     false,
 
@@ -2514,13 +2588,6 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Sécurité supplémentaire :
-                     *
-                     * impossible de rejoindre avec
-                     * une mise inférieure à 1 USDT.
-                     */
-
                     if (
                         Number(
                             player.amount
@@ -2531,6 +2598,7 @@ io.on(
                         socket.emit(
                             "paidGameRejected",
                             {
+
                                 success:
                                     false,
 
@@ -2556,6 +2624,7 @@ io.on(
                         socket.emit(
                             "paidGameRejected",
                             {
+
                                 success:
                                     false,
 
@@ -2637,6 +2706,7 @@ io.on(
                     socket.emit(
                         "paidGameRejected",
                         {
+
                             success:
                                 false,
 
@@ -2648,9 +2718,9 @@ io.on(
             }
         );
 
-        /* =====================================================
+        /* =================================================
            CHAT
-           ===================================================== */
+           ================================================= */
 
         socket.on(
             "chatMessage",
@@ -2705,9 +2775,9 @@ io.on(
             }
         );
 
-        /* =====================================================
+        /* =================================================
            TAP
-           ===================================================== */
+           ================================================= */
 
         socket.on(
             "tap",
@@ -2751,7 +2821,7 @@ io.on(
                         !rate ||
                         now -
                             rate.startedAt >=
-                            1000
+                        1000
                     ) {
 
                         rate = {
@@ -2801,10 +2871,15 @@ io.on(
                         return;
                     }
 
+                    /* -----------------------------------------
+                       +1 TAP
+                       ----------------------------------------- */
+
                     const updatedPlayer =
                         await Player.findOneAndUpdate(
 
                             {
+
                                 _id:
                                     player._id,
 
@@ -2815,13 +2890,17 @@ io.on(
                             },
 
                             {
+
                                 $inc: {
+
                                     score:
                                         1
                                 }
+
                             },
 
                             {
+
                                 new:
                                     true
                             }
@@ -2834,6 +2913,10 @@ io.on(
                     socket.data.score =
                         updatedPlayer.score;
 
+                    /* -----------------------------------------
+                       SCORE JOUEUR
+                       ----------------------------------------- */
+
                     socket.emit(
                         "scoreUpdate",
                         {
@@ -2842,6 +2925,10 @@ io.on(
                                 updatedPlayer.score
                         }
                     );
+
+                    /* -----------------------------------------
+                       LEADERBOARD
+                       ----------------------------------------- */
 
                     await broadcastLeaderboard();
 
@@ -2855,9 +2942,9 @@ io.on(
             }
         );
 
-        /* =====================================================
+        /* =================================================
            DISCONNECT
-           ===================================================== */
+           ================================================= */
 
         socket.on(
             "disconnect",
@@ -2917,6 +3004,10 @@ setInterval(
                     gameId
                 );
 
+                /* -----------------------------------------
+                   CLASSEMENT FINAL
+                   ----------------------------------------- */
+
                 const finalLeaderboard =
                     await getLeaderboard();
 
@@ -2936,6 +3027,10 @@ setInterval(
                     finalLeaderboard
                 );
 
+                /* -----------------------------------------
+                   BLOQUER LES JOUEURS
+                   ----------------------------------------- */
+
                 for (
                     const socket of
                     io.sockets.sockets.values()
@@ -2954,6 +3049,10 @@ setInterval(
                 activePlayers.clear();
 
                 tapRate.clear();
+
+                /* -----------------------------------------
+                   NOUVELLE PARTIE
+                   ----------------------------------------- */
 
                 gameId++;
 
@@ -2975,14 +3074,6 @@ setInterval(
                             GAME_DURATION
                     }
                 );
-
-                /*
-                 * La cagnotte du samedi ne dépend PAS
-                 * du numéro de partie.
-                 *
-                 * Elle continue de s'accumuler
-                 * pendant toute la semaine.
-                 */
 
                 await broadcastSaturdayJackpot();
             }
@@ -3038,12 +3129,8 @@ setInterval(
 );
 
 /* =========================================================
-   MISE À JOUR CAGNOTTE AUTOMATIQUE
-   =========================================================
- *
- * Toutes les 30 secondes, on renvoie la cagnotte
- * aux joueurs connectés.
- */
+   MISE À JOUR CAGNOTTE
+   ========================================================= */
 
 setInterval(
     async () => {
@@ -3188,7 +3275,7 @@ app.use(
 );
 
 /* =========================================================
-   START
+   START SERVER
    ========================================================= */
 
 server.listen(
