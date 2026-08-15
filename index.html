@@ -9,363 +9,2302 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
-    <meta name="theme-color" content="#090014">
+    <meta
+        name="theme-color"
+        content="#090014"
+    >
 
-    <title>Conditions d'utilisation | Miltape World Challenge</title>
+    <meta
+        name="description"
+        content="Miltape World Challenge - Tap Arena"
+    >
 
-    <link rel="stylesheet" href="./style.css">
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <title>Miltape World Challenge</title>
+
+    <link
+        rel="manifest"
+        href="./manifest.json"
+    >
+
+    <link
+        rel="stylesheet"
+        href="./style.css"
+    >
 
     <style>
-        .conditions-page {
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: #090014;
+        }
+
+        body {
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            color: #ffffff;
+
+            overflow-x: hidden;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1100px;
             min-height: 100vh;
-            padding-bottom: 40px;
+            margin: auto;
+
+            background:
+                radial-gradient(
+                    circle at 50% 0%,
+                    rgba(142, 0, 255, 0.25),
+                    transparent 35%
+                ),
+
+                radial-gradient(
+                    circle at 100% 50%,
+                    rgba(255, 132, 0, 0.10),
+                    transparent 30%
+                ),
+
+                #090014;
         }
 
-        .conditions-hero {
+        /* =====================================================
+           HERO
+           ===================================================== */
+
+        .hero-combined {
+            position: relative;
+
+            padding: 25px 15px 20px;
+
             text-align: center;
-            padding: 35px 20px 25px;
+
+            border-bottom:
+                1px solid
+                rgba(255, 204, 0, 0.15);
         }
 
-        .conditions-logo {
+        .hero-logo {
             margin: 0;
-            font-size: 28px;
+
+            font-size: clamp(30px, 8vw, 48px);
+
             font-weight: 900;
-            color: #ffffff;
+
+            letter-spacing: 3px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #b84cff,
+                    #ff8500,
+                    #ffd45c
+                );
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+
+            filter:
+                drop-shadow(
+                    0 0 15px
+                    rgba(180, 70, 255, 0.35)
+                );
+        }
+
+        .hero-subtitle {
+            margin: 4px 0 0;
+
+            color: #bda9cb;
+
+            font-size: 11px;
+
+            letter-spacing: 5px;
+        }
+
+        .online-status {
+            margin-top: 12px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            padding: 6px 12px;
+
+            border-radius: 30px;
+
+            background:
+                rgba(0, 255, 150, 0.07);
+
+            border:
+                1px solid
+                rgba(0, 255, 150, 0.20);
+
+            color: #aaffd8;
+
+            font-size: 12px;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+
+            border-radius: 50%;
+
+            background: #00ff88;
+
+            box-shadow:
+                0 0 10px
+                rgba(0, 255, 136, 0.9);
+        }
+
+        /* =====================================================
+           GAME STATUS
+           ===================================================== */
+
+        .game-status {
+            margin: 15px;
+
+            padding: 18px;
+
+            border-radius: 20px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(39, 5, 65, 0.95),
+                    rgba(12, 0, 25, 0.96)
+                );
+
+            border:
+                1px solid
+                rgba(188, 73, 255, 0.35);
+
+            box-shadow:
+                0 0 25px
+                rgba(140, 0, 255, 0.14);
+        }
+
+        .status-label {
+            text-align: center;
+
+            color: #a99bb5;
+
+            font-size: 11px;
+
             letter-spacing: 2px;
+
+            margin-bottom: 5px;
         }
 
-        .conditions-logo span {
-            display: block;
-            margin-top: 5px;
-            color: #ffcc00;
-        }
-
-        .conditions-slogan {
-            margin: 8px 0 0;
-            color: #a99bb5;
-            font-size: 10px;
-            letter-spacing: 4px;
-        }
-
-        .conditions-card {
-            margin: 0 15px;
-            padding: 20px;
-            border-radius: 18px;
-            background: rgba(20, 5, 35, 0.95);
-            border: 1px solid rgba(255, 204, 0, 0.25);
-            box-shadow:
-                0 0 25px rgba(150, 0, 255, 0.15),
-                inset 0 0 20px rgba(255, 204, 0, 0.03);
-        }
-
-        .conditions-title {
+        .timer {
             text-align: center;
-            color: #ffcc00;
-            font-size: 18px;
-            font-weight: 800;
-            margin: 0 0 25px;
-        }
 
-        .condition-block {
-            margin-bottom: 24px;
-        }
+            font-size: clamp(42px, 13vw, 68px);
 
-        .condition-block h2 {
-            margin: 0 0 8px;
-            color: #ffcc00;
-            font-size: 16px;
-        }
+            line-height: 1;
 
-        .condition-block p {
-            margin: 0;
-            color: #dddddd;
-            font-size: 14px;
-            line-height: 1.7;
-        }
-
-        .back-container {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .back-button {
-            display: inline-block;
-            padding: 14px 28px;
-            border-radius: 10px;
-            background: linear-gradient(
-                135deg,
-                #ffcc00,
-                #ff9900
-            );
-            color: #090014;
             font-weight: 900;
-            text-decoration: none;
-            box-shadow:
-                0 5px 20px rgba(255, 174, 0, 0.35);
-            transition:
-                transform 0.15s ease,
-                box-shadow 0.15s ease;
+
+            color: #ffffff;
+
+            text-shadow:
+                0 0 15px
+                rgba(255, 204, 0, 0.45);
         }
 
-        .back-button:active {
-            transform: scale(0.96);
+        .timer.active {
+            color: #ffd34d;
+
+            animation:
+                timerPulse 1s infinite;
         }
 
-        .back-button:hover {
-            box-shadow:
-                0 7px 25px rgba(255, 174, 0, 0.5);
+        @keyframes timerPulse {
+
+            0%,
+            100% {
+                text-shadow:
+                    0 0 10px
+                    rgba(255, 204, 0, 0.35);
+            }
+
+            50% {
+                text-shadow:
+                    0 0 25px
+                    rgba(255, 204, 0, 0.85);
+            }
         }
 
-        .home-link {
-            display: block;
-            margin-top: 15px;
-            color: #a99bb5;
+        .game-message {
+            margin-top: 10px;
+
+            text-align: center;
+
+            color: #cdbddd;
+
             font-size: 13px;
-            text-decoration: none;
         }
 
-        .home-link:hover {
+        /* =====================================================
+           BET
+           ===================================================== */
+
+        .section {
+            margin: 15px;
+        }
+
+        .section-title {
+            margin-bottom: 10px;
+
+            color: #ffffff;
+
+            font-weight: 900;
+
+            font-size: 15px;
+        }
+
+        .bet-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 8px;
+        }
+
+        .bet-button {
+            border: 1px solid
+                rgba(255, 204, 0, 0.22);
+
+            background:
+                rgba(255, 255, 255, 0.035);
+
+            color: #ffffff;
+
+            border-radius: 12px;
+
+            padding: 12px 5px;
+
+            font-weight: 800;
+
+            transition:
+                transform .15s ease,
+                border .15s ease,
+                background .15s ease;
+        }
+
+        .bet-button:active {
+            transform: scale(.96);
+        }
+
+        .bet-button.selected {
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffcc00,
+                    #ff8500
+                );
+
+            color: #100018;
+
+            border-color: #ffd84d;
+
+            box-shadow:
+                0 0 18px
+                rgba(255, 170, 0, 0.35);
+        }
+
+        .bet-label {
+            display: block;
+
+            font-size: 10px;
+
+            opacity: .7;
+
+            margin-top: 3px;
+        }
+
+        /* =====================================================
+           MAIN TAP BUTTON
+           ===================================================== */
+
+        .tap-area {
+            padding: 15px;
+
+            text-align: center;
+        }
+
+        .tap-button {
+
+            width: min(78vw, 330px);
+
+            aspect-ratio: 1 / 1;
+
+            border: 0;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle at 35% 30%,
+                    #ffd85c,
+                    #ff9200 35%,
+                    #b500ff 72%,
+                    #35005c 100%
+                );
+
+            color: #ffffff;
+
+            font-size: clamp(28px, 8vw, 45px);
+
+            font-weight: 900;
+
+            letter-spacing: 2px;
+
+            box-shadow:
+
+                0 0 0 5px
+                rgba(255, 204, 0, 0.08),
+
+                0 0 35px
+                rgba(183, 0, 255, 0.45),
+
+                inset 0 0 35px
+                rgba(255, 255, 255, 0.15);
+
+            transition:
+                transform .08s ease,
+                filter .15s ease;
+        }
+
+        .tap-button:active {
+            transform: scale(.94);
+        }
+
+        .tap-button:disabled {
+            opacity: .38;
+
+            filter: grayscale(.5);
+
+            cursor: not-allowed;
+
+            box-shadow:
+                0 0 20px
+                rgba(100, 0, 150, .15);
+        }
+
+        .tap-sub {
+            display: block;
+
+            margin-top: 8px;
+
+            font-size: 11px;
+
+            letter-spacing: 1px;
+
+            opacity: .8;
+        }
+
+        .score-card {
+            margin: 15px;
+
+            display: flex;
+
+            justify-content: space-around;
+
+            gap: 10px;
+
+            padding: 15px;
+
+            border-radius: 16px;
+
+            background:
+                rgba(255,255,255,.035);
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+        }
+
+        .score-item {
+            text-align: center;
+
+            flex: 1;
+        }
+
+        .score-value {
+            display: block;
+
+            color: #ffd34d;
+
+            font-size: 25px;
+
+            font-weight: 900;
+        }
+
+        .score-label {
+            color: #a99bb5;
+
+            font-size: 10px;
+
+            margin-top: 3px;
+        }
+
+        /* =====================================================
+           LEADERBOARD
+           ===================================================== */
+
+        .leaderboard {
+
+            margin: 15px;
+
+            padding: 16px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(20, 4, 35, .94);
+
+            border:
+                1px solid
+                rgba(255, 204, 0, .18);
+        }
+
+        .leaderboard-title {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 12px;
+
+            font-weight: 900;
+
             color: #ffffff;
         }
+
+        .top-badge {
+
+            padding: 5px 9px;
+
+            border-radius: 8px;
+
+            background:
+                rgba(255, 204, 0, .10);
+
+            color: #ffd34d;
+
+            font-size: 10px;
+        }
+
+        .player-row {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            padding: 10px;
+
+            margin-bottom: 7px;
+
+            border-radius: 11px;
+
+            background:
+                rgba(255,255,255,.035);
+
+            border:
+                1px solid
+                rgba(255,255,255,.05);
+        }
+
+        .player-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .rank {
+
+            width: 28px;
+
+            text-align: center;
+
+            font-weight: 900;
+
+            color: #ffd34d;
+        }
+
+        .player-name {
+
+            flex: 1;
+
+            overflow: hidden;
+
+            white-space: nowrap;
+
+            text-overflow: ellipsis;
+
+            color: #ffffff;
+
+            font-size: 13px;
+
+            font-weight: 700;
+        }
+
+        .player-score {
+
+            color: #caa9e8;
+
+            font-size: 13px;
+
+            font-weight: 800;
+        }
+
+        .empty-leaderboard {
+
+            text-align: center;
+
+            padding: 20px 10px;
+
+            color: #8f8099;
+
+            font-size: 13px;
+        }
+
+        /* =====================================================
+           JACKPOT
+           ===================================================== */
+
+        .jackpot {
+
+            margin: 15px;
+
+            padding: 20px;
+
+            text-align: center;
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 138, 0, .10),
+                    rgba(124, 0, 255, .12)
+                );
+
+            border:
+                1px solid
+                rgba(255, 175, 0, .25);
+        }
+
+        .jackpot-title {
+
+            color: #ffcc55;
+
+            font-size: 12px;
+
+            letter-spacing: 2px;
+
+            font-weight: 900;
+        }
+
+        .jackpot-value {
+
+            margin-top: 6px;
+
+            font-size: 30px;
+
+            font-weight: 900;
+
+            color: #ffffff;
+
+            text-shadow:
+                0 0 15px
+                rgba(255, 170, 0, .4);
+        }
+
+        .jackpot-note {
+
+            margin-top: 5px;
+
+            color: #9e8eaa;
+
+            font-size: 11px;
+        }
+
+        /* =====================================================
+           CHAT
+           ===================================================== */
+
+        .chat-section {
+
+            margin: 15px;
+
+            padding: 16px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(17, 2, 30, .94);
+
+            border:
+                1px solid
+                rgba(190, 80, 255, .20);
+        }
+
+        .chat-messages {
+
+            height: 190px;
+
+            overflow-y: auto;
+
+            padding: 5px;
+
+            margin-bottom: 10px;
+
+            border-radius: 12px;
+
+            background:
+                rgba(0,0,0,.20);
+        }
+
+        .chat-message {
+
+            padding: 7px 8px;
+
+            margin-bottom: 6px;
+
+            border-radius: 8px;
+
+            background:
+                rgba(255,255,255,.035);
+
+            font-size: 12px;
+        }
+
+        .chat-message strong {
+
+            color: #d68aff;
+        }
+
+        .chat-form {
+
+            display: flex;
+
+            gap: 8px;
+        }
+
+        .chat-input {
+
+            min-width: 0;
+
+            flex: 1;
+
+            border:
+                1px solid
+                rgba(190, 80, 255, .25);
+
+            border-radius: 10px;
+
+            background:
+                rgba(255,255,255,.04);
+
+            color: #ffffff;
+
+            padding: 11px;
+
+            outline: none;
+        }
+
+        .chat-send {
+
+            border: 0;
+
+            border-radius: 10px;
+
+            padding: 0 15px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #8b28d6,
+                    #ff8500
+                );
+
+            color: #ffffff;
+
+            font-weight: 900;
+        }
+
+        /* =====================================================
+           REFERRAL
+           ===================================================== */
+
+        .referral {
+
+            margin: 15px;
+
+            padding: 18px;
+
+            text-align: center;
+
+            border-radius: 18px;
+
+            background:
+                rgba(255,255,255,.035);
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+        }
+
+        .referral h3 {
+
+            margin: 0 0 7px;
+
+            color: #ffd34d;
+        }
+
+        .referral p {
+
+            margin: 0 0 14px;
+
+            color: #aaa0b0;
+
+            font-size: 12px;
+        }
+
+        .referral-button {
+
+            display: inline-block;
+
+            border: 0;
+
+            border-radius: 10px;
+
+            padding: 12px 20px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #8e32dc,
+                    #ff8500
+                );
+
+            color: #ffffff;
+
+            font-weight: 900;
+        }
+
+        /* =====================================================
+           RULES
+           ===================================================== */
+
+        .rules {
+
+            margin: 15px;
+
+            padding: 18px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(20, 4, 35, .94);
+
+            border:
+                1px solid
+                rgba(190, 80, 255, .18);
+        }
+
+        .rules h3 {
+
+            margin-top: 0;
+
+            color: #ffffff;
+        }
+
+        .rule {
+
+            display: flex;
+
+            gap: 10px;
+
+            margin-bottom: 10px;
+
+            color: #c6b7d1;
+
+            font-size: 13px;
+        }
+
+        .rule:last-child {
+            margin-bottom: 0;
+        }
+
+        .rule-icon {
+            width: 24px;
+        }
+
+        /* =====================================================
+           FOOTER
+           ===================================================== */
+
+        footer {
+
+            padding: 25px 15px 35px;
+
+            text-align: center;
+
+            color: #796b84;
+
+            font-size: 11px;
+        }
+
+        .footer-links {
+
+            display: flex;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+
+            gap: 15px;
+
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+
+            color: #a99bb5;
+
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+
+        /* =====================================================
+           MODAL
+           ===================================================== */
+
+        .modal {
+
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 9999;
+
+            display: none;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 15px;
+
+            background:
+                rgba(4, 0, 10, .82);
+
+            backdrop-filter:
+                blur(8px);
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-card {
+
+            width: min(480px, 100%);
+
+            max-height: 90vh;
+
+            overflow-y: auto;
+
+            padding: 22px;
+
+            border-radius: 22px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #210039,
+                    #0d0019
+                );
+
+            border:
+                1px solid
+                rgba(204, 92, 255, .35);
+
+            box-shadow:
+                0 0 40px
+                rgba(140, 0, 255, .30);
+        }
+
+        .modal-card h2 {
+
+            margin-top: 0;
+
+            text-align: center;
+
+            color: #ffd34d;
+        }
+
+        .field {
+
+            margin-bottom: 13px;
+        }
+
+        .field label {
+
+            display: block;
+
+            margin-bottom: 5px;
+
+            color: #cbb8d7;
+
+            font-size: 12px;
+        }
+
+        .field input {
+
+            width: 100%;
+
+            padding: 12px;
+
+            border-radius: 10px;
+
+            border:
+                1px solid
+                rgba(190, 80, 255, .25);
+
+            background:
+                rgba(0,0,0,.25);
+
+            color: #ffffff;
+
+            outline: none;
+        }
+
+        .terms {
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 8px;
+
+            margin: 15px 0;
+
+            color: #aaa0b0;
+
+            font-size: 11px;
+        }
+
+        .terms input {
+            margin-top: 3px;
+        }
+
+        .terms a {
+            color: #ffd34d;
+        }
+
+        .modal-actions {
+
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 8px;
+        }
+
+        .modal-button {
+
+            padding: 13px;
+
+            border: 0;
+
+            border-radius: 11px;
+
+            font-weight: 900;
+        }
+
+        .cancel-button {
+
+            background:
+                rgba(255,255,255,.07);
+
+            color: #ffffff;
+        }
+
+        .confirm-button {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffcc00,
+                    #ff8500
+                );
+
+            color: #14001c;
+        }
+
+        .confirm-button:disabled {
+
+            opacity: .35;
+
+            cursor: not-allowed;
+        }
+
+        /* =====================================================
+           TOAST
+           ===================================================== */
+
+        .toast {
+
+            position: fixed;
+
+            z-index: 10000;
+
+            left: 50%;
+
+            bottom: 20px;
+
+            transform:
+                translate(-50%, 100px);
+
+            padding: 12px 18px;
+
+            border-radius: 12px;
+
+            background:
+                rgba(20, 5, 35, .97);
+
+            border:
+                1px solid
+                rgba(255, 204, 0, .25);
+
+            color: #ffffff;
+
+            font-size: 12px;
+
+            box-shadow:
+                0 0 25px
+                rgba(0,0,0,.35);
+
+            transition:
+                transform .25s ease;
+        }
+
+        .toast.show {
+            transform:
+                translate(-50%, 0);
+        }
+
+        @media (min-width: 700px) {
+
+            .app {
+                padding-bottom: 20px;
+            }
+
+            .bet-grid {
+                grid-template-columns:
+                    repeat(6, 1fr);
+            }
+
+            .game-layout {
+
+                display: grid;
+
+                grid-template-columns:
+                    1fr 1fr;
+
+                gap: 15px;
+
+                align-items: start;
+            }
+        }
+
     </style>
+
 </head>
+
 
 <body>
 
-<div class="app conditions-page">
+<div class="app">
 
     <!-- =====================================================
-         EN-TÊTE
+         HERO
          ===================================================== -->
 
-    <header class="conditions-hero">
+    <header class="hero-combined">
 
-        <h1 class="conditions-logo">
+        <h1 class="hero-logo">
             MILTAPE
-            <span>CONDITIONS</span>
         </h1>
 
-        <p class="conditions-slogan">
+        <p class="hero-subtitle">
             WORLD CHALLENGE
         </p>
+
+        <div class="online-status">
+
+            <span class="online-dot"></span>
+
+            <span>
+                <span id="onlineCount">0</span>
+                joueurs en ligne
+            </span>
+
+        </div>
 
     </header>
 
 
     <!-- =====================================================
-         CONDITIONS
+         STATUT / TIMER
          ===================================================== -->
 
-    <main class="conditions-card">
+    <section class="game-status">
 
-        <h2 class="conditions-title">
-            📄 CONDITIONS D'UTILISATION
-        </h2>
+        <div class="status-label">
+            TEMPS RESTANT
+        </div>
 
+        <div
+            id="timer"
+            class="timer"
+        >
+            10:00
+        </div>
 
-        <!-- 1 -->
+        <div
+            id="gameMessage"
+            class="game-message"
+        >
+            Choisissez votre mise puis rejoignez le challenge.
+        </div>
 
-        <section class="condition-block">
-
-            <h2>
-                1. Présentation
-            </h2>
-
-            <p>
-                Miltape World Challenge est une plateforme de
-                jeu compétitif basée sur des parties limitées
-                dans le temps.
-            </p>
-
-        </section>
-
-
-        <!-- 2 -->
-
-        <section class="condition-block">
-
-            <h2>
-                2. Fonctionnement
-            </h2>
-
-            <p>
-                Une partie dure exactement 10 minutes.
-                Les joueurs participent au classement et les
-                cinq meilleurs joueurs sont affichés dans le
-                Top 5.
-            </p>
-
-        </section>
+    </section>
 
 
-        <!-- 3 -->
+    <div class="game-layout">
 
-        <section class="condition-block">
+        <div>
 
-            <h2>
-                3. Mise et participation
-            </h2>
+            <!-- =================================================
+                 MISE
+                 ================================================= -->
 
-            <p>
-                Les éventuelles mises et récompenses sont
-                soumises aux règles affichées sur la plateforme.
-                L'utilisateur doit vérifier toutes les
-                informations avant toute participation.
-            </p>
+            <section class="section">
 
-        </section>
+                <div class="section-title">
+                    💰 CHOISIR LA MISE
+                </div>
 
+                <div class="bet-grid">
 
-        <!-- 4 -->
+                    <button
+                        class="bet-button"
+                        data-bet="1"
+                    >
+                        1 USDT
+                    </button>
 
-        <section class="condition-block">
+                    <button
+                        class="bet-button"
+                        data-bet="2"
+                    >
+                        2 USDT
+                    </button>
 
-            <h2>
-                4. Paiements et Wallet
-            </h2>
+                    <button
+                        class="bet-button"
+                        data-bet="5"
+                    >
+                        5 USDT
+                    </button>
 
-            <p>
-                Les transactions en USDT sur le réseau TRON
-                (TRC20) nécessitent une adresse correcte.
-                L'utilisateur est responsable de l'adresse
-                fournie et doit vérifier le réseau utilisé
-                avant toute transaction.
-            </p>
+                    <button
+                        class="bet-button"
+                        data-bet="10"
+                    >
+                        10 USDT
+                    </button>
 
-        </section>
+                </div>
 
-
-        <!-- 5 -->
-
-        <section class="condition-block">
-
-            <h2>
-                5. Responsabilité de l'utilisateur
-            </h2>
-
-            <p>
-                L'utilisateur est responsable de son compte,
-                de son identifiant, de son wallet et des
-                opérations effectuées depuis celui-ci.
-            </p>
-
-        </section>
+            </section>
 
 
-        <!-- 6 -->
+            <!-- =================================================
+                 TAP
+                 ================================================= -->
 
-        <section class="condition-block">
+            <section class="tap-area">
 
-            <h2>
-                6. Transactions
-            </h2>
+                <button
+                    id="tapButton"
+                    class="tap-button"
+                    disabled
+                >
 
-            <p>
-                Les transactions blockchain peuvent être
-                irréversibles. Avant d'envoyer des fonds,
-                l'utilisateur doit vérifier l'adresse de
-                destination, le réseau et le montant.
-            </p>
+                    TAP
 
-        </section>
+                    <span class="tap-sub">
+                        REJOINDRE LE CHALLENGE
+                    </span>
 
+                </button>
 
-        <!-- 7 -->
-
-        <section class="condition-block">
-
-            <h2>
-                7. Sécurité
-            </h2>
-
-            <p>
-                Toute tentative de fraude, de manipulation du
-                classement, d'utilisation abusive du système
-                ou d'exploitation d'une faille peut entraîner
-                le blocage de la participation concernée.
-            </p>
-
-        </section>
+            </section>
 
 
-        <!-- 8 -->
+            <!-- =================================================
+                 SCORE
+                 ================================================= -->
 
-        <section class="condition-block">
+            <section class="score-card">
 
-            <h2>
-                8. Support
-            </h2>
+                <div class="score-item">
 
-            <p>
-                Pour toute question ou problème concernant
-                l'utilisation de la plateforme, l'utilisateur
-                peut contacter le support Miltape.
-            </p>
+                    <span
+                        id="myScore"
+                        class="score-value"
+                    >
+                        0
+                    </span>
 
-        </section>
+                    <span class="score-label">
+                        MES TAPS
+                    </span>
 
-
-        <!-- 9 -->
-
-        <section class="condition-block">
-
-            <h2>
-                9. Acceptation
-            </h2>
-
-            <p>
-                L'utilisation de Miltape World Challenge
-                implique l'acceptation des règles et conditions
-                applicables à la plateforme.
-            </p>
-
-        </section>
+                </div>
 
 
-        <!-- =================================================
-             RETOUR AU JEU
-             ================================================= -->
+                <div class="score-item">
 
-        <div class="back-container">
+                    <span
+                        id="myRank"
+                        class="score-value"
+                    >
+                        —
+                    </span>
 
-            <a
-                href="./index.html"
-                class="back-button"
+                    <span class="score-label">
+                        RANG
+                    </span>
+
+                </div>
+
+
+                <div class="score-item">
+
+                    <span
+                        id="myBet"
+                        class="score-value"
+                    >
+                        —
+                    </span>
+
+                    <span class="score-label">
+                        MISE
+                    </span>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <div>
+
+            <!-- =================================================
+                 TOP 5
+                 ================================================= -->
+
+            <section class="leaderboard">
+
+                <div class="leaderboard-title">
+
+                    <span>
+                        🏆 TOP 5
+                    </span>
+
+                    <span class="top-badge">
+                        2X
+                    </span>
+
+                </div>
+
+                <div id="leaderboard">
+
+                    <div class="empty-leaderboard">
+                        En attente des joueurs...
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 JACKPOT
+                 ================================================= -->
+
+            <section class="jackpot">
+
+                <div class="jackpot-title">
+                    🎁 CAGNOTTE DU SAMEDI
+                </div>
+
+                <div
+                    id="jackpotValue"
+                    class="jackpot-value"
+                >
+                    0 USDT
+                </div>
+
+                <div class="jackpot-note">
+                    La cagnotte est mise à jour automatiquement.
+                </div>
+
+            </section>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         CHAT
+         ===================================================== -->
+
+    <section class="chat-section">
+
+        <div class="section-title">
+            💬 CHAT GLOBAL
+        </div>
+
+        <div
+            id="chatMessages"
+            class="chat-messages"
+        >
+
+            <div class="chat-message">
+
+                <strong>Miltape :</strong>
+                Bienvenue sur Miltape World Challenge !
+
+            </div>
+
+        </div>
+
+
+        <form
+            id="chatForm"
+            class="chat-form"
+        >
+
+            <input
+                id="chatInput"
+                class="chat-input"
+                type="text"
+                maxlength="200"
+                placeholder="Écrire un message..."
+                autocomplete="off"
             >
-                ← RETOUR À MILTAPE
+
+            <button
+                class="chat-send"
+                type="submit"
+            >
+                ENVOYER
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <!-- =====================================================
+         PARRAINAGE
+         ===================================================== -->
+
+    <section class="referral">
+
+        <h3>
+            🎁 PARRAINAGE
+        </h3>
+
+        <p>
+            Invite tes amis et partage Miltape World Challenge.
+        </p>
+
+        <button
+            id="shareButton"
+            class="referral-button"
+            type="button"
+        >
+            PARTAGER MILTAPE
+        </button>
+
+    </section>
+
+
+    <!-- =====================================================
+         RÈGLES
+         ===================================================== -->
+
+    <section class="rules">
+
+        <h3>
+            📜 RÈGLES DU CHALLENGE
+        </h3>
+
+
+        <div class="rule">
+
+            <span class="rule-icon">
+                ⏱️
+            </span>
+
+            <span>
+                Une partie dure exactement
+                <strong>10 minutes</strong>.
+            </span>
+
+        </div>
+
+
+        <div class="rule">
+
+            <span class="rule-icon">
+                🏆
+            </span>
+
+            <span>
+                Les <strong>5 meilleurs joueurs</strong>
+                apparaissent dans le Top 5.
+            </span>
+
+        </div>
+
+
+        <div class="rule">
+
+            <span class="rule-icon">
+                💰
+            </span>
+
+            <span>
+                Les conditions de participation et
+                les récompenses sont affichées avant
+                la validation.
+            </span>
+
+        </div>
+
+
+        <div class="rule">
+
+            <span class="rule-icon">
+                ₮
+            </span>
+
+            <span>
+                Les paiements disponibles utilisent
+                <strong>USDT TRC20</strong>.
+            </span>
+
+        </div>
+
+
+        <div class="rule">
+
+            <span class="rule-icon">
+                🚫
+            </span>
+
+            <span>
+                Bots, triche et manipulation du classement
+                sont interdits.
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FOOTER
+         ===================================================== -->
+
+    <footer>
+
+        <div class="footer-links">
+
+            <a href="./conditions.html">
+                Conditions d'utilisation
             </a>
 
-            <a
-                href="./index.html"
-                class="home-link"
-            >
-                Accéder à la page principale du jeu
+            <a href="./privacy.html">
+                Confidentialité
             </a>
 
         </div>
 
-    </main>
+        <div>
+            © 2026 Miltape World Challenge
+        </div>
+
+    </footer>
 
 </div>
 
 
 <!-- =========================================================
-     SÉCURITÉ NAVIGATION
-     =========================================================
+     MODAL REJOINDRE
+     ========================================================= -->
 
-     Ce script ne redirige PAS automatiquement vers
-     conditions.html.
+<div
+    id="joinModal"
+    class="modal"
+>
 
-     Il sert uniquement à vérifier que la page fonctionne.
+    <div class="modal-card">
+
+        <h2>
+            🚀 REJOINDRE LE CHALLENGE
+        </h2>
+
+
+        <div class="field">
+
+            <label for="playerName">
+                Nom / pseudo
+            </label>
+
+            <input
+                id="playerName"
+                type="text"
+                maxlength="30"
+                placeholder="Votre pseudo"
+                autocomplete="nickname"
+            >
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="walletAddress">
+                Adresse USDT TRC20
+            </label>
+
+            <input
+                id="walletAddress"
+                type="text"
+                maxlength="100"
+                placeholder="Adresse TRON / TRC20"
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <div class="terms">
+
+            <input
+                id="acceptTerms"
+                type="checkbox"
+            >
+
+            <label for="acceptTerms">
+
+                J'accepte les
+                <a href="./conditions.html">
+                    conditions d'utilisation
+                </a>
+                et les règles du challenge.
+
+            </label>
+
+        </div>
+
+
+        <div class="modal-actions">
+
+            <button
+                id="cancelJoin"
+                class="modal-button cancel-button"
+                type="button"
+            >
+                ANNULER
+            </button>
+
+            <button
+                id="confirmJoin"
+                class="modal-button confirm-button"
+                type="button"
+                disabled
+            >
+                CONFIRMER
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TOAST
+     ========================================================= -->
+
+<div
+    id="toast"
+    class="toast"
+>
+    Message
+</div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
      ========================================================= -->
 
 <script>
 
-    console.log(
-        "Miltape World Challenge - Conditions chargées."
+    /* =====================================================
+       CONFIGURATION BACKEND
+       ===================================================== */
+
+    const API_URL =
+        "https://miltape-backend-production.up.railway.app";
+
+
+    /* =====================================================
+       VARIABLES
+       ===================================================== */
+
+    let selectedBet = null;
+
+    let player = {
+        name: "",
+        wallet: "",
+        score: 0,
+        rank: null,
+        bet: null
+    };
+
+    let gameStarted = false;
+
+    let remainingSeconds = 600;
+
+    let timerInterval = null;
+
+
+    /* =====================================================
+       DOM
+       ===================================================== */
+
+    const timer =
+        document.getElementById("timer");
+
+    const gameMessage =
+        document.getElementById("gameMessage");
+
+    const tapButton =
+        document.getElementById("tapButton");
+
+    const joinModal =
+        document.getElementById("joinModal");
+
+    const acceptTerms =
+        document.getElementById("acceptTerms");
+
+    const confirmJoin =
+        document.getElementById("confirmJoin");
+
+    const cancelJoin =
+        document.getElementById("cancelJoin");
+
+    const playerName =
+        document.getElementById("playerName");
+
+    const walletAddress =
+        document.getElementById("walletAddress");
+
+    const myScore =
+        document.getElementById("myScore");
+
+    const myRank =
+        document.getElementById("myRank");
+
+    const myBet =
+        document.getElementById("myBet");
+
+    const leaderboard =
+        document.getElementById("leaderboard");
+
+    const onlineCount =
+        document.getElementById("onlineCount");
+
+    const jackpotValue =
+        document.getElementById("jackpotValue");
+
+    const chatMessages =
+        document.getElementById("chatMessages");
+
+    const chatForm =
+        document.getElementById("chatForm");
+
+    const chatInput =
+        document.getElementById("chatInput");
+
+    const shareButton =
+        document.getElementById("shareButton");
+
+    const toast =
+        document.getElementById("toast");
+
+
+    /* =====================================================
+       TOAST
+       ===================================================== */
+
+    function showToast(message) {
+
+        toast.textContent = message;
+
+        toast.classList.add("show");
+
+        setTimeout(() => {
+
+            toast.classList.remove("show");
+
+        }, 2500);
+    }
+
+
+    /* =====================================================
+       MISE
+       ===================================================== */
+
+    document
+        .querySelectorAll(".bet-button")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    selectedBet =
+                        Number(
+                            button.dataset.bet
+                        );
+
+                    document
+                        .querySelectorAll(".bet-button")
+                        .forEach(b => {
+
+                            b.classList.remove(
+                                "selected"
+                            );
+
+                        });
+
+                    button.classList.add(
+                        "selected"
+                    );
+
+                    openJoinModal();
+                }
+            );
+
+        });
+
+
+    /* =====================================================
+       MODAL
+       ===================================================== */
+
+    function openJoinModal() {
+
+        if (!selectedBet) {
+
+            showToast(
+                "Choisissez une mise."
+            );
+
+            return;
+        }
+
+        joinModal.classList.add("show");
+
+        playerName.focus();
+    }
+
+
+    function closeJoinModal() {
+
+        joinModal.classList.remove(
+            "show"
+        );
+    }
+
+
+    cancelJoin.addEventListener(
+        "click",
+        closeJoinModal
     );
 
-</script>
 
-</body>
-</html>
+    joinModal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target === joinModal
+            ) {
+
+                closeJoinModal();
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       CONDITIONS
+       ===================================================== */
+
+    acceptTerms.addEventListener(
+        "change",
+        () => {
+
+            confirmJoin.disabled =
+                !acceptTerms.checked;
+
+        }
+    );
+
+
+    /* =====================================================
+       REJOINDRE
+       ===================================================== */
+
+    confirmJoin.addEventListener(
+        "click",
+        joinGame
+    );
+
+
+    async function joinGame() {
+
+        const name =
+            playerName.value.trim();
+
+        const wallet =
+            walletAddress.value.trim();
+
+        if (!name) {
+
+            showToast(
+                "Entrez votre pseudo."
+            );
+
+            return;
+        }
+
+        if (!wallet) {
+
+            showToast(
+                "Entrez votre adresse USDT TRC20."
+            );
+
+            return;
+        }
+
+        if (!acceptTerms.checked) {
+
+            showToast(
+                "Vous devez accepter les conditions."
+            );
+
+            return;
+        }
+
+
+        player.name =
+            name;
+
+        player.wallet =
+            wallet;
+
+        player.bet =
+            selectedBet;
+
+        myBet.textContent =
+            selectedBet + " USDT";
+
+
+        /*
+         * Appel backend.
+         *
+         * Si ton backend possède /api/join,
+         * cette requête sera utilisée.
+         */
+
+        try {
+
+            const response =
+                await fetch(
+                    API_URL + "/api/join",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            name: name,
+
+                            wallet: wallet,
+
+                            bet: selectedBet
+
+                        })
+                    }
+                );
+
+
+            if (response.ok) {
+
+                const data =
+                    await response.json()
+                    .catch(() => ({}));
+
+                if (
+                    data &&
+                    data.score !== undefined
+                ) {
+
+                    player.score =
+                        Number(
+                            data.score
+                        );
+
+                }
+
+                showToast(
+                    "Challenge rejoint !"
+                );
+
+            } else {
+
+                /*
+                 * Le jeu peut quand même
+                 * fonctionner côté interface
+                 * si le backend renvoie une erreur.
+                 */
+
+                showToast(
+                    "Challenge activé."
+                );
+            }
+
+        } catch (error) {
+
+            console.log(
+                "Backend non disponible :",
+                error
+            );
+
+            showToast(
+                "Challenge activé."
+            );
+        }
+
+
+        gameStarted =
+            true;
+
+        tapButton.disabled =
+            false;
+
+        gameMessage.textContent =
+            "🔥 TAP ! Le challenge est lancé.";
+
+        timer.classList.add(
+            "active"
+        );
+
+        closeJoinModal();
+
+        startTimer();
+    }
+
+
+    /* =====================================================
+       TIMER
+       ===================================================== */
+
+    function startTimer() {
+
+        if (timerInterval) {
+            clearInterval(
+                timerInterval
+            );
+        }
+
+        remainingSeconds = 600;
+
+        updateTimer();
+
+        timerInterval =
+            setInterval(
+                () => {
+
+                    remainingSeconds--;
+
+                    updateTimer();
+
+                    if (
+                        remainingSeconds <= 0
+                    ) {
+
+                        finishGame();
+
+                    }
+
+                },
+                1000
+            );
+    }
+
+
+    function updateTimer() {
+
+        const minutes =
+            Math.floor(
+                remainingSeconds / 60
+            );
+
+        const seconds =
+            remainingSeconds % 60;
+
+        timer.textContent =
+            String(minutes).padStart(
+                2,
+                "0"
+            )
+            +
+            ":"
+            +
+            String(seconds).padStart(
+                2,
+                "0"
+            );
+    }
+
+
+    function finishGame() {
+
+        clearInterval(
+            timerInterval
+        );
+
+        timerInterval =
+            null;
+
+        gameStarted =
+            false;
+
+        tapButton.disabled =
+            true;
+
+        timer.classList.remove(
+            "active"
+        );
+
+        gameMessage.textContent =
+            "🏁 Partie terminée.";
+
+        showToast(
+            "La partie est terminée."
+        );
+
+        loadLeaderboard();
+    }
+
+
+    /* =====================================================
+       TAP
+       ===================================================== */
+
+    tapButton.addEventListener(
+        "click",
+        handleTap
+    );
+
+
+    async function handleTap() {
+
+        if (!gameStarted) {
+            return;
+        }
+
+
+        player.score++;
+
+        myScore.textContent =
+            player.score;
+
+
+        /*
+         * Envoie le tap au backend.
+         */
+
+        try {
+
+            await fetch(
+                API_URL + "/api/tap",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        wallet:
+                            player.wallet,
+
+                        name:
+                            player.name,
+
+                        score:
+                            player.score
+
+                    })
+                }
+            );
+
+        } catch (error) {
+
+            console.log(
+                "Tap backend:",
+                error
+            );
+
+        }
+
+
+        updateLocalRank();
+    }
+
+
+    /* =====================================================
+       CLASSEMENT LOCAL
+       ===================================================== */
+
+    function updateLocalRank() {
+
+        /*
+         * Le vrai classement doit venir
+         * du backend.
+         *
+         * Ici on garde simplement
+         * l'affichage utilisateur.
+         */
+
+        if (player.score > 0) {
+
+            myRank.textContent =
+                "—";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       LEADERBOARD
+       ===================================================== */
+
+    async function loadLeaderboard() {
+
+        try {
+
+            const response =
+                await fetch(
+                    API_URL +
+                    "/api/leaderboard"
+                );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Leaderboard error"
+                );
+            }
+
+            const data =
+                await response.json();
+
+            renderLeaderboard(
+                data
+            );
+
+       
