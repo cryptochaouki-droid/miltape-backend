@@ -1,13 +1,19 @@
 {
-  "name": "Mon Jeu Tap",
-  "short_name": "TapGame",
+  "name": "Miltape World Challenge",
+  "short_name": "Miltape",
+  "description": "Miltape World Challenge - Tap Arena",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090014",
+  "theme_color": "#090014",
   "icons": [
     {
       "src": "icon-192~2.jpg",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/jpeg",
+      "purpose": "any"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone"
+  ]
 }
