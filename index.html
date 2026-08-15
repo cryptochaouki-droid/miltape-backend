@@ -2,6 +2,7 @@
 <html lang="fr">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -9,129 +10,240 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <meta name="theme-color" content="#090014">
+    <meta
+        name="theme-color"
+        content="#ffcc00"
+    >
 
     <title>Conditions d'utilisation - Miltape</title>
 
-    <link rel="stylesheet" href="./style.css">
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #090014;
+            color: #fff;
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #120624;
+            border: 1px solid rgba(255, 204, 0, .35);
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow:
+                0 0 30px rgba(255, 204, 0, .08);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #ffcc00;
+            text-align: center;
+            font-size: 25px;
+        }
+
+        h2 {
+            margin-top: 28px;
+            color: #ffcc00;
+            font-size: 18px;
+        }
+
+        p,
+        li {
+            color: #c5c5c5;
+            line-height: 1.65;
+            font-size: 14px;
+        }
+
+        .warning {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 12px;
+            background: rgba(255, 204, 0, .06);
+            border: 1px solid rgba(255, 204, 0, .25);
+        }
+
+        .back {
+            display: block;
+            margin-top: 25px;
+            padding: 13px;
+            border-radius: 10px;
+            text-align: center;
+            text-decoration: none;
+            background: #ffcc00;
+            color: #120624;
+            font-weight: 900;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #777;
+            font-size: 12px;
+        }
+
+    </style>
+
 </head>
 
 <body>
 
-<div class="app">
+<div class="container">
 
-    <section class="hero-combined">
+    <div class="card">
 
-        <div class="hero-content">
-
-            <h1>
-                MILTAPE
-                <span>
-                    CONDITIONS
-                </span>
-            </h1>
-
-            <p class="slogan">
-                WORLD CHALLENGE
-            </p>
-
-        </div>
-
-    </section>
-
-    <section class="chat-section">
-
-        <div class="section-title">
-            <span>📄 CONDITIONS D'UTILISATION</span>
-        </div>
-
-        <div style="padding:15px; color:#ccc; line-height:1.7;">
-
-            <h3 style="color:#ffcc00;">
-                1. Présentation
-            </h3>
-
-            <p>
-                Miltape World Challenge est une plateforme de
-                jeu compétitif basée sur des parties limitées
-                dans le temps.
-            </p>
-
-            <h3 style="color:#ffcc00;">
-                2. Fonctionnement
-            </h3>
-
-            <p>
-                Une partie dure 10 minutes. Les joueurs
-                participent au classement et les cinq meilleurs
-                joueurs sont affichés dans le Top 5.
-            </p>
-
-            <h3 style="color:#ffcc00;">
-                3. Mise
-            </h3>
-
-            <p>
-                Les éventuelles mises et récompenses sont
-                soumises aux règles affichées sur la plateforme.
-                L'utilisateur doit vérifier les informations
-                avant toute participation.
-            </p>
-
-            <h3 style="color:#ffcc00;">
-                4. Wallet
-            </h3>
-
-            <p>
-                Les transactions en USDT sur le réseau TRON
-                (TRC20) nécessitent une adresse correcte.
-                L'utilisateur est responsable de l'adresse
-                fournie et de la vérification du réseau utilisé.
-            </p>
-
-            <h3 style="color:#ffcc00;">
-                5. Responsabilité
-            </h3>
-
-            <p>
-                L'utilisateur est responsable de son compte,
-                de son wallet et de ses opérations.
-            </p>
-
-            <h3 style="color:#ffcc00;">
-                6. Support
-            </h3>
-
-            <p>
-                Pour toute question ou problème concernant
-                l'utilisation de la plateforme, contactez le
-                support Miltape.
-            </p>
-
-            <h3 style="color:#ffcc00;">
-                7. Acceptation
-            </h3>
-
-            <p>
-                L'utilisation de Miltape implique l'acceptation
-                des règles et conditions applicables à la
-                plateforme.
-            </p>
-
+        <h1>
+            MILTAPE
             <br>
+            <small>WORLD CHALLENGE</small>
+        </h1>
 
-            <a
-                href="./index.html"
-                class="legal-link"
-            >
-                ← Retour à Miltape
-            </a>
+        <h2>1. Présentation</h2>
+
+        <p>
+            Miltape World Challenge est une plateforme
+            de jeu basée sur des défis de rapidité et
+            de classement.
+        </p>
+
+        <h2>2. Fonctionnement</h2>
+
+        <p>
+            Une partie peut durer jusqu'à
+            <strong>10 minutes</strong>.
+            Les joueurs participent au classement
+            en effectuant des taps pendant la partie.
+        </p>
+
+        <p>
+            Le classement affiché dans le jeu détermine
+            les positions des joueurs conformément
+            aux règles de la partie.
+        </p>
+
+        <h2>3. Paiements</h2>
+
+        <p>
+            Les paiements liés à une participation sont
+            effectués en <strong>USDT sur le réseau TRON
+            (TRC20)</strong>.
+        </p>
+
+        <div class="warning">
+
+            ⚠️ Vérifie toujours l'adresse de réception
+            affichée avant de confirmer une transaction.
+
+            <br><br>
+
+            Une transaction blockchain confirmée
+            peut être irréversible.
 
         </div>
 
-    </section>
+        <h2>4. Wallet</h2>
+
+        <p>
+            Le joueur est responsable de son wallet,
+            de ses clés privées et de la sécurité
+            de ses transactions.
+        </p>
+
+        <p>
+            Miltape ne demande jamais une clé privée
+            ou une phrase de récupération.
+        </p>
+
+        <h2>5. Transactions</h2>
+
+        <p>
+            Une transaction peut nécessiter un délai
+            avant sa confirmation sur le réseau TRON.
+        </p>
+
+        <p>
+            Ne réalise pas une seconde transaction
+            simplement parce qu'une première transaction
+            est encore en attente de confirmation.
+        </p>
+
+        <h2>6. Classement</h2>
+
+        <p>
+            Les résultats sont déterminés à partir
+            des données enregistrées par le système
+            pendant la partie.
+        </p>
+
+        <h2>7. Comportement des joueurs</h2>
+
+        <p>
+            Toute tentative de triche, d'exploitation
+            d'une faille, d'automatisation abusive
+            ou de manipulation du classement peut
+            entraîner la suspension du compte ou
+            l'annulation des résultats concernés.
+        </p>
+
+        <h2>8. Chat</h2>
+
+        <p>
+            Les utilisateurs doivent respecter les
+            autres participants.
+        </p>
+
+        <p>
+            Les contenus illégaux, frauduleux,
+            menaçants ou abusifs ne sont pas autorisés.
+        </p>
+
+        <h2>9. Responsabilité</h2>
+
+        <p>
+            L'utilisateur doit vérifier les règles,
+            les montants et les informations affichées
+            avant toute participation ou transaction.
+        </p>
+
+        <h2>10. Acceptation</h2>
+
+        <p>
+            En cochant la case d'acceptation dans
+            Miltape, l'utilisateur confirme avoir lu
+            et accepté les règles et conditions
+            applicables à l'utilisation du service.
+        </p>
+
+        <a
+            href="./index.html"
+            class="back"
+        >
+            ← RETOUR À MILTAPE
+        </a>
+
+    </div>
+
+    <div class="footer">
+        MILTAPE • WORLD CHALLENGE
+        <br>
+        USDT • TRON • TRC20
+    </div>
 
 </div>
 
 </body>
+
 </html>
