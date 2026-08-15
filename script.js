@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+Document.addEventListener("DOMContentLoaded", () => {
     "use strict";
 
     /* =========================================================
@@ -266,4 +266,22 @@ document.addEventListener("DOMContentLoaded", () => {
             socket.emit("tap", { playerId, playerName, taps: 1 });
         });
     }
+
+    /* =========================================================
+       5. GESTION DU COLLAPSE (CONDITIONS D'UTILISATION)
+    ========================================================= */
+    window.toggleConditions = function() {
+        const content = document.getElementById("conditions-content");
+        const arrow = document.getElementById("arrow-icon");
+        
+        if (!content || !arrow) return;
+        
+        content.classList.toggle("open");
+        
+        if (content.classList.contains("open")) {
+            arrow.style.transform = "rotate(180deg)";
+        } else {
+            arrow.style.transform = "rotate(0deg)";
+        }
+    };
 });
