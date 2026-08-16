@@ -21,14 +21,17 @@ const USDT_CONTRACT =
 
 const USDT_DECIMALS = 6;
 
-const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+const MONGODB_URI =
+    process.env.MONGO_URI ||
+    process.env.MONGODB_URI;
 
-const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
+const PRIVATE_KEY =
+    (process.env.MILTAPE_PRIVATE_KEY || "").trim();
 
 const CONFIGURED_WALLET =
     (process.env.MILTAPE_WALLET || "").trim();
 
-const RECEIVER_WALLET =
+const CONFIGURED_RECEIVER =
     (process.env.RECEIVER_WALLET || "").trim();
 
 const TRONGRID_API_KEY =
@@ -59,11 +62,13 @@ let tronWeb;
 try {
     tronWeb = new TronWeb({
         fullHost: "https://api.trongrid.io",
+
         headers: TRONGRID_API_KEY
             ? {
                 "TRON-PRO-API-KEY": TRONGRID_API_KEY
             }
             : {},
+
         privateKey: PRIVATE_KEY
     });
 
@@ -79,7 +84,7 @@ try {
 
 
 // ============================================================
-// ADRESSE DU WALLET MILTAPE
+// WALLET DÉRIVÉ DE LA CLÉ PRIVÉE
 // ============================================================
 
 let DERIVED_WALLET;
@@ -87,7 +92,9 @@ let DERIVED_WALLET;
 try {
 
     DERIVED_WALLET =
-        TronWeb.address.fromPrivateKey(PRIVATE_KEY);
+        TronWeb.address.fromPrivateKey(
+            PRIVATE_KEY
+        );
 
 } catch (error) {
 
@@ -95,67 +102,125 @@ try {
         "❌ Clé privée TRON invalide."
     );
 
-    console.error(error.message);
+    console.error(
+        error.message
+    );
 
     process.exit(1);
 }
 
 
 // ============================================================
-// VÉRIFICATION CRITIQUE
+// WALLET MILTAPE
 // ============================================================
-
-if (
-    CONFIGURED_WALLET &&
-    CONFIGURED_WALLET !== DERIVED_WALLET
-) {
-
-    console.error("");
-    console.error(
-        "❌ LA CLE PRIVEE NE CORRESPOND PAS AU WALLET MILTAPE."
-    );
-
-    console.error(
-        "Wallet configuré :",
-        CONFIGURED_WALLET
-    );
-
-    console.error(
-        "Wallet dérivé :",
-        DERIVED_WALLET
-    );
-
-    console.error("");
-
-    console.error(
-        "👉 Dans Railway, MILTAPE_WALLET doit être :"
-    );
-
-    console.error(
-        DERIVED_WALLET
-    );
-
-    console.error("");
-
-    process.exit(1);
-}
-
-
-// ============================================================
-// WALLET FINAL
+//
+// IMPORTANT :
+// Le wallet officiel est TOUJOURS celui dérivé de
+// MILTAPE_PRIVATE_KEY.
+//
+// MILTAPE_WALLET n'est plus utilisé pour déterminer
+// le wallet principal.
+//
+// Cela évite le problème :
+// "LA CLE PRIVEE NE CORRESPOND PAS AU WALLET MILTAPE."
 // ============================================================
 
 const MILTAPE_WALLET =
     DERIVED_WALLET;
 
+
+// ============================================================
+// WALLET RECEVEUR DES PAIEMENTS
+// ============================================================
+//
+// Si RECEIVER_WALLET existe, il est utilisé.
+// Sinon le paiement va vers MILTAPE_WALLET.
+//
+// Pour ton installation actuelle, tu peux mettre
+// le même wallet dans RECEIVER_WALLET.
+// ============================================================
+
+let PAYMENT_RECEIVER_WALLET;
+
+if (CONFIGURED_RECEIVER) {
+
+    if (
+        !TronWeb.isAddress(
+            CONFIGURED_RECEIVER
+        )
+    ) {
+
+        console.error(
+            "❌ RECEIVER_WALLET est une adresse TRON invalide."
+        );
+
+        process.exit(1);
+    }
+
+    PAYMENT_RECEIVER_WALLET =
+        CONFIGURED_RECEIVER;
+
+} else {
+
+    PAYMENT_RECEIVER_WALLET =
+        MILTAPE_WALLET;
+}
+
+
+// ============================================================
+// INFORMATION WALLET
+// ============================================================
+
 console.log("");
 console.log("==========================================");
-console.log("      MILTAPE WORLD CHALLENGE");
+console.log("       MILTAPE TRON CONFIGURATION");
 console.log("==========================================");
+
+console.log(
+    "Wallet dérivé de MILTAPE_PRIVATE_KEY :",
+    MILTAPE_WALLET
+);
+
+console.log(
+    "Wallet receveur paiements :",
+    PAYMENT_RECEIVER_WALLET
+);
+
+console.log(
+    "Contrat USDT :",
+    USDT_CONTRACT
+);
+
+console.log(
+    "Durée partie :",
+    GAME_DURATION_SECONDS,
+    "secondes"
+);
+
+if (
+    CONFIGURED_WALLET &&
+    CONFIGURED_WALLET !== MILTAPE_WALLET
+) {
+
+    console.warn("");
+    console.warn(
+        "⚠️ MILTAPE_WALLET Railway ne correspond pas à la clé privée."
+    );
+
+    console.warn(
+        "⚠️ Cette variable sera ignorée."
+    );
+
+    console.warn(
+        "Wallet correct :",
+        MILTAPE_WALLET
+    );
+}
+
 console.log("");
-console.log("Wallet Miltape :", MILTAPE_WALLET);
-console.log("USDT contract  :", USDT_CONTRACT);
-console.log("Durée partie   :", GAME_DURATION_SECONDS, "secondes");
+console.log(
+    "✅ Wallet TRON configuré correctement."
+);
 console.log("");
 
 
@@ -165,7 +230,8 @@ console.log("");
 
 const app = express();
 
-const server = http.createServer(app);
+const server =
+    http.createServer(app);
 
 
 // ============================================================
@@ -196,19 +262,28 @@ app.use(
 // SOCKET.IO
 // ============================================================
 
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const io =
+    new Server(
+        server,
+        {
+            cors: {
+                origin: "*",
+                methods: [
+                    "GET",
+                    "POST"
+                ]
+            }
+        }
+    );
 
 
 // ============================================================
-// VARIABLES DU JEU
+// JEU
 // ============================================================
 
 let gameTimer = null;
+
+let nextGameTimeout = null;
 
 let game = {
     id: null,
@@ -219,7 +294,8 @@ let game = {
 
     endsAt: null,
 
-    durationSeconds: GAME_DURATION_SECONDS
+    durationSeconds:
+        GAME_DURATION_SECONDS
 };
 
 
@@ -227,7 +303,8 @@ let game = {
 // JOUEURS EN LIGNE
 // ============================================================
 
-const onlineSockets = new Set();
+const onlineSockets =
+    new Set();
 
 
 // ============================================================
@@ -244,185 +321,185 @@ mongoose.set(
 // SCHEMA PLAYER
 // ============================================================
 
-const playerSchema = new mongoose.Schema(
-    {
-        gameId: {
-            type: String,
-            required: true,
-            index: true
+const playerSchema =
+    new mongoose.Schema(
+        {
+            gameId: {
+                type: String,
+                required: true,
+                index: true
+            },
+
+            name: {
+                type: String,
+                required: true,
+                trim: true,
+                maxlength: 30
+            },
+
+            wallet: {
+                type: String,
+                required: true,
+                trim: true
+            },
+
+            taps: {
+                type: Number,
+                default: 0
+            },
+
+            bet: {
+                type: Number,
+                default: 0
+            },
+
+            paid: {
+                type: Boolean,
+                default: false
+            },
+
+            paymentTxId: {
+                type: String,
+                default: null
+            }
         },
 
-        name: {
-            type: String,
-            required: true,
-            trim: true,
-            maxlength: 30
-        },
-
-        wallet: {
-            type: String,
-            required: true,
-            trim: true
-        },
-
-        taps: {
-            type: Number,
-            default: 0
-        },
-
-        bet: {
-            type: Number,
-            default: 0
-        },
-
-        paid: {
-            type: Boolean,
-            default: false
-        },
-
-        paymentTxId: {
-            type: String,
-            default: null
+        {
+            timestamps: true
         }
-    },
-    {
-        timestamps: true
-    }
-);
+    );
 
 
 // ============================================================
-// MESSAGE
+// SCHEMA MESSAGE
 // ============================================================
 
-const messageSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: true,
-            maxlength: 30
+const messageSchema =
+    new mongoose.Schema(
+        {
+            name: {
+                type: String,
+                required: true,
+                maxlength: 30
+            },
+
+            message: {
+                type: String,
+                required: true,
+                maxlength: 300
+            },
+
+            gameId: {
+                type: String,
+                default: null
+            }
         },
 
-        message: {
-            type: String,
-            required: true,
-            maxlength: 300
-        },
-
-        gameId: {
-            type: String,
-            default: null
+        {
+            timestamps: true
         }
-    },
-    {
-        timestamps: true
-    }
-);
+    );
 
 
 // ============================================================
-// PAYMENT
+// SCHEMA PAYMENT
 // ============================================================
 
-const paymentSchema = new mongoose.Schema(
-    {
-        txId: {
-            type: String,
-            required: true,
-            unique: true,
-            index: true
+const paymentSchema =
+    new mongoose.Schema(
+        {
+            txId: {
+                type: String,
+                required: true,
+                unique: true,
+                index: true
+            },
+
+            from: {
+                type: String,
+                required: true
+            },
+
+            to: {
+                type: String,
+                required: true
+            },
+
+            amount: {
+                type: Number,
+                required: true
+            },
+
+            verified: {
+                type: Boolean,
+                default: false
+            },
+
+            gameId: {
+                type: String,
+                default: null
+            },
+
+            playerName: {
+                type: String,
+                default: null
+            }
         },
 
-        from: {
-            type: String,
-            required: true
-        },
-
-        to: {
-            type: String,
-            required: true
-        },
-
-        amount: {
-            type: Number,
-            required: true
-        },
-
-        verified: {
-            type: Boolean,
-            default: false
-        },
-
-        gameId: {
-            type: String,
-            default: null
-        },
-
-        playerName: {
-            type: String,
-            default: null
+        {
+            timestamps: true
         }
-    },
-    {
-        timestamps: true
-    }
-);
-
-
-const Player = mongoose.model(
-    "Player",
-    playerSchema
-);
-
-const Message = mongoose.model(
-    "Message",
-    messageSchema
-);
-
-const Payment = mongoose.model(
-    "Payment",
-    paymentSchema
-);
+    );
 
 
 // ============================================================
-// MONGODB
+// MODELS
 // ============================================================
 
-mongoose
-    .connect(MONGODB_URI)
-    .then(() => {
+const Player =
+    mongoose.model(
+        "Player",
+        playerSchema
+    );
 
-        console.log(
-            "✅ MongoDB connecté."
-        );
+const Message =
+    mongoose.model(
+        "Message",
+        messageSchema
+    );
 
-    })
-    .catch((error) => {
-
-        console.error(
-            "❌ MongoDB erreur :",
-            error.message
-        );
-
-        process.exit(1);
-    });
+const Payment =
+    mongoose.model(
+        "Payment",
+        paymentSchema
+    );
 
 
 // ============================================================
-// UTILITAIRES
+// UTILITAIRES TRON
 // ============================================================
+
+function normalizeWallet(address) {
+
+    return String(
+        address || ""
+    ).trim();
+}
+
 
 function isValidTronAddress(address) {
 
-    if (!address) {
+    const wallet =
+        normalizeWallet(address);
+
+    if (!wallet) {
         return false;
     }
 
     try {
 
         return TronWeb.isAddress(
-            String(address).trim()
+            wallet
         );
 
     } catch {
@@ -432,9 +509,15 @@ function isValidTronAddress(address) {
 }
 
 
-function normalizeWallet(address) {
+function walletsEqual(
+    wallet1,
+    wallet2
+) {
 
-    return String(address || "").trim();
+    return (
+        normalizeWallet(wallet1) ===
+        normalizeWallet(wallet2)
+    );
 }
 
 
@@ -456,12 +539,16 @@ function getRemainingSeconds() {
         game.status !== "running" ||
         !game.endsAt
     ) {
+
         return 0;
     }
 
     const remaining =
         Math.ceil(
-            (game.endsAt - Date.now()) / 1000
+            (
+                game.endsAt -
+                Date.now()
+            ) / 1000
         );
 
     return Math.max(
@@ -472,7 +559,7 @@ function getRemainingSeconds() {
 
 
 // ============================================================
-// ÉTAT DU JEU
+// LEADERBOARD
 // ============================================================
 
 async function getLeaderboard() {
@@ -484,7 +571,8 @@ async function getLeaderboard() {
     const players =
         await Player
             .find({
-                gameId: game.id
+                gameId:
+                    game.id
             })
             .sort({
                 taps: -1,
@@ -494,72 +582,103 @@ async function getLeaderboard() {
             .lean();
 
     return players.map(
-        (player, index) => ({
-            rank: index + 1,
+        (
+            player,
+            index
+        ) => {
 
-            name: player.name,
+            return {
+                rank:
+                    index + 1,
 
-            wallet: player.wallet,
+                name:
+                    player.name,
 
-            taps: player.taps,
+                wallet:
+                    player.wallet,
 
-            bet: player.bet,
+                taps:
+                    player.taps,
 
-            paid: player.paid
-        })
+                bet:
+                    player.bet,
+
+                paid:
+                    player.paid
+            };
+        }
     );
 }
 
 
+// ============================================================
+// BROADCAST ÉTAT
+// ============================================================
+
 async function broadcastGameState() {
 
-    const leaderboard =
-        await getLeaderboard();
+    try {
 
-    io.emit(
-        "game:state",
-        {
-            gameId: game.id,
+        const leaderboard =
+            await getLeaderboard();
 
-            status: game.status,
+        const remainingSeconds =
+            getRemainingSeconds();
 
-            startedAt: game.startedAt,
+        io.emit(
+            "game:state",
+            {
+                gameId:
+                    game.id,
 
-            endsAt: game.endsAt,
+                status:
+                    game.status,
 
-            durationSeconds:
-                game.durationSeconds,
+                startedAt:
+                    game.startedAt,
 
-            remainingSeconds:
-                getRemainingSeconds(),
+                endsAt:
+                    game.endsAt,
 
-            onlinePlayers:
-                onlineSockets.size,
+                durationSeconds:
+                    game.durationSeconds,
 
+                remainingSeconds,
+
+                onlinePlayers:
+                    onlineSockets.size,
+
+                leaderboard
+            }
+        );
+
+        io.emit(
+            "online:count",
+            onlineSockets.size
+        );
+
+        io.emit(
+            "leaderboard:update",
             leaderboard
-        }
-    );
+        );
 
-    io.emit(
-        "online:count",
-        onlineSockets.size
-    );
+        io.emit(
+            "timer:update",
+            {
+                remainingSeconds,
 
-    io.emit(
-        "leaderboard:update",
-        leaderboard
-    );
+                status:
+                    game.status
+            }
+        );
 
-    io.emit(
-        "timer:update",
-        {
-            remainingSeconds:
-                getRemainingSeconds(),
+    } catch (error) {
 
-            status:
-                game.status
-        }
-    );
+        console.error(
+            "❌ broadcastGameState:",
+            error.message
+        );
+    }
 }
 
 
@@ -570,27 +689,51 @@ async function broadcastGameState() {
 async function startGame() {
 
     if (gameTimer) {
-        clearInterval(gameTimer);
+
+        clearInterval(
+            gameTimer
+        );
+
+        gameTimer = null;
     }
 
+    if (nextGameTimeout) {
+
+        clearTimeout(
+            nextGameTimeout
+        );
+
+        nextGameTimeout = null;
+    }
+
+
+    const now =
+        Date.now();
+
     game = {
-        id: generateGameId(),
 
-        status: "running",
+        id:
+            generateGameId(),
 
-        startedAt: Date.now(),
+        status:
+            "running",
+
+        startedAt:
+            now,
 
         endsAt:
-            Date.now() +
-            GAME_DURATION_SECONDS * 1000,
+            now +
+            GAME_DURATION_SECONDS *
+            1000,
 
         durationSeconds:
             GAME_DURATION_SECONDS
     };
 
+
     console.log("");
     console.log(
-        "🎮 Nouvelle partie :",
+        "🎮 NOUVELLE PARTIE :",
         game.id
     );
 
@@ -598,34 +741,55 @@ async function startGame() {
         "⏱️ Durée : 10 minutes"
     );
 
+    console.log(
+        "👥 En ligne :",
+        onlineSockets.size
+    );
+
+    console.log("");
+
+
+    await broadcastGameState();
+
+
     gameTimer =
         setInterval(
             async () => {
 
-                const remaining =
-                    getRemainingSeconds();
+                try {
 
-                io.emit(
-                    "timer:update",
-                    {
-                        remainingSeconds:
-                            remaining,
+                    const remaining =
+                        getRemainingSeconds();
 
-                        status:
-                            game.status
+                    io.emit(
+                        "timer:update",
+                        {
+                            remainingSeconds:
+                                remaining,
+
+                            status:
+                                game.status
+                        }
+                    );
+
+                    if (
+                        remaining <= 0
+                    ) {
+
+                        await finishGame();
                     }
-                );
 
-                if (remaining <= 0) {
+                } catch (error) {
 
-                    await finishGame();
+                    console.error(
+                        "❌ Game timer:",
+                        error.message
+                    );
                 }
 
             },
             1000
         );
-
-    await broadcastGameState();
 }
 
 
@@ -635,11 +799,18 @@ async function startGame() {
 
 async function finishGame() {
 
-    if (game.status !== "running") {
+    if (
+        game.status !==
+        "running"
+    ) {
+
         return;
     }
 
-    game.status = "finished";
+
+    game.status =
+        "finished";
+
 
     if (gameTimer) {
 
@@ -650,24 +821,30 @@ async function finishGame() {
         gameTimer = null;
     }
 
+
     const leaderboard =
         await getLeaderboard();
 
+
     console.log("");
     console.log(
-        "🏁 Partie terminée :",
+        "🏁 PARTIE TERMINÉE :",
         game.id
     );
 
     console.log(
-        "🏆 Top 5 :",
+        "🏆 TOP 5 :",
         leaderboard
     );
+
+    console.log("");
+
 
     io.emit(
         "game:finished",
         {
-            gameId: game.id,
+            gameId:
+                game.id,
 
             leaderboard,
 
@@ -676,17 +853,19 @@ async function finishGame() {
         }
     );
 
+
     await broadcastGameState();
 
-    // Nouvelle partie après quelques secondes.
-    setTimeout(
-        async () => {
 
-            await startGame();
+    nextGameTimeout =
+        setTimeout(
+            async () => {
 
-        },
-        5000
-    );
+                await startGame();
+
+            },
+            5000
+        );
 }
 
 
@@ -702,8 +881,9 @@ io.on(
             socket.id
         );
 
+
         console.log(
-            "🟢 Joueur connecté :",
+            "🟢 Socket connecté :",
             socket.id
         );
 
@@ -712,12 +892,13 @@ io.on(
             onlineSockets.size
         );
 
+
         await broadcastGameState();
 
 
-        // ----------------------------------------------------
-        // REJOINDRE LE JEU
-        // ----------------------------------------------------
+        // ====================================================
+        // PLAYER JOIN
+        // ====================================================
 
         socket.on(
             "player:join",
@@ -814,22 +995,26 @@ io.on(
                     }
 
 
-                    const existing =
-                        await Player.findOne({
-                            gameId:
-                                game.id,
+                    let player =
+                        await Player.findOne(
+                            {
+                                gameId:
+                                    game.id,
 
-                            wallet
-                        });
+                                wallet
+                            }
+                        );
 
 
-                    let player;
+                    if (player) {
 
+                        player.name =
+                            name;
 
-                    if (existing) {
+                        player.bet =
+                            bet;
 
-                        player =
-                            existing;
+                        await player.save();
 
                     } else {
 
@@ -861,6 +1046,9 @@ io.on(
 
                     socket.data.wallet =
                         wallet;
+
+                    socket.data.name =
+                        name;
 
 
                     socket.emit(
@@ -896,8 +1084,8 @@ io.on(
                 } catch (error) {
 
                     console.error(
-                        "player:join:",
-                        error
+                        "❌ player:join:",
+                        error.message
                     );
 
                     socket.emit(
@@ -912,9 +1100,9 @@ io.on(
         );
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // TAP
-        // ----------------------------------------------------
+        // ====================================================
 
         socket.on(
             "player:tap",
@@ -926,35 +1114,44 @@ io.on(
                         game.status !==
                         "running"
                     ) {
+
                         return;
                     }
+
 
                     if (
                         getRemainingSeconds() <=
                         0
                     ) {
+
                         return;
                     }
+
 
                     if (
                         !socket.data.playerId
                     ) {
+
                         return;
                     }
+
 
                     const player =
                         await Player.findById(
                             socket.data.playerId
                         );
 
+
                     if (!player) {
                         return;
                     }
+
 
                     if (
                         player.gameId !==
                         game.id
                     ) {
+
                         return;
                     }
 
@@ -985,7 +1182,7 @@ io.on(
                 } catch (error) {
 
                     console.error(
-                        "player:tap:",
+                        "❌ player:tap:",
                         error.message
                     );
                 }
@@ -993,9 +1190,9 @@ io.on(
         );
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // CHAT
-        // ----------------------------------------------------
+        // ====================================================
 
         socket.on(
             "chat:send",
@@ -1063,7 +1260,7 @@ io.on(
                 } catch (error) {
 
                     console.error(
-                        "chat:send:",
+                        "❌ chat:send:",
                         error.message
                     );
                 }
@@ -1071,9 +1268,9 @@ io.on(
         );
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // DISCONNECT
-        // ----------------------------------------------------
+        // ====================================================
 
         socket.on(
             "disconnect",
@@ -1083,8 +1280,9 @@ io.on(
                     socket.id
                 );
 
+
                 console.log(
-                    "🔴 Joueur déconnecté :",
+                    "🔴 Socket déconnecté :",
                     socket.id
                 );
 
@@ -1093,10 +1291,12 @@ io.on(
                     onlineSockets.size
                 );
 
+
                 io.emit(
                     "online:count",
                     onlineSockets.size
                 );
+
 
                 await broadcastGameState();
             }
@@ -1106,7 +1306,7 @@ io.on(
 
 
 // ============================================================
-// API : HEALTH
+// API HEALTH
 // ============================================================
 
 app.get(
@@ -1126,6 +1326,9 @@ app.get(
                 wallet:
                     MILTAPE_WALLET,
 
+                paymentReceiver:
+                    PAYMENT_RECEIVER_WALLET,
+
                 gameStatus:
                     game.status,
 
@@ -1141,7 +1344,7 @@ app.get(
 
 
 // ============================================================
-// API : GAME
+// API GAME
 // ============================================================
 
 app.get(
@@ -1152,6 +1355,7 @@ app.get(
 
             const leaderboard =
                 await getLeaderboard();
+
 
             res.json(
                 {
@@ -1198,7 +1402,7 @@ app.get(
 
 
 // ============================================================
-// API : WALLET MILTAPE
+// API WALLET
 // ============================================================
 
 app.get(
@@ -1212,6 +1416,9 @@ app.get(
                 wallet:
                     MILTAPE_WALLET,
 
+                receiverWallet:
+                    PAYMENT_RECEIVER_WALLET,
+
                 usdtContract:
                     USDT_CONTRACT
             }
@@ -1221,7 +1428,7 @@ app.get(
 
 
 // ============================================================
-// API : JOIN
+// API JOIN
 // ============================================================
 
 app.post(
@@ -1314,12 +1521,14 @@ app.post(
 
 
             let player =
-                await Player.findOne({
-                    gameId:
-                        game.id,
+                await Player.findOne(
+                    {
+                        gameId:
+                            game.id,
 
-                    wallet
-                });
+                        wallet
+                    }
+                );
 
 
             if (!player) {
@@ -1383,8 +1592,8 @@ app.post(
         } catch (error) {
 
             console.error(
-                "/api/join:",
-                error
+                "❌ /api/join:",
+                error.message
             );
 
             res.status(500).json(
@@ -1401,7 +1610,7 @@ app.post(
 
 
 // ============================================================
-// API : TAP
+// API TAP
 // ============================================================
 
 app.post(
@@ -1421,6 +1630,22 @@ app.post(
 
                         message:
                             "La partie est terminée."
+                    }
+                );
+            }
+
+
+            if (
+                getRemainingSeconds() <=
+                0
+            ) {
+
+                return res.status(400).json(
+                    {
+                        success: false,
+
+                        message:
+                            "Le chrono est terminé."
                     }
                 );
             }
@@ -1507,7 +1732,7 @@ app.post(
         } catch (error) {
 
             console.error(
-                "/api/tap:",
+                "❌ /api/tap:",
                 error.message
             );
 
@@ -1525,7 +1750,7 @@ app.post(
 
 
 // ============================================================
-// API : LEADERBOARD
+// API LEADERBOARD
 // ============================================================
 
 app.get(
@@ -1536,6 +1761,7 @@ app.get(
 
             const leaderboard =
                 await getLeaderboard();
+
 
             res.json(
                 {
@@ -1561,7 +1787,7 @@ app.get(
 
 
 // ============================================================
-// API : CHAT
+// API CHAT
 // ============================================================
 
 app.get(
@@ -1572,20 +1798,26 @@ app.get(
 
             const messages =
                 await Message
-                    .find({
-                        $or: [
-                            {
-                                gameId:
-                                    game.id
-                            },
-                            {
-                                gameId: null
-                            }
-                        ]
-                    })
-                    .sort({
-                        createdAt: -1
-                    })
+                    .find(
+                        {
+                            $or: [
+                                {
+                                    gameId:
+                                        game.id
+                                },
+                                {
+                                    gameId:
+                                        null
+                                }
+                            ]
+                        }
+                    )
+                    .sort(
+                        {
+                            createdAt:
+                                -1
+                        }
+                    )
                     .limit(50)
                     .lean();
 
@@ -1604,7 +1836,7 @@ app.get(
         } catch (error) {
 
             console.error(
-                "/api/chat:",
+                "❌ /api/chat:",
                 error.message
             );
 
@@ -1622,7 +1854,7 @@ app.get(
 
 
 // ============================================================
-// VÉRIFICATION D'UN PAIEMENT USDT TRC20
+// VÉRIFICATION PAIEMENT USDT TRC20
 // ============================================================
 
 async function verifyUsdtTransaction(
@@ -1630,6 +1862,12 @@ async function verifyUsdtTransaction(
     expectedFrom,
     expectedAmount
 ) {
+
+    const wallet =
+        normalizeWallet(
+            expectedFrom
+        );
+
 
     if (!txId) {
 
@@ -1641,7 +1879,7 @@ async function verifyUsdtTransaction(
 
     if (
         !isValidTronAddress(
-            expectedFrom
+            wallet
         )
     ) {
 
@@ -1650,6 +1888,29 @@ async function verifyUsdtTransaction(
         );
     }
 
+
+    const requiredAmount =
+        Number(
+            expectedAmount
+        );
+
+
+    if (
+        !Number.isFinite(
+            requiredAmount
+        ) ||
+        requiredAmount <= 0
+    ) {
+
+        throw new Error(
+            "Montant du paiement invalide."
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // TRANSACTION
+    // --------------------------------------------------------
 
     const transaction =
         await tronWeb.trx.getTransaction(
@@ -1678,6 +1939,10 @@ async function verifyUsdtTransaction(
         );
     }
 
+
+    // --------------------------------------------------------
+    // CONTRAT
+    // --------------------------------------------------------
 
     const contracts =
         transaction.raw_data?.contract;
@@ -1723,15 +1988,32 @@ async function verifyUsdtTransaction(
     }
 
 
-    const contractAddress =
-        tronWeb.address.fromHex(
-            value.contract_address
+    // --------------------------------------------------------
+    // CONTRAT USDT
+    // --------------------------------------------------------
+
+    let contractAddress;
+
+    try {
+
+        contractAddress =
+            tronWeb.address.fromHex(
+                value.contract_address
+            );
+
+    } catch {
+
+        throw new Error(
+            "Adresse du contrat USDT invalide."
         );
+    }
 
 
     if (
-        contractAddress !==
-        USDT_CONTRACT
+        !walletsEqual(
+            contractAddress,
+            USDT_CONTRACT
+        )
     ) {
 
         throw new Error(
@@ -1740,25 +2022,48 @@ async function verifyUsdtTransaction(
     }
 
 
-    const ownerAddress =
-        tronWeb.address.fromHex(
-            value.owner_address
-        );
+    // --------------------------------------------------------
+    // EXPÉDITEUR
+    // --------------------------------------------------------
 
+    let ownerAddress;
 
-    if (
-        ownerAddress !==
-        expectedFrom
-    ) {
+    try {
+
+        ownerAddress =
+            tronWeb.address.fromHex(
+                value.owner_address
+            );
+
+    } catch {
 
         throw new Error(
-            "Le portefeuille de paiement ne correspond pas."
+            "Adresse du portefeuille expéditeur invalide."
         );
     }
 
 
+    if (
+        !walletsEqual(
+            ownerAddress,
+            wallet
+        )
+    ) {
+
+        throw new Error(
+            "Le portefeuille de paiement ne correspond pas au joueur."
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // DATA TRANSFER
+    // --------------------------------------------------------
+
     const data =
-        value.data || "";
+        String(
+            value.data || ""
+        ).toLowerCase();
 
 
     if (
@@ -1773,6 +2078,21 @@ async function verifyUsdtTransaction(
     }
 
 
+    if (
+        data.length <
+        136
+    ) {
+
+        throw new Error(
+            "Données USDT incomplètes."
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // DESTINATAIRE
+    // --------------------------------------------------------
+
     const recipientHex =
         "41" +
         data.substring(
@@ -1781,15 +2101,28 @@ async function verifyUsdtTransaction(
         );
 
 
-    const recipient =
-        tronWeb.address.fromHex(
-            recipientHex
+    let recipient;
+
+    try {
+
+        recipient =
+            tronWeb.address.fromHex(
+                recipientHex
+            );
+
+    } catch {
+
+        throw new Error(
+            "Adresse du destinataire invalide."
         );
+    }
 
 
     if (
-        recipient !==
-        MILTAPE_WALLET
+        !walletsEqual(
+            recipient,
+            PAYMENT_RECEIVER_WALLET
+        )
     ) {
 
         throw new Error(
@@ -1798,6 +2131,10 @@ async function verifyUsdtTransaction(
     }
 
 
+    // --------------------------------------------------------
+    // MONTANT
+    // --------------------------------------------------------
+
     const amountHex =
         data.substring(
             72,
@@ -1805,11 +2142,22 @@ async function verifyUsdtTransaction(
         );
 
 
-    const rawAmount =
-        BigInt(
-            "0x" +
-            amountHex
+    let rawAmount;
+
+    try {
+
+        rawAmount =
+            BigInt(
+                "0x" +
+                amountHex
+            );
+
+    } catch {
+
+        throw new Error(
+            "Montant USDT invalide."
         );
+    }
 
 
     const amount =
@@ -1820,10 +2168,16 @@ async function verifyUsdtTransaction(
         );
 
 
-    const requiredAmount =
-        Number(
-            expectedAmount
+    if (
+        !Number.isFinite(
+            amount
+        )
+    ) {
+
+        throw new Error(
+            "Montant USDT invalide."
         );
+    }
 
 
     if (
@@ -1837,25 +2191,37 @@ async function verifyUsdtTransaction(
     }
 
 
+    // --------------------------------------------------------
+    // CONFIRMATION BLOCKCHAIN
+    // --------------------------------------------------------
+
     const info =
         await tronWeb.trx.getTransactionInfo(
             txId
         );
 
 
+    if (!info) {
+
+        throw new Error(
+            "Informations de transaction introuvables."
+        );
+    }
+
+
     if (
-        !info ||
         info.receipt?.result !==
         "SUCCESS"
     ) {
 
         throw new Error(
-            "La transaction USDT n'est pas confirmée."
+            "La transaction USDT n'est pas confirmée avec succès."
         );
     }
 
 
     return {
+
         txId,
 
         from:
@@ -1873,7 +2239,7 @@ async function verifyUsdtTransaction(
 
 
 // ============================================================
-// API : PAYMENT VERIFY
+// API PAYMENT VERIFY
 // ============================================================
 
 app.post(
@@ -1896,6 +2262,8 @@ app.post(
                     {
                         success: false,
 
+                        verified: false,
+
                         message:
                             "txId manquant."
                     }
@@ -1903,35 +2271,204 @@ app.post(
             }
 
 
-            const existing =
-                await Payment.findOne({
-                    txId
-                });
+            const expectedWallet =
+                normalizeWallet(
+                    wallet
+                );
 
 
-            if (existing) {
+            if (
+                !isValidTronAddress(
+                    expectedWallet
+                )
+            ) {
 
-                return res.json(
+                return res.status(400).json(
                     {
-                        success: true,
+                        success: false,
 
-                        alreadyVerified:
-                            true,
+                        verified: false,
 
-                        payment:
-                            existing
+                        message:
+                            "Invalid address provided"
                     }
                 );
             }
 
 
+            // ------------------------------------------------
+            // VÉRIFIER LE JOUEUR
+            // ------------------------------------------------
+
+            let player = null;
+
+            if (playerId) {
+
+                player =
+                    await Player.findById(
+                        playerId
+                    );
+
+
+                if (!player) {
+
+                    return res.status(404).json(
+                        {
+                            success: false,
+
+                            verified: false,
+
+                            message:
+                                "Joueur introuvable."
+                        }
+                    );
+                }
+
+
+                if (
+                    player.gameId !==
+                    game.id
+                ) {
+
+                    return res.status(400).json(
+                        {
+                            success: false,
+
+                            verified: false,
+
+                            message:
+                                "La partie du joueur est terminée."
+                        }
+                    );
+                }
+
+
+                if (
+                    !walletsEqual(
+                        player.wallet,
+                        expectedWallet
+                    )
+                ) {
+
+                    return res.status(400).json(
+                        {
+                            success: false,
+
+                            verified: false,
+
+                            message:
+                                "Le wallet ne correspond pas au joueur."
+                        }
+                    );
+                }
+
+
+                if (player.paid) {
+
+                    return res.json(
+                        {
+                            success: true,
+
+                            verified: true,
+
+                            alreadyVerified: true,
+
+                            paymentTxId:
+                                player.paymentTxId
+                        }
+                    );
+                }
+            }
+
+
+            // ------------------------------------------------
+            // ANTI DOUBLE PAIEMENT
+            // ------------------------------------------------
+
+            const existing =
+                await Payment.findOne(
+                    {
+                        txId
+                    }
+                );
+
+
+            if (existing) {
+
+                if (
+                    existing.verified &&
+                    walletsEqual(
+                        existing.from,
+                        expectedWallet
+                    )
+                ) {
+
+                    if (player) {
+
+                        player.paid =
+                            true;
+
+                        player.paymentTxId =
+                            existing.txId;
+
+                        await player.save();
+                    }
+
+
+                    return res.json(
+                        {
+                            success: true,
+
+                            verified: true,
+
+                            alreadyVerified: true,
+
+                            payment: {
+                                txId:
+                                    existing.txId,
+
+                                from:
+                                    existing.from,
+
+                                to:
+                                    existing.to,
+
+                                amount:
+                                    existing.amount
+                            }
+                        }
+                    );
+                }
+
+
+                return res.status(400).json(
+                    {
+                        success: false,
+
+                        verified: false,
+
+                        message:
+                            "Cette transaction a déjà été utilisée."
+                    }
+                );
+            }
+
+
+            // ------------------------------------------------
+            // VÉRIFICATION BLOCKCHAIN
+            // ------------------------------------------------
+
             const result =
                 await verifyUsdtTransaction(
                     txId,
-                    wallet,
+                    expectedWallet,
                     amount
                 );
 
+
+            // ------------------------------------------------
+            // ENREGISTRER LE PAIEMENT
+            // ------------------------------------------------
 
             const payment =
                 await Payment.create(
@@ -1952,30 +2489,35 @@ app.post(
                             true,
 
                         gameId:
-                            game.id
+                            game.id,
+
+                        playerName:
+                            player
+                                ? player.name
+                                : null
                     }
                 );
 
 
-            if (playerId) {
+            // ------------------------------------------------
+            // MARQUER JOUEUR PAYÉ
+            // ------------------------------------------------
 
-                const player =
-                    await Player.findById(
-                        playerId
-                    );
+            if (player) {
 
-                if (player) {
+                player.paid =
+                    true;
 
-                    player.paid =
-                        true;
+                player.paymentTxId =
+                    txId;
 
-                    player.paymentTxId =
-                        txId;
-
-                    await player.save();
-                }
+                await player.save();
             }
 
+
+            // ------------------------------------------------
+            // SOCKET PAYMENT
+            // ------------------------------------------------
 
             io.emit(
                 "payment:verified",
@@ -1986,12 +2528,21 @@ app.post(
                         result.from,
 
                     amount:
-                        result.amount
+                        result.amount,
+
+                    playerId:
+                        player
+                            ? player._id
+                            : null
                 }
             );
 
 
-            res.json(
+            // ------------------------------------------------
+            // RÉPONSE
+            // ------------------------------------------------
+
+            return res.json(
                 {
                     success: true,
 
@@ -2016,18 +2567,20 @@ app.post(
         } catch (error) {
 
             console.error(
-                "❌ Payment verification:",
+                "❌ PAYMENT VERIFICATION :",
                 error.message
             );
 
-            res.status(400).json(
+
+            return res.status(400).json(
                 {
                     success: false,
 
                     verified: false,
 
                     message:
-                        error.message
+                        error.message ||
+                        "Impossible de vérifier le paiement."
                 }
             );
         }
@@ -2036,7 +2589,7 @@ app.post(
 
 
 // ============================================================
-// API : ONLINE
+// API ONLINE
 // ============================================================
 
 app.get(
@@ -2079,12 +2632,18 @@ app.use(
 // ============================================================
 
 app.use(
-    (error, req, res, next) => {
+    (
+        error,
+        req,
+        res,
+        next
+    ) => {
 
         console.error(
-            "Express error:",
+            "❌ Express error:",
             error
         );
+
 
         res.status(500).json(
             {
@@ -2102,71 +2661,157 @@ app.use(
 // DÉMARRAGE
 // ============================================================
 
-server.listen(
-    PORT,
-    async () => {
+async function startServer() {
 
-        console.log("");
-        console.log(
-            "🚀 Miltape Backend démarré."
-        );
+    try {
 
         console.log(
-            `🌐 Port : ${PORT}`
+            "⏳ Connexion MongoDB..."
         );
+
+
+        await mongoose.connect(
+            MONGODB_URI
+        );
+
 
         console.log(
-            `💰 Wallet : ${MILTAPE_WALLET}`
+            "✅ MongoDB connecté."
         );
 
-        console.log(
-            "🟢 Socket.IO actif."
+
+        server.listen(
+            PORT,
+            async () => {
+
+                console.log("");
+                console.log(
+                    "=========================================="
+                );
+
+                console.log(
+                    "🚀 MILTAPE BACKEND DÉMARRÉ"
+                );
+
+                console.log(
+                    "=========================================="
+                );
+
+                console.log(
+                    "🌐 Port :",
+                    PORT
+                );
+
+                console.log(
+                    "💰 Wallet Miltape :",
+                    MILTAPE_WALLET
+                );
+
+                console.log(
+                    "💰 Wallet paiement :",
+                    PAYMENT_RECEIVER_WALLET
+                );
+
+                console.log(
+                    "🟢 Socket.IO actif."
+                );
+
+                console.log(
+                    "💬 Chat actif."
+                );
+
+                console.log(
+                    "⏱️ Chrono serveur actif."
+                );
+
+                console.log(
+                    "👥 Compteur en ligne actif."
+                );
+
+                console.log("");
+
+                await startGame();
+            }
         );
 
-        console.log(
-            "💬 Chat actif."
+    } catch (error) {
+
+        console.error(
+            "❌ ERREUR DÉMARRAGE :",
+            error.message
         );
 
-        console.log(
-            "⏱️ Chrono serveur actif."
-        );
-
-        console.log(
-            "👥 Compteur joueurs en ligne actif."
-        );
-
-        console.log("");
-
-        // Démarre automatiquement une partie.
-        await startGame();
+        process.exit(1);
     }
-);
+}
+
+
+startServer();
 
 
 // ============================================================
 // ARRÊT PROPRE
 // ============================================================
 
-process.on(
-    "SIGTERM",
-    async () => {
+async function shutdown() {
 
-        console.log(
-            "SIGTERM reçu..."
+    console.log(
+        "🛑 Arrêt du serveur..."
+    );
+
+
+    if (gameTimer) {
+
+        clearInterval(
+            gameTimer
         );
 
-        if (gameTimer) {
-            clearInterval(
-                gameTimer
-            );
-        }
+        gameTimer = null;
+    }
+
+
+    if (nextGameTimeout) {
+
+        clearTimeout(
+            nextGameTimeout
+        );
+
+        nextGameTimeout = null;
+    }
+
+
+    try {
 
         await mongoose.connection.close();
 
-        server.close(
-            () => {
-                process.exit(0);
-            }
+    } catch (error) {
+
+        console.error(
+            "MongoDB fermeture :",
+            error.message
         );
     }
+
+
+    server.close(
+        () => {
+
+            console.log(
+                "✅ Serveur arrêté."
+            );
+
+            process.exit(0);
+        }
+    );
+}
+
+
+process.on(
+    "SIGTERM",
+    shutdown
+);
+
+process.on(
+    "SIGINT",
+    shutdown
 );
