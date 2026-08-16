@@ -10,13 +10,17 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
-    <!-- PWA -->
     <meta name="theme-color" content="#090014">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta
         name="apple-mobile-web-app-status-bar-style"
         content="black-translucent"
+    >
+
+    <meta
+        name="description"
+        content="Miltape World Challenge — Tape, classe-toi, gagne."
     >
 
     <title>Miltape World Challenge</title>
@@ -39,17 +43,30 @@
         href="./style.css"
     >
 
-    <!-- TRONWEB -->
-    <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
+    <!-- =====================================================
+         TRONWEB
+    ====================================================== -->
 
-    <!-- SOCKET.IO CLIENT -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"
+        defer
+    ></script>
+
+    <!-- =====================================================
+         SOCKET.IO
+    ====================================================== -->
+
+    <script
+        src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        defer
+    ></script>
+
 
     <style>
 
-        /* =========================================================
-           CORRECTION SCROLL MOBILE / PC
-        ========================================================= */
+        /* =====================================================
+           BASE
+        ====================================================== */
 
         html {
             width: 100%;
@@ -83,9 +100,9 @@
         }
 
 
-        /* =========================================================
-           INSTALLATION PWA
-        ========================================================= */
+        /* =====================================================
+           PWA
+        ====================================================== */
 
         .install-pwa-button {
             position: fixed;
@@ -93,16 +110,23 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 3000;
+
             display: none;
+
             padding: 13px 20px;
+
             border: 1px solid #ffcc00;
             border-radius: 999px;
+
             background: #120624;
             color: #ffcc00;
+
             font-size: 13px;
             font-weight: 900;
+
             box-shadow:
-                0 0 15px rgba(255, 204, 0, .35);
+                0 0 15px rgba(255,204,0,.35);
+
             cursor: pointer;
             white-space: nowrap;
         }
@@ -111,58 +135,65 @@
             display: block;
         }
 
-        .install-pwa-button:active {
-            transform:
-                translateX(-50%)
-                scale(.95);
-        }
 
-
-        /* =========================================================
+        /* =====================================================
            HERO
-        ========================================================= */
+        ====================================================== */
 
         .hero-combined {
             position: relative;
+
             width: calc(100% - 24px);
             height: 220px;
+
             margin: 12px 12px 15px;
+
             background:
                 url("tap-art.jpg")
                 center / cover
                 no-repeat;
+
             border-radius: 16px;
+
             display: flex;
             align-items: center;
             justify-content: center;
+
             text-align: center;
+
             overflow: hidden;
+
             border:
                 1px solid
                 rgba(255,255,255,.1);
-            flex-shrink: 0;
         }
 
         .hero-combined::before {
             content: "";
+
             position: absolute;
             inset: 0;
+
             background:
                 rgba(9,0,20,.45);
+
             pointer-events: none;
         }
 
         .hero-content {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             padding: 10px;
         }
 
         .hero-combined h1 {
             font-size: 26px;
             font-weight: 900;
+
             color: #fff;
+
             margin: 0;
+
             text-shadow:
                 0 2px 10px
                 rgba(0,0,0,.8);
@@ -170,42 +201,57 @@
 
         .hero-combined h1 span {
             display: block;
+
             font-size: 18px;
+
             color: #ffcc00;
+
             letter-spacing: 2px;
+
             margin-top: 5px;
         }
 
         .slogan {
             font-size: 12px;
+
             color: #fff;
+
             margin-top: 8px;
+
             letter-spacing: 1px;
         }
 
 
-        /* =========================================================
+        /* =====================================================
            MENU
-        ========================================================= */
+        ====================================================== */
 
         .side-menu {
             position: fixed;
+
             top: 0;
             left: -300px;
+
             width: 280px;
             height: 100vh;
             height: 100dvh;
+
             background: #0f051d;
+
             border-right:
                 1px solid
                 rgba(255,204,0,.2);
+
             z-index: 1000;
+
             transition:
                 left .3s ease;
+
             padding: 20px;
+
             box-sizing: border-box;
+
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
         }
 
         .side-menu.show {
@@ -215,10 +261,12 @@
         .close-menu {
             background: none;
             border: none;
+
             color: #fff;
+
             font-size: 28px;
+
             cursor: pointer;
-            float: right;
         }
 
         .side-menu-content {
@@ -233,48 +281,71 @@
 
         .menu-block {
             margin-bottom: 15px;
+
             background:
                 rgba(255,255,255,.03);
+
             padding: 12px;
+
             border-radius: 10px;
         }
 
         .menu-block label,
         .menu-block h4 {
             display: block;
+
             font-size: 13px;
+
             color: #ffcc00;
+
             margin-bottom: 8px;
+
             font-weight: bold;
         }
 
         .menu-block select {
             width: 100%;
+
             padding: 8px;
+
             border-radius: 6px;
+
             background: #1a1a2e;
+
             color: #fff;
+
             border:
                 1px solid #444;
         }
 
         .menu-nav-btn {
             display: block;
+
             width: 100%;
+
             background: transparent;
+
             border: none;
+
             color: #fff;
+
             text-align: left;
+
             font-size: 14px;
+
             padding: 10px 12px;
+
             margin-bottom: 6px;
+
             cursor: pointer;
+
             border-radius: 8px;
         }
 
         .menu-nav-btn:hover {
             background:
                 rgba(255,204,0,.15);
+
             color: #ffcc00;
         }
 
@@ -285,21 +356,32 @@
 
         .support-link {
             display: inline-block;
+
             padding: 8px 12px;
+
             background: #0088cc;
+
             color: #fff;
+
             text-decoration: none;
+
             border-radius: 6px;
+
             font-size: 12px;
+
             font-weight: bold;
         }
 
         .menu-overlay {
             position: fixed;
+
             inset: 0;
+
             background:
                 rgba(0,0,0,.7);
+
             display: none;
+
             z-index: 999;
         }
 
@@ -308,21 +390,28 @@
         }
 
 
-        /* =========================================================
-           MODALS
-        ========================================================= */
+        /* =====================================================
+           MODAL
+        ====================================================== */
 
         .legal-modal,
         .modal {
             position: fixed;
+
             inset: 0;
+
             background:
                 rgba(0,0,0,.82);
+
             display: none;
+
             align-items: center;
             justify-content: center;
+
             z-index: 2000;
+
             padding: 20px;
+
             box-sizing: border-box;
         }
 
@@ -334,18 +423,27 @@
         .legal-content,
         .modal-content {
             background: #120624;
+
             border:
                 1px solid #ffcc00;
+
             border-radius: 16px;
+
             max-width: 500px;
+
             width: 100%;
+
             max-height: 90vh;
             max-height: 90dvh;
+
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+
             padding: 20px;
+
             box-sizing: border-box;
+
             color: #fff;
+
             position: relative;
         }
 
@@ -365,26 +463,36 @@
         .legal-close,
         .modal-close {
             position: absolute;
+
             top: 12px;
             right: 15px;
+
             background: none;
+
             border: none;
+
             color: #fff;
+
             font-size: 24px;
+
             cursor: pointer;
         }
 
 
-        /* =========================================================
+        /* =====================================================
            WALLET
-        ========================================================= */
+        ====================================================== */
 
         .wallet-connect-box {
             margin: 15px 0;
+
             padding: 15px;
+
             border-radius: 12px;
+
             background:
                 rgba(255,204,0,.04);
+
             border:
                 1px solid
                 rgba(255,204,0,.3);
@@ -392,17 +500,24 @@
 
         .wallet-status {
             display: flex;
+
             align-items: center;
+
             gap: 8px;
+
             margin-bottom: 12px;
+
             font-size: 12px;
+
             color: #b8b8b8;
         }
 
         .wallet-dot {
             width: 9px;
             height: 9px;
+
             background: #e74c3c;
+
             border-radius: 50%;
         }
 
@@ -411,79 +526,119 @@
         }
 
 
-        /* =========================================================
+        /* =====================================================
            TAP
-        ========================================================= */
+        ====================================================== */
 
         .tap-zone {
             width: 100%;
+
             min-height: 245px;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             position: relative;
-            flex-shrink: 0;
+
             padding-bottom: 10px;
+
+            flex-shrink: 0;
         }
 
         .tap-button {
             position: relative;
+
             width: 190px;
             height: 190px;
+
             min-width: 190px;
             min-height: 190px;
+
             border-radius: 50%;
+
             border:
                 4px solid #ffcc00;
+
             background: transparent;
+
             overflow: hidden;
+
             cursor: pointer;
+
             outline: none;
+
             transition:
                 transform .08s ease-in-out;
+
             display: flex;
+
             flex-direction: column;
+
             align-items: center;
+
             justify-content: center;
+
             margin: 0 auto;
+
             padding: 0;
+
             touch-action: manipulation;
+
+            -webkit-tap-highlight-color: transparent;
         }
 
         .tap-button:disabled {
             opacity: .5;
+
             cursor: not-allowed;
         }
 
         .tap-img-bg {
             position: absolute;
+
             inset: 0;
+
             width: 100%;
             height: 100%;
+
             object-fit: cover;
+
             pointer-events: none;
+
             z-index: 0;
         }
 
         .tap-button::before {
             content: "";
+
             position: absolute;
+
             inset: 0;
+
             background:
                 rgba(18,6,36,.45);
+
             z-index: 1;
+
+            pointer-events: none;
         }
 
         .tap-button strong,
         .tap-button small,
         .tap-button .tap-glow {
             position: relative;
+
             z-index: 2;
         }
 
         .tap-button strong {
             font-size: 42px;
+
             color: #fff;
+
             text-shadow:
                 0 2px 8px
                 rgba(0,0,0,.8);
@@ -491,48 +646,75 @@
 
         .tap-button small {
             font-size: 16px;
+
             color: #ffcc00;
+
             font-weight: bold;
+
             margin-top: 4px;
-            text-shadow:
-                0 2px 8px
-                rgba(0,0,0,.8);
         }
 
         .tap-button:active:not(:disabled) {
-            transform:
-                scale(.92);
+            transform: scale(.92);
         }
 
 
-        /* =========================================================
-           CHAT
-        ========================================================= */
+        /* =====================================================
+           CHAT — CORRECTION IMPORTANTE
+        ====================================================== */
 
         .chat-section {
+            position: relative;
+
+            z-index: 20;
+
             margin-bottom: 20px;
+
+            width: 100%;
+
+            pointer-events: auto;
         }
 
         .chat-messages {
             height: 170px;
+
             overflow-y: auto;
+
             -webkit-overflow-scrolling: touch;
+
             padding: 10px;
+
             margin-top: 10px;
             margin-bottom: 10px;
+
             border-radius: 12px;
-            background: rgba(0,0,0,.20);
-            border: 1px solid rgba(255,255,255,.06);
+
+            background:
+                rgba(0,0,0,.20);
+
+            border:
+                1px solid
+                rgba(255,255,255,.06);
+
+            box-sizing: border-box;
         }
 
         .chat-message {
             margin-bottom: 8px;
+
             padding: 7px 8px;
+
             border-radius: 8px;
-            background: rgba(255,255,255,.035);
+
+            background:
+                rgba(255,255,255,.035);
+
             font-size: 13px;
+
             color: #ddd;
+
             word-break: break-word;
+
             line-height: 1.35;
         }
 
@@ -541,71 +723,116 @@
         }
 
         .chat-input-box {
+            position: relative;
+
+            z-index: 30;
+
             width: 100%;
+
             display: flex;
+
             align-items: center;
+
             gap: 8px;
+
+            pointer-events: auto;
+
+            box-sizing: border-box;
         }
 
         .chat-input-box input {
             flex: 1;
+
             min-width: 0;
+
             height: 44px;
-            padding:
-                0 12px;
+
+            padding: 0 12px;
+
             border:
                 1px solid
                 rgba(193,60,255,.30);
+
             border-radius: 12px;
+
             outline: none;
+
             background:
                 rgba(0,0,0,.35);
+
             color: #fff;
+
             font-size: 13px;
+
             box-sizing: border-box;
-        }
 
-        .chat-input-box input::placeholder {
-            color: #8f8399;
-        }
+            position: relative;
 
-        .chat-input-box input:focus {
-            border-color: rgba(255,204,0,.55);
-            box-shadow:
-                0 0 12px
-                rgba(255,204,0,.10);
+            z-index: 31;
+
+            pointer-events: auto;
         }
 
         .chat-input-box button {
             width: 46px;
+
             height: 44px;
+
+            min-width: 46px;
+
             flex-shrink: 0;
+
             border: none;
+
             border-radius: 12px;
+
             background:
                 linear-gradient(
                     135deg,
                     #ffcc00,
                     #ff8a00
                 );
+
             color: #16051f;
+
             font-size: 20px;
+
             font-weight: 900;
+
             cursor: pointer;
+
             box-shadow:
                 0 4px 0 #a84c00;
+
+            position: relative;
+
+            z-index: 32;
+
+            pointer-events: auto;
+
+            touch-action: manipulation;
+
+            -webkit-tap-highlight-color: transparent;
+
+            user-select: none;
         }
 
         .chat-input-box button:active {
             transform: translateY(2px);
+
             box-shadow:
                 0 2px 0 #a84c00;
         }
 
+        .chat-input-box button:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
 
-        /* =========================================================
+
+        /* =====================================================
            MOBILE
-        ========================================================= */
+        ====================================================== */
 
         @media(max-width:430px) {
 
@@ -625,6 +852,7 @@
             .tap-button {
                 width: 170px;
                 height: 170px;
+
                 min-width: 170px;
                 min-height: 170px;
             }
@@ -634,10 +862,6 @@
             }
         }
 
-
-        /* =========================================================
-           PETITS ÉCRANS
-        ========================================================= */
 
         @media(max-width:360px) {
 
@@ -659,6 +883,7 @@
             .tap-button {
                 width: 165px;
                 height: 165px;
+
                 min-width: 165px;
                 min-height: 165px;
             }
@@ -669,13 +894,14 @@
 
             .chat-input-box button {
                 width: 42px;
+                min-width: 42px;
             }
         }
 
 
-        /* =========================================================
-           PC / TABLETTE
-        ========================================================= */
+        /* =====================================================
+           PC
+        ====================================================== */
 
         @media(min-width:600px) {
 
@@ -686,13 +912,14 @@
 
             .app {
                 border-radius: 30px;
+
                 border:
                     1px solid
                     rgba(255,255,255,.06);
+
                 box-shadow:
                     0 0 80px
                     rgba(91,20,150,.18);
-                overflow: visible !important;
             }
 
             .top-header {
@@ -708,21 +935,23 @@
 
 <body>
 
-    <!-- =========================================================
+
+    <!-- =====================================================
          INSTALLATION PWA
-    ========================================================= -->
+    ====================================================== -->
 
     <button
         id="installPwaButton"
         class="install-pwa-button"
+        type="button"
     >
         📲 INSTALLER MILTAPE
     </button>
 
 
-    <!-- =========================================================
-         MENU LATÉRAL
-    ========================================================= -->
+    <!-- =====================================================
+         MENU
+    ====================================================== -->
 
     <div
         id="sideMenu"
@@ -732,6 +961,7 @@
         <button
             id="closeMenu"
             class="close-menu"
+            type="button"
         >
             &times;
         </button>
@@ -747,6 +977,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuGamesBtn"
+                    type="button"
                 >
                     🎮 Mes parties
                 </button>
@@ -754,6 +985,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuRankingsBtn"
+                    type="button"
                 >
                     🏆 Mes classements
                 </button>
@@ -761,6 +993,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuGainsBtn"
+                    type="button"
                 >
                     💰 Mes gains
                 </button>
@@ -768,6 +1001,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuWithdrawalsBtn"
+                    type="button"
                 >
                     💸 Mes retraits
                 </button>
@@ -775,6 +1009,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuReferralBtn"
+                    type="button"
                 >
                     👥 Parrainage
                 </button>
@@ -782,6 +1017,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuChatBtn"
+                    type="button"
                 >
                     💬 Chat
                 </button>
@@ -789,6 +1025,7 @@
                 <button
                     class="menu-nav-btn"
                     id="menuRulesBtn"
+                    type="button"
                 >
                     📜 Règles
                 </button>
@@ -880,17 +1117,15 @@
     </div>
 
 
-    <!-- OVERLAY MENU -->
-
     <div
         id="menuOverlay"
         class="menu-overlay"
     ></div>
 
 
-    <!-- =========================================================
-         MODAL DYNAMIQUE
-    ========================================================= -->
+    <!-- =====================================================
+         MODAL
+    ====================================================== -->
 
     <div
         id="dynamicModal"
@@ -902,6 +1137,7 @@
             <button
                 id="closeDynamicModal"
                 class="legal-close"
+                type="button"
             >
                 &times;
             </button>
@@ -917,9 +1153,9 @@
     </div>
 
 
-    <!-- =========================================================
+    <!-- =====================================================
          APPLICATION
-    ========================================================= -->
+    ====================================================== -->
 
     <div class="app">
 
@@ -1165,7 +1401,7 @@
         </div>
 
 
-        <!-- TAP ZONE -->
+        <!-- TAP -->
 
         <section class="tap-zone">
 
@@ -1177,9 +1413,10 @@
             >
 
                 <img
-                    src="tap-art.jpg"
+                    src="./tap-art.jpg"
                     alt="Tap Art"
                     class="tap-img-bg"
+                    draggable="false"
                 >
 
                 <span class="tap-glow"></span>
@@ -1232,11 +1469,14 @@
         </section>
 
 
-        <!-- =====================================================
+        <!-- =================================================
              CHAT GLOBAL
-        ====================================================== -->
+        ================================================== -->
 
-        <section class="chat-section">
+        <section
+            class="chat-section"
+            id="globalChat"
+        >
 
             <div class="section-title">
 
@@ -1269,9 +1509,14 @@
             </div>
 
 
-            <!-- SAISIE CHAT -->
+            <!-- =================================================
+                 INPUT CHAT
+            ================================================== -->
 
-            <div class="chat-input-box">
+            <div
+                class="chat-input-box"
+                id="chatInputBox"
+            >
 
                 <input
                     type="text"
@@ -1280,12 +1525,14 @@
                     maxlength="200"
                     autocomplete="off"
                     enterkeyhint="send"
+                    inputmode="text"
                 >
 
                 <button
                     id="chatSend"
                     type="button"
-                    aria-label="Envoyer"
+                    aria-label="Envoyer le message"
+                    title="Envoyer"
                 >
                     ➤
                 </button>
@@ -1294,8 +1541,6 @@
 
         </section>
 
-
-        <!-- ESPACE FINAL POUR LE SCROLL -->
 
         <div
             style="
@@ -1308,11 +1553,83 @@
     </div>
 
 
-    <!-- =========================================================
-         JAVASCRIPT
+    <!-- =====================================================
+         SCRIPT PRINCIPAL
+         
+         IMPORTANT :
+         UN SEUL script.js
     ====================================================== -->
 
     <script src="./script.js"></script>
+
+
+    <!-- =====================================================
+         PETITE PROTECTION CHAT
+         
+         Si un ancien élément CSS/overlay bloque le bouton,
+         on force le bouton à rester cliquable.
+    ====================================================== -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const chatSend =
+                    document.getElementById(
+                        "chatSend"
+                    );
+
+                const chatInput =
+                    document.getElementById(
+                        "chatInput"
+                    );
+
+
+                if (!chatSend || !chatInput) {
+                    return;
+                }
+
+
+                chatSend.style.pointerEvents =
+                    "auto";
+
+
+                chatSend.style.position =
+                    "relative";
+
+
+                chatSend.style.zIndex =
+                    "100";
+
+
+                /*
+                 * Si l'utilisateur appuie sur Entrée,
+                 * on déclenche le même clic que le bouton.
+                 */
+
+                chatInput.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key === "Enter" &&
+                            !event.shiftKey
+                        ) {
+
+                            event.preventDefault();
+
+                            chatSend.click();
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+    </script>
 
 </body>
 
