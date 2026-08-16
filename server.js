@@ -1,6 +1,7 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
    BACKEND RAILWAY
+   PAYMENTS TRC20 AUTOMATIQUES
 ========================================================= */
 
 "use strict";
@@ -10,6 +11,7 @@ const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
+const { TronWeb } = require("tronweb");
 
 
 /* =========================================================
@@ -31,6 +33,11 @@ const TRONGRID_API_KEY =
 const MILTAPE_WALLET =
     "TBZZ3nakc3w5SnJ1EZpvVWYWY3q1NffNPM";
 
+const MILTAPE_PRIVATE_KEY =
+    String(
+        process.env.MILTAPE_PRIVATE_KEY || ""
+    ).trim();
+
 const USDT_CONTRACT =
     "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
@@ -41,6 +48,123 @@ const MINIMUM_BET = 1;
 const MAXIMUM_BET = 1000000;
 
 const GAME_DURATION = 600;
+
+
+/*
+   Limite de frais maximale utilisée pour une transaction TRC20.
+   Cette valeur peut être ajustée après tests.
+*/
+const PAYOUT_FEE_LIMIT =
+    100000000;
+
+
+/*
+   Nombre de confirmations/attente.
+*/
+const PAYOUT_CONFIRM_TIMEOUT =
+    60000;
+
+const PAYOUT_CONFIRM_INTERVAL =
+    3000;
+
+
+/* =========================================================
+   VERIFICATION CONFIG PAIEMENT
+========================================================= */
+
+if (!MONGO_URI) {
+
+    console.error(
+        "❌ MONGO_URI / MONGODB_URI MANQUANT"
+    );
+
+    process.exit(1);
+}
+
+
+if (!MILTAPE_PRIVATE_KEY) {
+
+    console.error(
+        "❌ MILTAPE_PRIVATE_KEY MANQUANT"
+    );
+
+    console.error(
+        "Ajoute MILTAPE_PRIVATE_KEY dans Railway Variables."
+    );
+
+    process.exit(1);
+}
+
+
+/* =========================================================
+   TRONWEB
+========================================================= */
+
+let tronWeb;
+
+try {
+
+    tronWeb =
+        new TronWeb({
+            fullHost:
+                "https://api.trongrid.io",
+
+            headers: TRONGRID_API_KEY
+                ? {
+                    "TRON-PRO-API-KEY":
+                        TRONGRID_API_KEY
+                }
+                : {},
+
+            privateKey:
+                MILTAPE_PRIVATE_KEY
+        });
+
+
+    const derivedAddress =
+        tronWeb.address.fromPrivateKey(
+            MILTAPE_PRIVATE_KEY
+        );
+
+
+    if (
+        String(derivedAddress || "")
+            .toLowerCase() !==
+        MILTAPE_WALLET.toLowerCase()
+    ) {
+
+        console.error(
+            "❌ LA CLE PRIVEE NE CORRESPOND PAS AU WALLET MILTAPE."
+        );
+
+        console.error(
+            "Wallet attendu:",
+            MILTAPE_WALLET
+        );
+
+        console.error(
+            "Wallet obtenu:",
+            derivedAddress
+        );
+
+        process.exit(1);
+    }
+
+
+    console.log(
+        "🟢 Wallet Miltape vérifié:",
+        MILTAPE_WALLET
+    );
+
+} catch (error) {
+
+    console.error(
+        "❌ Erreur configuration TronWeb:",
+        error
+    );
+
+    process.exit(1);
+}
 
 
 /* =========================================================
@@ -89,16 +213,6 @@ app.use(
 /* =========================================================
    MONGODB
 ========================================================= */
-
-if (!MONGO_URI) {
-
-    console.error(
-        "❌ MONGO_URI / MONGODB_URI MANQUANT"
-    );
-
-    process.exit(1);
-}
-
 
 mongoose.set(
     "strictQuery",
@@ -186,6 +300,49 @@ const playerSchema =
             taps: {
                 type: Number,
                 default: 0
+            },
+
+            /*
+               Paiement du gain
+            */
+
+            payoutStatus: {
+                type: String,
+                enum: [
+                    "none",
+                    "pending",
+                    "processing",
+                    "paid",
+                    "failed"
+                ],
+                default: "none",
+                index: true
+            },
+
+            payoutTxid: {
+                type: String,
+                default: "",
+                index: true
+            },
+
+            payoutAmount: {
+                type: Number,
+                default: 0
+            },
+
+            payoutAddress: {
+                type: String,
+                default: ""
+            },
+
+            payoutAt: {
+                type: Date,
+                default: null
+            },
+
+            payoutError: {
+                type: String,
+                default: ""
             },
 
             lastTapAt: {
@@ -297,6 +454,106 @@ const Payment =
     mongoose.model(
         "Payment",
         paymentSchema
+    );
+
+
+/* =========================================================
+   PAYOUT SCHEMA
+========================================================= */
+
+const payoutSchema =
+    new mongoose.Schema(
+        {
+
+            payoutKey: {
+                type: String,
+                required: true,
+                unique: true,
+                index: true
+            },
+
+            gameId: {
+                type: Number,
+                required: true,
+                index: true
+            },
+
+            playerId: {
+                type: String,
+                required: true,
+                index: true
+            },
+
+            playerName: {
+                type: String,
+                default: "Anonyme"
+            },
+
+            destination: {
+                type: String,
+                required: true
+            },
+
+            amount: {
+                type: Number,
+                required: true
+            },
+
+            amountUnits: {
+                type: String,
+                required: true
+            },
+
+            status: {
+                type: String,
+                enum: [
+                    "pending",
+                    "processing",
+                    "paid",
+                    "failed"
+                ],
+                default: "pending",
+                index: true
+            },
+
+            txid: {
+                type: String,
+                default: "",
+                index: true
+            },
+
+            error: {
+                type: String,
+                default: ""
+            },
+
+            createdAt: {
+                type: Date,
+                default: Date.now
+            },
+
+            processingAt: {
+                type: Date,
+                default: null
+            },
+
+            paidAt: {
+                type: Date,
+                default: null
+            }
+
+        },
+        {
+            collection:
+                "payouts"
+        }
+    );
+
+
+const Payout =
+    mongoose.model(
+        "Payout",
+        payoutSchema
     );
 
 
@@ -660,10 +917,6 @@ async function verifyTronUsdtTransaction(
         );
 
 
-    /* -----------------------------------------
-       TRANSACTION INFO
-    ----------------------------------------- */
-
     let transactionInfo;
 
 
@@ -696,10 +949,6 @@ async function verifyTronUsdtTransaction(
             ? transactionInfo.data
             : [];
 
-
-    /* -----------------------------------------
-       RECHERCHE TRANSFER USDT
-    ----------------------------------------- */
 
     const transfer =
         events.find(
@@ -935,21 +1184,13 @@ async function broadcastLeaderboard() {
 
     io.emit(
         "leaderboard",
-        players
-            .slice(
-                0,
-                5
-            )
+        players.slice(0, 5)
     );
 
 
     io.emit(
         "leaderboard:update",
-        players
-            .slice(
-                0,
-                5
-            )
+        players.slice(0, 5)
     );
 
 
@@ -968,6 +1209,906 @@ async function broadcastLeaderboard() {
         {
             total
         }
+    );
+}
+
+
+/* =========================================================
+   TRON — CHECK BALANCE
+========================================================= */
+
+async function getMiltapeUsdtBalance() {
+
+    const contract =
+        await tronWeb
+            .contract()
+            .at(USDT_CONTRACT);
+
+
+    const balance =
+        await contract
+            .balanceOf(
+                MILTAPE_WALLET
+            )
+            .call();
+
+
+    return Number(balance) /
+        Math.pow(
+            10,
+            USDT_DECIMALS
+        );
+}
+
+
+/* =========================================================
+   TRON — SEND USDT
+========================================================= */
+
+async function sendUsdt(
+    destination,
+    amount
+) {
+
+    const cleanDestination =
+        String(
+            destination || ""
+        ).trim();
+
+
+    if (
+        !isValidTronAddress(
+            cleanDestination
+        )
+    ) {
+
+        throw new Error(
+            "Adresse destinataire TRON invalide."
+        );
+    }
+
+
+    if (
+        normalizeAddress(
+            cleanDestination
+        ) ===
+        normalizeAddress(
+            MILTAPE_WALLET
+        )
+    ) {
+
+        throw new Error(
+            "Paiement vers le wallet Miltape interdit."
+        );
+    }
+
+
+    const numericAmount =
+        Number(amount);
+
+
+    if (
+        !Number.isFinite(
+            numericAmount
+        ) ||
+        numericAmount <= 0
+    ) {
+
+        throw new Error(
+            "Montant payout invalide."
+        );
+    }
+
+
+    const amountUnits =
+        usdtToUnits(
+            numericAmount
+        );
+
+
+    /*
+       Vérification du solde USDT avant envoi.
+    */
+
+    const balance =
+        await getMiltapeUsdtBalance();
+
+
+    if (
+        balance <
+        numericAmount
+    ) {
+
+        throw new Error(
+            `Solde USDT insuffisant. Solde: ${balance} USDT. Requis: ${numericAmount} USDT.`
+        );
+    }
+
+
+    console.log(
+        "💸 ENVOI USDT",
+        {
+            destination:
+                cleanDestination,
+
+            amount:
+                numericAmount,
+
+            amountUnits:
+                amountUnits.toString()
+        }
+    );
+
+
+    const contract =
+        await tronWeb
+            .contract()
+            .at(USDT_CONTRACT);
+
+
+    /*
+       TRC20 transfer.
+    */
+
+    const txid =
+        await contract
+            .transfer(
+                cleanDestination,
+                amountUnits.toString()
+            )
+            .send({
+                feeLimit:
+                    PAYOUT_FEE_LIMIT,
+
+                shouldPollResponse:
+                    false
+            });
+
+
+    if (!txid) {
+
+        throw new Error(
+            "TRON n'a retourné aucun TXID."
+        );
+    }
+
+
+    console.log(
+        "🟡 Payout transaction diffusée:",
+        txid
+    );
+
+
+    return {
+        txid:
+            String(txid),
+
+        amount:
+            numericAmount,
+
+        amountUnits:
+            amountUnits.toString(),
+
+        destination:
+            cleanDestination
+    };
+}
+
+
+/* =========================================================
+   TRON — WAIT CONFIRMATION
+========================================================= */
+
+async function waitForTransactionConfirmation(
+    txid
+) {
+
+    const started =
+        Date.now();
+
+
+    while (
+        Date.now() -
+        started <
+        PAYOUT_CONFIRM_TIMEOUT
+    ) {
+
+        try {
+
+            const info =
+                await tronWeb
+                    .trx
+                    .getTransactionInfo(
+                        txid
+                    );
+
+
+            if (
+                info &&
+                info.receipt &&
+                info.receipt.result
+            ) {
+
+                const result =
+                    String(
+                        info.receipt.result
+                    )
+                        .toUpperCase();
+
+
+                if (
+                    result ===
+                    "SUCCESS"
+                ) {
+
+                    return {
+                        confirmed:
+                            true,
+
+                        info
+                    };
+                }
+
+
+                if (
+                    result ===
+                    "FAILED"
+                ) {
+
+                    throw new Error(
+                        "La transaction TRON a échoué."
+                    );
+                }
+            }
+
+        } catch (error) {
+
+            if (
+                error.message ===
+                "La transaction TRON a échoué."
+            ) {
+
+                throw error;
+            }
+        }
+
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    PAYOUT_CONFIRM_INTERVAL
+                )
+        );
+    }
+
+
+    /*
+       IMPORTANT :
+       timeout ≠ paiement échoué.
+
+       On conserve processing afin de ne pas
+       envoyer une deuxième transaction.
+    */
+
+    throw new Error(
+        "Confirmation TRON non obtenue dans le délai. Transaction conservée en processing pour éviter un double paiement."
+    );
+}
+
+
+/* =========================================================
+   CREATE / GET PAYOUT
+========================================================= */
+
+async function createPayoutRecord(
+    player
+) {
+
+    const payoutKey =
+        `${currentGameId}:${player.playerId}`;
+
+
+    const amount =
+        Number(
+            player.amount || 0
+        ) * 2;
+
+
+    const amountUnits =
+        usdtToUnits(
+            amount
+        );
+
+
+    /*
+       Unique payoutKey :
+       un seul payout possible pour
+       un joueur dans une partie.
+    */
+
+    try {
+
+        const payout =
+            await Payout.create({
+
+                payoutKey,
+
+                gameId:
+                    currentGameId,
+
+                playerId:
+                    player.playerId,
+
+                playerName:
+                    player.playerName,
+
+                destination:
+                    player.cryptoAddress,
+
+                amount,
+
+                amountUnits:
+                    amountUnits.toString(),
+
+                status:
+                    "pending"
+            });
+
+
+        return payout;
+
+    } catch (error) {
+
+        if (
+            error?.code === 11000
+        ) {
+
+            return Payout.findOne({
+                payoutKey
+            });
+        }
+
+
+        throw error;
+    }
+}
+
+
+/* =========================================================
+   PAY ONE WINNER
+========================================================= */
+
+async function payWinner(
+    player
+) {
+
+    const payout =
+        await createPayoutRecord(
+            player
+        );
+
+
+    if (!payout) {
+
+        throw new Error(
+            "Impossible de créer le payout."
+        );
+    }
+
+
+    /*
+       DEJA PAYE
+    */
+
+    if (
+        payout.status ===
+        "paid"
+    ) {
+
+        console.log(
+            "🟢 Déjà payé:",
+            player.playerId,
+            payout.txid
+        );
+
+        return payout;
+    }
+
+
+    /*
+       PROCESSING :
+       NE PAS RETENTER AUTOMATIQUEMENT.
+
+       Cela protège contre un double paiement
+       si le serveur a envoyé la transaction mais
+       s'est arrêté avant l'enregistrement final.
+    */
+
+    if (
+        payout.status ===
+        "processing"
+    ) {
+
+        console.warn(
+            "⚠️ Payout déjà processing:",
+            payout.payoutKey
+        );
+
+        return payout;
+    }
+
+
+    /*
+       Verrou atomique MongoDB.
+       Deux appels simultanés ne peuvent pas
+       tous les deux prendre le payout.
+    */
+
+    const locked =
+        await Payout.findOneAndUpdate(
+            {
+                payoutKey:
+                    payout.payoutKey,
+
+                status: {
+                    $in: [
+                        "pending",
+                        "failed"
+                    ]
+                }
+            },
+            {
+                $set: {
+                    status:
+                        "processing",
+
+                    processingAt:
+                        new Date(),
+
+                    error:
+                        ""
+                }
+            },
+            {
+                new: true
+            }
+        );
+
+
+    if (!locked) {
+
+        const current =
+            await Payout.findOne({
+                payoutKey:
+                    payout.payoutKey
+            });
+
+
+        return current;
+    }
+
+
+    /*
+       Synchroniser aussi le Player.
+    */
+
+    await Player.updateOne(
+        {
+            _id:
+                player._id
+        },
+        {
+            $set: {
+                payoutStatus:
+                    "processing",
+
+                payoutAmount:
+                    locked.amount,
+
+                payoutAddress:
+                    locked.destination,
+
+                payoutError:
+                    "",
+
+                updatedAt:
+                    new Date()
+            }
+        }
+    );
+
+
+    try {
+
+        /*
+           ENVOI REEL
+        */
+
+        const sent =
+            await sendUsdt(
+                locked.destination,
+                locked.amount
+            );
+
+
+        /*
+           Enregistrer immédiatement le TXID.
+        */
+
+        await Payout.updateOne(
+            {
+                _id:
+                    locked._id
+            },
+            {
+                $set: {
+                    txid:
+                        sent.txid
+                }
+            }
+        );
+
+
+        await Player.updateOne(
+            {
+                _id:
+                    player._id
+            },
+            {
+                $set: {
+                    payoutTxid:
+                        sent.txid,
+
+                    updatedAt:
+                        new Date()
+                }
+            }
+        );
+
+
+        /*
+           Confirmation blockchain.
+        */
+
+        try {
+
+            await waitForTransactionConfirmation(
+                sent.txid
+            );
+
+        } catch (confirmationError) {
+
+            /*
+               Le TXID existe déjà.
+               On NE RETENTE PAS l'envoi.
+            */
+
+            await Payout.updateOne(
+                {
+                    _id:
+                        locked._id
+                },
+                {
+                    $set: {
+                        error:
+                            confirmationError.message
+                    }
+                }
+            );
+
+
+            await Player.updateOne(
+                {
+                    _id:
+                        player._id
+                },
+                {
+                    $set: {
+                        payoutTxid:
+                            sent.txid,
+
+                        payoutError:
+                            confirmationError.message,
+
+                        updatedAt:
+                            new Date()
+                    }
+                }
+            );
+
+
+            console.warn(
+                "⚠️ TX envoyée mais confirmation non obtenue:",
+                sent.txid
+            );
+
+
+            return await Payout.findById(
+                locked._id
+            );
+        }
+
+
+        /*
+           PAYE CONFIRME
+        */
+
+        await Payout.updateOne(
+            {
+                _id:
+                    locked._id
+            },
+            {
+                $set: {
+                    status:
+                        "paid",
+
+                    txid:
+                        sent.txid,
+
+                    paidAt:
+                        new Date(),
+
+                    error:
+                        ""
+                }
+            }
+        );
+
+
+        await Player.updateOne(
+            {
+                _id:
+                    player._id
+            },
+            {
+                $set: {
+                    paid:
+                        true,
+
+                    payoutStatus:
+                        "paid",
+
+                    payoutTxid:
+                        sent.txid,
+
+                    payoutAmount:
+                        locked.amount,
+
+                    payoutAddress:
+                        locked.destination,
+
+                    payoutAt:
+                        new Date(),
+
+                    payoutError:
+                        "",
+
+                    updatedAt:
+                        new Date()
+                }
+            }
+        );
+
+
+        console.log(
+            "🟢 PAYOUT CONFIRME",
+            {
+                playerId:
+                    player.playerId,
+
+                amount:
+                    locked.amount,
+
+                wallet:
+                    locked.destination,
+
+                txid:
+                    sent.txid
+            }
+        );
+
+
+        return await Payout.findById(
+            locked._id
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "❌ PAYOUT ERROR:",
+            {
+                playerId:
+                    player.playerId,
+
+                error:
+                    error.message
+            }
+        );
+
+
+        /*
+           Si aucune transaction n'a été diffusée,
+           on peut repasser failed.
+
+           Si un TXID existe déjà, on garde processing
+           pour éviter un deuxième paiement.
+        */
+
+        const current =
+            await Payout.findById(
+                locked._id
+            );
+
+
+        if (
+            !current?.txid
+        ) {
+
+            await Payout.updateOne(
+                {
+                    _id:
+                        locked._id
+                },
+                {
+                    $set: {
+                        status:
+                            "failed",
+
+                        error:
+                            error.message
+                    }
+                }
+            );
+
+
+            await Player.updateOne(
+                {
+                    _id:
+                        player._id
+                },
+                {
+                    $set: {
+                        payoutStatus:
+                            "failed",
+
+                        payoutError:
+                            error.message,
+
+                        updatedAt:
+                            new Date()
+                    }
+                }
+            );
+
+        } else {
+
+            /*
+               TXID existant :
+               surtout pas de deuxième transfert.
+            */
+
+            await Payout.updateOne(
+                {
+                    _id:
+                        locked._id
+                },
+                {
+                    $set: {
+                        status:
+                            "processing",
+
+                        error:
+                            error.message
+                    }
+                }
+            );
+
+
+            await Player.updateOne(
+                {
+                    _id:
+                        player._id
+                },
+                {
+                    $set: {
+                        payoutStatus:
+                            "processing",
+
+                        payoutError:
+                            error.message,
+
+                        updatedAt:
+                            new Date()
+                    }
+                }
+            );
+        }
+
+
+        return await Payout.findById(
+            locked._id
+        );
+    }
+}
+
+
+/* =========================================================
+   PAY TOP 5
+========================================================= */
+
+async function payTopFive(
+    winners
+) {
+
+    console.log(
+        "======================================"
+    );
+
+    console.log(
+        "💰 DEBUT PAYOUT TOP 5"
+    );
+
+    console.log(
+        "GAME:",
+        currentGameId
+    );
+
+    console.log(
+        "======================================"
+    );
+
+
+    for (
+        const winner of winners
+    ) {
+
+        try {
+
+            const result =
+                await payWinner(
+                    winner
+                );
+
+
+            console.log(
+                "Payout résultat:",
+                {
+                    playerId:
+                        winner.playerId,
+
+                    status:
+                        result?.status,
+
+                    txid:
+                        result?.txid || ""
+                }
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ Erreur payout joueur:",
+                winner.playerId,
+                error
+            );
+        }
+    }
+
+
+    console.log(
+        "======================================"
+    );
+
+    console.log(
+        "💰 FIN PAYOUT TOP 5"
+    );
+
+    console.log(
+        "======================================"
     );
 }
 
@@ -1065,11 +2206,10 @@ async function finishGame() {
 
 
     const winners =
-        players
-            .slice(
-                0,
-                5
-            );
+        players.slice(
+            0,
+            5
+        );
 
 
     const winnerIds =
@@ -1079,9 +2219,9 @@ async function finishGame() {
         );
 
 
-    /* -----------------------------------------
+    /*
        TOP 5 = 2X LA MISE
-    ----------------------------------------- */
+    */
 
     for (
         const player of winners
@@ -1102,6 +2242,21 @@ async function finishGame() {
                             player.amount ||
                             0
                         ) * 2,
+
+                    payoutStatus:
+                        "pending",
+
+                    payoutAmount:
+                        Number(
+                            player.amount ||
+                            0
+                        ) * 2,
+
+                    payoutAddress:
+                        player.cryptoAddress,
+
+                    payoutError:
+                        "",
 
                     updatedAt:
                         new Date()
@@ -1132,6 +2287,12 @@ async function finishGame() {
                 reward:
                     0,
 
+                payoutStatus:
+                    "none",
+
+                payoutAmount:
+                    0,
+
                 updatedAt:
                     new Date()
             }
@@ -1148,6 +2309,20 @@ async function finishGame() {
             $set: {
                 finished:
                     true,
+
+                totalStakes:
+                    players.reduce(
+                        (
+                            total,
+                            player
+                        ) =>
+                            total +
+                            Number(
+                                player.amount ||
+                                0
+                            ),
+                        0
+                    ),
 
                 winners:
                     winners.map(
@@ -1168,7 +2343,10 @@ async function finishGame() {
                                 Number(
                                     player.amount ||
                                     0
-                                ) * 2
+                                ) * 2,
+
+                            cryptoAddress:
+                                player.cryptoAddress
                         })
                     )
             }
@@ -1176,21 +2354,9 @@ async function finishGame() {
     );
 
 
-    const finalWinners =
-        await Player.find({
-            gameId:
-                currentGameId,
-
-            joined:
-                true
-        })
-            .sort({
-                score:
-                    -1
-            })
-            .limit(5)
-            .lean();
-
+    /*
+       Annoncer la fin immédiatement.
+    */
 
     io.emit(
         "gameOver",
@@ -1198,8 +2364,7 @@ async function finishGame() {
             gameId:
                 currentGameId,
 
-            winners:
-                finalWinners
+            winners
         }
     );
 
@@ -1209,6 +2374,22 @@ async function finishGame() {
         currentGameId
     );
 
+
+    /*
+       PAIEMENTS AUTOMATIQUES
+
+       IMPORTANT :
+       Chaque joueur possède son propre wallet.
+    */
+
+    await payTopFive(
+        winners
+    );
+
+
+    /*
+       Nouvelle partie après les paiements.
+    */
 
     setTimeout(
         startNewGame,
@@ -1224,34 +2405,44 @@ async function finishGame() {
 setInterval(
     async () => {
 
-        const remaining =
-            getTimerLeft();
+        try {
+
+            const remaining =
+                getTimerLeft();
 
 
-        io.emit(
-            "timer",
-            remaining
-        );
+            io.emit(
+                "timer",
+                remaining
+            );
 
 
-        io.emit(
-            "timer:update",
-            {
-                gameId:
-                    currentGameId,
+            io.emit(
+                "timer:update",
+                {
+                    gameId:
+                        currentGameId,
 
-                timeLeft:
-                    remaining
+                    timeLeft:
+                        remaining
+                }
+            );
+
+
+            if (
+                gameRunning &&
+                remaining <= 0
+            ) {
+
+                await finishGame();
             }
-        );
 
+        } catch (error) {
 
-        if (
-            gameRunning &&
-            remaining <= 0
-        ) {
-
-            await finishGame();
+            console.error(
+                "GAME TIMER ERROR:",
+                error
+            );
         }
 
     },
@@ -1297,7 +2488,10 @@ app.get(
             gameId:
                 currentGameId,
 
-            gameRunning
+            gameRunning,
+
+            payoutWallet:
+                MILTAPE_WALLET
         });
     }
 );
@@ -1464,10 +2658,6 @@ app.post(
             } = req.body;
 
 
-            /* -----------------------------------------
-               VALIDATION DE BASE
-            ----------------------------------------- */
-
             if (
                 !playerId ||
                 !txid ||
@@ -1558,10 +2748,6 @@ app.post(
             }
 
 
-            /* -----------------------------------------
-               ANTI CHANGEMENT D'ADRESSE
-            ----------------------------------------- */
-
             const existingPlayer =
                 await Player.findOne({
                     playerId:
@@ -1583,21 +2769,6 @@ app.post(
                     normalizedAddress
                 ) {
 
-                    console.warn(
-                        "🚨 CHANGEMENT WALLET BLOQUÉ",
-                        {
-                            playerId:
-                                cleanPlayerId,
-
-                            old:
-                                existingPlayer.cryptoAddress,
-
-                            new:
-                                cleanAddress
-                        }
-                    );
-
-
                     return res.status(409)
                         .json({
                             success:
@@ -1612,10 +2783,6 @@ app.post(
                 }
             }
 
-
-            /* -----------------------------------------
-               TRANSACTION DEJA UTILISEE ?
-            ----------------------------------------- */
 
             const existingPayment =
                 await Payment.findOne({
@@ -1641,10 +2808,6 @@ app.post(
                     });
             }
 
-
-            /* -----------------------------------------
-               VERIFICATION BLOCKCHAIN
-            ----------------------------------------- */
 
             let blockchainPayment;
 
@@ -1677,10 +2840,6 @@ app.post(
                     });
             }
 
-
-            /* -----------------------------------------
-               DOUBLE CONTROLE ADRESSE
-            ----------------------------------------- */
 
             if (
                 normalizeAddress(
@@ -1723,10 +2882,6 @@ app.post(
             }
 
 
-            /* -----------------------------------------
-               CREATION / MISE A JOUR PLAYER
-            ----------------------------------------- */
-
             let player;
 
 
@@ -1754,7 +2909,9 @@ app.post(
                     true;
 
                 player.txid =
-                    String(txid).trim();
+                    String(
+                        txid
+                    ).trim();
 
                 player.joined =
                     true;
@@ -1807,15 +2964,26 @@ app.post(
                         reward:
                             0,
 
+                        payoutStatus:
+                            "none",
+
+                        payoutAmount:
+                            0,
+
+                        payoutAddress:
+                            "",
+
+                        payoutTxid:
+                            "",
+
+                        payoutError:
+                            "",
+
                         taps:
                             0
                     });
             }
 
-
-            /* -----------------------------------------
-               ENREGISTRER PAIEMENT
-            ----------------------------------------- */
 
             await Payment.create({
 
@@ -1853,15 +3021,11 @@ app.post(
             });
 
 
-            /* -----------------------------------------
-               BROADCAST
-            ----------------------------------------- */
-
             await broadcastLeaderboard();
 
 
             console.log(
-                "🟢 PAIEMENT VALIDÉ",
+                "🟢 PAIEMENT ENTRANT VALIDÉ",
                 {
                     playerId:
                         cleanPlayerId,
@@ -1897,7 +3061,9 @@ app.post(
                     numericAmount,
 
                 txid:
-                    String(txid).trim()
+                    String(
+                        txid
+                    ).trim()
             });
 
 
@@ -1994,6 +3160,123 @@ app.get(
 
 
 /* =========================================================
+   API PAYOUT STATUS
+========================================================= */
+
+app.get(
+    "/api/payout/:gameId/:playerId",
+    async (req, res) => {
+
+        try {
+
+            const payout =
+                await Payout.findOne({
+                    gameId:
+                        Number(
+                            req.params.gameId
+                        ),
+
+                    playerId:
+                        String(
+                            req.params.playerId
+                        )
+                })
+                    .lean();
+
+
+            if (!payout) {
+
+                return res.status(404)
+                    .json({
+                        success:
+                            false,
+
+                        message:
+                            "Payout introuvable."
+                    });
+            }
+
+
+            res.json({
+                success:
+                    true,
+
+                payout
+            });
+
+        } catch (error) {
+
+            console.error(
+                "/api/payout:",
+                error
+            );
+
+
+            res.status(500)
+                .json({
+                    success:
+                        false,
+
+                    message:
+                        "Erreur serveur."
+                });
+        }
+    }
+);
+
+
+/* =========================================================
+   API PAYOUTS ADMIN / DEBUG
+========================================================= */
+
+app.get(
+    "/api/payouts/:gameId",
+    async (req, res) => {
+
+        try {
+
+            const payouts =
+                await Payout.find({
+                    gameId:
+                        Number(
+                            req.params.gameId
+                        )
+                })
+                    .sort({
+                        createdAt:
+                            1
+                    })
+                    .lean();
+
+
+            res.json({
+                success:
+                    true,
+
+                gameId:
+                    Number(
+                        req.params.gameId
+                    ),
+
+                payouts
+            });
+
+        } catch {
+
+            res.status(500)
+                .json({
+                    success:
+                        false,
+
+                    message:
+                        "Erreur serveur."
+                });
+        }
+    }
+);
+
+
+/* =========================================================
    SOCKET.IO
 ========================================================= */
 
@@ -2026,10 +3309,6 @@ io.on(
             }
         );
 
-
-        /* -----------------------------------------
-           INIT GAME
-        ----------------------------------------- */
 
         socket.emit(
             "initGame",
@@ -2096,10 +3375,6 @@ io.on(
                         return;
                     }
 
-
-                    /* ---------------------------------
-                       ANTI CHANGEMENT WALLET
-                    --------------------------------- */
 
                     if (
                         normalizeAddress(
@@ -2280,11 +3555,6 @@ io.on(
                         return;
                     }
 
-
-                    /*
-                       Anti-spam serveur.
-                       Environ 25 taps/s maximum.
-                    */
 
                     const now =
                         Date.now();
@@ -2580,6 +3850,10 @@ async function startServer() {
                 "DURATION:",
                 GAME_DURATION,
                 "seconds"
+            );
+
+            console.log(
+                "💰 AUTOMATIC PAYOUT: ENABLED"
             );
 
             console.log(
