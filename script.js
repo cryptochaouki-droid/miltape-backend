@@ -537,4 +537,2016 @@ document.addEventListener("DOMContentLoaded", () => {
             String(
                 data.playerName ||
                 "Anonyme"
-            ).
+            ).trim();
+
+
+        const text =
+            String(
+                data.message || ""
+            ).trim();
+
+
+        if (!text) {
+            return;
+        }
+
+
+        /* =====================================================
+           PROTECTION ID
+        ===================================================== */
+
+        if (data.id) {
+
+            const idKey =
+                "id:" +
+                String(data.id);
+
+            if (
+                receivedChatMessages.has(
+                    idKey
+                )
+            ) {
+
+                console.log(
+                    "🛑 CHAT DOUBLON ID IGNORÉ"
+                );
+
+                return;
+            }
+
+            receivedChatMessages.add(
+                idKey
+            );
+        }
+
+
+        /* =====================================================
+           PROTECTION CONTENU
+           
+           Seulement pour les messages très récents.
+        ===================================================== */
+
+        const normalizedSender =
+            normalizeChatText(sender);
+
+        const normalizedText =
+            normalizeChatText(text);
+
+        const contentKey =
+            normalizedSender +
+            "|" +
+            normalizedText;
+
+
+        if (
+            receivedChatContent.has(
+                contentKey
+            )
+        ) {
+
+            console.log(
+                "🛑 CHAT DOUBLON CONTENU IGNORÉ"
+            );
+
+            return;
+        }
+
+
+        receivedChatContent.add(
+            contentKey
+        );
+
+
+        if (
+            receivedChatContent.size > 500
+        ) {
+
+            const first =
+                receivedChatContent
+                    .values()
+                    .next()
+                    .value;
+
+            receivedChatContent.delete(
+                first
+            );
+        }
+
+
+        /* =====================================================
+           CRÉATION DU MESSAGE
+        ===================================================== */
+
+        const messageElement =
+            document.createElement(
+                "div"
+            );
+
+        messageElement.className =
+            "chat-message";
+
+
+        const strongTag =
+            document.createElement(
+                "strong"
+            );
+
+        strongTag.textContent =
+            sender + ": ";
+
+
+        const textNode =
+            document.createTextNode(
+                text
+            );
+
+
+        messageElement.appendChild(
+            strongTag
+        );
+
+        messageElement.appendChild(
+            textNode
+        );
+
+
+        chatMessages.appendChild(
+            messageElement
+        );
+
+
+        /* =====================================================
+           MAXIMUM 100 MESSAGES
+        ===================================================== */
+
+        while (
+            chatMessages.children.length > 100
+        ) {
+
+            chatMessages.removeChild(
+                chatMessages.firstChild
+            );
+        }
+
+
+        chatMessages.scrollTop =
+            chatMessages.scrollHeight;
+
+
+        console.log(
+            "💬 CHAT AFFICHÉ :",
+            sender,
+            text
+        );
+    }
+
+
+    /* =========================================================
+       💬 ENVOI CHAT
+       
+       IMPORTANT :
+       Le bouton reste actif en permanence.
+    ========================================================= */
+
+    function sendChatMessage() {
+
+        console.log(
+            "🟣 Tentative envoi chat..."
+        );
+
+
+        if (!chatInput) {
+
+            console.error(
+                "❌ #chatInput introuvable."
+            );
+
+            return;
+        }
+
+
+        const text =
+            chatInput.value.trim();
+
+
+        if (!text) {
+
+            console.log(
+                "⚠️ Message vide."
+            );
+
+            return;
+        }
+
+
+        if (text.length > 200) {
+
+            if (tapMessage) {
+                tapMessage.textContent =
+                    "⚠️ Message trop long. Maximum 200 caractères.";
+            }
+
+            return;
+        }
+
+
+        /* =====================================================
+           SOCKET NON CONNECTÉ
+        ===================================================== */
+
+        if (
+            !socket ||
+            !socket.connected
+        ) {
+
+            console.warn(
+                "⚠️ Socket non connecté."
+            );
+
+            if (tapMessage) {
+                tapMessage.textContent =
+                    "🟠 Connexion au serveur...";
+            }
+
+            return;
+        }
+
+
+        /* =====================================================
+           ANTI DOUBLE CLIC
+           
+           Seulement le même message dans les 1200 ms.
+        ===================================================== */
+
+        const now =
+            Date.now();
+
+
+        if (
+            text === lastSentMessage &&
+            now - lastSentMessageTime < 1200
+        ) {
+
+            console.log(
+                "🛑 Double envoi bloqué."
+            );
+
+            return;
+        }
+
+
+        lastSentMessage =
+            text;
+
+        lastSentMessageTime =
+            now;
+
+
+        /* =====================================================
+           DONNÉES ENVOYÉES
+        ===================================================== */
+
+        const messageData = {
+
+            playerId:
+                playerId,
+
+            playerName:
+                playerName,
+
+            message:
+                text
+        };
+
+
+        console.log(
+            "📤 CHAT ENVOYÉ :",
+            messageData
+        );
+
+
+        /* =====================================================
+           ENVOI SOCKET
+        ===================================================== */
+
+        socket.emit(
+            "chatMessage",
+            messageData
+        );
+
+
+        /* =====================================================
+           VIDER LE CHAMP
+        ===================================================== */
+
+        chatInput.value = "";
+
+        chatInput.focus();
+
+
+        if (tapMessage) {
+            tapMessage.textContent =
+                "💬 Message envoyé !";
+        }
+    }
+
+
+    /* =========================================================
+       💬 BOUTON ENVOYER
+    ========================================================= */
+
+    if (chatSend) {
+
+        chatSend.addEventListener(
+            "click",
+            sendChatMessage
+        );
+
+        console.log(
+            "✅ Bouton Chat connecté."
+        );
+
+    } else {
+
+        console.error(
+            "❌ ERREUR : #chatSend introuvable dans le HTML."
+        );
+    }
+
+
+    /* =========================================================
+       💬 ENTRÉE CLAVIER
+       
+       CORRIGÉ :
+       Il manquait une parenthèse dans ton ancien code.
+    ========================================================= */
+
+    if (chatInput) {
+
+        chatInput.addEventListener(
+            "keydown",
+            (event) => {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    sendChatMessage();
+                }
+            }
+        );
+
+        console.log(
+            "✅ Entrée clavier Chat activée."
+        );
+
+    } else {
+
+        console.error(
+            "❌ ERREUR : #chatInput introuvable dans le HTML."
+        );
+    }
+
+
+    /* =========================================================
+       MENU
+    ========================================================= */
+
+    function openSideMenu() {
+
+        if (!sideMenu) {
+            return;
+        }
+
+        sideMenu.classList.add("show");
+
+        if (menuOverlay) {
+            menuOverlay.classList.add("show");
+        }
+
+        document.body.style.overflow =
+            "hidden";
+    }
+
+
+    function closeSideMenu() {
+
+        if (sideMenu) {
+            sideMenu.classList.remove("show");
+        }
+
+        if (menuOverlay) {
+            menuOverlay.classList.remove("show");
+        }
+
+        document.body.style.overflow = "";
+    }
+
+
+    if (menuButton) {
+
+        menuButton.addEventListener(
+            "click",
+            openSideMenu
+        );
+    }
+
+
+    if (closeMenu) {
+
+        closeMenu.addEventListener(
+            "click",
+            closeSideMenu
+        );
+    }
+
+
+    if (menuOverlay) {
+
+        menuOverlay.addEventListener(
+            "click",
+            closeSideMenu
+        );
+    }
+
+
+    /* =========================================================
+       MODAL
+    ========================================================= */
+
+    function openModal(
+        title,
+        content
+    ) {
+
+        if (!dynamicModal) {
+            return;
+        }
+
+        if (dynamicModalTitle) {
+            dynamicModalTitle.textContent =
+                title;
+        }
+
+        if (dynamicModalBody) {
+            dynamicModalBody.innerHTML =
+                content;
+        }
+
+        dynamicModal.classList.add(
+            "show"
+        );
+    }
+
+
+    function closeModal() {
+
+        if (dynamicModal) {
+            dynamicModal.classList.remove(
+                "show"
+            );
+        }
+    }
+
+
+    if (closeDynamicModal) {
+
+        closeDynamicModal.addEventListener(
+            "click",
+            closeModal
+        );
+    }
+
+
+    if (dynamicModal) {
+
+        dynamicModal.addEventListener(
+            "click",
+            (event) => {
+
+                if (
+                    event.target ===
+                    dynamicModal
+                ) {
+
+                    closeModal();
+                }
+            }
+        );
+    }
+
+
+    /* =========================================================
+       BOUTONS MENU
+    ========================================================= */
+
+    const menuGamesBtn =
+        document.getElementById(
+            "menuGamesBtn"
+        );
+
+    const menuRankingsBtn =
+        document.getElementById(
+            "menuRankingsBtn"
+        );
+
+    const menuGainsBtn =
+        document.getElementById(
+            "menuGainsBtn"
+        );
+
+    const menuWithdrawalsBtn =
+        document.getElementById(
+            "menuWithdrawalsBtn"
+        );
+
+    const menuReferralBtn =
+        document.getElementById(
+            "menuReferralBtn"
+        );
+
+    const menuChatBtn =
+        document.getElementById(
+            "menuChatBtn"
+        );
+
+    const menuRulesBtn =
+        document.getElementById(
+            "menuRulesBtn"
+        );
+
+
+    if (menuGamesBtn) {
+
+        menuGamesBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                openModal(
+                    "🎮 Mes parties",
+                    `
+                    <p>
+                        Tes parties seront
+                        affichées ici.
+                    </p>
+                    `
+                );
+            }
+        );
+    }
+
+
+    if (menuRankingsBtn) {
+
+        menuRankingsBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                document
+                    .querySelector(
+                        ".leaderboard"
+                    )
+                    ?.scrollIntoView({
+                        behavior: "smooth"
+                    });
+            }
+        );
+    }
+
+
+    if (menuGainsBtn) {
+
+        menuGainsBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                openModal(
+                    "💰 Mes gains",
+                    `
+                    <p>
+                        Tes gains apparaîtront
+                        ici lorsque le système
+                        de paiement sera actif.
+                    </p>
+                    `
+                );
+            }
+        );
+    }
+
+
+    if (menuWithdrawalsBtn) {
+
+        menuWithdrawalsBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                openModal(
+                    "💸 Mes retraits",
+                    `
+                    <p>
+                        La gestion des retraits
+                        sera disponible ici.
+                    </p>
+                    `
+                );
+            }
+        );
+    }
+
+
+    if (menuReferralBtn) {
+
+        menuReferralBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                openModal(
+                    "👥 Parrainage",
+                    `
+                    <p>
+                        Ton code de parrainage :
+                    </p>
+
+                    <p>
+                        <strong>
+                            ${escapeHTML(playerId)}
+                        </strong>
+                    </p>
+                    `
+                );
+            }
+        );
+    }
+
+
+    if (menuChatBtn) {
+
+        menuChatBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                document
+                    .querySelector(
+                        ".chat-section"
+                    )
+                    ?.scrollIntoView({
+                        behavior: "smooth"
+                    });
+
+                setTimeout(() => {
+
+                    if (chatInput) {
+                        chatInput.focus();
+                    }
+
+                }, 500);
+            }
+        );
+    }
+
+
+    if (menuRulesBtn) {
+
+        menuRulesBtn.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                openModal(
+                    "📜 Règles Miltape",
+                    `
+                    <p>
+                        ⏱️ Une partie dure
+                        10 minutes.
+                    </p>
+
+                    <p>
+                        🏆 Les 5 meilleurs
+                        joueurs sont classés.
+                    </p>
+
+                    <p>
+                        🪙 Les mises utilisent
+                        USDT TRC20.
+                    </p>
+                    `
+                );
+            }
+        );
+    }
+
+
+    /* =========================================================
+       WALLET
+    ========================================================= */
+
+    async function handleWalletAction() {
+
+        try {
+
+            if (
+                window.tronWeb &&
+                window.tronWeb.ready
+            ) {
+
+                const address =
+                    window.tronWeb
+                        .defaultAddress
+                        .base58;
+
+                alert(
+                    "✅ Portefeuille connecté :\n\n" +
+                    address
+                );
+
+                return;
+            }
+
+
+            if (
+                navigator.clipboard &&
+                window.isSecureContext
+            ) {
+
+                await navigator.clipboard
+                    .writeText(
+                        USDT_TRON_ADDRESS
+                    );
+
+                alert(
+                    "📋 Adresse USDT TRC20 copiée !\n\n" +
+                    USDT_TRON_ADDRESS
+                );
+
+            } else {
+
+                alert(
+                    "Adresse USDT TRC20 :\n\n" +
+                    USDT_TRON_ADDRESS
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "❌ Erreur wallet :",
+                error
+            );
+
+            alert(
+                "Adresse USDT TRC20 :\n\n" +
+                USDT_TRON_ADDRESS
+            );
+        }
+    }
+
+
+    const walletButton =
+        document.getElementById(
+            "walletButton"
+        );
+
+
+    if (walletButton) {
+
+        walletButton.addEventListener(
+            "click",
+            handleWalletAction
+        );
+    }
+
+
+    const walletConnectBtn =
+        document.querySelector(
+            ".btn-wallet, #chooseWalletBtn"
+        );
+
+
+    if (
+        walletConnectBtn &&
+        walletConnectBtn !== walletButton
+    ) {
+
+        walletConnectBtn.addEventListener(
+            "click",
+            handleWalletAction
+        );
+    }
+
+
+    const addressCopyBox =
+        document.querySelector(
+            ".address-box, #tronAddressDisplay"
+        );
+
+
+    if (addressCopyBox) {
+
+        addressCopyBox.style.cursor =
+            "pointer";
+
+        addressCopyBox.addEventListener(
+            "click",
+            handleWalletAction
+        );
+    }
+
+
+    /* =========================================================
+       SOCKET.IO — CHARGEMENT
+    ========================================================= */
+
+    function loadSocketIO() {
+
+        return new Promise(
+            (resolve, reject) => {
+
+                if (
+                    typeof window.io ===
+                    "function"
+                ) {
+
+                    resolve(window.io);
+
+                    return;
+                }
+
+
+                const existing =
+                    document.querySelector(
+                        "script[data-miltape-socket]"
+                    );
+
+
+                if (existing) {
+
+                    const check =
+                        setInterval(() => {
+
+                            if (
+                                typeof window.io ===
+                                "function"
+                            ) {
+
+                                clearInterval(check);
+
+                                resolve(
+                                    window.io
+                                );
+                            }
+
+                        }, 100);
+
+
+                    setTimeout(() => {
+
+                        clearInterval(check);
+
+                        if (
+                            typeof window.io !==
+                            "function"
+                        ) {
+
+                            reject(
+                                new Error(
+                                    "Socket.IO indisponible"
+                                )
+                            );
+                        }
+
+                    }, 15000);
+
+                    return;
+                }
+
+
+                const script =
+                    document.createElement(
+                        "script"
+                    );
+
+
+                script.src =
+                    BACKEND_URL +
+                    "/socket.io/socket.io.js";
+
+                script.async = true;
+
+                script.dataset.miltapeSocket =
+                    "true";
+
+
+                script.onload = () => {
+
+                    if (
+                        typeof window.io ===
+                        "function"
+                    ) {
+
+                        resolve(
+                            window.io
+                        );
+
+                    } else {
+
+                        reject(
+                            new Error(
+                                "Socket.IO chargé mais io absent"
+                            )
+                        );
+                    }
+                };
+
+
+                script.onerror = () => {
+
+                    reject(
+                        new Error(
+                            "Impossible de charger Socket.IO"
+                        )
+                    );
+                };
+
+
+                document.head.appendChild(
+                    script
+                );
+            }
+        );
+    }
+
+
+    /* =========================================================
+       🔌 CONNEXION SOCKET
+    ========================================================= */
+
+    async function connectSocket() {
+
+        if (
+            socket &&
+            (
+                socket.connected ||
+                socket.connecting
+            )
+        ) {
+
+            console.log(
+                "🛑 Socket déjà actif."
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const io =
+                await loadSocketIO();
+
+
+            if (socket) {
+
+                console.log(
+                    "🛑 Socket déjà créé."
+                );
+
+                return;
+            }
+
+
+            console.log(
+                "🔌 Création Socket.IO..."
+            );
+
+
+            socket =
+                io(
+                    BACKEND_URL,
+                    {
+                        transports: [
+                            "websocket",
+                            "polling"
+                        ],
+
+                        reconnection: true,
+
+                        reconnectionAttempts:
+                            Infinity,
+
+                        reconnectionDelay:
+                            1000,
+
+                        reconnectionDelayMax:
+                            5000,
+
+                        timeout: 20000
+                    }
+                );
+
+
+            setupSocketEvents();
+
+        } catch (error) {
+
+            console.error(
+                "❌ Socket.IO :",
+                error
+            );
+
+            socketReady = false;
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🟠 Connexion au serveur...";
+            }
+
+            startLocalTimer();
+        }
+    }
+
+
+    /* =========================================================
+       SOCKET EVENTS
+    ========================================================= */
+
+    function setupSocketEvents() {
+
+        if (!socket) {
+            return;
+        }
+
+
+        if (socketEventsConfigured) {
+            return;
+        }
+
+
+        socketEventsConfigured = true;
+
+
+        /* =====================================================
+           CONNEXION
+        ===================================================== */
+
+        socket.on(
+            "connect",
+            () => {
+
+                socketReady = true;
+
+                console.log(
+                    "✅ CONNECTÉ AU SERVEUR :",
+                    socket.id
+                );
+
+
+                if (tapMessage) {
+
+                    tapMessage.textContent =
+                        "🔥 À TOI DE TAPPER !";
+                }
+
+
+                socket.emit(
+                    "join",
+                    {
+                        playerId,
+                        playerName
+                    }
+                );
+
+
+                socket.emit(
+                    "getGame"
+                );
+
+
+                socket.emit(
+                    "getLeaderboard"
+                );
+
+
+                socket.emit(
+                    "getChatHistory"
+                );
+
+
+                startLocalTimer();
+            }
+        );
+
+
+        /* =====================================================
+           DÉCONNEXION
+        ===================================================== */
+
+        socket.on(
+            "disconnect",
+            (reason) => {
+
+                socketReady = false;
+
+                console.warn(
+                    "⚠️ Socket déconnecté :",
+                    reason
+                );
+
+                if (tapMessage) {
+
+                    tapMessage.textContent =
+                        "🟠 Reconnexion au serveur...";
+                }
+
+                startLocalTimer();
+            }
+        );
+
+
+        /* =====================================================
+           ERREUR
+        ===================================================== */
+
+        socket.on(
+            "connect_error",
+            (error) => {
+
+                socketReady = false;
+
+                console.error(
+                    "❌ Socket erreur :",
+                    error
+                );
+
+                if (tapMessage) {
+
+                    tapMessage.textContent =
+                        "🟠 Connexion au serveur...";
+                }
+
+                startLocalTimer();
+            }
+        );
+
+
+        /* =====================================================
+           NOUVELLE PARTIE
+        ===================================================== */
+
+        function handleNewGame(data) {
+
+            console.log(
+                "🎮 NOUVELLE PARTIE :",
+                data
+            );
+
+
+            localTaps = 0;
+
+            updateScoreDisplays(0);
+
+
+            let duration =
+                GAME_DURATION;
+
+
+            if (
+                data &&
+                typeof data === "object"
+            ) {
+
+                duration =
+                    Number(
+                        data.timeLeft ??
+                        data.duration ??
+                        data.seconds ??
+                        GAME_DURATION
+                    );
+
+
+                if (
+                    !Number.isFinite(duration) ||
+                    duration <= 0
+                ) {
+
+                    duration =
+                        GAME_DURATION;
+                }
+            }
+
+
+            resetLocalTimer(
+                duration
+            );
+
+
+            if (tapButton) {
+                tapButton.disabled = false;
+            }
+
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🔥 NOUVELLE PARTIE !";
+            }
+
+
+            startLocalTimer();
+        }
+
+
+        socket.on(
+            "newGame",
+            handleNewGame
+        );
+
+        socket.on(
+            "game:new",
+            handleNewGame
+        );
+
+
+        /* =====================================================
+           TIMER
+        ===================================================== */
+
+        socket.on(
+            "timer",
+            handleServerTimer
+        );
+
+        socket.on(
+            "gameTimer",
+            handleServerTimer
+        );
+
+        socket.on(
+            "timer:update",
+            handleServerTimer
+        );
+
+        socket.on(
+            "game:timer",
+            handleServerTimer
+        );
+
+        socket.on(
+            "countdown",
+            handleServerTimer
+        );
+
+
+        /* =====================================================
+           ONLINE
+        ===================================================== */
+
+        function updateOnlineCount(data) {
+
+            let count = data;
+
+            if (
+                typeof data === "object" &&
+                data !== null
+            ) {
+
+                count =
+                    data.count ??
+                    data.online ??
+                    data.onlineCount;
+            }
+
+
+            count =
+                Number(count);
+
+
+            if (
+                onlineCount &&
+                Number.isFinite(count)
+            ) {
+
+                onlineCount.innerHTML = `
+                    <span
+                        style="
+                            display:inline-block;
+                            width:8px;
+                            height:8px;
+                            background:#2ecc71;
+                            border-radius:50%;
+                            margin-right:5px;
+                            box-shadow:0 0 8px #2ecc71;
+                        "
+                    ></span>
+
+                    <span>
+                        ${count} EN LIGNE
+                    </span>
+                `;
+            }
+        }
+
+
+        socket.on(
+            "onlineCount",
+            updateOnlineCount
+        );
+
+        socket.on(
+            "online:count",
+            updateOnlineCount
+        );
+
+        socket.on(
+            "online",
+            updateOnlineCount
+        );
+
+
+        /* =====================================================
+           CLASSEMENT
+        ===================================================== */
+
+        function updateLeaderboard(players) {
+
+            if (!leaderboardList) {
+                return;
+            }
+
+
+            if (
+                players &&
+                typeof players === "object" &&
+                !Array.isArray(players)
+            ) {
+
+                players =
+                    players.players ??
+                    players.data ??
+                    players.leaderboard ??
+                    [];
+            }
+
+
+            if (
+                !Array.isArray(players) ||
+                players.length === 0
+            ) {
+
+                leaderboardList.innerHTML = `
+                    <div class="empty-ranking">
+                        Aucun joueur pour le moment
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            const sorted =
+                [...players].sort(
+                    (a, b) => {
+
+                        const scoreA =
+                            Number(
+                                a.score ??
+                                a.taps ??
+                                a.tapCount ??
+                                0
+                            );
+
+                        const scoreB =
+                            Number(
+                                b.score ??
+                                b.taps ??
+                                b.tapCount ??
+                                0
+                            );
+
+                        return scoreB - scoreA;
+                    }
+                );
+
+
+            leaderboardList.innerHTML =
+                sorted
+                    .slice(0, 5)
+                    .map(
+                        (p, index) => {
+
+                            const id =
+                                p.playerId ??
+                                p._id ??
+                                p.id;
+
+                            const name =
+                                p.playerName ??
+                                p.name ??
+                                "Anonyme";
+
+                            const score =
+                                Number(
+                                    p.score ??
+                                    p.taps ??
+                                    p.tapCount ??
+                                    0
+                                );
+
+                            const isMe =
+                                String(id) ===
+                                String(playerId);
+
+
+                            return `
+                                <div class="leaderboard-item">
+
+                                    <div class="rank">
+                                        #${index + 1}
+                                    </div>
+
+                                    <div class="player-name">
+                                        ${escapeHTML(name)}
+
+                                        ${
+                                            isMe
+                                                ? `<strong>(toi)</strong>`
+                                                : ""
+                                        }
+                                    </div>
+
+                                    <div class="player-score">
+                                        ${score} ⚡
+                                    </div>
+
+                                </div>
+                            `;
+                        }
+                    )
+                    .join("");
+        }
+
+
+        socket.on(
+            "leaderboard",
+            updateLeaderboard
+        );
+
+        socket.on(
+            "leaderboard:update",
+            updateLeaderboard
+        );
+
+
+        /* =====================================================
+           💬 CHAT LIVE
+           
+           IMPORTANT :
+           Le backend doit émettre "chatMessage"
+           après réception.
+        ===================================================== */
+
+        socket.on(
+            "chatMessage",
+            (msg) => {
+
+                console.log(
+                    "📥 CHAT REÇU :",
+                    msg
+                );
+
+                receiveChatMessage(msg);
+            }
+        );
+
+
+        /* =====================================================
+           COMPATIBILITÉ
+        ===================================================== */
+
+        socket.on(
+            "chat:message",
+            (msg) => {
+
+                console.log(
+                    "📥 CHAT:MESSAGE REÇU :",
+                    msg
+                );
+
+                receiveChatMessage(msg);
+            }
+        );
+
+
+        /* =====================================================
+           HISTORIQUE
+        ===================================================== */
+
+        socket.on(
+            "chatHistory",
+            (messages) => {
+
+                if (
+                    !Array.isArray(messages)
+                ) {
+                    return;
+                }
+
+
+                console.log(
+                    "📚 Historique chat reçu :",
+                    messages.length
+                );
+
+
+                messages.forEach(
+                    receiveChatMessage
+                );
+            }
+        );
+
+
+        socket.on(
+            "chat:history",
+            (messages) => {
+
+                if (
+                    !Array.isArray(messages)
+                ) {
+                    return;
+                }
+
+
+                messages.forEach(
+                    receiveChatMessage
+                );
+            }
+        );
+
+
+        /* =====================================================
+           TAP RESULT
+        ===================================================== */
+
+        function handleTapResult(data) {
+
+            if (!data) {
+                return;
+            }
+
+
+            const score =
+                data.score ??
+                data.taps ??
+                data.totalTaps;
+
+
+            if (
+                score !== undefined
+            ) {
+
+                updateScoreDisplays(
+                    score
+                );
+            }
+        }
+
+
+        socket.on(
+            "tapResult",
+            handleTapResult
+        );
+
+        socket.on(
+            "tap:result",
+            handleTapResult
+        );
+
+
+        /* =====================================================
+           SCORE UPDATE
+        ===================================================== */
+
+        socket.on(
+            "score:update",
+            (data) => {
+
+                if (!data) {
+                    return;
+                }
+
+
+                const id =
+                    data.playerId ??
+                    data.id;
+
+
+                if (
+                    id &&
+                    String(id) !==
+                    String(playerId)
+                ) {
+                    return;
+                }
+
+
+                const score =
+                    data.score ??
+                    data.taps ??
+                    data.tapCount;
+
+
+                if (
+                    score !== undefined
+                ) {
+
+                    updateScoreDisplays(
+                        score
+                    );
+                }
+            }
+        );
+
+
+        /* =====================================================
+           TOTAL STAKES
+        ===================================================== */
+
+        function updateTotalStakes(data) {
+
+            let total = data;
+
+            if (
+                typeof data === "object" &&
+                data !== null
+            ) {
+
+                total =
+                    data.total ??
+                    data.amount ??
+                    data.totalStakes;
+            }
+
+
+            if (
+                total !== undefined &&
+                globalTotalStakes
+            ) {
+
+                globalTotalStakes.textContent =
+                    "$" + total;
+            }
+        }
+
+
+        socket.on(
+            "totalStakes",
+            updateTotalStakes
+        );
+
+        socket.on(
+            "stakes:update",
+            updateTotalStakes
+        );
+    }
+
+
+    /* =========================================================
+       ⚡ BOUTON TAP
+    ========================================================= */
+
+    if (tapButton) {
+
+        tapButton.addEventListener(
+            "click",
+            () => {
+
+                if (
+                    currentTimer <= 0
+                ) {
+                    return;
+                }
+
+
+                if (
+                    !socket ||
+                    !socket.connected
+                ) {
+
+                    console.warn(
+                        "⚠️ Tap : serveur non connecté."
+                    );
+
+                    return;
+                }
+
+
+                if (tapLocked) {
+                    return;
+                }
+
+
+                tapLocked = true;
+
+
+                tapButton.classList.add(
+                    "tap-active"
+                );
+
+
+                socket.emit(
+                    "tap",
+                    {
+                        playerId,
+                        playerName,
+                        taps: 1
+                    }
+                );
+
+
+                setTimeout(
+                    () => {
+
+                        tapLocked = false;
+
+                        tapButton.classList.remove(
+                            "tap-active"
+                        );
+
+                    },
+                    80
+                );
+            }
+        );
+    }
+
+
+    /* =========================================================
+       CONDITIONS
+    ========================================================= */
+
+    window.toggleConditions =
+        function () {
+
+            const content =
+                document.getElementById(
+                    "conditions-content"
+                );
+
+            const arrow =
+                document.getElementById(
+                    "arrow-icon"
+                );
+
+
+            if (
+                !content ||
+                !arrow
+            ) {
+                return;
+            }
+
+
+            content.classList.toggle(
+                "open"
+            );
+
+
+            if (
+                content.classList.contains(
+                    "open"
+                )
+            ) {
+
+                arrow.style.transform =
+                    "rotate(180deg)";
+
+            } else {
+
+                arrow.style.transform =
+                    "rotate(0deg)";
+            }
+        };
+
+
+    /* =========================================================
+       PWA
+    ========================================================= */
+
+    const installButton =
+        document.getElementById(
+            "installPwaButton"
+        );
+
+
+    window.addEventListener(
+        "beforeinstallprompt",
+        (event) => {
+
+            event.preventDefault();
+
+            deferredPrompt = event;
+
+
+            if (installButton) {
+
+                installButton.classList.add(
+                    "show"
+                );
+            }
+        }
+    );
+
+
+    if (installButton) {
+
+        installButton.addEventListener(
+            "click",
+            async () => {
+
+                if (!deferredPrompt) {
+                    return;
+                }
+
+
+                try {
+
+                    await deferredPrompt.prompt();
+
+                    await deferredPrompt.userChoice;
+
+                } catch (error) {
+
+                    console.warn(
+                        "Installation PWA :",
+                        error
+                    );
+                }
+
+
+                deferredPrompt = null;
+
+                installButton.classList.remove(
+                    "show"
+                );
+            }
+        );
+    }
+
+
+    /* =========================================================
+       💰 MISE
+    ========================================================= */
+
+    function setBet(value) {
+
+        const amount =
+            Number(value) || 0;
+
+
+        if (displayBet) {
+
+            displayBet.textContent =
+                "$" + amount;
+        }
+
+
+        localStorage.setItem(
+            "miltape_bet",
+            String(amount)
+        );
+    }
+
+
+    const savedBet =
+        localStorage.getItem(
+            "miltape_bet"
+        );
+
+
+    if (savedBet) {
+        setBet(savedBet);
+    }
+
+
+    /* =========================================================
+       ÉTAT INITIAL
+    ========================================================= */
+
+    updateScoreDisplays(0);
+
+    updateTimerDisplay(
+        GAME_DURATION
+    );
+
+
+    if (tapButton) {
+        tapButton.disabled = true;
+    }
+
+
+    /* =========================================================
+       CONNEXION BACKEND
+    ========================================================= */
+
+    connectSocket();
+
+
+    /* =========================================================
+       FALLBACK CHRONO
+    ========================================================= */
+
+    setTimeout(
+        () => {
+
+            if (
+                currentTimer > 0 &&
+                !timerRunning
+            ) {
+
+                console.log(
+                    "⏱️ Fallback chrono local activé."
+                );
+
+                startLocalTimer();
+            }
+
+        },
+        1500
+    );
+
+
+    /* =========================================================
+       AUTORISATION TAP APRÈS CONNEXION
+    ========================================================= */
+
+    const connectionCheck =
+        setInterval(
+            () => {
+
+                if (
+                    socket &&
+                    socket.connected
+                ) {
+
+                    socketReady = true;
+
+
+                    if (
+                        currentTimer > 0 &&
+                        tapButton
+                    ) {
+
+                        tapButton.disabled =
+                            false;
+                    }
+
+
+                    clearInterval(
+                        connectionCheck
+                    );
+                }
+
+            },
+            500
+        );
+
+
+    /* =========================================================
+       LOG FINAL
+    ========================================================= */
+
+    console.log(
+        "✅ MILTAPE CHARGÉ UNE SEULE FOIS."
+    );
+
+    console.log(
+        "🔌 Socket unique."
+    );
+
+    console.log(
+        "💬 Chat actif — bouton permanent."
+    );
+
+    console.log(
+        "⏱️ Chrono :",
+        formatTime(currentTimer)
+    );
+
+});
