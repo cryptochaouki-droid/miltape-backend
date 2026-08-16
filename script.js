@@ -4,7 +4,22 @@ document.addEventListener("DOMContentLoaded", () => {
     /* =========================================================
        MILTAPE WORLD CHALLENGE
        SCRIPT FRONTEND COMPLET
-       CORRECTION : CHRONO + CHAT + SOCKET.IO
+       VERSION CORRIGÉE
+       
+       CORRECTIONS :
+       - Chat affiché une seule fois
+       - Protection anti-doublon chat
+       - Historique chat sans doublons
+       - Chrono serveur prioritaire
+       - Chrono local de secours
+       - Socket.IO stable
+       - Classement Top 5
+       - Tap
+       - Online
+       - Mise
+       - Menu
+       - Wallet
+       - PWA
     ========================================================= */
 
     console.log("🚀 Miltape : initialisation...");
@@ -18,17 +33,23 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1";
 
+
     const BACKEND_URL = isLocalhost
         ? "http://localhost:3000"
         : "https://miltape-backend-production.up.railway.app";
 
+
     const USDT_TRON_ADDRESS =
         "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
+
 
     const GAME_DURATION = 600;
 
 
-    console.log("🌐 Backend :", BACKEND_URL);
+    console.log(
+        "🌐 Backend :",
+        BACKEND_URL
+    );
 
 
     /* =========================================================
@@ -51,8 +72,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let lastServerTimerAt = 0;
 
+    let deferredPrompt = null;
+
+
+    /* =========================================================
+       IDENTITÉ JOUEUR
+    ========================================================= */
+
     let playerId =
-        localStorage.getItem("miltape_player_id");
+        localStorage.getItem(
+            "miltape_player_id"
+        );
+
 
     if (!playerId) {
 
@@ -70,7 +101,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     let playerName =
-        localStorage.getItem("miltape_player_name");
+        localStorage.getItem(
+            "miltape_player_name"
+        );
+
 
     if (!playerName) {
 
@@ -87,6 +121,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+    console.log(
+        "👤 Joueur :",
+        playerId,
+        playerName
+    );
+
+
     /* =========================================================
        ELEMENTS HTML
     ========================================================= */
@@ -94,32 +135,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const timerDisplay =
         document.getElementById("timer");
 
+
     const tapButton =
         document.getElementById("tapButton");
+
 
     const tapCountDisplay =
         document.getElementById("tapCount");
 
+
     const tapButtonCountDisplay =
         document.getElementById("tapButtonCount");
+
 
     const tapMessage =
         document.getElementById("tapMessage");
 
+
     const onlineCount =
         document.getElementById("onlineCount");
+
 
     const leaderboardList =
         document.getElementById("leaderboardList");
 
+
     const chatMessages =
         document.getElementById("chatMessages");
+
 
     const displayBet =
         document.getElementById("displayBet");
 
+
     const globalTotalStakes =
-        document.getElementById("globalTotalStakes");
+        document.getElementById(
+            "globalTotalStakes"
+        );
 
 
     /* =========================================================
@@ -127,16 +179,27 @@ document.addEventListener("DOMContentLoaded", () => {
     ========================================================= */
 
     const menuButton =
-        document.getElementById("menuButton");
+        document.getElementById(
+            "menuButton"
+        );
+
 
     const sideMenu =
-        document.getElementById("sideMenu");
+        document.getElementById(
+            "sideMenu"
+        );
+
 
     const closeMenu =
-        document.getElementById("closeMenu");
+        document.getElementById(
+            "closeMenu"
+        );
+
 
     const menuOverlay =
-        document.getElementById("menuOverlay");
+        document.getElementById(
+            "menuOverlay"
+        );
 
 
     /* =========================================================
@@ -144,16 +207,43 @@ document.addEventListener("DOMContentLoaded", () => {
     ========================================================= */
 
     const dynamicModal =
-        document.getElementById("dynamicModal");
+        document.getElementById(
+            "dynamicModal"
+        );
+
 
     const closeDynamicModal =
-        document.getElementById("closeDynamicModal");
+        document.getElementById(
+            "closeDynamicModal"
+        );
+
 
     const dynamicModalTitle =
-        document.getElementById("dynamicModalTitle");
+        document.getElementById(
+            "dynamicModalTitle"
+        );
+
 
     const dynamicModalBody =
-        document.getElementById("dynamicModalBody");
+        document.getElementById(
+            "dynamicModalBody"
+        );
+
+
+    /* =========================================================
+       CHAT INPUT
+    ========================================================= */
+
+    const chatInput =
+        document.getElementById(
+            "chatInput"
+        );
+
+
+    const chatSend =
+        document.getElementById(
+            "chatSend"
+        );
 
 
     /* =========================================================
@@ -163,11 +253,26 @@ document.addEventListener("DOMContentLoaded", () => {
     function escapeHTML(value) {
 
         return String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
     }
 
 
@@ -181,21 +286,34 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
             );
 
+
         const minutes =
-            Math.floor(seconds / 60);
+            Math.floor(
+                seconds / 60
+            );
+
 
         const secs =
             seconds % 60;
 
+
         return (
-            String(minutes).padStart(2, "0") +
+            String(minutes).padStart(
+                2,
+                "0"
+            ) +
             ":" +
-            String(secs).padStart(2, "0")
+            String(secs).padStart(
+                2,
+                "0"
+            )
         );
     }
 
 
-    function updateTimerDisplay(seconds) {
+    function updateTimerDisplay(
+        seconds
+    ) {
 
         const value =
             Math.max(
@@ -205,7 +323,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
             );
 
-        currentTimer = value;
+
+        currentTimer =
+            value;
+
 
         if (timerDisplay) {
 
@@ -215,7 +336,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    function updateScoreDisplays(value) {
+    function updateScoreDisplays(
+        value
+    ) {
 
         const score =
             Math.max(
@@ -223,7 +346,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 Number(value) || 0
             );
 
-        localTaps = score;
+
+        localTaps =
+            score;
 
 
         if (tapCountDisplay) {
@@ -245,6 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 "headerScore"
             );
 
+
         if (headerScore) {
 
             headerScore.textContent =
@@ -256,6 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById(
                 "statTaps"
             );
+
 
         if (statTaps) {
 
@@ -269,6 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 "statTotal"
             );
 
+
         if (statTotal) {
 
             statTotal.textContent =
@@ -278,14 +406,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       CHRONO LOCAL DE SECOURS
-       
-       IMPORTANT :
-       Le chrono utilise Date.now() au lieu de dépendre
-       uniquement de setInterval().
-       
-       Ainsi, si le téléphone ralentit ou si le navigateur
-       espace les intervalles, le calcul reste correct.
+       CHRONO LOCAL
     ========================================================= */
 
     function startLocalTimer() {
@@ -294,15 +415,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+
         if (currentTimer <= 0) {
             return;
         }
 
 
-        timerRunning = true;
+        timerRunning =
+            true;
 
 
-        clearInterval(timerInterval);
+        clearInterval(
+            timerInterval
+        );
 
 
         let lastTick =
@@ -310,59 +435,68 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         timerInterval =
-            setInterval(() => {
+            setInterval(
+                () => {
 
-                const now =
-                    Date.now();
-
-
-                const elapsed =
-                    Math.floor(
-                        (now - lastTick) / 1000
-                    );
+                    const now =
+                        Date.now();
 
 
-                if (elapsed <= 0) {
-                    return;
-                }
+                    const elapsed =
+                        Math.floor(
+                            (
+                                now -
+                                lastTick
+                            ) / 1000
+                        );
 
 
-                lastTick =
-                    now;
-
-
-                currentTimer =
-                    Math.max(
-                        0,
-                        currentTimer - elapsed
-                    );
-
-
-                updateTimerDisplay(
-                    currentTimer
-                );
-
-
-                if (currentTimer <= 0) {
-
-                    stopLocalTimer();
-
-
-                    if (tapButton) {
-
-                        tapButton.disabled =
-                            true;
+                    if (elapsed <= 0) {
+                        return;
                     }
 
 
-                    if (tapMessage) {
+                    lastTick =
+                        now;
 
-                        tapMessage.textContent =
-                            "⏰ PARTIE TERMINÉE";
+
+                    currentTimer =
+                        Math.max(
+                            0,
+                            currentTimer -
+                            elapsed
+                        );
+
+
+                    updateTimerDisplay(
+                        currentTimer
+                    );
+
+
+                    if (
+                        currentTimer <= 0
+                    ) {
+
+                        stopLocalTimer();
+
+
+                        if (tapButton) {
+
+                            tapButton.disabled =
+                                true;
+                        }
+
+
+                        if (tapMessage) {
+
+                            tapMessage.textContent =
+                                "⏰ PARTIE TERMINÉE";
+                        }
                     }
-                }
 
-            }, 250);
+                },
+                250
+            );
     }
 
 
@@ -375,15 +509,22 @@ document.addEventListener("DOMContentLoaded", () => {
             );
         }
 
-        timerInterval = null;
 
-        timerRunning = false;
+        timerInterval =
+            null;
+
+
+        timerRunning =
+            false;
     }
 
 
-    function resetLocalTimer(seconds = GAME_DURATION) {
+    function resetLocalTimer(
+        seconds = GAME_DURATION
+    ) {
 
         stopLocalTimer();
+
 
         updateTimerDisplay(
             seconds
@@ -392,15 +533,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       CHRONO SERVEUR
-       
-       Le serveur reste prioritaire.
-       Le chrono local reprend entre deux messages serveur.
+       TIMER SERVEUR
     ========================================================= */
 
-    function handleServerTimer(data) {
+    function handleServerTimer(
+        data
+    ) {
 
-        let value = data;
+        let value =
+            data;
 
 
         if (
@@ -427,7 +568,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ) {
 
             console.warn(
-                "⚠️ Timer reçu mais valeur invalide :",
+                "⚠️ Timer invalide :",
                 data
             );
 
@@ -445,6 +586,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lastServerTimer =
             cleanSeconds;
 
+
         lastServerTimerAt =
             Date.now();
 
@@ -454,13 +596,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        console.log(
-            "⏱️ Timer serveur :",
-            cleanSeconds
-        );
-
-
-        if (cleanSeconds <= 0) {
+        if (
+            cleanSeconds <= 0
+        ) {
 
             stopLocalTimer();
 
@@ -483,13 +621,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /*
-         * Le serveur vient de nous donner
-         * la vraie valeur.
-         *
-         * Le chrono local continue ensuite.
-         */
-
         startLocalTimer();
     }
 
@@ -497,284 +628,92 @@ document.addEventListener("DOMContentLoaded", () => {
     /* =========================================================
        CHAT
        
-       Ton HTML actuel contient seulement :
-       #chatMessages
+       IMPORTANT :
+       ON NE S'ABONNE QU'À "chatMessage".
        
-       Il n'a pas de champ de saisie.
+       L'ancien code écoutait :
+       - chatMessage
+       - chat:message
+       - chat
+       - message
        
-       On crée donc automatiquement :
-       - input
-       - bouton ENVOYER
+       Cela pouvait afficher le même message plusieurs fois.
     ========================================================= */
 
-    let chatInput =
-        document.getElementById("chatInput");
-
-    let chatSend =
-        document.getElementById("chatSend");
+    const receivedChatMessages =
+        new Set();
 
 
-    function createChatControls() {
-
-        if (!chatMessages) {
-
-            console.warn(
-                "⚠️ #chatMessages introuvable."
-            );
-
-            return;
-        }
+    const receivedChatIds =
+        new Set();
 
 
-        const chatSection =
-            chatMessages.closest(
-                ".chat-section"
-            );
-
-
-        if (!chatSection) {
-            return;
-        }
-
-
-        /*
-         * Si les contrôles existent déjà,
-         * on ne crée rien.
-         */
+    function getChatMessageKey(
+        msg
+    ) {
 
         if (
-            chatInput &&
-            chatSend
+            !msg ||
+            typeof msg !== "object"
         ) {
 
-            return;
+            return "";
         }
 
 
-        const controls =
-            document.createElement("div");
+        const id =
+            msg._id ??
+            msg.id ??
+            msg.messageId ??
+            msg.uuid;
 
 
-        controls.id =
-            "miltapeChatControls";
+        if (id) {
 
-
-        controls.style.cssText = `
-            display:flex;
-            gap:8px;
-            margin-top:10px;
-            width:100%;
-            box-sizing:border-box;
-        `;
-
-
-        chatInput =
-            document.createElement("input");
-
-
-        chatInput.id =
-            "chatInput";
-
-
-        chatInput.type =
-            "text";
-
-
-        chatInput.placeholder =
-            "Écris ton message...";
-
-
-        chatInput.maxLength =
-            300;
-
-
-        chatInput.autocomplete =
-            "off";
-
-
-        chatInput.style.cssText = `
-            flex:1;
-            min-width:0;
-            box-sizing:border-box;
-            padding:12px;
-            border-radius:10px;
-            border:1px solid rgba(255,204,0,.35);
-            background:#120624;
-            color:#fff;
-            outline:none;
-            font-size:14px;
-        `;
-
-
-        chatSend =
-            document.createElement("button");
-
-
-        chatSend.id =
-            "chatSend";
-
-
-        chatSend.type =
-            "button";
-
-
-        chatSend.textContent =
-            "ENVOYER";
-
-
-        chatSend.style.cssText = `
-            flex-shrink:0;
-            padding:12px 14px;
-            border:none;
-            border-radius:10px;
-            background:#ffcc00;
-            color:#120624;
-            font-weight:900;
-            cursor:pointer;
-        `;
-
-
-        controls.appendChild(
-            chatInput
-        );
-
-
-        controls.appendChild(
-            chatSend
-        );
-
-
-        chatSection.appendChild(
-            controls
-        );
-
-
-        console.log(
-            "💬 Zone de saisie du chat créée."
-        );
-    }
-
-
-    createChatControls();
-
-
-    /* =========================================================
-       ENVOI CHAT
-    ========================================================= */
-
-    function sendChatMessage() {
-
-        if (!chatInput) {
-            return;
-        }
-
-
-        const text =
-            chatInput.value.trim();
-
-
-        if (!text) {
-            return;
-        }
-
-
-        if (
-            !socket ||
-            !socket.connected
-        ) {
-
-            console.warn(
-                "⚠️ Chat : serveur non connecté."
+            return (
+                "id:" +
+                String(id)
             );
-
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🟠 Connexion au serveur...";
-            }
-
-
-            return;
         }
 
 
-        const messageData = {
-
-            playerId:
-                playerId,
-
-            playerName:
-                playerName,
-
-            message:
-                text
-        };
-
-
-        console.log(
-            "💬 Envoi message :",
-            messageData
-        );
-
-
-        /*
-         * Événement principal.
-         */
-
-        socket.emit(
-            "chatMessage",
-            messageData
-        );
-
-
-        /*
-         * On vide immédiatement
-         * la zone de saisie.
-         */
-
-        chatInput.value =
+        const sender =
+            msg.playerId ??
+            msg.senderId ??
+            msg.playerName ??
+            msg.name ??
             "";
 
 
-        chatInput.focus();
-    }
+        const text =
+            msg.message ??
+            msg.text ??
+            msg.content ??
+            msg.msg ??
+            "";
 
 
-    if (chatSend) {
+        const timestamp =
+            msg.createdAt ??
+            msg.timestamp ??
+            msg.time ??
+            "";
 
-        chatSend.addEventListener(
-            "click",
-            sendChatMessage
+
+        return (
+            "msg:" +
+            String(sender) +
+            "|" +
+            String(text) +
+            "|" +
+            String(timestamp)
         );
     }
 
 
-    if (chatInput) {
-
-        chatInput.addEventListener(
-            "keydown",
-            (event) => {
-
-                if (
-                    event.key === "Enter" &&
-                    !event.shiftKey
-                ) {
-
-                    event.preventDefault();
-
-                    sendChatMessage();
-                }
-            }
-        );
-    }
-
-
-    /* =========================================================
-       AFFICHAGE MESSAGE CHAT
-    ========================================================= */
-
-    function receiveChatMessage(msg) {
+    function receiveChatMessage(
+        msg
+    ) {
 
         if (!chatMessages) {
             return;
@@ -800,6 +739,61 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
+        const messageKey =
+            getChatMessageKey(
+                msg
+            );
+
+
+        /*
+         * Protection anti-doublon.
+         */
+
+        if (messageKey) {
+
+            if (
+                receivedChatMessages.has(
+                    messageKey
+                )
+            ) {
+
+                console.log(
+                    "🛑 Doublon chat ignoré :",
+                    messageKey
+                );
+
+                return;
+            }
+
+
+            receivedChatMessages.add(
+                messageKey
+            );
+
+
+            /*
+             * Maximum 500 clés.
+             */
+
+            if (
+                receivedChatMessages.size >
+                500
+            ) {
+
+                const first =
+                    receivedChatMessages
+                        .values()
+                        .next()
+                        .value;
+
+
+                receivedChatMessages.delete(
+                    first
+                );
+            }
+        }
+
+
         const senderName =
             msg.playerName ??
             msg.name ??
@@ -817,12 +811,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (
-            String(messageText).trim() === ""
+            String(
+                messageText
+            ).trim() === ""
         ) {
 
             return;
         }
 
+
+        /*
+         * Création sécurisée du message.
+         */
 
         const messageElement =
             document.createElement(
@@ -867,7 +867,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /*
-         * Maximum 100 messages.
+         * Maximum 100 messages
+         * visibles.
          */
 
         while (
@@ -886,9 +887,124 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         console.log(
-            "💬 Message reçu :",
+            "💬 Message affiché :",
             senderName,
             messageText
+        );
+    }
+
+
+    /* =========================================================
+       ENVOI CHAT
+    ========================================================= */
+
+    function sendChatMessage() {
+
+        if (!chatInput) {
+            return;
+        }
+
+
+        const text =
+            chatInput.value.trim();
+
+
+        if (!text) {
+            return;
+        }
+
+
+        if (
+            text.length > 200
+        ) {
+
+            return;
+        }
+
+
+        if (
+            !socket ||
+            !socket.connected
+        ) {
+
+            console.warn(
+                "⚠️ Chat : serveur non connecté."
+            );
+
+
+            if (tapMessage) {
+
+                tapMessage.textContent =
+                    "🟠 Connexion au serveur...";
+            }
+
+
+            return;
+        }
+
+
+        const messageData = {
+
+            playerId:
+                playerId,
+
+            playerName:
+                playerName,
+
+            message:
+                text
+        };
+
+
+        console.log(
+            "💬 Envoi chat :",
+            messageData
+        );
+
+
+        /*
+         * UNE SEULE émission.
+         */
+
+        socket.emit(
+            "chatMessage",
+            messageData
+        );
+
+
+        chatInput.value =
+            "";
+
+
+        chatInput.focus();
+    }
+
+
+    if (chatSend) {
+
+        chatSend.addEventListener(
+            "click",
+            sendChatMessage
+        );
+    }
+
+
+    if (chatInput) {
+
+        chatInput.addEventListener(
+            "keydown",
+            (event) => {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    sendChatMessage();
+                }
+            }
         );
     }
 
@@ -1053,30 +1169,36 @@ document.addEventListener("DOMContentLoaded", () => {
             "menuGamesBtn"
         );
 
+
     const menuRankingsBtn =
         document.getElementById(
             "menuRankingsBtn"
         );
+
 
     const menuGainsBtn =
         document.getElementById(
             "menuGainsBtn"
         );
 
+
     const menuWithdrawalsBtn =
         document.getElementById(
             "menuWithdrawalsBtn"
         );
+
 
     const menuReferralBtn =
         document.getElementById(
             "menuReferralBtn"
         );
 
+
     const menuChatBtn =
         document.getElementById(
             "menuChatBtn"
         );
+
 
     const menuRulesBtn =
         document.getElementById(
@@ -1091,6 +1213,7 @@ document.addEventListener("DOMContentLoaded", () => {
             () => {
 
                 closeSideMenu();
+
 
                 openModal(
                     "🎮 Mes parties",
@@ -1114,6 +1237,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 closeSideMenu();
 
+
                 document
                     .querySelector(
                         ".leaderboard"
@@ -1134,6 +1258,7 @@ document.addEventListener("DOMContentLoaded", () => {
             () => {
 
                 closeSideMenu();
+
 
                 openModal(
                     "💰 Mes gains",
@@ -1158,6 +1283,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 closeSideMenu();
 
+
                 openModal(
                     "💸 Mes retraits",
                     `
@@ -1180,6 +1306,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 closeSideMenu();
 
+
                 openModal(
                     "👥 Parrainage",
                     `
@@ -1189,7 +1316,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     <p>
                         <strong>
-                            ${escapeHTML(playerId)}
+                            ${escapeHTML(
+                                playerId
+                            )}
                         </strong>
                     </p>
                     `
@@ -1206,6 +1335,7 @@ document.addEventListener("DOMContentLoaded", () => {
             () => {
 
                 closeSideMenu();
+
 
                 document
                     .querySelector(
@@ -1240,6 +1370,7 @@ document.addEventListener("DOMContentLoaded", () => {
             () => {
 
                 closeSideMenu();
+
 
                 openModal(
                     "📜 Règles Miltape",
@@ -1321,7 +1452,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
 
             console.error(
-                "Erreur wallet :",
+                "❌ Erreur wallet :",
                 error
             );
 
@@ -1555,7 +1686,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             setupSocketEvents();
 
-
         } catch (error) {
 
             console.error(
@@ -1574,11 +1704,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     "🟠 Connexion au serveur...";
             }
 
-
-            /*
-             * Le chrono visuel fonctionne
-             * même si Socket.IO échoue.
-             */
 
             startLocalTimer();
         }
@@ -1634,9 +1759,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 /*
-                 * Demandes compatibles
-                 * avec plusieurs versions
-                 * du backend.
+                 * On garde uniquement
+                 * les demandes utiles.
                  */
 
                 socket.emit(
@@ -1645,22 +1769,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 socket.emit(
-                    "game:get"
-                );
-
-
-                socket.emit(
                     "getLeaderboard"
                 );
 
-
-                /*
-                 * IMPORTANT :
-                 * le chrono local démarre
-                 * pour ne pas rester bloqué
-                 * si le backend n'envoie pas
-                 * de timer.
-                 */
 
                 startLocalTimer();
             }
@@ -1692,18 +1803,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                /*
-                 * Le chrono continue
-                 * pendant la reconnexion.
-                 */
-
                 startLocalTimer();
             }
         );
 
 
         /* =====================================================
-           ERREUR CONNEXION
+           ERREUR
         ===================================================== */
 
         socket.on(
@@ -1736,7 +1842,9 @@ document.addEventListener("DOMContentLoaded", () => {
            NOUVELLE PARTIE
         ===================================================== */
 
-        function handleNewGame(data) {
+        function handleNewGame(
+            data
+        ) {
 
             console.log(
                 "🎮 NOUVELLE PARTIE :",
@@ -1759,8 +1867,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 data &&
-                typeof data ===
-                "object"
+                typeof data === "object"
             ) {
 
                 duration =
@@ -1804,6 +1911,14 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
+            /*
+             * On vide les anciennes clés
+             * de chat à chaque nouvelle partie.
+             */
+
+            receivedChatMessages.clear();
+
+
             startLocalTimer();
         }
 
@@ -1821,7 +1936,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           TIMER SERVEUR
+           TIMER
+           
+           On accepte les différents noms
+           utilisés par le backend.
         ===================================================== */
 
         socket.on(
@@ -1858,15 +1976,16 @@ document.addEventListener("DOMContentLoaded", () => {
            ONLINE
         ===================================================== */
 
-        function updateOnlineCount(data) {
+        function updateOnlineCount(
+            data
+        ) {
 
             let count =
                 data;
 
 
             if (
-                typeof data ===
-                "object" &&
+                typeof data === "object" &&
                 data !== null
             ) {
 
@@ -1930,7 +2049,9 @@ document.addEventListener("DOMContentLoaded", () => {
            CLASSEMENT
         ===================================================== */
 
-        function updateLeaderboard(players) {
+        function updateLeaderboard(
+            players
+        ) {
 
             if (!leaderboardList) {
                 return;
@@ -1939,8 +2060,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 players &&
-                typeof players ===
-                "object" &&
+                typeof players === "object" &&
                 !Array.isArray(players)
             ) {
 
@@ -2038,7 +2158,10 @@ document.addEventListener("DOMContentLoaded", () => {
                                     </div>
 
                                     <div class="player-name">
-                                        ${escapeHTML(name)}
+                                        ${escapeHTML(
+                                            name
+                                        )}
+
                                         ${
                                             isMe
                                                 ? `<strong>(toi)</strong>`
@@ -2072,6 +2195,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         /* =====================================================
            CHAT
+           
+           TRÈS IMPORTANT :
+           
+           UN SEUL EVENT POUR LES MESSAGES.
+           
+           Le backend doit envoyer :
+           
+           socket.emit("chatMessage", message)
+           
+           On n'écoute PAS :
+           - chat:message
+           - chat
+           - message
+           
+           sinon le même message peut être
+           affiché plusieurs fois.
         ===================================================== */
 
         socket.on(
@@ -2080,26 +2219,10 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        socket.on(
-            "chat:message",
-            receiveChatMessage
-        );
-
-
-        socket.on(
-            "chat",
-            receiveChatMessage
-        );
-
-
-        socket.on(
-            "message",
-            receiveChatMessage
-        );
-
-
         /* =====================================================
            HISTORIQUE CHAT
+           
+           UN SEUL EVENT.
         ===================================================== */
 
         socket.on(
@@ -2128,30 +2251,13 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        socket.on(
-            "chat:history",
-            (messages) => {
-
-                if (
-                    !Array.isArray(messages)
-                ) {
-
-                    return;
-                }
-
-
-                messages.forEach(
-                    receiveChatMessage
-                );
-            }
-        );
-
-
         /* =====================================================
            TAP RESULT
         ===================================================== */
 
-        function handleTapResult(data) {
+        function handleTapResult(
+            data
+        ) {
 
             if (!data) {
                 return;
@@ -2237,15 +2343,16 @@ document.addEventListener("DOMContentLoaded", () => {
            TOTAL STAKES
         ===================================================== */
 
-        function updateTotalStakes(data) {
+        function updateTotalStakes(
+            data
+        ) {
 
             let total =
                 data;
 
 
             if (
-                typeof data ===
-                "object" &&
+                typeof data === "object" &&
                 data !== null
             ) {
 
@@ -2299,13 +2406,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                localTaps++;
+                if (
+                    !socket ||
+                    !socket.connected
+                ) {
+
+                    console.warn(
+                        "⚠️ Tap : serveur non connecté."
+                    );
+
+                    return;
+                }
 
 
-                updateScoreDisplays(
-                    localTaps
-                );
-
+                /*
+                 * On ne fait PAS de +1 local
+                 * définitif ici.
+                 *
+                 * Le serveur doit confirmer
+                 * le score.
+                 */
 
                 tapButton.classList.add(
                     "tap-active"
@@ -2324,31 +2444,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                if (
-                    socket &&
-                    socket.connected
-                ) {
+                socket.emit(
+                    "tap",
+                    {
+                        playerId:
+                            playerId,
 
-                    socket.emit(
-                        "tap",
-                        {
-                            playerId:
-                                playerId,
+                        playerName:
+                            playerName,
 
-                            playerName:
-                                playerName,
-
-                            taps:
-                                1
-                        }
-                    );
-
-                } else {
-
-                    console.warn(
-                        "⚠️ Tap : serveur non connecté."
-                    );
-                }
+                        taps:
+                            1
+                    }
+                );
             }
         );
     }
@@ -2365,6 +2473,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById(
                     "conditions-content"
                 );
+
 
             const arrow =
                 document.getElementById(
@@ -2413,15 +2522,12 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-    let deferredPrompt =
-        null;
-
-
     window.addEventListener(
         "beforeinstallprompt",
         (event) => {
 
             event.preventDefault();
+
 
             deferredPrompt =
                 event;
@@ -2448,10 +2554,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                deferredPrompt.prompt();
-
-
                 try {
+
+                    await deferredPrompt.prompt();
 
                     await deferredPrompt.userChoice;
 
@@ -2480,7 +2585,9 @@ document.addEventListener("DOMContentLoaded", () => {
        MISE
     ========================================================= */
 
-    function setBet(value) {
+    function setBet(
+        value
+    ) {
 
         const amount =
             Number(value) || 0;
@@ -2509,7 +2616,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (savedBet) {
 
-        setBet(savedBet);
+        setBet(
+            savedBet
+        );
     }
 
 
@@ -2543,9 +2652,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* =========================================================
        FALLBACK CHRONO
-       
-       Si aucun timer serveur n'arrive,
-       le chrono local fonctionne quand même.
     ========================================================= */
 
     setTimeout(
@@ -2614,13 +2720,17 @@ document.addEventListener("DOMContentLoaded", () => {
         "✅ Script Miltape chargé."
     );
 
-    console.log(
-        "⏱️ Chrono initial :",
-        formatTime(currentTimer)
-    );
 
     console.log(
-        "💬 Chat prêt."
+        "⏱️ Chrono initial :",
+        formatTime(
+            currentTimer
+        )
+    );
+
+
+    console.log(
+        "💬 Chat prêt — anti-doublon actif."
     );
 
 });
