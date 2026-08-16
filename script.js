@@ -1,7 +1,6 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
-   SCRIPT FRONTEND COMPLET
-   Version sécurité wallet
+   SCRIPT FRONTEND COMPLET - CORRIGÉ
 ========================================================= */
 
 "use strict";
@@ -1542,7 +1541,7 @@ async function verifyPayment(
     const response =
         await fetch(
             API_URL +
-            "/api/verify-payment",
+            "/api/payment/verify",
             {
 
                 method:
@@ -1557,14 +1556,15 @@ async function verifyPayment(
                     JSON.stringify({
                         playerId,
 
-                        playerName:
+                        name:
                             name,
 
-                        txid,
+                        txId:
+                            txid,
 
                         amount,
 
-                        cryptoAddress:
+                        wallet:
                             address
                     })
             }
@@ -1593,7 +1593,7 @@ async function verifyPayment(
 
 
 /* =========================================================
-   SOCKET.IO
+   SOCKET.IO (CORRIGÉ ET SYNCHRONISÉ AVEC LE BACKEND)
 ========================================================= */
 
 function connectSocket() {
@@ -1652,334 +1652,102 @@ function connectSocket() {
     );
 
 
+    // Écoute de l'état global du jeu (reçu à la connexion et à chaque broadcast)
     socket.on(
-        "initGame",
-        data => {
+        "game:state",
+        state => {
+            if (!state) return;
 
-            if (!data) {
-                return;
+            gameId = state.gameId || gameId;
+            gameRunning = (state.status === "running");
+            
+            updateTimer(state.remainingSeconds);
+
+            if (state.onlinePlayers !== undefined) {
+                updateOnline(state.onlinePlayers);
             }
 
-
-            gameId =
-                Number(
-                    data.gameId ||
-                    gameId
-                );
-
-
-            gameRunning =
-                Boolean(
-                    data.gameRunning
-                );
-
-
-            updateTimer(
-                data.timerLeft
-            );
-
-
-            renderLeaderboard(
-                data.leaderboard ||
-                []
-            );
-
-
-            if (data.joined) {
-
-                joinedGame =
-                    true;
-
-                tapButton.disabled =
-                    false;
+            if (Array.isArray(state.leaderboard)) {
+                renderLeaderboard(state.leaderboard);
             }
         }
     );
 
 
-    socket.on(
-        "timer",
-        time => {
-
-            updateTimer(time);
-        }
-    );
-
-
+    // Chrono en direct envoyé par le serveur
     socket.on(
         "timer:update",
         data => {
+            if (!data) return;
 
-            if (!data) {
-                return;
+            const seconds = Number(data.remainingSeconds || 0);
+            updateTimer(seconds);
+
+            if (data.status) {
+                gameRunning = (data.status === "running");
             }
-
-
-            if (
-                data.gameId !==
-                undefined
-            ) {
-
-                gameId =
-                    Number(
-                        data.gameId
-                    );
-            }
-
-
-            updateTimer(
-                data.timeLeft
-            );
         }
     );
 
 
+    // Nombre de joueurs en ligne
     socket.on(
-        "timerUpdate",
-        data => {
-
-            updateTimer(
-                data?.timerLeft
-            );
-        }
-    );
-
-
-    socket.on(
-        "leaderboard",
-        leaderboard => {
-
-            renderLeaderboard(
-                leaderboard || []
-            );
-        }
-    );
-
-
-    socket.on(
-        "leaderboard:update",
-        leaderboard => {
-
-            renderLeaderboard(
-                leaderboard || []
-            );
-        }
-    );
-
-
-    socket.on(
-        "onlineCount",
+        "online:count",
         count => {
-
             updateOnline(count);
         }
     );
 
 
+    // Mise à jour du classement
     socket.on(
-        "online:count",
-        data => {
-
-            updateOnline(
-                data?.count || 0
-            );
+        "leaderboard:update",
+        leaderboard => {
+            renderLeaderboard(leaderboard || []);
         }
     );
 
 
+    // Score personnel
     socket.on(
-        "totalStakes",
-        total => {
-
-            updateTotalStakes(total);
-        }
-    );
-
-
-    socket.on(
-        "stakes:update",
+        "player:score",
         data => {
-
-            updateTotalStakes(
-                data?.total || 0
-            );
-        }
-    );
-
-
-    socket.on(
-        "score:update",
-        data => {
-
-            if (
-                data?.playerId ===
-                playerId
-            ) {
-
-                tapCount =
-                    Number(
-                        data.score || 0
-                    );
-
+            if (data && data.taps !== undefined) {
+                tapCount = Number(data.taps);
                 updateTapDisplay();
             }
         }
     );
 
 
+    // Fin de partie
     socket.on(
-        "tapResult",
+        "game:finished",
         data => {
-
-            if (
-                data?.success
-            ) {
-
-                tapCount =
-                    Number(
-                        data.score || 0
-                    );
-
-                updateTapDisplay();
-
-            } else if (
-                data?.message
-            ) {
-
-                showMessage(
-                    "⚠️ " +
-                    data.message
-                );
-            }
-        }
-    );
-
-
-    socket.on(
-        "gameOver",
-        data => {
-
-            gameRunning =
-                false;
-
-            tapButton.disabled =
-                true;
-
+            gameRunning = false;
+            tapButton.disabled = true;
 
             showMessage(
                 "🏁 PARTIE TERMINÉE — ATTENDS LA PROCHAINE !"
             );
 
-
-            if (data?.winners) {
-
-                renderLeaderboard(
-                    data.winners
-                );
+            if (data && Array.isArray(data.leaderboard)) {
+                renderLeaderboard(data.leaderboard);
             }
         }
     );
 
 
+    // Réception des messages du chat en direct
     socket.on(
-        "newGame",
-        data => {
-
-            gameId =
-                Number(
-                    data?.gameId ||
-                    gameId + 1
-                );
-
-
-            tapCount =
-                0;
-
-
-            updateTapDisplay();
-
-
-            gameRunning =
-                true;
-
-
-            if (joinedGame) {
-
-                tapButton.disabled =
-                    false;
-            }
-
-
-            showMessage(
-                "🎮 NOUVELLE PARTIE !"
-            );
+        "chat:message",
+        messageData => {
+            addChatMessage({
+                playerName: messageData.name,
+                message: messageData.message
+            });
         }
     );
-
-
-    socket.on(
-        "game:new",
-        data => {
-
-            gameId =
-                Number(
-                    data?.gameId ||
-                    gameId
-                );
-        }
-    );
-
-
-    socket.on(
-        "gameStart",
-        data => {
-
-            gameId =
-                Number(
-                    data?.gameId ||
-                    gameId
-                );
-
-
-            gameRunning =
-                true;
-
-
-            if (joinedGame) {
-
-                tapButton.disabled =
-                    false;
-            }
-        }
-    );
-
-
-    socket.on(
-        "chatHistory",
-        messages => {
-
-            renderChatHistory(
-                messages || []
-            );
-        }
-    );
-
-
-    /* =====================================================
-       CHAT
-       UNE SEULE ÉCOUTE POUR ÉVITER LE DOUBLE AFFICHAGE
-    ===================================================== */
-
-    socket.on(
-        "chatMessage",
-        message => {
-
-            addChatMessage(
-                message
-            );
-        }
-    );
-
 }
 
 
@@ -1999,19 +1767,11 @@ function joinSocketGame() {
 
 
     socket.emit(
-        "join",
+        "player:join",
         {
-
-            playerId,
-
-            playerName:
-                playerName,
-
-            amount:
-                selectedBet,
-
-            cryptoAddress:
-                playerAddress
+            name: playerName,
+            wallet: playerAddress,
+            bet: selectedBet
         }
     );
 }
@@ -2040,10 +1800,7 @@ tapButton?.addEventListener(
 
 
         socket.emit(
-            "tap",
-            {
-                playerId
-            }
+            "player:tap"
         );
 
 
@@ -2267,7 +2024,7 @@ function renderLeaderboard(
                                     "
                                 >
                                     ${escapeHtml(
-                                        player.playerName ||
+                                        player.name ||
                                         "Anonyme"
                                     )}
                                 </strong>
@@ -2279,7 +2036,7 @@ function renderLeaderboard(
                                 >
                                     Mise :
                                     ${formatUsdt(
-                                        player.amount
+                                        player.bet
                                     )}
                                     USDT
                                 </small>
@@ -2293,7 +2050,7 @@ function renderLeaderboard(
                                 "
                             >
                                 ${formatNumber(
-                                    player.score
+                                    player.taps
                                 )}
                             </strong>
 
@@ -2403,16 +2160,10 @@ function sendChat() {
 
 
     socket.emit(
-        "chatMessage",
+        "chat:send",
         {
-
-            playerId,
-
-            playerName:
-                playerName ||
-                "Anonyme",
-
-            message
+            name: playerName || "Joueur",
+            message: message
         }
     );
 
@@ -2442,6 +2193,27 @@ chatInput?.addEventListener(
         }
     }
 );
+
+
+/* =========================================================
+   CHARGEMENT DE L'HISTORIQUE DU CHAT VIA REST
+========================================================= */
+
+async function loadChatHistoryRest() {
+    try {
+        const response = await fetch(API_URL + "/api/chat");
+        const data = await response.json();
+        if (data.success && Array.isArray(data.messages)) {
+            const formatted = data.messages.map(m => ({
+                playerName: m.name,
+                message: m.message
+            }));
+            renderChatHistory(formatted);
+        }
+    } catch (err) {
+        console.error("Erreur chargement chat:", err);
+    }
+}
 
 
 /* =========================================================
@@ -2630,7 +2402,7 @@ async function loadInitialStatus() {
         const response =
             await fetch(
                 API_URL +
-                "/api/status"
+                "/api/game"
             );
 
 
@@ -2644,32 +2416,27 @@ async function loadInitialStatus() {
 
 
         gameId =
-            Number(
-                data.gameId ||
-                gameId
-            );
+            data.gameId ||
+            gameId;
 
 
         gameRunning =
-            Boolean(
-                data.gameRunning
-            );
+            (data.status === "running");
 
 
         updateTimer(
-            data.timerLeft
+            data.remainingSeconds
         );
 
 
         updateOnline(
-            data.online || 0
+            data.onlinePlayers || 0
         );
 
 
-        updateTotalStakes(
-            data.totalStakes || 0
-        );
-
+        if (Array.isArray(data.leaderboard)) {
+            renderLeaderboard(data.leaderboard);
+        }
 
         console.log(
             "Miltape status:",
@@ -2702,10 +2469,12 @@ document.addEventListener(
 
         await loadInitialStatus();
 
+        await loadChatHistoryRest();
+
         connectSocket();
 
         console.log(
-            "🔥 MILTAPE FRONTEND CHARGÉ"
+            "🔥 MILTAPE FRONTEND CHARGÉ ET CORRIGÉ"
         );
     }
 );
