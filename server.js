@@ -1,7 +1,7 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
    BACKEND RAILWAY
-   PAYMENTS TRC20 AUTOMATIQUES
+   TRC20 USDT AUTOMATIQUE
    VERSION SECURISEE
 ========================================================= */
 
@@ -22,64 +22,108 @@ const { TronWeb } = require("tronweb");
 const PORT =
     process.env.PORT || 8080;
 
+
 const MONGO_URI =
     process.env.MONGO_URI ||
     process.env.MONGODB_URI;
+
 
 const TRONGRID_API_KEY =
     process.env.TRONGRID_API_KEY ||
     process.env.TRON_GRID_API_KEY ||
     "";
 
+
+/*
+   ========================================================
+   WALLET MILTAPE
+   ========================================================
+
+   NOUVEAU WALLET :
+   TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXtL
+
+   Railway peut aussi définir MILTAPE_WALLET.
+*/
+
 const MILTAPE_WALLET =
     String(
         process.env.MILTAPE_WALLET ||
-        "TBZZ3nakc3w5SnJ1EZpvVWYWY3q1NffNPM"
+        "TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXtL"
     ).trim();
+
 
 const MILTAPE_PRIVATE_KEY =
     String(
         process.env.MILTAPE_PRIVATE_KEY || ""
     ).trim();
 
+
+/*
+   USDT TRC20 MAINNET
+*/
+
 const USDT_CONTRACT =
     "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-const USDT_DECIMALS = 6;
 
-const MINIMUM_BET = 1;
+const USDT_DECIMALS =
+    6;
 
-const MAXIMUM_BET = 1000000;
 
-const GAME_DURATION = 600;
+const MINIMUM_BET =
+    1;
+
+
+const MAXIMUM_BET =
+    1000000;
+
+
+const GAME_DURATION =
+    600;
 
 
 /*
-   Limite énergie/frais TRON.
+   Limite maximale de frais TRON.
+   100 TRX.
 */
+
 const PAYOUT_FEE_LIMIT =
     100000000;
 
 
 /*
-   Attente maximale de confirmation.
+   Temps maximum d'attente de confirmation.
 */
+
 const PAYOUT_CONFIRM_TIMEOUT =
     60000;
+
 
 const PAYOUT_CONFIRM_INTERVAL =
     3000;
 
 
 /*
-   Délai avant nouvelle partie.
+   Temps entre deux parties.
 */
+
 const NEW_GAME_DELAY =
     3000;
 
 
+/*
+   Anti-spam tap.
+
+   40 ms = maximum théorique 25 taps/sec
+   par joueur.
+*/
+
+const TAP_COOLDOWN_MS =
+    40;
+
+
 /* =========================================================
-   VERIFICATION CONFIG
+   VERIFICATION CONFIGURATION
 ========================================================= */
 
 if (!MONGO_URI) {
@@ -112,10 +156,12 @@ if (!MILTAPE_PRIVATE_KEY) {
 
 let tronWeb;
 
+
 try {
 
     tronWeb =
         new TronWeb({
+
             fullHost:
                 "https://api.trongrid.io",
 
@@ -167,6 +213,7 @@ try {
         MILTAPE_WALLET
     );
 
+
 } catch (error) {
 
     console.error(
@@ -185,15 +232,19 @@ try {
 const app =
     express();
 
+
 const server =
     http.createServer(app);
+
 
 const io =
     new Server(
         server,
         {
             cors: {
+
                 origin: "*",
+
                 methods: [
                     "GET",
                     "POST"
@@ -205,7 +256,9 @@ const io =
 
 app.use(
     cors({
+
         origin: "*",
+
         methods: [
             "GET",
             "POST"
@@ -246,6 +299,7 @@ const playerSchema =
                 index: true
             },
 
+
             playerName: {
                 type: String,
                 default: "Anonyme",
@@ -253,11 +307,13 @@ const playerSchema =
                 maxlength: 30
             },
 
+
             cryptoAddress: {
                 type: String,
                 required: true,
                 index: true
             },
+
 
             gameId: {
                 type: Number,
@@ -265,25 +321,30 @@ const playerSchema =
                 index: true
             },
 
+
             amount: {
                 type: Number,
                 default: 0
             },
+
 
             score: {
                 type: Number,
                 default: 0
             },
 
+
             paid: {
                 type: Boolean,
                 default: false
             },
 
+
             paymentVerified: {
                 type: Boolean,
                 default: false
             },
+
 
             txid: {
                 type: String,
@@ -293,20 +354,24 @@ const playerSchema =
                 index: true
             },
 
+
             joined: {
                 type: Boolean,
                 default: false
             },
+
 
             winner: {
                 type: Boolean,
                 default: false
             },
 
+
             reward: {
                 type: Number,
                 default: 0
             },
+
 
             taps: {
                 type: Number,
@@ -314,12 +379,9 @@ const playerSchema =
             },
 
 
-            /* -----------------------------------------
-               PAYOUT
-            ----------------------------------------- */
-
             payoutStatus: {
                 type: String,
+
                 enum: [
                     "none",
                     "pending",
@@ -327,9 +389,12 @@ const playerSchema =
                     "paid",
                     "failed"
                 ],
+
                 default: "none",
+
                 index: true
             },
+
 
             payoutTxid: {
                 type: String,
@@ -337,20 +402,24 @@ const playerSchema =
                 index: true
             },
 
+
             payoutAmount: {
                 type: Number,
                 default: 0
             },
+
 
             payoutAddress: {
                 type: String,
                 default: ""
             },
 
+
             payoutAt: {
                 type: Date,
                 default: null
             },
+
 
             payoutError: {
                 type: String,
@@ -363,10 +432,12 @@ const playerSchema =
                 default: null
             },
 
+
             createdAt: {
                 type: Date,
                 default: Date.now
             },
+
 
             updatedAt: {
                 type: Date,
@@ -374,6 +445,7 @@ const playerSchema =
             }
 
         },
+
         {
             collection:
                 "players"
@@ -403,16 +475,19 @@ const paymentSchema =
                 index: true
             },
 
+
             playerId: {
                 type: String,
                 required: true,
                 index: true
             },
 
+
             playerName: {
                 type: String,
                 default: "Anonyme"
             },
+
 
             cryptoAddress: {
                 type: String,
@@ -420,35 +495,42 @@ const paymentSchema =
                 index: true
             },
 
+
             amount: {
                 type: Number,
                 required: true
             },
+
 
             amountUnits: {
                 type: String,
                 required: true
             },
 
+
             tokenContract: {
                 type: String,
                 required: true
             },
+
 
             destination: {
                 type: String,
                 required: true
             },
 
+
             verified: {
                 type: Boolean,
                 default: false
             },
 
+
             verifiedAt: {
                 type: Date,
                 default: null
             },
+
 
             createdAt: {
                 type: Date,
@@ -456,6 +538,7 @@ const paymentSchema =
             }
 
         },
+
         {
             collection:
                 "payments"
@@ -478,14 +561,6 @@ const payoutSchema =
     new mongoose.Schema(
         {
 
-            /*
-               EXEMPLE :
-
-               25:ABC123
-
-               = gameId:playerId
-            */
-
             payoutKey: {
                 type: String,
                 required: true,
@@ -493,11 +568,13 @@ const payoutSchema =
                 index: true
             },
 
+
             gameId: {
                 type: Number,
                 required: true,
                 index: true
             },
+
 
             playerId: {
                 type: String,
@@ -505,42 +582,47 @@ const payoutSchema =
                 index: true
             },
 
+
             playerName: {
                 type: String,
                 default: "Anonyme"
             },
+
 
             destination: {
                 type: String,
                 required: true
             },
 
+
             amount: {
                 type: Number,
                 required: true
             },
+
 
             amountUnits: {
                 type: String,
                 required: true
             },
 
+
             status: {
+
                 type: String,
+
                 enum: [
                     "pending",
                     "processing",
                     "paid",
                     "failed"
                 ],
+
                 default: "pending",
+
                 index: true
             },
 
-            /*
-               TXID EST ENREGISTRE AVANT
-               LA DIFFUSION DE LA TRANSACTION.
-            */
 
             txid: {
                 type: String,
@@ -548,20 +630,24 @@ const payoutSchema =
                 index: true
             },
 
+
             error: {
                 type: String,
                 default: ""
             },
+
 
             createdAt: {
                 type: Date,
                 default: Date.now
             },
 
+
             processingAt: {
                 type: Date,
                 default: null
             },
+
 
             paidAt: {
                 type: Date,
@@ -569,6 +655,7 @@ const payoutSchema =
             }
 
         },
+
         {
             collection:
                 "payouts"
@@ -576,16 +663,11 @@ const payoutSchema =
     );
 
 
-/*
-   Protection supplémentaire :
-   un même TXID ne peut appartenir
-   qu'à un seul payout.
-*/
-
 payoutSchema.index(
     {
         txid: 1
     },
+
     {
         unique: true,
         sparse: true
@@ -614,23 +696,28 @@ const gameSchema =
                 index: true
             },
 
+
             startedAt: {
                 type: Date
             },
 
+
             endsAt: {
                 type: Date
             },
+
 
             finished: {
                 type: Boolean,
                 default: false
             },
 
+
             totalStakes: {
                 type: Number,
                 default: 0
             },
+
 
             winners: {
                 type: Array,
@@ -638,6 +725,7 @@ const gameSchema =
             }
 
         },
+
         {
             collection:
                 "games"
@@ -665,10 +753,12 @@ const messageSchema =
                 default: ""
             },
 
+
             playerName: {
                 type: String,
                 default: "Anonyme"
             },
+
 
             message: {
                 type: String,
@@ -676,12 +766,14 @@ const messageSchema =
                 maxlength: 200
             },
 
+
             createdAt: {
                 type: Date,
                 default: Date.now
             }
 
         },
+
         {
             collection:
                 "messages"
@@ -700,10 +792,13 @@ const Message =
    GAME STATE
 ========================================================= */
 
-let currentGameId = 1;
+let currentGameId =
+    1;
+
 
 let gameStartedAt =
     new Date();
+
 
 let gameEndsAt =
     new Date(
@@ -711,13 +806,16 @@ let gameEndsAt =
         GAME_DURATION * 1000
     );
 
+
 let gameRunning =
     true;
+
 
 let finishingGame =
     false;
 
-let onlinePlayers =
+
+const onlinePlayers =
     new Set();
 
 
@@ -737,18 +835,71 @@ function normalizeAddress(
 }
 
 
+/*
+   Normalisation robuste :
+
+   Base58 TRON
+   ou
+   adresse hex 41...
+*/
+
+function normalizeTronAddress(
+    address
+) {
+
+    try {
+
+        const clean =
+            String(
+                address || ""
+            ).trim();
+
+
+        if (!clean) {
+
+            return "";
+        }
+
+
+        return tronWeb.address
+            .toHex(clean)
+            .toLowerCase();
+
+    } catch {
+
+        return normalizeAddress(
+            address
+        );
+    }
+}
+
+
 function isValidTronAddress(
     address
 ) {
 
     try {
 
-        return Boolean(
+        const clean =
+            String(
+                address || ""
+            ).trim();
+
+
+        if (!clean) {
+
+            return false;
+        }
+
+
+        const hex =
             tronWeb.address.toHex(
-                String(
-                    address || ""
-                ).trim()
-            )
+                clean
+            );
+
+
+        return Boolean(
+            hex
         );
 
     } catch {
@@ -855,6 +1006,7 @@ function usdtToUnits(
 function tronGridHeaders() {
 
     const headers = {
+
         "Accept":
             "application/json"
     };
@@ -886,10 +1038,13 @@ async function tronGridFetch(
         await fetch(
             url,
             {
+
                 ...options,
 
                 headers: {
+
                     ...tronGridHeaders(),
+
                     ...(options.headers || {})
                 }
             }
@@ -947,8 +1102,9 @@ async function verifyTronUsdtTransaction(
 
 
     if (
-        !/^[a-f0-9]{64}$/
-            .test(cleanTxid)
+        !/^[a-f0-9]{64}$/.test(
+            cleanTxid
+        )
     ) {
 
         throw new Error(
@@ -957,15 +1113,21 @@ async function verifyTronUsdtTransaction(
     }
 
 
-    const expectedFromNormalized =
-        normalizeAddress(
+    const expectedFromHex =
+        normalizeTronAddress(
             expectedFrom
         );
 
 
-    const expectedToNormalized =
-        normalizeAddress(
+    const expectedToHex =
+        normalizeTronAddress(
             MILTAPE_WALLET
+        );
+
+
+    const expectedContractHex =
+        normalizeTronAddress(
+            USDT_CONTRACT
         );
 
 
@@ -974,6 +1136,37 @@ async function verifyTronUsdtTransaction(
             expectedAmount
         );
 
+
+    /*
+       Vérification de la transaction confirmée.
+    */
+
+    const transaction =
+        await tronGridFetch(
+            "https://api.trongrid.io/v1/transactions/" +
+            cleanTxid +
+            "?only_confirmed=true"
+        );
+
+
+    /*
+       Certains environnements peuvent ne pas
+       retourner ce endpoint comme attendu.
+
+       Les événements confirmés restent la source
+       principale ci-dessous.
+    */
+
+    const transactionData =
+        transaction?.data?.[0] ||
+        transaction;
+
+
+    /*
+       Événements TRC20.
+       TronGrid supporte la recherche des événements
+       par TXID avec only_confirmed=true.
+    */
 
     const transactionInfo =
         await tronGridFetch(
@@ -1013,7 +1206,7 @@ async function verifyTronUsdtTransaction(
 
 
                 const contract =
-                    normalizeAddress(
+                    normalizeTronAddress(
                         event?.contract_address ||
                         event?.address ||
                         ""
@@ -1022,7 +1215,7 @@ async function verifyTronUsdtTransaction(
 
                 if (
                     contract !==
-                    expectedToNormalized
+                    expectedContractHex
                 ) {
 
                     return false;
@@ -1036,7 +1229,7 @@ async function verifyTronUsdtTransaction(
 
 
                 const from =
-                    normalizeAddress(
+                    normalizeTronAddress(
                         result?.from ||
                         event?.from ||
                         ""
@@ -1044,7 +1237,7 @@ async function verifyTronUsdtTransaction(
 
 
                 const to =
-                    normalizeAddress(
+                    normalizeTronAddress(
                         result?.to ||
                         event?.to ||
                         ""
@@ -1060,11 +1253,12 @@ async function verifyTronUsdtTransaction(
 
 
                 return (
+
                     from ===
-                    expectedFromNormalized &&
+                    expectedFromHex &&
 
                     to ===
-                    expectedToNormalized &&
+                    expectedToHex &&
 
                     value ===
                     expectedUnits.toString()
@@ -1076,8 +1270,44 @@ async function verifyTronUsdtTransaction(
     if (!transfer) {
 
         throw new Error(
-            "Transaction introuvable ou montant/adresse incorrect."
+            "Transaction introuvable ou montant/adresse/contrat incorrect."
         );
+    }
+
+
+    /*
+       Si le résultat de la transaction est disponible,
+       on vérifie aussi qu'il est SUCCESS.
+    */
+
+    const ret =
+        transactionData?.ret;
+
+
+    if (
+        Array.isArray(ret) &&
+        ret.length > 0
+    ) {
+
+        const contractRet =
+            String(
+                ret?.[0]?.contractRet ||
+                ret?.[0]?.result ||
+                ""
+            )
+                .toUpperCase();
+
+
+        if (
+            contractRet &&
+            contractRet !==
+                "SUCCESS"
+        ) {
+
+            throw new Error(
+                "La transaction TRON n'est pas réussie."
+            );
+        }
     }
 
 
@@ -1117,6 +1347,7 @@ async function connectDatabase() {
         await mongoose.connect(
             MONGO_URI,
             {
+
                 serverSelectionTimeoutMS:
                     10000
             }
@@ -1166,6 +1397,7 @@ function getTimerLeft() {
 async function getCurrentPlayers() {
 
     return Player.find({
+
         gameId:
             currentGameId,
 
@@ -1174,6 +1406,7 @@ async function getCurrentPlayers() {
 
         paymentVerified:
             true
+
     })
         .sort({
             score:
@@ -1187,8 +1420,10 @@ async function getTotalStakes() {
 
     const result =
         await Player.aggregate([
+
             {
                 $match: {
+
                     gameId:
                         currentGameId,
 
@@ -1202,6 +1437,7 @@ async function getTotalStakes() {
 
             {
                 $group: {
+
                     _id:
                         null,
 
@@ -1227,21 +1463,22 @@ async function broadcastLeaderboard() {
         await getCurrentPlayers();
 
 
-    io.emit(
-        "leaderboard",
+    const topFive =
         players.slice(
             0,
             5
-        )
+        );
+
+
+    io.emit(
+        "leaderboard",
+        topFive
     );
 
 
     io.emit(
         "leaderboard:update",
-        players.slice(
-            0,
-            5
-        )
+        topFive
     );
 
 
@@ -1300,21 +1537,6 @@ async function getMiltapeUsdtBalance() {
    BUILD + SIGN PAYOUT TRANSACTION
 ========================================================= */
 
-/*
-   IMPORTANT :
-
-   On construit d'abord la transaction.
-
-   TronWeb donne alors un txID.
-
-   On sauvegarde ce txID dans MongoDB AVANT
-   d'envoyer réellement la transaction.
-
-   Si Railway redémarre ensuite, le serveur
-   connaît déjà le TXID et ne crée pas un
-   deuxième transfert.
-*/
-
 async function buildSignedUsdtTransaction(
     destination,
     amount
@@ -1339,10 +1561,10 @@ async function buildSignedUsdtTransaction(
 
 
     if (
-        normalizeAddress(
+        normalizeTronAddress(
             cleanDestination
         ) ===
-        normalizeAddress(
+        normalizeTronAddress(
             MILTAPE_WALLET
         )
     ) {
@@ -1376,6 +1598,10 @@ async function buildSignedUsdtTransaction(
         );
 
 
+    /*
+       Vérification du solde USDT.
+    */
+
     const balance =
         await getMiltapeUsdtBalance();
 
@@ -1391,10 +1617,6 @@ async function buildSignedUsdtTransaction(
     }
 
 
-    /*
-       Adresse hex du wallet Miltape.
-    */
-
     const ownerAddress =
         tronWeb.address.toHex(
             MILTAPE_WALLET
@@ -1402,7 +1624,56 @@ async function buildSignedUsdtTransaction(
 
 
     /*
-       Construction TRC20 transfer.
+       ABI TRC20 transfer.
+    */
+
+    const funcABIV2 = {
+
+        name:
+            "transfer",
+
+        type:
+            "function",
+
+        inputs: [
+
+            {
+                name:
+                    "_to",
+
+                type:
+                    "address"
+            },
+
+            {
+                name:
+                    "_value",
+
+                type:
+                    "uint256"
+            }
+        ],
+
+        outputs: [
+
+            {
+                name:
+                    "",
+
+                type:
+                    "bool"
+            }
+        ],
+
+        stateMutability:
+            "nonpayable"
+    };
+
+
+    /*
+       Construction de la transaction.
+
+       Compatible TronWeb 6.x.
     */
 
     const transactionWrapper =
@@ -1415,53 +1686,19 @@ async function buildSignedUsdtTransaction(
                 "transfer(address,uint256)",
 
                 {
+
                     feeLimit:
                         PAYOUT_FEE_LIMIT,
 
                     callValue:
                         0,
 
-                    funcABIV2: {
-                        name:
-                            "transfer",
-
-                        type:
-                            "function",
-
-                        inputs: [
-                            {
-                                name:
-                                    "_to",
-
-                                type:
-                                    "address"
-                            },
-
-                            {
-                                name:
-                                    "_value",
-
-                                type:
-                                    "uint256"
-                            }
-                        ],
-
-                        outputs: [
-                            {
-                                name:
-                                    "",
-
-                                type:
-                                    "bool"
-                            }
-                        ],
-
-                        stateMutability:
-                            "nonpayable"
-                    },
+                    funcABIV2,
 
                     parametersV2: [
+
                         cleanDestination,
+
                         amountUnits.toString()
                     ]
                 },
@@ -1482,8 +1719,19 @@ async function buildSignedUsdtTransaction(
     }
 
 
+    if (
+        transactionWrapper?.result?.result ===
+        false
+    ) {
+
+        throw new Error(
+            "TRON a refusé la construction de la transaction."
+        );
+    }
+
+
     /*
-       Signature côté serveur.
+       Signature serveur.
     */
 
     const signedTransaction =
@@ -1500,11 +1748,14 @@ async function buildSignedUsdtTransaction(
             signedTransaction?.txID ||
             transactionWrapper?.transaction?.txID ||
             ""
-        ).toLowerCase();
+        )
+            .toLowerCase();
 
 
     if (
-        !/^[a-f0-9]{64}$/.test(txid)
+        !/^[a-f0-9]{64}$/.test(
+            txid
+        )
     ) {
 
         throw new Error(
@@ -1554,12 +1805,11 @@ async function broadcastSignedTransaction(
             result?.transaction?.txID ||
             expectedTxid ||
             ""
-        ).toLowerCase();
+        )
+            .toLowerCase();
 
 
-    if (
-        !returnedTxid
-    ) {
+    if (!returnedTxid) {
 
         throw new Error(
             "TRON n'a retourné aucun TXID."
@@ -1639,6 +1889,7 @@ async function waitForTransactionConfirmation(
                 ) {
 
                     return {
+
                         confirmed:
                             true,
 
@@ -1681,7 +1932,7 @@ async function waitForTransactionConfirmation(
 
 
     throw new Error(
-        "Confirmation TRON non obtenue dans le délai. Le TXID est conservé et aucun nouveau transfert ne sera créé automatiquement."
+        "Confirmation TRON non obtenue dans le délai. Le TXID est conservé."
     );
 }
 
@@ -1731,6 +1982,7 @@ async function checkExistingPayoutTransaction(
             ) {
 
                 return {
+
                     status:
                         "paid",
 
@@ -1745,6 +1997,7 @@ async function checkExistingPayoutTransaction(
             ) {
 
                 return {
+
                     status:
                         "failed",
 
@@ -1763,6 +2016,7 @@ async function checkExistingPayoutTransaction(
 
 
     return {
+
         status:
             "processing"
     };
@@ -1805,34 +2059,30 @@ async function createPayoutRecord(
 
     try {
 
-        const payout =
-            await Payout.create({
+        return await Payout.create({
 
-                payoutKey,
+            payoutKey,
 
-                gameId:
-                    currentGameId,
+            gameId:
+                currentGameId,
 
-                playerId:
-                    player.playerId,
+            playerId:
+                player.playerId,
 
-                playerName:
-                    player.playerName,
+            playerName:
+                player.playerName,
 
-                destination:
-                    player.cryptoAddress,
+            destination:
+                player.cryptoAddress,
 
-                amount,
+            amount,
 
-                amountUnits:
-                    amountUnits.toString(),
+            amountUnits:
+                amountUnits.toString(),
 
-                status:
-                    "pending"
-            });
-
-
-        return payout;
+            status:
+                "pending"
+        });
 
     } catch (error) {
 
@@ -1893,10 +2143,7 @@ async function payWinner(
 
 
     /*
-       SI UN TXID EXISTE :
-
-       On ne reconstruit JAMAIS une nouvelle
-       transaction.
+       TXID EXISTANT
     */
 
     if (
@@ -1904,7 +2151,7 @@ async function payWinner(
     ) {
 
         console.log(
-            "🔐 TXID existant détecté:",
+            "🔐 TXID existant:",
             payout.payoutKey,
             payout.txid
         );
@@ -1922,12 +2169,15 @@ async function payWinner(
         ) {
 
             await Payout.updateOne(
+
                 {
                     _id:
                         payout._id
                 },
+
                 {
                     $set: {
+
                         status:
                             "paid",
 
@@ -1942,6 +2192,7 @@ async function payWinner(
 
 
             await Player.updateOne(
+
                 {
                     playerId:
                         player.playerId,
@@ -1949,8 +2200,10 @@ async function payWinner(
                     gameId:
                         payout.gameId
                 },
+
                 {
                     $set: {
+
                         paid:
                             true,
 
@@ -1986,8 +2239,9 @@ async function payWinner(
 
 
         /*
-           TX toujours processing :
-           surtout aucun nouveau paiement.
+           Sécurité :
+           jamais de deuxième paiement
+           avec un nouveau TXID.
         */
 
         if (
@@ -1996,7 +2250,7 @@ async function payWinner(
         ) {
 
             console.log(
-                "🟡 Transaction existante toujours en attente:",
+                "🟡 TX existant toujours en attente:",
                 payout.txid
             );
 
@@ -2004,31 +2258,26 @@ async function payWinner(
         }
 
 
-        /*
-           Même si l'ancien TX est indiqué failed,
-           on garde le TXID.
-
-           Il faudra traiter manuellement plutôt
-           que risquer un double paiement.
-        */
-
         if (
             existing?.status ===
             "failed"
         ) {
 
             await Payout.updateOne(
+
                 {
                     _id:
                         payout._id
                 },
+
                 {
                     $set: {
+
                         status:
                             "failed",
 
                         error:
-                            "Transaction existante échouée. Nouveau paiement automatique bloqué par sécurité."
+                            "Transaction existante échouée. Nouveau paiement automatique bloqué."
                     }
                 }
             );
@@ -2042,14 +2291,12 @@ async function payWinner(
 
 
     /*
-       VERROU ATOMIQUE MONGODB.
-
-       Un seul worker peut passer
-       pending/failed → processing.
+       VERROU ATOMIQUE
     */
 
     const locked =
         await Payout.findOneAndUpdate(
+
             {
                 _id:
                     payout._id,
@@ -2064,8 +2311,10 @@ async function payWinner(
                 txid:
                     ""
             },
+
             {
                 $set: {
+
                     status:
                         "processing",
 
@@ -2076,6 +2325,7 @@ async function payWinner(
                         ""
                 }
             },
+
             {
                 new:
                     true
@@ -2091,11 +2341,8 @@ async function payWinner(
     }
 
 
-    /*
-       Synchroniser Player.
-    */
-
     await Player.updateOne(
+
         {
             playerId:
                 player.playerId,
@@ -2103,8 +2350,10 @@ async function payWinner(
             gameId:
                 locked.gameId
         },
+
         {
             $set: {
+
                 payoutStatus:
                     "processing",
 
@@ -2128,40 +2377,26 @@ async function payWinner(
 
         /*
            Construire + signer.
-
-           Le TXID est connu AVANT broadcast.
         */
 
         const prepared =
             await buildSignedUsdtTransaction(
+
                 locked.destination,
+
                 locked.amount
             );
 
 
         /*
-           ==================================================
-           ETAPE CRITIQUE
-           ==================================================
+           IMPORTANT :
 
-           On sauvegarde le TXID AVANT de diffuser.
-
-           Ainsi :
-
-           MongoDB :
-              processing
-              txid = ABC...
-
-           PUIS :
-              broadcast TRON
-
-           Si Railway tombe après broadcast,
-           le serveur retrouvera ABC...
-           et ne créera pas une nouvelle transaction.
+           Le TXID est enregistré AVANT broadcast.
         */
 
         const txidLock =
             await Payout.findOneAndUpdate(
+
                 {
                     _id:
                         locked._id,
@@ -2172,8 +2407,10 @@ async function payWinner(
                     txid:
                         ""
                 },
+
                 {
                     $set: {
+
                         txid:
                             prepared.txid,
 
@@ -2181,6 +2418,7 @@ async function payWinner(
                             ""
                     }
                 },
+
                 {
                     new:
                         true
@@ -2191,7 +2429,7 @@ async function payWinner(
         if (!txidLock) {
 
             console.warn(
-                "⚠️ Impossible de verrouiller le TXID. Aucun broadcast effectué."
+                "⚠️ Impossible de verrouiller le TXID."
             );
 
             return await Payout.findById(
@@ -2201,6 +2439,7 @@ async function payWinner(
 
 
         await Player.updateOne(
+
             {
                 playerId:
                     player.playerId,
@@ -2208,8 +2447,10 @@ async function payWinner(
                 gameId:
                     locked.gameId
             },
+
             {
                 $set: {
+
                     payoutTxid:
                         prepared.txid,
 
@@ -2221,36 +2462,35 @@ async function payWinner(
 
 
         /*
-           ==================================================
            BROADCAST
-           ==================================================
         */
 
         try {
 
             await broadcastSignedTransaction(
+
                 prepared.signedTransaction,
+
                 prepared.txid
             );
 
         } catch (broadcastError) {
 
             /*
-               IMPORTANT :
-
-               Même si le broadcast retourne une erreur,
-               le TXID est déjà enregistré.
-
-               On ne renvoie PAS une deuxième transaction.
+               TXID conservé.
+               Aucun nouveau transfert.
             */
 
             await Payout.updateOne(
+
                 {
                     _id:
                         locked._id
                 },
+
                 {
                     $set: {
+
                         status:
                             "processing",
 
@@ -2262,6 +2502,7 @@ async function payWinner(
 
 
             await Player.updateOne(
+
                 {
                     playerId:
                         player.playerId,
@@ -2269,8 +2510,10 @@ async function payWinner(
                     gameId:
                         locked.gameId
                 },
+
                 {
                     $set: {
+
                         payoutStatus:
                             "processing",
 
@@ -2306,7 +2549,7 @@ async function payWinner(
 
 
         /*
-           Confirmation.
+           CONFIRMATION
         */
 
         try {
@@ -2317,18 +2560,16 @@ async function payWinner(
 
         } catch (confirmationError) {
 
-            /*
-               TXID existe.
-               PAS DE NOUVEAU PAIEMENT.
-            */
-
             await Payout.updateOne(
+
                 {
                     _id:
                         locked._id
                 },
+
                 {
                     $set: {
+
                         status:
                             "processing",
 
@@ -2340,6 +2581,7 @@ async function payWinner(
 
 
             await Player.updateOne(
+
                 {
                     playerId:
                         player.playerId,
@@ -2347,8 +2589,10 @@ async function payWinner(
                     gameId:
                         locked.gameId
                 },
+
                 {
                     $set: {
+
                         payoutStatus:
                             "processing",
 
@@ -2378,12 +2622,11 @@ async function payWinner(
 
 
         /*
-           ==================================================
            PAYE
-           ==================================================
         */
 
         await Payout.updateOne(
+
             {
                 _id:
                     locked._id,
@@ -2391,8 +2634,10 @@ async function payWinner(
                 txid:
                     prepared.txid
             },
+
             {
                 $set: {
+
                     status:
                         "paid",
 
@@ -2407,6 +2652,7 @@ async function payWinner(
 
 
         await Player.updateOne(
+
             {
                 playerId:
                     player.playerId,
@@ -2414,8 +2660,10 @@ async function payWinner(
                 gameId:
                     locked.gameId
             },
+
             {
                 $set: {
+
                     paid:
                         true,
 
@@ -2446,6 +2694,7 @@ async function payWinner(
 
         console.log(
             "🟢 PAYOUT CONFIRME",
+
             {
                 gameId:
                     locked.gameId,
@@ -2474,26 +2723,9 @@ async function payWinner(
 
         console.error(
             "❌ PAYOUT ERROR:",
-            {
-                gameId:
-                    locked.gameId,
-
-                playerId:
-                    locked.playerId,
-
-                error:
-                    error.message
-            }
+            error.message
         );
 
-
-        /*
-           IMPORTANT :
-
-           Si le TXID est déjà enregistré,
-           on ne repasse PAS failed et on ne
-           permet PAS une nouvelle transaction.
-        */
 
         const current =
             await Payout.findById(
@@ -2501,17 +2733,25 @@ async function payWinner(
             );
 
 
+        /*
+           Si TXID existe :
+           ne jamais permettre un nouveau transfert.
+        */
+
         if (
             current?.txid
         ) {
 
             await Payout.updateOne(
+
                 {
                     _id:
                         locked._id
                 },
+
                 {
                     $set: {
+
                         status:
                             "processing",
 
@@ -2523,6 +2763,7 @@ async function payWinner(
 
 
             await Player.updateOne(
+
                 {
                     playerId:
                         player.playerId,
@@ -2530,8 +2771,10 @@ async function payWinner(
                     gameId:
                         locked.gameId
                 },
+
                 {
                     $set: {
+
                         payoutStatus:
                             "processing",
 
@@ -2549,20 +2792,16 @@ async function payWinner(
 
         } else {
 
-            /*
-               Aucun TXID = aucune transaction
-               connue comme diffusée.
-
-               On peut laisser failed.
-            */
-
             await Payout.updateOne(
+
                 {
                     _id:
                         locked._id
                 },
+
                 {
                     $set: {
+
                         status:
                             "failed",
 
@@ -2574,6 +2813,7 @@ async function payWinner(
 
 
             await Player.updateOne(
+
                 {
                     playerId:
                         player.playerId,
@@ -2581,8 +2821,10 @@ async function payWinner(
                     gameId:
                         locked.gameId
                 },
+
                 {
                     $set: {
+
                         payoutStatus:
                             "failed",
 
@@ -2644,6 +2886,7 @@ async function payTopFive(
 
             console.log(
                 "Payout résultat:",
+
                 {
                     playerId:
                         winner.playerId,
@@ -2738,6 +2981,7 @@ async function startNewGame() {
 
     io.emit(
         "newGame",
+
         {
             gameId:
                 currentGameId,
@@ -2750,6 +2994,7 @@ async function startNewGame() {
 
     io.emit(
         "game:new",
+
         {
             gameId:
                 currentGameId
@@ -2759,6 +3004,7 @@ async function startNewGame() {
 
     io.emit(
         "gameStart",
+
         {
             gameId:
                 currentGameId
@@ -2778,11 +3024,6 @@ async function startNewGame() {
 ========================================================= */
 
 async function finishGame() {
-
-    /*
-       Empêche plusieurs appels simultanés
-       du timer.
-    */
 
     if (
         !gameRunning ||
@@ -2830,12 +3071,15 @@ async function finishGame() {
         ) {
 
             await Player.updateOne(
+
                 {
                     _id:
                         player._id
                 },
+
                 {
                     $set: {
+
                         winner:
                             true,
 
@@ -2869,6 +3113,7 @@ async function finishGame() {
 
 
         await Player.updateMany(
+
             {
                 gameId:
                     currentGameId,
@@ -2881,8 +3126,10 @@ async function finishGame() {
                         winnerIds
                 }
             },
+
             {
                 $set: {
+
                     winner:
                         false,
 
@@ -2904,24 +3151,29 @@ async function finishGame() {
 
         const totalStakes =
             players.reduce(
+
                 (
                     total,
                     player
                 ) =>
+
                     total +
                     Number(
                         player.amount ||
                         0
                     ),
+
                 0
             );
 
 
         await Game.updateOne(
+
             {
                 gameId:
                     currentGameId
             },
+
             {
                 $set: {
 
@@ -2933,6 +3185,7 @@ async function finishGame() {
                     winners:
                         winners.map(
                             player => ({
+
                                 playerId:
                                     player.playerId,
 
@@ -2960,12 +3213,9 @@ async function finishGame() {
         );
 
 
-        /*
-           Annonce fin.
-        */
-
         io.emit(
             "gameOver",
+
             {
                 gameId:
                     currentGameId,
@@ -2981,10 +3231,6 @@ async function finishGame() {
         );
 
 
-        /*
-           PAYOUT AUTOMATIQUE TOP 5.
-        */
-
         await payTopFive(
             winners
         );
@@ -2999,14 +3245,8 @@ async function finishGame() {
 
     } finally {
 
-        /*
-           Nouvelle partie.
-
-           Même si un payout est processing,
-           le payout reste enregistré dans MongoDB.
-        */
-
         setTimeout(
+
             async () => {
 
                 try {
@@ -3025,6 +3265,7 @@ async function finishGame() {
                 }
 
             },
+
             NEW_GAME_DELAY
         );
     }
@@ -3036,6 +3277,7 @@ async function finishGame() {
 ========================================================= */
 
 setInterval(
+
     async () => {
 
         try {
@@ -3052,6 +3294,7 @@ setInterval(
 
             io.emit(
                 "timer:update",
+
                 {
                     gameId:
                         currentGameId,
@@ -3079,6 +3322,7 @@ setInterval(
         }
 
     },
+
     1000
 );
 
@@ -3100,7 +3344,16 @@ app.get(
                 "Miltape World Challenge Backend",
 
             status:
-                "online"
+                "online",
+
+            wallet:
+                MILTAPE_WALLET,
+
+            network:
+                "TRON MAINNET",
+
+            token:
+                "USDT TRC20"
         });
     }
 );
@@ -3130,7 +3383,10 @@ app.get(
             gameRunning,
 
             payoutWallet:
-                MILTAPE_WALLET
+                MILTAPE_WALLET,
+
+            usdtContract:
+                USDT_CONTRACT
         });
     }
 );
@@ -3166,7 +3422,10 @@ app.get(
                 online:
                     onlinePlayers.size,
 
-                totalStakes
+                totalStakes,
+
+                payoutWallet:
+                    MILTAPE_WALLET
             });
 
         } catch (error) {
@@ -3220,7 +3479,10 @@ app.get(
                 USDT_CONTRACT,
 
             decimals:
-                USDT_DECIMALS
+                USDT_DECIMALS,
+
+            network:
+                "TRON MAINNET"
         });
     }
 );
@@ -3300,7 +3562,8 @@ app.post(
                 txid,
                 amount,
                 cryptoAddress
-            } = req.body;
+            } =
+                req.body;
 
 
             if (
@@ -3347,7 +3610,7 @@ app.post(
 
 
             const normalizedAddress =
-                normalizeAddress(
+                normalizeTronAddress(
                     cleanAddress
                 );
 
@@ -3366,6 +3629,30 @@ app.post(
 
                         message:
                             "Adresse TRON invalide."
+                    });
+            }
+
+
+            /*
+               Interdire paiement vers notre
+               propre wallet.
+            */
+
+            if (
+                normalizedAddress ===
+                normalizeTronAddress(
+                    MILTAPE_WALLET
+                )
+            ) {
+
+                return res.status(400)
+                    .json({
+
+                        success:
+                            false,
+
+                        message:
+                            "Le wallet Miltape ne peut pas être utilisé comme wallet joueur."
                     });
             }
 
@@ -3402,6 +3689,7 @@ app.post(
 
             const existingPlayer =
                 await Player.findOne({
+
                     playerId:
                         cleanPlayerId
                 });
@@ -3412,7 +3700,7 @@ app.post(
             ) {
 
                 const storedAddress =
-                    normalizeAddress(
+                    normalizeTronAddress(
                         existingPlayer.cryptoAddress
                     );
 
@@ -3440,7 +3728,7 @@ app.post(
 
 
             /*
-               TXID déjà utilisé.
+               TXID propre.
             */
 
             const cleanTxid =
@@ -3451,8 +3739,31 @@ app.post(
                     .toLowerCase();
 
 
+            if (
+                !/^[a-f0-9]{64}$/.test(
+                    cleanTxid
+                )
+            ) {
+
+                return res.status(400)
+                    .json({
+
+                        success:
+                            false,
+
+                        message:
+                            "TXID TRON invalide."
+                    });
+            }
+
+
+            /*
+               TXID déjà utilisé.
+            */
+
             const existingPayment =
                 await Payment.findOne({
+
                     txid:
                         cleanTxid
                 });
@@ -3478,7 +3789,7 @@ app.post(
 
 
             /*
-               Vérification blockchain.
+               VERIFICATION BLOCKCHAIN
             */
 
             let blockchainPayment;
@@ -3488,8 +3799,11 @@ app.post(
 
                 blockchainPayment =
                     await verifyTronUsdtTransaction(
+
                         cleanTxid,
+
                         cleanAddress,
+
                         numericAmount
                     );
 
@@ -3515,11 +3829,11 @@ app.post(
 
 
             /*
-               Adresse réelle de l'expéditeur.
+               Adresse réelle expéditeur.
             */
 
             if (
-                normalizeAddress(
+                normalizeTronAddress(
                     blockchainPayment.from
                 ) !==
                 normalizedAddress
@@ -3541,14 +3855,14 @@ app.post(
 
 
             /*
-               Adresse réelle du destinataire.
+               Adresse destination.
             */
 
             if (
-                normalizeAddress(
+                normalizeTronAddress(
                     blockchainPayment.to
                 ) !==
-                normalizeAddress(
+                normalizeTronAddress(
                     MILTAPE_WALLET
                 )
             ) {
@@ -3566,8 +3880,7 @@ app.post(
 
 
             /*
-               Création du paiement avec protection
-               unique TXID.
+               CREATION PAYMENT
             */
 
             try {
@@ -3631,7 +3944,7 @@ app.post(
 
 
             /*
-               Joueur.
+               ENREGISTRER JOUEUR
             */
 
             let player;
@@ -3648,26 +3961,74 @@ app.post(
                 player.playerName =
                     cleanName;
 
+
                 player.cryptoAddress =
                     cleanAddress;
+
 
                 player.amount =
                     numericAmount;
 
+
                 player.gameId =
                     currentGameId;
+
 
                 player.paid =
                     true;
 
+
                 player.paymentVerified =
                     true;
+
 
                 player.txid =
                     cleanTxid;
 
+
                 player.joined =
                     true;
+
+
+                player.winner =
+                    false;
+
+
+                player.reward =
+                    0;
+
+
+                player.payoutStatus =
+                    "none";
+
+
+                player.payoutAmount =
+                    0;
+
+
+                player.payoutAddress =
+                    "";
+
+
+                player.payoutTxid =
+                    "";
+
+
+                player.payoutError =
+                    "";
+
+
+                player.score =
+                    0;
+
+
+                player.taps =
+                    0;
+
+
+                player.lastTapAt =
+                    null;
+
 
                 player.updatedAt =
                     new Date();
@@ -3732,7 +4093,10 @@ app.post(
                             "",
 
                         taps:
-                            0
+                            0,
+
+                        lastTapAt:
+                            null
                     });
             }
 
@@ -3742,7 +4106,9 @@ app.post(
 
             console.log(
                 "🟢 PAIEMENT ENTRANT VALIDÉ",
+
                 {
+
                     playerId:
                         cleanPlayerId,
 
@@ -3817,8 +4183,10 @@ app.get(
 
             const player =
                 await Player.findOne({
+
                     playerId:
                         req.params.playerId
+
                 })
                     .lean();
 
@@ -3883,6 +4251,7 @@ app.get(
                         String(
                             req.params.playerId
                         )
+
                 })
                     .lean();
 
@@ -3967,9 +4336,11 @@ app.get(
 
             const payouts =
                 await Payout.find({
+
                     gameId
                 })
                     .sort({
+
                         createdAt:
                             1
                     })
@@ -4029,6 +4400,7 @@ io.on(
 
         io.emit(
             "online:count",
+
             {
                 count:
                     onlinePlayers.size
@@ -4038,6 +4410,7 @@ io.on(
 
         socket.emit(
             "initGame",
+
             {
                 gameId:
                     currentGameId,
@@ -4069,7 +4442,6 @@ io.on(
                     const {
                         playerId,
                         playerName,
-                        amount,
                         cryptoAddress
                     } =
                         data || {};
@@ -4079,16 +4451,35 @@ io.on(
                         !playerId
                     ) {
 
+                        socket.emit(
+                            "joinError",
+
+                            {
+                                message:
+                                    "Identifiant joueur manquant."
+                            }
+                        );
+
                         return;
                     }
 
 
+                    const cleanPlayerId =
+                        String(
+                            playerId
+                        )
+                            .trim()
+                            .slice(
+                                0,
+                                100
+                            );
+
+
                     const player =
                         await Player.findOne({
+
                             playerId:
-                                String(
-                                    playerId
-                                )
+                                cleanPlayerId
                         });
 
 
@@ -4098,6 +4489,7 @@ io.on(
 
                         socket.emit(
                             "joinError",
+
                             {
                                 message:
                                     "Paiement requis avant de rejoindre la partie."
@@ -4109,16 +4501,17 @@ io.on(
 
 
                     if (
-                        normalizeAddress(
+                        normalizeTronAddress(
                             player.cryptoAddress
                         ) !==
-                        normalizeAddress(
+                        normalizeTronAddress(
                             cryptoAddress
                         )
                     ) {
 
                         socket.emit(
                             "joinError",
+
                             {
                                 code:
                                     "WALLET_ADDRESS_CHANGED",
@@ -4138,6 +4531,7 @@ io.on(
 
                         socket.emit(
                             "joinError",
+
                             {
                                 message:
                                     "Paiement non vérifié."
@@ -4149,15 +4543,15 @@ io.on(
 
 
                     /*
-                       Le joueur ne peut pas changer
-                       librement sa mise côté socket.
+                       Le joueur ne choisit jamais
+                       son montant côté socket.
 
-                       La valeur enregistrée en DB est
-                       la source de vérité.
+                       MongoDB = source de vérité.
                     */
 
                     player.gameId =
                         currentGameId;
+
 
                     player.playerName =
                         sanitizeName(
@@ -4165,13 +4559,16 @@ io.on(
                             player.playerName
                         );
 
+
                     player.amount =
                         Number(
                             player.amount
                         );
 
+
                     player.joined =
                         true;
+
 
                     player.updatedAt =
                         new Date();
@@ -4179,6 +4576,13 @@ io.on(
 
                     await player.save();
 
+
+                    /*
+                       IMPORTANT :
+
+                       L'identité du socket est maintenant
+                       verrouillée sur ce joueur.
+                    */
 
                     socket.data.playerId =
                         player.playerId;
@@ -4192,7 +4596,9 @@ io.on(
 
                     socket.emit(
                         "initGame",
+
                         {
+
                             gameId:
                                 currentGameId,
 
@@ -4227,7 +4633,7 @@ io.on(
 
         socket.on(
             "tap",
-            async data => {
+            async () => {
 
                 try {
 
@@ -4236,8 +4642,11 @@ io.on(
                     ) {
 
                         socket.emit(
+
                             "tapResult",
+
                             {
+
                                 success:
                                     false,
 
@@ -4250,9 +4659,18 @@ io.on(
                     }
 
 
+                    /*
+                       IMPORTANT :
+
+                       NE PLUS accepter playerId envoyé
+                       par le navigateur.
+
+                       On utilise uniquement l'identité
+                       enregistrée sur le socket.
+                    */
+
                     const playerId =
                         String(
-                            data?.playerId ||
                             socket.data.playerId ||
                             ""
                         );
@@ -4262,38 +4680,17 @@ io.on(
                         !playerId
                     ) {
 
-                        return;
-                    }
-
-
-                    const player =
-                        await Player.findOne({
-
-                            playerId,
-
-                            gameId:
-                                currentGameId,
-
-                            joined:
-                                true,
-
-                            paymentVerified:
-                                true
-                        });
-
-
-                    if (
-                        !player
-                    ) {
-
                         socket.emit(
+
                             "tapResult",
+
                             {
+
                                 success:
                                     false,
 
                                 message:
-                                    "Joueur non autorisé."
+                                    "Vous devez rejoindre la partie."
                             }
                         );
 
@@ -4302,63 +4699,119 @@ io.on(
 
 
                     const now =
-                        Date.now();
+                        new Date();
 
 
-                    const last =
-                        player.lastTapAt
-                            ? player.lastTapAt.getTime()
-                            : 0;
+                    const minimumLastTap =
+                        new Date(
+                            Date.now() -
+                            TAP_COOLDOWN_MS
+                        );
 
 
                     /*
-                       Anti-spam.
+                       UPDATE ATOMIQUE.
+
+                       Même si quelqu'un ouvre plusieurs
+                       sockets, MongoDB empêche les taps
+                       simultanés trop rapides.
                     */
 
+                    const updatedPlayer =
+                        await Player.findOneAndUpdate(
+
+                            {
+
+                                playerId,
+
+                                gameId:
+                                    currentGameId,
+
+                                joined:
+                                    true,
+
+                                paymentVerified:
+                                    true,
+
+                                $or: [
+
+                                    {
+                                        lastTapAt:
+                                            null
+                                    },
+
+                                    {
+                                        lastTapAt: {
+                                            $lte:
+                                                minimumLastTap
+                                        }
+                                    }
+                                ]
+                            },
+
+                            {
+
+                                $inc: {
+
+                                    score:
+                                        1,
+
+                                    taps:
+                                        1
+                                },
+
+                                $set: {
+
+                                    lastTapAt:
+                                        now,
+
+                                    updatedAt:
+                                        now
+                                }
+                            },
+
+                            {
+
+                                new:
+                                    true
+                            }
+                        );
+
+
                     if (
-                        now -
-                        last <
-                        40
+                        !updatedPlayer
                     ) {
 
                         return;
                     }
 
 
-                    player.score += 1;
-
-                    player.taps += 1;
-
-                    player.lastTapAt =
-                        new Date(now);
-
-                    player.updatedAt =
-                        new Date();
-
-
-                    await player.save();
-
-
                     socket.emit(
+
                         "tapResult",
+
                         {
+
                             success:
                                 true,
 
                             score:
-                                player.score
+                                updatedPlayer.score
                         }
                     );
 
 
                     socket.emit(
+
                         "score:update",
+
                         {
+
                             playerId:
-                                player.playerId,
+                                updatedPlayer.playerId,
 
                             score:
-                                player.score
+                                updatedPlayer.score
                         }
                     );
 
@@ -4401,18 +4854,20 @@ io.on(
                     }
 
 
+                    /*
+                       Ne pas accepter playerId
+                       venant du navigateur.
+                    */
+
                     const playerId =
                         String(
-                            data?.playerId ||
                             socket.data.playerId ||
                             ""
                         );
 
 
                     let name =
-                        sanitizeName(
-                            data?.playerName
-                        );
+                        "Anonyme";
 
 
                     if (
@@ -4421,7 +4876,9 @@ io.on(
 
                         const player =
                             await Player.findOne({
+
                                 playerId
+
                             })
                                 .lean();
 
@@ -4506,7 +4963,9 @@ io.on(
 
 
                 io.emit(
+
                     "online:count",
+
                     {
                         count:
                             onlinePlayers.size
@@ -4530,10 +4989,6 @@ io.on(
 
 async function restoreGame() {
 
-    /*
-       On récupère la dernière partie.
-    */
-
     const latestGame =
         await Game.findOne({})
             .sort({
@@ -4543,6 +4998,10 @@ async function restoreGame() {
             .lean();
 
 
+    /*
+       Aucune partie.
+    */
+
     if (
         !latestGame
     ) {
@@ -4550,8 +5009,10 @@ async function restoreGame() {
         currentGameId =
             1;
 
+
         gameStartedAt =
             new Date();
+
 
         gameEndsAt =
             new Date(
@@ -4559,8 +5020,13 @@ async function restoreGame() {
                 GAME_DURATION * 1000
             );
 
+
         gameRunning =
             true;
+
+
+        finishingGame =
+            false;
 
 
         await Game.create({
@@ -4579,13 +5045,18 @@ async function restoreGame() {
         });
 
 
+        console.log(
+            "🎮 Première partie créée:",
+            currentGameId
+        );
+
+
         return;
     }
 
 
     /*
-       Dernière partie terminée :
-       on crée une nouvelle.
+       Partie déjà terminée.
     */
 
     if (
@@ -4593,35 +5064,30 @@ async function restoreGame() {
     ) {
 
         currentGameId =
-            latestGame.gameId + 1;
+            latestGame.gameId;
+
 
         gameStartedAt =
-            new Date();
+            new Date(
+                latestGame.startedAt
+            );
+
 
         gameEndsAt =
             new Date(
-                Date.now() +
-                GAME_DURATION * 1000
+                latestGame.endsAt
             );
 
+
         gameRunning =
-            true;
+            false;
 
 
-        await Game.create({
+        finishingGame =
+            false;
 
-            gameId:
-                currentGameId,
 
-            startedAt:
-                gameStartedAt,
-
-            endsAt:
-                gameEndsAt,
-
-            finished:
-                false
-        });
+        await startNewGame();
 
 
         return;
@@ -4629,7 +5095,7 @@ async function restoreGame() {
 
 
     /*
-       Dernière partie encore active.
+       Restaurer la partie.
     */
 
     currentGameId =
@@ -4648,6 +5114,10 @@ async function restoreGame() {
         );
 
 
+    /*
+       Partie encore active.
+    */
+
     if (
         Date.now() <
         gameEndsAt.getTime()
@@ -4656,23 +5126,50 @@ async function restoreGame() {
         gameRunning =
             true;
 
-    } else {
 
-        gameRunning =
-            true;
+        finishingGame =
+            false;
+
+
+        console.log(
+            "🔄 Partie restaurée:",
+            currentGameId
+        );
+
+
+        console.log(
+            "⏱️ Temps restant:",
+            getTimerLeft(),
+            "secondes"
+        );
+
+
+        return;
     }
 
 
+    /*
+       Partie expirée pendant que Railway
+       était arrêté.
+
+       On la termine correctement.
+    */
+
     console.log(
-        "🔄 Partie restaurée:",
+        "⏰ Partie expirée pendant l'arrêt du serveur:",
         currentGameId
     );
 
-    console.log(
-        "⏱️ Temps restant:",
-        getTimerLeft(),
-        "secondes"
-    );
+
+    gameRunning =
+        true;
+
+
+    finishingGame =
+        false;
+
+
+    await finishGame();
 }
 
 
@@ -4689,47 +5186,64 @@ async function startServer() {
 
 
     server.listen(
+
         PORT,
+
         "0.0.0.0",
+
         () => {
 
             console.log(
                 "======================================"
             );
 
+
             console.log(
                 "🔥 MILTAPE BACKEND ONLINE"
             );
+
 
             console.log(
                 "PORT:",
                 PORT
             );
 
+
             console.log(
                 "GAME:",
                 currentGameId
             );
+
 
             console.log(
                 "WALLET:",
                 MILTAPE_WALLET
             );
 
+
             console.log(
                 "USDT:",
                 USDT_CONTRACT
             );
+
+
+            console.log(
+                "NETWORK:",
+                "TRON MAINNET"
+            );
+
 
             console.log(
                 "MIN BET:",
                 MINIMUM_BET
             );
 
+
             console.log(
                 "MAX BET:",
                 MAXIMUM_BET
             );
+
 
             console.log(
                 "DURATION:",
@@ -4737,17 +5251,26 @@ async function startServer() {
                 "seconds"
             );
 
+
             console.log(
                 "💰 AUTOMATIC PAYOUT: ENABLED"
             );
+
 
             console.log(
                 "🔐 DOUBLE PAYMENT PROTECTION: ENABLED"
             );
 
+
             console.log(
                 "🧾 TXID PRE-REGISTER: ENABLED"
             );
+
+
+            console.log(
+                "🛡️ ATOMIC TAP PROTECTION: ENABLED"
+            );
+
 
             console.log(
                 "======================================"
