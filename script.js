@@ -1,6 +1,7 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
    SCRIPT FRONTEND COMPLET
+   Version sécurité wallet
 ========================================================= */
 
 "use strict";
@@ -12,8 +13,7 @@
 const API_URL =
     "https://miltape-backend-production.up.railway.app";
 
-const SOCKET_URL =
-    API_URL;
+const SOCKET_URL = API_URL;
 
 const MILTAPE_WALLET =
     "TBZZ3nakc3w5SnJ1EZpvVWYWY3q1NffNPM";
@@ -25,10 +25,10 @@ const USDT_DECIMALS = 6;
 
 const MINIMUM_BET = 1;
 
-/* Mise maximale volontairement fixée à 1 million */
 const MAXIMUM_BET = 1000000;
 
 const GAME_DURATION = 600;
+
 
 /* =========================================================
    ETAT
@@ -78,6 +78,7 @@ let joinedGame = false;
 let paymentInProgress = false;
 
 let connectedWallet = "";
+
 
 /* =========================================================
    DOM
@@ -137,6 +138,7 @@ const globalTotalStakes =
 const tapMessage =
     $("tapMessage");
 
+
 /* =========================================================
    UTILITAIRES
 ========================================================= */
@@ -151,6 +153,7 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+
 function showMessage(message) {
 
     if (tapMessage) {
@@ -158,11 +161,13 @@ function showMessage(message) {
     }
 }
 
+
 function formatNumber(value) {
 
     return Number(value || 0)
         .toLocaleString("fr-FR");
 }
+
 
 function formatUsdt(value) {
 
@@ -175,6 +180,7 @@ function formatUsdt(value) {
             }
         );
 }
+
 
 function shortAddress(address) {
 
@@ -191,6 +197,7 @@ function shortAddress(address) {
     );
 }
 
+
 /* =========================================================
    MODAL
 ========================================================= */
@@ -203,6 +210,7 @@ function openModal() {
         "hidden";
 }
 
+
 function closeModal() {
 
     dynamicModal?.classList.remove("show");
@@ -211,10 +219,12 @@ function closeModal() {
         "";
 }
 
+
 closeDynamicModal?.addEventListener(
     "click",
     closeModal
 );
+
 
 dynamicModal?.addEventListener(
     "click",
@@ -224,14 +234,14 @@ dynamicModal?.addEventListener(
             event.target ===
             dynamicModal
         ) {
-
             closeModal();
         }
     }
 );
 
+
 /* =========================================================
-   VALIDATION ADRESSE TRON
+   VALIDATION TRON
 ========================================================= */
 
 function isValidTronAddress(address) {
@@ -239,6 +249,7 @@ function isValidTronAddress(address) {
     return /^T[1-9A-HJ-NP-Za-km-z]{33}$/
         .test(address);
 }
+
 
 /* =========================================================
    FORMULAIRE JOUER
@@ -258,8 +269,6 @@ function openChallengeForm() {
             flex-direction:column;
             gap:14px;
         ">
-
-            <!-- INFO -->
 
             <div style="
                 padding:13px;
@@ -298,8 +307,6 @@ function openChallengeForm() {
             </div>
 
 
-            <!-- MISE -->
-
             <label style="
                 color:#ffcc00;
                 font-size:13px;
@@ -332,8 +339,6 @@ function openChallengeForm() {
             >
 
 
-            <!-- NOM -->
-
             <label style="
                 color:#ffcc00;
                 font-size:13px;
@@ -364,8 +369,6 @@ function openChallengeForm() {
             >
 
 
-            <!-- WALLET -->
-
             <label style="
                 color:#ffcc00;
                 font-size:13px;
@@ -394,8 +397,6 @@ function openChallengeForm() {
             </div>
 
 
-            <!-- CONNECT TRONLINK -->
-
             <button
                 id="connectWalletBtn"
                 type="button"
@@ -419,8 +420,6 @@ function openChallengeForm() {
                 🔗 CONNECTER TRONLINK
             </button>
 
-
-            <!-- CONDITIONS -->
 
             <label style="
                 display:flex;
@@ -466,8 +465,6 @@ function openChallengeForm() {
             </label>
 
 
-            <!-- PAYER -->
-
             <button
                 id="payButton"
                 type="button"
@@ -494,8 +491,6 @@ function openChallengeForm() {
             </button>
 
 
-            <!-- STATUS -->
-
             <div
                 id="paymentStatus"
                 style="
@@ -511,6 +506,7 @@ function openChallengeForm() {
     `;
 
     openModal();
+
 
     const betInput =
         $("betInput");
@@ -535,7 +531,7 @@ function openChallengeForm() {
 
 
     /* =====================================================
-       UPDATE BOUTON
+       BOUTON
     ===================================================== */
 
     function updateButton() {
@@ -575,9 +571,7 @@ function openChallengeForm() {
             !enabled;
 
         payButton.style.opacity =
-            enabled
-                ? "1"
-                : ".45";
+            enabled ? "1" : ".45";
 
         payButton.style.cursor =
             enabled
@@ -597,14 +591,11 @@ function openChallengeForm() {
     }
 
 
-    /* =====================================================
-       CHANGEMENTS
-    ===================================================== */
-
     betInput.addEventListener(
         "input",
         updateButton
     );
+
 
     nameInput.addEventListener(
         "input",
@@ -616,6 +607,7 @@ function openChallengeForm() {
             updateButton();
         }
     );
+
 
     terms.addEventListener(
         "change",
@@ -657,13 +649,61 @@ function openChallengeForm() {
                             ❌ TronLink n'est pas détecté.
                             <br><br>
                             Ouvre Miltape directement
-                            dans le navigateur DApp de
-                            <strong>TronLink</strong>.
+                            dans le navigateur DApp
+                            de TronLink.
                         </span>
                         `;
 
                     return;
                 }
+
+
+                /* -----------------------------------------
+                   CONTRÔLE LOCAL ADRESSE
+                ----------------------------------------- */
+
+                if (
+                    playerAddress &&
+                    playerAddress.toLowerCase() !==
+                    wallet.toLowerCase()
+                ) {
+
+                    connectedWallet = "";
+
+                    walletBox.innerHTML =
+                        `
+                        <span style="
+                            color:#ff6b6b;
+                            font-weight:900;
+                        ">
+
+                            ⚠️ ADRESSE WALLET MODIFIÉE
+
+                        </span>
+
+                        <br><br>
+
+                        <span style="color:#aaa;">
+
+                            Cette adresse est différente
+                            de ton adresse enregistrée.
+
+                        </span>
+
+                        <br><br>
+
+                        <span style="color:#ffcc00;">
+
+                            🔒 Paiement bloqué.
+
+                        </span>
+                        `;
+
+                    updateButton();
+
+                    return;
+                }
+
 
                 connectedWallet =
                     wallet;
@@ -676,9 +716,13 @@ function openChallengeForm() {
                     wallet
                 );
 
+
                 walletBox.innerHTML =
                     `
-                    <span style="color:#2ecc71;font-weight:900;">
+                    <span style="
+                        color:#2ecc71;
+                        font-weight:900;
+                    ">
                         🟢 WALLET CONNECTÉ
                     </span>
 
@@ -689,11 +733,13 @@ function openChallengeForm() {
                     </span>
                     `;
 
+
                 connectButton.textContent =
                     "🟢 TRONLINK CONNECTÉ";
 
                 connectButton.style.background =
                     "linear-gradient(135deg,#159957,#2ecc71)";
+
 
                 updateButton();
 
@@ -716,9 +762,7 @@ function openChallengeForm() {
                 connectButton.disabled =
                     false;
 
-                if (
-                    connectedWallet
-                ) {
+                if (connectedWallet) {
 
                     connectButton.textContent =
                         "🟢 TRONLINK CONNECTÉ";
@@ -751,6 +795,7 @@ function openChallengeForm() {
             const name =
                 nameInput.value.trim();
 
+
             if (
                 !Number.isFinite(amount) ||
                 amount < MINIMUM_BET ||
@@ -771,9 +816,8 @@ function openChallengeForm() {
                 return;
             }
 
-            if (
-                name.length < 2
-            ) {
+
+            if (name.length < 2) {
 
                 paymentStatus.innerHTML =
                     `
@@ -784,6 +828,7 @@ function openChallengeForm() {
 
                 return;
             }
+
 
             if (
                 !isValidTronAddress(
@@ -801,6 +846,7 @@ function openChallengeForm() {
                 return;
             }
 
+
             if (!terms.checked) {
 
                 paymentStatus.innerHTML =
@@ -814,13 +860,20 @@ function openChallengeForm() {
             }
 
 
-            /* Sauvegarde */
+            /* -----------------------------------------
+               VERROUILLAGE ADRESSE AVANT PAIEMENT
+            ----------------------------------------- */
+
+            const walletBeforePayment =
+                connectedWallet;
+
 
             playerName =
                 name;
 
             playerAddress =
-                connectedWallet;
+                walletBeforePayment;
+
 
             localStorage.setItem(
                 "miltape_player_name",
@@ -842,6 +895,7 @@ function openChallengeForm() {
             payButton.style.opacity =
                 ".5";
 
+
             paymentStatus.innerHTML =
                 `
                 <span style="color:#ffcc00">
@@ -853,7 +907,7 @@ function openChallengeForm() {
             try {
 
                 /* -----------------------------------------
-                   Vérifier wallet
+                   RELECTURE WALLET
                 ----------------------------------------- */
 
                 const wallet =
@@ -866,27 +920,39 @@ function openChallengeForm() {
                     );
                 }
 
+
+                /* -----------------------------------------
+                   CONTRÔLE ANTI-CHANGEMENT
+                ----------------------------------------- */
+
+                if (
+                    wallet.toLowerCase() !==
+                    walletBeforePayment.toLowerCase()
+                ) {
+
+                    throw new Error(
+                        "WALLET_ADDRESS_CHANGED"
+                    );
+                }
+
+
+                if (
+                    playerAddress.toLowerCase() !==
+                    wallet.toLowerCase()
+                ) {
+
+                    throw new Error(
+                        "WALLET_ADDRESS_CHANGED"
+                    );
+                }
+
+
                 connectedWallet =
                     wallet;
 
 
                 /* -----------------------------------------
-                   Vérifier adresse
-                ----------------------------------------- */
-
-                if (
-                    wallet.toLowerCase() !==
-                    connectedWallet.toLowerCase()
-                ) {
-
-                    throw new Error(
-                        "WALLET_ADDRESS_MISMATCH"
-                    );
-                }
-
-
-                /* -----------------------------------------
-                   Paiement
+                   PAIEMENT
                 ----------------------------------------- */
 
                 paymentStatus.innerHTML =
@@ -898,10 +964,13 @@ function openChallengeForm() {
                     </span>
                     `;
 
+
                 const txid =
                     await sendUsdtPayment(
-                        amount
+                        amount,
+                        wallet
                     );
+
 
                 if (!txid) {
 
@@ -912,7 +981,7 @@ function openChallengeForm() {
 
 
                 /* -----------------------------------------
-                   Vérification backend
+                   VERIFICATION BACKEND
                 ----------------------------------------- */
 
                 paymentStatus.innerHTML =
@@ -920,9 +989,10 @@ function openChallengeForm() {
                     <span style="color:#ffcc00">
                         ⏳ Paiement envoyé.
                         <br>
-                        Vérification...
+                        Vérification blockchain...
                     </span>
                     `;
+
 
                 const result =
                     await verifyPayment(
@@ -946,7 +1016,7 @@ function openChallengeForm() {
 
 
                 /* -----------------------------------------
-                   JOUEUR VALIDÉ
+                   VALIDATION
                 ----------------------------------------- */
 
                 selectedBet =
@@ -955,17 +1025,21 @@ function openChallengeForm() {
                 joinedGame =
                     true;
 
+
                 localStorage.setItem(
                     "miltape_joined",
                     "true"
                 );
 
+
                 displayBet.textContent =
                     "$" +
                     formatUsdt(amount);
 
+
                 tapButton.disabled =
                     false;
+
 
                 showMessage(
                     "🟢 PAIEMENT VALIDÉ — TU PEUX JOUER !"
@@ -1001,6 +1075,7 @@ function openChallengeForm() {
                     error
                 );
 
+
                 if (
                     error.message ===
                     "TRONLINK_NOT_DETECTED"
@@ -1011,13 +1086,6 @@ function openChallengeForm() {
                         <span style="color:#ff6b6b">
 
                             ❌ TronLink n'est pas détecté.
-
-                            <br><br>
-
-                            Ouvre Miltape dans le
-                            <strong>
-                                navigateur DApp de TronLink
-                            </strong>.
 
                         </span>
                         `;
@@ -1030,7 +1098,49 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ Transaction annulée dans TronLink.
+
+                            ❌ Transaction annulée.
+
+                        </span>
+                        `;
+
+                } else if (
+                    error.message ===
+                    "WALLET_ADDRESS_CHANGED"
+                ) {
+
+                    paymentStatus.innerHTML =
+                        `
+                        <span style="
+                            color:#ff6b6b;
+                            font-weight:900;
+                        ">
+
+                            ⚠️ ADRESSE WALLET MODIFIÉE
+
+                            <br><br>
+
+                            🔒 Paiement bloqué par sécurité.
+
+                            <br><br>
+
+                            L'adresse utilisée doit rester
+                            identique pendant toute la procédure.
+
+                        </span>
+                        `;
+
+                } else if (
+                    error.message ===
+                    "PAYMENT_ALREADY_USED"
+                ) {
+
+                    paymentStatus.innerHTML =
+                        `
+                        <span style="color:#ff6b6b">
+
+                            ❌ Cette transaction a déjà été utilisée.
+
                         </span>
                         `;
 
@@ -1043,7 +1153,7 @@ function openChallengeForm() {
                             ❌
                             ${escapeHtml(
                                 error.message ||
-                                "Paiement annulé."
+                                "Paiement refusé."
                             )}
 
                         </span>
@@ -1062,7 +1172,7 @@ function openChallengeForm() {
 
 
     /* =====================================================
-       DÉTECTION AUTOMATIQUE
+       DETECTION AUTOMATIQUE
     ===================================================== */
 
     setTimeout(
@@ -1077,16 +1187,47 @@ function openChallengeForm() {
                     return;
                 }
 
+
+                if (
+                    playerAddress &&
+                    playerAddress.toLowerCase() !==
+                    wallet.toLowerCase()
+                ) {
+
+                    walletBox.innerHTML =
+                        `
+                        <span style="
+                            color:#ff6b6b;
+                            font-weight:900;
+                        ">
+                            ⚠️ ADRESSE DIFFÉRENTE
+                        </span>
+
+                        <br><br>
+
+                        <span style="color:#aaa;">
+                            L'adresse TronLink actuelle
+                            ne correspond pas à ton wallet
+                            enregistré.
+                        </span>
+                        `;
+
+                    return;
+                }
+
+
                 connectedWallet =
                     wallet;
 
                 playerAddress =
                     wallet;
 
+
                 localStorage.setItem(
                     "miltape_player_address",
                     wallet
                 );
+
 
                 walletBox.innerHTML =
                     `
@@ -1106,11 +1247,14 @@ function openChallengeForm() {
                     </span>
                     `;
 
+
                 connectButton.textContent =
                     "🟢 TRONLINK CONNECTÉ";
 
+
                 connectButton.style.background =
                     "linear-gradient(135deg,#159957,#2ecc71)";
+
 
                 updateButton();
 
@@ -1130,17 +1274,14 @@ function openChallengeForm() {
     updateButton();
 }
 
+
 /* =========================================================
-   TRONLINK — DÉTECTION
+   TRONLINK DETECTION
 ========================================================= */
 
 async function getTronLinkAddress() {
 
     try {
-
-        /* -----------------------------------------------
-           Méthode 1 : tronWeb injecté
-        ----------------------------------------------- */
 
         if (
             window.tronWeb &&
@@ -1154,10 +1295,6 @@ async function getTronLinkAddress() {
         }
 
 
-        /* -----------------------------------------------
-           Méthode 2 : tronLink.tronWeb
-        ----------------------------------------------- */
-
         if (
             window.tronLink &&
             window.tronLink.tronWeb &&
@@ -1169,25 +1306,6 @@ async function getTronLinkAddress() {
                 .tronWeb
                 .defaultAddress
                 .base58;
-        }
-
-
-        /* -----------------------------------------------
-           Méthode 3 : tronLink.ready
-        ----------------------------------------------- */
-
-        if (
-            window.tronWeb &&
-            window.tronWeb.ready &&
-            window.tronWeb.defaultAddress
-        ) {
-
-            return (
-                window.tronWeb
-                    .defaultAddress
-                    .base58 ||
-                ""
-            );
         }
 
 
@@ -1204,27 +1322,31 @@ async function getTronLinkAddress() {
     }
 }
 
+
 /* =========================================================
-   TRONLINK — CONNEXION
+   TRONLINK CONNEXION
 ========================================================= */
 
 async function connectTronLink() {
 
-    /* Première tentative */
-
     let address =
         await getTronLinkAddress();
 
+
     if (address) {
 
-        connectedWallet =
-            address;
+        if (
+            !isValidTronAddress(address)
+        ) {
+
+            throw new Error(
+                "INVALID_TRON_ADDRESS"
+            );
+        }
 
         return address;
     }
 
-
-    /* Demande à TronLink */
 
     if (
         window.tronLink &&
@@ -1234,12 +1356,10 @@ async function connectTronLink() {
 
         try {
 
-            await window.tronLink.request(
-                {
-                    method:
-                        "tron_requestAccounts"
-                }
-            );
+            await window.tronLink.request({
+                method:
+                    "tron_requestAccounts"
+            });
 
         } catch (error) {
 
@@ -1265,8 +1385,6 @@ async function connectTronLink() {
     }
 
 
-    /* Attendre injection */
-
     for (
         let i = 0;
         i < 20;
@@ -1281,13 +1399,21 @@ async function connectTronLink() {
                 )
         );
 
+
         address =
             await getTronLinkAddress();
 
+
         if (address) {
 
-            connectedWallet =
-                address;
+            if (
+                !isValidTronAddress(address)
+            ) {
+
+                throw new Error(
+                    "INVALID_TRON_ADDRESS"
+                );
+            }
 
             return address;
         }
@@ -1297,17 +1423,20 @@ async function connectTronLink() {
     return "";
 }
 
+
 /* =========================================================
    PAIEMENT USDT TRC20
 ========================================================= */
 
 async function sendUsdtPayment(
-    amount
+    amount,
+    expectedWallet
 ) {
 
     const tron =
         window.tronWeb ||
         window.tronLink?.tronWeb;
+
 
     if (!tron) {
 
@@ -1320,6 +1449,7 @@ async function sendUsdtPayment(
     const from =
         tron.defaultAddress?.base58;
 
+
     if (!from) {
 
         throw new Error(
@@ -1328,28 +1458,20 @@ async function sendUsdtPayment(
     }
 
 
-    /* Vérification réseau */
+    /* IMPORTANT :
+       Vérification finale avant signature */
 
-    try {
+    if (
+        expectedWallet &&
+        from.toLowerCase() !==
+        expectedWallet.toLowerCase()
+    ) {
 
-        const network =
-            await tron.trx.getChainParameters();
-
-        console.log(
-            "TRON network:",
-            network
-        );
-
-    } catch (error) {
-
-        console.warn(
-            "Lecture réseau TRON impossible:",
-            error
+        throw new Error(
+            "WALLET_ADDRESS_CHANGED"
         );
     }
 
-
-    /* Conversion USDT */
 
     const units =
         Math.round(
@@ -1359,6 +1481,7 @@ async function sendUsdtPayment(
                 USDT_DECIMALS
             )
         );
+
 
     if (
         !Number.isSafeInteger(units) ||
@@ -1371,8 +1494,6 @@ async function sendUsdtPayment(
     }
 
 
-    /* Contrat USDT */
-
     const contract =
         await tron
             .contract()
@@ -1381,9 +1502,8 @@ async function sendUsdtPayment(
             );
 
 
-    /* Transfer USDT */
-
     let txid;
+
 
     try {
 
@@ -1393,12 +1513,12 @@ async function sendUsdtPayment(
                     MILTAPE_WALLET,
                     units
                 )
-                .send(
-                    {
-                        feeLimit:
-                            100000000
-                    }
-                );
+                .send({
+                    feeLimit:
+                        100000000,
+                    shouldPollResponse:
+                        true
+                });
 
     } catch (error) {
 
@@ -1406,6 +1526,7 @@ async function sendUsdtPayment(
             "USDT transfer:",
             error
         );
+
 
         if (
             error?.code === 4001 ||
@@ -1419,7 +1540,18 @@ async function sendUsdtPayment(
             );
         }
 
+
         throw error;
+    }
+
+
+    if (
+        typeof txid === "object" &&
+        txid?.txid
+    ) {
+
+        txid =
+            txid.txid;
     }
 
 
@@ -1436,11 +1568,13 @@ async function sendUsdtPayment(
         txid
     );
 
+
     return txid;
 }
 
+
 /* =========================================================
-   VÉRIFICATION BACKEND
+   VERIFICATION BACKEND
 ========================================================= */
 
 async function verifyPayment(
@@ -1465,22 +1599,19 @@ async function verifyPayment(
                 },
 
                 body:
-                    JSON.stringify(
-                        {
+                    JSON.stringify({
+                        playerId,
 
-                            playerId,
+                        playerName:
+                            name,
 
-                            playerName:
-                                name,
+                        txid,
 
-                            txid,
+                        amount,
 
-                            amount,
-
-                            cryptoAddress:
-                                address
-                        }
-                    )
+                        cryptoAddress:
+                            address
+                    })
             }
         );
 
@@ -1504,6 +1635,7 @@ async function verifyPayment(
 
     return data;
 }
+
 
 /* =========================================================
    SOCKET.IO
@@ -1544,6 +1676,7 @@ function connectSocket() {
                 "🟢 Socket connecté"
             );
 
+
             if (joinedGame) {
 
                 joinSocketGame();
@@ -1572,29 +1705,32 @@ function connectSocket() {
                 return;
             }
 
+
             gameId =
                 Number(
                     data.gameId ||
                     gameId
                 );
 
+
             gameRunning =
                 Boolean(
                     data.gameRunning
                 );
 
+
             updateTimer(
                 data.timerLeft
             );
+
 
             renderLeaderboard(
                 data.leaderboard ||
                 []
             );
 
-            if (
-                data.joined
-            ) {
+
+            if (data.joined) {
 
                 joinedGame =
                     true;
@@ -1623,6 +1759,7 @@ function connectSocket() {
                 return;
             }
 
+
             if (
                 data.gameId !==
                 undefined
@@ -1633,6 +1770,7 @@ function connectSocket() {
                         data.gameId
                     );
             }
+
 
             updateTimer(
                 data.timeLeft
@@ -1678,9 +1816,7 @@ function connectSocket() {
         "onlineCount",
         count => {
 
-            updateOnline(
-                count
-            );
+            updateOnline(count);
         }
     );
 
@@ -1700,9 +1836,7 @@ function connectSocket() {
         "totalStakes",
         total => {
 
-            updateTotalStakes(
-                total
-            );
+            updateTotalStakes(total);
         }
     );
 
@@ -1776,13 +1910,13 @@ function connectSocket() {
             tapButton.disabled =
                 true;
 
+
             showMessage(
                 "🏁 PARTIE TERMINÉE — ATTENDS LA PROCHAINE !"
             );
 
-            if (
-                data?.winners
-            ) {
+
+            if (data?.winners) {
 
                 renderLeaderboard(
                     data.winners
@@ -1802,19 +1936,24 @@ function connectSocket() {
                     gameId + 1
                 );
 
+
             tapCount =
                 0;
 
+
             updateTapDisplay();
+
 
             gameRunning =
                 true;
+
 
             if (joinedGame) {
 
                 tapButton.disabled =
                     false;
             }
+
 
             showMessage(
                 "🎮 NOUVELLE PARTIE !"
@@ -1846,8 +1985,10 @@ function connectSocket() {
                     gameId
                 );
 
+
             gameRunning =
                 true;
+
 
             if (joinedGame) {
 
@@ -1891,8 +2032,9 @@ function connectSocket() {
     );
 }
 
+
 /* =========================================================
-   JOIN
+   JOIN GAME
 ========================================================= */
 
 function joinSocketGame() {
@@ -1904,6 +2046,7 @@ function joinSocketGame() {
 
         return;
     }
+
 
     socket.emit(
         "join",
@@ -1923,6 +2066,7 @@ function joinSocketGame() {
     );
 }
 
+
 /* =========================================================
    TAP
 ========================================================= */
@@ -1932,6 +2076,7 @@ tapButton?.addEventListener(
     event => {
 
         event.preventDefault();
+
 
         if (
             tapButton.disabled ||
@@ -1943,6 +2088,7 @@ tapButton?.addEventListener(
             return;
         }
 
+
         socket.emit(
             "tap",
             {
@@ -1950,9 +2096,11 @@ tapButton?.addEventListener(
             }
         );
 
+
         tapButton.classList.add(
             "tap-active"
         );
+
 
         setTimeout(
             () => {
@@ -1966,6 +2114,7 @@ tapButton?.addEventListener(
         );
     }
 );
+
 
 /* =========================================================
    TAP DISPLAY
@@ -1981,6 +2130,7 @@ function updateTapDisplay() {
             );
     }
 
+
     if (tapButtonCount) {
 
         tapButtonCount.textContent =
@@ -1989,6 +2139,7 @@ function updateTapDisplay() {
             );
     }
 }
+
 
 /* =========================================================
    TIMER
@@ -2004,13 +2155,16 @@ function updateTimer(
             Number(seconds || 0)
         );
 
+
     const minutes =
         Math.floor(
             value / 60
         );
 
+
     const secs =
         value % 60;
+
 
     if (timerElement) {
 
@@ -2023,6 +2177,7 @@ function updateTimer(
     }
 }
 
+
 /* =========================================================
    ONLINE
 ========================================================= */
@@ -2034,6 +2189,7 @@ function updateOnline(
     if (!onlineCount) {
         return;
     }
+
 
     onlineCount.innerHTML = `
 
@@ -2056,6 +2212,7 @@ function updateOnline(
     `;
 }
 
+
 /* =========================================================
    TOTAL STAKES
 ========================================================= */
@@ -2068,10 +2225,12 @@ function updateTotalStakes(
         return;
     }
 
+
     globalTotalStakes.textContent =
         "$" +
         formatUsdt(total);
 }
+
 
 /* =========================================================
    LEADERBOARD
@@ -2084,6 +2243,7 @@ function renderLeaderboard(
     if (!leaderboardList) {
         return;
     }
+
 
     if (
         !Array.isArray(players) ||
@@ -2114,6 +2274,7 @@ function renderLeaderboard(
                         "🏅",
                         "🏅"
                     ];
+
 
                     return `
 
@@ -2193,6 +2354,7 @@ function renderLeaderboard(
             .join("");
 }
 
+
 /* =========================================================
    CHAT
 ========================================================= */
@@ -2205,12 +2367,15 @@ function renderChatHistory(
         return;
     }
 
+
     chatMessages.innerHTML = "";
+
 
     messages.forEach(
         addChatMessage
     );
 }
+
 
 function addChatMessage(
     data
@@ -2224,13 +2389,16 @@ function addChatMessage(
         return;
     }
 
+
     const div =
         document.createElement(
             "div"
         );
 
+
     div.className =
         "chat-message";
+
 
     div.innerHTML = `
         <strong>
@@ -2246,9 +2414,11 @@ function addChatMessage(
         )}
     `;
 
+
     chatMessages.appendChild(
         div
     );
+
 
     while (
         chatMessages.children.length >
@@ -2260,14 +2430,17 @@ function addChatMessage(
         );
     }
 
+
     chatMessages.scrollTop =
         chatMessages.scrollHeight;
 }
+
 
 function sendChat() {
 
     const message =
         chatInput?.value.trim();
+
 
     if (
         !message ||
@@ -2277,6 +2450,7 @@ function sendChat() {
 
         return;
     }
+
 
     socket.emit(
         "chatMessage",
@@ -2292,13 +2466,16 @@ function sendChat() {
         }
     );
 
+
     chatInput.value = "";
 }
+
 
 chatSend?.addEventListener(
     "click",
     sendChat
 );
+
 
 chatInput?.addEventListener(
     "keydown",
@@ -2316,6 +2493,7 @@ chatInput?.addEventListener(
     }
 );
 
+
 /* =========================================================
    BOUTON JOUER
 ========================================================= */
@@ -2324,6 +2502,7 @@ enterChallenge?.addEventListener(
     "click",
     openChallengeForm
 );
+
 
 /* =========================================================
    MENU
@@ -2341,6 +2520,7 @@ const menuOverlay =
 const closeMenu =
     $("closeMenu");
 
+
 function openSideMenu() {
 
     sideMenu?.classList.add(
@@ -2351,6 +2531,7 @@ function openSideMenu() {
         "show"
     );
 }
+
 
 function closeSideMenu() {
 
@@ -2363,20 +2544,24 @@ function closeSideMenu() {
     );
 }
 
+
 menuButton?.addEventListener(
     "click",
     openSideMenu
 );
+
 
 closeMenu?.addEventListener(
     "click",
     closeSideMenu
 );
 
+
 menuOverlay?.addEventListener(
     "click",
     closeSideMenu
 );
+
 
 /* =========================================================
    MENU CHAT
@@ -2388,14 +2573,13 @@ $("menuChatBtn")?.addEventListener(
 
         closeSideMenu();
 
-        $("globalChat")?.scrollIntoView(
-            {
-                behavior:
-                    "smooth"
-            }
-        );
+        $("globalChat")?.scrollIntoView({
+            behavior:
+                "smooth"
+        });
     }
 );
+
 
 /* =========================================================
    MENU RULES
@@ -2409,6 +2593,7 @@ $("menuRulesBtn")?.addEventListener(
 
         dynamicModalTitle.textContent =
             "📜 Règles Miltape";
+
 
         dynamicModalBody.innerHTML = `
 
@@ -2438,9 +2623,11 @@ $("menuRulesBtn")?.addEventListener(
 
         `;
 
+
         openModal();
     }
 );
+
 
 /* =========================================================
    MENU PARTIES
@@ -2459,6 +2646,7 @@ $("menuGamesBtn")?.addEventListener(
     }
 );
 
+
 /* =========================================================
    MENU CLASSEMENT
 ========================================================= */
@@ -2473,14 +2661,13 @@ $("menuRankingsBtn")?.addEventListener(
             .querySelector(
                 ".leaderboard"
             )
-            ?.scrollIntoView(
-                {
-                    behavior:
-                        "smooth"
-                }
-            );
+            ?.scrollIntoView({
+                behavior:
+                    "smooth"
+            });
     }
 );
+
 
 /* =========================================================
    STATUS BACKEND
@@ -2496,12 +2683,15 @@ async function loadInitialStatus() {
                 "/api/status"
             );
 
+
         const data =
             await response.json();
+
 
         if (!data.success) {
             return;
         }
+
 
         gameId =
             Number(
@@ -2509,22 +2699,27 @@ async function loadInitialStatus() {
                 gameId
             );
 
+
         gameRunning =
             Boolean(
                 data.gameRunning
             );
 
+
         updateTimer(
             data.timerLeft
         );
+
 
         updateOnline(
             data.online || 0
         );
 
+
         updateTotalStakes(
             data.totalStakes || 0
         );
+
 
         console.log(
             "Miltape status:",
@@ -2539,6 +2734,7 @@ async function loadInitialStatus() {
         );
     }
 }
+
 
 /* =========================================================
    INIT
