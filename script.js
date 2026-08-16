@@ -41,27 +41,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ========================================================= */
 
     let socket = null;
-
     let socketReady = false;
-
     let localTaps = 0;
-
     let currentTimer = GAME_DURATION;
-
     let timerInterval = null;
-
     let timerRunning = false;
-
     let deferredPrompt = null;
-
     let tapLocked = false;
-
     let gameJoined = false;
-
     let selectedBet = 0;
-
     let lastSentMessage = "";
-
     let lastSentMessageTime = 0;
 
 
@@ -130,59 +119,37 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("tapCount");
 
     const tapButtonCountDisplay =
-        document.getElementById(
-            "tapButtonCount"
-        );
+        document.getElementById("tapButtonCount");
 
     const tapMessage =
-        document.getElementById(
-            "tapMessage"
-        );
+        document.getElementById("tapMessage");
 
     const onlineCount =
-        document.getElementById(
-            "onlineCount"
-        );
+        document.getElementById("onlineCount");
 
     const leaderboardList =
-        document.getElementById(
-            "leaderboardList"
-        );
+        document.getElementById("leaderboardList");
 
     const chatMessages =
-        document.getElementById(
-            "chatMessages"
-        );
+        document.getElementById("chatMessages");
 
     const chatInput =
-        document.getElementById(
-            "chatInput"
-        );
+        document.getElementById("chatInput");
 
     const chatSend =
-        document.getElementById(
-            "chatSend"
-        );
+        document.getElementById("chatSend");
 
     const displayBet =
-        document.getElementById(
-            "displayBet"
-        );
+        document.getElementById("displayBet");
 
     const globalTotalStakes =
-        document.getElementById(
-            "globalTotalStakes"
-        );
+        document.getElementById("globalTotalStakes");
 
     const walletButton =
-        document.getElementById(
-            "walletButton"
-        );
+        document.getElementById("walletButton");
 
     const enterChallenge =
-        document.getElementById(
-            "enterChallenge"
-        );
+        document.getElementById("enterChallenge");
 
 
     /* =========================================================
@@ -212,9 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         const minutes =
-            Math.floor(
-                seconds / 60
-            );
+            Math.floor(seconds / 60);
 
 
         const secs =
@@ -263,14 +228,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (tapCountDisplay) {
-            tapCountDisplay.textContent =
-                score;
+            tapCountDisplay.textContent = score;
         }
 
 
         if (tapButtonCountDisplay) {
-            tapButtonCountDisplay.textContent =
-                score;
+            tapButtonCountDisplay.textContent = score;
         }
 
 
@@ -281,8 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (headerScore) {
-            headerScore.textContent =
-                score;
+            headerScore.textContent = score;
         }
 
 
@@ -293,8 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (statTaps) {
-            statTaps.textContent =
-                score;
+            statTaps.textContent = score;
         }
 
 
@@ -305,8 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (statTotal) {
-            statTotal.textContent =
-                score;
+            statTotal.textContent = score;
         }
     }
 
@@ -318,8 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function setMessage(text) {
 
         if (tapMessage) {
-            tapMessage.textContent =
-                text;
+            tapMessage.textContent = text;
         }
     }
 
@@ -396,8 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     stopLocalTimer();
 
                     if (tapButton) {
-                        tapButton.disabled =
-                            true;
+                        tapButton.disabled = true;
                     }
 
                     gameJoined = false;
@@ -422,7 +380,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         timerInterval = null;
-
         timerRunning = false;
     }
 
@@ -472,9 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        if (
-            selectedBet <= 0
-        ) {
+        if (selectedBet <= 0) {
 
             openBetModal();
 
@@ -732,14 +687,9 @@ document.addEventListener("DOMContentLoaded", () => {
             return {
 
                 playerId: "",
-
-                playerName:
-                    "Anonyme",
-
+                playerName: "Anonyme",
                 message: msg,
-
                 id: "",
-
                 timestamp: ""
             };
         }
@@ -860,13 +810,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         const contentKey =
-            normalizeChatText(
-                sender
-            ) +
+            normalizeChatText(sender) +
             "|" +
-            normalizeChatText(
-                text
-            );
+            normalizeChatText(text);
 
 
         const now =
@@ -1014,9 +960,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = {
 
             playerId,
-
             playerName,
-
             message: text
         };
 
@@ -1090,7 +1034,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 socketReady = true;
 
-
                 console.log(
                     "🟢 SOCKET CONNECTÉ :",
                     socket.id
@@ -1102,19 +1045,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                socket.emit(
-                    "getGame"
-                );
-
-
-                socket.emit(
-                    "getLeaderboard"
-                );
-
-
-                socket.emit(
-                    "getChatHistory"
-                );
+                socket.emit("getGame");
+                socket.emit("getLeaderboard");
+                socket.emit("getChatHistory");
 
 
                 if (
@@ -1171,8 +1104,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* CHAT */
-
         socket.on(
             "chatMessage",
             receiveChatMessage
@@ -1189,9 +1120,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "chatHistory",
             messages => {
 
-                if (
-                    Array.isArray(messages)
-                ) {
+                if (Array.isArray(messages)) {
 
                     messages.forEach(
                         receiveChatMessage
@@ -1205,9 +1134,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "chat:history",
             messages => {
 
-                if (
-                    Array.isArray(messages)
-                ) {
+                if (Array.isArray(messages)) {
 
                     messages.forEach(
                         receiveChatMessage
@@ -1217,12 +1144,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* TIMER */
-
         function handleServerTimer(data) {
 
-            let value =
-                data;
+            let value = data;
 
 
             if (
@@ -1251,14 +1175,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            updateTimerDisplay(
-                seconds
-            );
+            updateTimerDisplay(seconds);
 
 
-            if (
-                seconds <= 0
-            ) {
+            if (seconds <= 0) {
 
                 stopLocalTimer();
 
@@ -1266,8 +1186,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapButton) {
-                    tapButton.disabled =
-                        true;
+                    tapButton.disabled = true;
                 }
 
 
@@ -1286,33 +1205,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        socket.on(
-            "timer",
-            handleServerTimer
-        );
+        socket.on("timer", handleServerTimer);
+        socket.on("gameTimer", handleServerTimer);
+        socket.on("timer:update", handleServerTimer);
+        socket.on("game:timer", handleServerTimer);
+        socket.on("countdown", handleServerTimer);
 
-        socket.on(
-            "gameTimer",
-            handleServerTimer
-        );
-
-        socket.on(
-            "timer:update",
-            handleServerTimer
-        );
-
-        socket.on(
-            "game:timer",
-            handleServerTimer
-        );
-
-        socket.on(
-            "countdown",
-            handleServerTimer
-        );
-
-
-        /* NOUVELLE PARTIE */
 
         function handleNewGame(data) {
 
@@ -1322,10 +1220,7 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
 
-            updateScoreDisplays(
-                0
-            );
-
+            updateScoreDisplays(0);
 
             gameJoined = false;
 
@@ -1359,14 +1254,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            resetLocalTimer(
-                duration
-            );
+            resetLocalTimer(duration);
 
 
             if (tapButton) {
-                tapButton.disabled =
-                    true;
+                tapButton.disabled = true;
             }
 
 
@@ -1376,24 +1268,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        socket.on(
-            "newGame",
-            handleNewGame
-        );
+        socket.on("newGame", handleNewGame);
+        socket.on("game:new", handleNewGame);
 
-
-        socket.on(
-            "game:new",
-            handleNewGame
-        );
-
-
-        /* ONLINE */
 
         function updateOnlineCount(data) {
 
-            let count =
-                data;
+            let count = data;
 
 
             if (
@@ -1408,8 +1289,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            count =
-                Number(count);
+            count = Number(count);
 
 
             if (
@@ -1440,25 +1320,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        socket.on(
-            "onlineCount",
-            updateOnlineCount
-        );
+        socket.on("onlineCount", updateOnlineCount);
+        socket.on("online:count", updateOnlineCount);
+        socket.on("online", updateOnlineCount);
 
-
-        socket.on(
-            "online:count",
-            updateOnlineCount
-        );
-
-
-        socket.on(
-            "online",
-            updateOnlineCount
-        );
-
-
-        /* LEADERBOARD */
 
         function updateLeaderboard(players) {
 
@@ -1499,7 +1364,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const sorted =
                 [...players].sort(
-                    (a,b) => {
+                    (a, b) => {
 
                         const scoreA =
                             Number(
@@ -1519,17 +1384,16 @@ document.addEventListener("DOMContentLoaded", () => {
                             );
 
 
-                        return scoreB -
-                               scoreA;
+                        return scoreB - scoreA;
                     }
                 );
 
 
             leaderboardList.innerHTML =
                 sorted
-                    .slice(0,5)
+                    .slice(0, 5)
                     .map(
-                        (p,index) => {
+                        (p, index) => {
 
                             const id =
                                 p.playerId ??
@@ -1606,8 +1470,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* TAP */
-
         function handleTapResult(data) {
 
             if (!data) {
@@ -1659,20 +1521,15 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* SCORE */
-
         socket.on(
             "score:update",
             handleTapResult
         );
 
 
-        /* TOTAL STAKES */
-
         function updateTotalStakes(data) {
 
-            let total =
-                data;
+            let total = data;
 
 
             if (
@@ -1710,8 +1567,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* JOIN SUCCESS */
-
         socket.on(
             "joinSuccess",
             data => {
@@ -1733,8 +1588,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapButton) {
-                    tapButton.disabled =
-                        false;
+                    tapButton.disabled = false;
                 }
             }
         );
@@ -1756,14 +1610,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapButton) {
-                    tapButton.disabled =
-                        false;
+                    tapButton.disabled = false;
                 }
             }
         );
 
-
-        /* JOIN ERROR */
 
         socket.on(
             "joinError",
@@ -1773,8 +1624,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapButton) {
-                    tapButton.disabled =
-                        true;
+                    tapButton.disabled = true;
                 }
 
 
@@ -1794,8 +1644,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapButton) {
-                    tapButton.disabled =
-                        true;
+                    tapButton.disabled = true;
                 }
 
 
@@ -1899,9 +1748,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             () => {
 
-                if (
-                    !gameJoined
-                ) {
+                if (!gameJoined) {
 
                     setMessage(
                         "⚡ Appuie d'abord sur JOUER"
@@ -1911,9 +1758,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                if (
-                    currentTimer <= 0
-                ) {
+                if (currentTimer <= 0) {
                     return;
                 }
 
@@ -1955,8 +1800,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 setTimeout(
                     () => {
 
-                        tapLocked =
-                            false;
+                        tapLocked = false;
 
                         tapButton.classList.remove(
                             "tap-active"
@@ -1989,34 +1833,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       💰 WALLET
+       💰 WALLET — CORRIGÉ
     ========================================================= */
 
-    async function handleWalletAction() {
+    function isTronLinkAvailable() {
+
+        return !!(
+            window.tronWeb &&
+            window.tronWeb.ready &&
+            window.tronWeb.defaultAddress &&
+            window.tronWeb.defaultAddress.base58
+        );
+    }
+
+
+    function getConnectedTronAddress() {
+
+        if (!isTronLinkAvailable()) {
+            return "";
+        }
+
+
+        return window.tronWeb
+            .defaultAddress
+            .base58 || "";
+    }
+
+
+    async function copyTronAddress() {
 
         try {
-
-            if (
-                window.tronWeb &&
-                window.tronWeb.ready &&
-                window.tronWeb.defaultAddress
-            ) {
-
-                const address =
-                    window.tronWeb
-                        .defaultAddress
-                        .base58;
-
-
-                alert(
-                    "✅ Portefeuille connecté :\n\n" +
-                    address
-                );
-
-
-                return;
-            }
-
 
             if (
                 navigator.clipboard &&
@@ -2027,26 +1873,58 @@ document.addEventListener("DOMContentLoaded", () => {
                     USDT_TRON_ADDRESS
                 );
 
-
-                alert(
-                    "📋 Adresse USDT TRC20 copiée !\n\n" +
-                    USDT_TRON_ADDRESS
-                );
-
-
             } else {
 
-                alert(
-                    "Adresse USDT TRC20 :\n\n" +
-                    USDT_TRON_ADDRESS
+                const textarea =
+                    document.createElement(
+                        "textarea"
+                    );
+
+
+                textarea.value =
+                    USDT_TRON_ADDRESS;
+
+
+                textarea.style.position =
+                    "fixed";
+
+                textarea.style.opacity =
+                    "0";
+
+
+                document.body.appendChild(
+                    textarea
                 );
+
+
+                textarea.focus();
+                textarea.select();
+
+
+                document.execCommand(
+                    "copy"
+                );
+
+
+                textarea.remove();
             }
+
+
+            setMessage(
+                "📋 Adresse USDT TRC20 copiée !"
+            );
+
+
+            alert(
+                "📋 Adresse USDT TRC20 copiée !\n\n" +
+                USDT_TRON_ADDRESS
+            );
 
 
         } catch (error) {
 
             console.error(
-                "❌ WALLET",
+                "❌ COPIE ADRESSE",
                 error
             );
 
@@ -2059,9 +1937,249 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+    function openWalletChoice() {
+
+        const connectedAddress =
+            getConnectedTronAddress();
+
+
+        const connectedHTML =
+            connectedAddress
+                ? `
+                    <div
+                        style="
+                            padding:12px;
+                            margin-bottom:12px;
+                            border-radius:12px;
+                            background:rgba(46,204,113,.10);
+                            border:1px solid rgba(46,204,113,.35);
+                            color:#fff;
+                            font-size:12px;
+                            word-break:break-all;
+                        "
+                    >
+
+                        <strong
+                            style="
+                                color:#2ecc71;
+                            "
+                        >
+                            🟢 WALLET CONNECTÉ
+                        </strong>
+
+                        <br><br>
+
+                        ${escapeHTML(
+                            connectedAddress
+                        )}
+
+                    </div>
+                `
+                : "";
+
+
+        const html = `
+
+            ${connectedHTML}
+
+            <p
+                style="
+                    color:#ddd;
+                    line-height:1.5;
+                "
+            >
+                Choisis ton moyen de paiement
+                <strong>USDT TRC20</strong>.
+            </p>
+
+
+            <button
+                type="button"
+                id="miltapeTronLink"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-top:8px;
+                    border-radius:12px;
+                    border:1px solid #ffcc00;
+                    background:linear-gradient(
+                        135deg,
+                        #ffcc00,
+                        #ff8a00
+                    );
+                    color:#16051f;
+                    font-weight:900;
+                    font-size:14px;
+                    cursor:pointer;
+                "
+            >
+                🔗 TRONLINK
+            </button>
+
+
+            <button
+                type="button"
+                id="miltapeTrustWallet"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-top:10px;
+                    border-radius:12px;
+                    border:1px solid #6c63ff;
+                    background:#1a0828;
+                    color:#fff;
+                    font-weight:900;
+                    font-size:14px;
+                    cursor:pointer;
+                "
+            >
+                💙 TRUST WALLET
+            </button>
+
+
+            <button
+                type="button"
+                id="miltapeCopyAddress"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-top:10px;
+                    border-radius:12px;
+                    border:1px solid #2ecc71;
+                    background:#10251b;
+                    color:#2ecc71;
+                    font-weight:900;
+                    font-size:14px;
+                    cursor:pointer;
+                "
+            >
+                📋 COPIER L'ADRESSE TRC20
+            </button>
+
+
+            <div
+                style="
+                    margin-top:15px;
+                    padding:12px;
+                    border-radius:10px;
+                    background:rgba(255,255,255,.04);
+                    color:#aaa;
+                    font-size:11px;
+                    word-break:break-all;
+                "
+            >
+
+                <strong
+                    style="color:#ffcc00;"
+                >
+                    Adresse de paiement :
+                </strong>
+
+                <br><br>
+
+                ${USDT_TRON_ADDRESS}
+
+            </div>
+
+        `;
+
+
+        openModal(
+            "💰 WALLET & PAIEMENT",
+            html
+        );
+
+
+        document
+            .getElementById(
+                "miltapeTronLink"
+            )
+            ?.addEventListener(
+                "click",
+                async () => {
+
+                    if (
+                        isTronLinkAvailable()
+                    ) {
+
+                        const address =
+                            getConnectedTronAddress();
+
+
+                        alert(
+                            "🟢 TRONLINK EST CONNECTÉ !\n\n" +
+                            address
+                        );
+
+
+                        return;
+                    }
+
+
+                    closeModal();
+
+
+                    setTimeout(
+                        () => {
+
+                            alert(
+                                "⚠️ TronLink n'est pas détecté.\n\n" +
+                                "Ouvre Miltape depuis le navigateur intégré de ton wallet TRON ou installe/ouvre TronLink, puis reviens sur Miltape."
+                            );
+
+                        },
+                        100
+                    );
+                }
+            );
+
+
+        document
+            .getElementById(
+                "miltapeTrustWallet"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    closeModal();
+
+
+                    const trustAppURL =
+                        "https://link.trustwallet.com/open_url?coin=195&url=" +
+                        encodeURIComponent(
+                            window.location.href
+                        );
+
+
+                    window.location.href =
+                        trustAppURL;
+                }
+            );
+
+
+        document
+            .getElementById(
+                "miltapeCopyAddress"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    copyTronAddress();
+                }
+            );
+    }
+
+
     walletButton?.addEventListener(
         "click",
-        handleWalletAction
+        event => {
+
+            event.preventDefault();
+
+            openWalletChoice();
+        }
     );
 
 
@@ -2441,7 +2559,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             deferredPrompt = null;
 
-
             installButton.classList.remove(
                 "show"
             );
@@ -2453,10 +2570,7 @@ document.addEventListener("DOMContentLoaded", () => {
        ETAT INITIAL
     ========================================================= */
 
-    updateScoreDisplays(
-        0
-    );
-
+    updateScoreDisplays(0);
 
     updateTimerDisplay(
         GAME_DURATION
@@ -2465,8 +2579,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (tapButton) {
 
-        tapButton.disabled =
-            true;
+        tapButton.disabled = true;
     }
 
 
