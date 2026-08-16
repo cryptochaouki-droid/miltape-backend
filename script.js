@@ -15,11 +15,12 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("🚀 Initialisation du script frontend Miltape sur :", BACKEND_URL);
 
     /* =========================================================
-       CONNEXION WEBSOCKET
+       CONNEXION WEBSOCKET (STABILISÉE)
     ========================================================= */
     const socket = io(BACKEND_URL, {
+        transports: ["websocket", "polling"],
         reconnection: true,
-        reconnectionAttempts: Infinity,
+        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         timeout: 20000
     });
@@ -217,7 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeMenuModal);
 
     /* =========================================================
-       3. ÉVÉNEMENTS WEBSOCKET (CORRIGÉS)
+       3. ÉVÉNEMENTS WEBSOCKET
     ========================================================= */
     socket.on("connect", () => {
         console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
@@ -274,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderLeaderboard(players);
     });
 
-    // Reception des messages Chat
+    // Réception des messages Chat
     socket.on("chatMessage", (msg) => {
         if (!chatMessages) return;
 
