@@ -1,13 +1,19 @@
-Document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     "use strict";
 
     /* =========================================================
        CONFIGURATION ET CONSTANTES
     ========================================================= */
-    const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
+    // Détection automatique : Si tu es sur PC en local, pointe vers localhost:3000.
+    // Sinon, utilise l'URL distante (ou remplace-la par ta nouvelle URL de serveur si tu en as une).
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const BACKEND_URL = isLocalhost 
+        ? "http://localhost:3000" 
+        : "https://miltape-backend-production.up.railway.app";
+
     const USDT_TRON_ADDRESS = "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
 
-    console.log("🚀 Initialisation du script frontend Miltape...");
+    console.log("🚀 Initialisation du script frontend Miltape sur :", BACKEND_URL);
 
     /* =========================================================
        CONNEXION WEBSOCKET
