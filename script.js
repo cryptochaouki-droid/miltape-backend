@@ -1,26 +1,20 @@
-document.addEventListener("DOMContentLoaded", () => {
+Document.addEventListener("DOMContentLoaded", () => {
     "use strict";
 
     /* =========================================================
        CONFIGURATION ET CONSTANTES
     ========================================================= */
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const BACKEND_URL = isLocalhost 
-        ? "http://localhost:3000" 
-        : "https://miltape-backend-production.up.railway.app";
-
+    const BACKEND_URL = "https://miltape-backend-production.up.railway.app";
     const USDT_TRON_ADDRESS = "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
-    const USDT_CONTRACT_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-    console.log("🚀 Initialisation du script frontend Miltape sur :", BACKEND_URL);
+    console.log("🚀 Initialisation du script frontend Miltape...");
 
     /* =========================================================
-       CONNEXION WEBSOCKET (STABILISÉE)
+       CONNEXION WEBSOCKET
     ========================================================= */
     const socket = io(BACKEND_URL, {
-        transports: ["websocket", "polling"],
         reconnection: true,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
         timeout: 20000
     });
@@ -84,13 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (statTotal) statTotal.textContent = value;
     }
 
-    function formatTime(seconds) {
-        const totalSecs = Math.max(0, Number(seconds) || 0);
-        const minutes = Math.floor(totalSecs / 60);
-        const secs = totalSecs % 60;
-        return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    }
-
     function escapeHTML(str) {
         return String(str)
             .replace(/&/g, "&amp;")
@@ -100,87 +87,18 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/'/g, "&#039;");
     }
 
-    function renderLeaderboard(players) {
-        if (!leaderboardList) return;
-
-        if (!players || players.length === 0) {
-            leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
-            return;
-        }
-
-        leaderboardList.innerHTML = players.map((p, index) => {
-            const isMe = p._id === playerId || p.playerId === playerId;
-            const displayName = escapeHTML(p.playerName || "Anonyme");
-            const score = p.score || 0;
-
-            return `
-                <div class="leaderboard-item">
-                    <div class="rank">#${index + 1}</div>
-                    <div class="player-name">${displayName} ${isMe ? "<strong>(toi)</strong>" : ""}</div>
-                    <div class="player-score">${score} ⚡</div>
-                </div>
-            `;
-        }).join("");
-    }
-
     /* =========================================================
-       1. GESTION DU WALLET & PAIEMENT (MOBILE / DESKTOP)
+       1. GESTION DES BOUTONS WALLET & PAIEMENT
     ========================================================= */
     const handleWalletAction = async () => {
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-        // 1. Si TronLink extension PC / In-App Wallet est disponible
         if (window.tronWeb && window.tronWeb.ready) {
             try {
                 const userAddress = window.tronWeb.defaultAddress.base58;
-                const contract = await window.tronWeb.contract().at(USDT_CONTRACT_ADDRESS);
-                const amountUnits = 1 * 1000000; // 1 USDT (6 décimales)
-
-                const txid = await contract.transfer(USDT_TRON_ADDRESS, amountUnits).send();
-                alert("Paiement envoyé ! TXID: " + txid);
-
-                // Envoi de la transaction au backend pour validation
-                await fetch(`${BACKEND_URL}/api/verify-payment`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        playerId: playerId,
-                        playerName: playerName,
-                        txid: txid,
-                        amount: 1
-                    })
-                });
-
+                alert("Portefeuille connecté : " + userAddress);
             } catch (err) {
-                console.error("Erreur de paiement TronWeb:", err);
-                alert("Erreur lors de la transaction : " + (err.message || err));
+                console.error("Erreur de connexion wallet:", err);
             }
-        } 
-        // 2. Si l'utilisateur est sur téléphone portable sans extension
-        else if (isMobile) {
-            const tronlinkParams = {
-                url: window.location.href,
-                action: "open",
-                protocol: "TronLink",
-                version: "1.0"
-            };
-            const deepLink = `tronlinkprotocol://pull.activity?param=${encodeURIComponent(JSON.stringify(tronlinkParams))}`;
-            
-            // Tente d'ouvrir TronLink App
-            window.location.href = deepLink;
-
-            // Secours : si TronLink n'est pas installé, copier l'adresse au bout de 1,5s
-            setTimeout(async () => {
-                try {
-                    await navigator.clipboard.writeText(USDT_TRON_ADDRESS);
-                    alert("Ouverture de TronLink... Si l'application ne s'ouvre pas, l'adresse USDT a été copiée dans votre presse-papier :\n\n" + USDT_TRON_ADDRESS);
-                } catch (e) {
-                    alert("Adresse USDT TRC20 :\n" + USDT_TRON_ADDRESS);
-                }
-            }, 1500);
-        } 
-        // 3. Navigateur PC classique sans Wallet
-        else {
+        } else {
             try {
                 await navigator.clipboard.writeText(USDT_TRON_ADDRESS);
                 alert(
@@ -194,7 +112,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    if (walletConnectBtn) walletConnectBtn.addEventListener("click", handleWalletAction);
+    if (walletConnectBtn) {
+        walletConnectBtn.addEventListener("click", handleWalletAction);
+    }
+
     if (addressCopyBox) {
         addressCopyBox.style.cursor = "pointer";
         addressCopyBox.addEventListener("click", handleWalletAction);
@@ -218,64 +139,72 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeMenuModal);
 
     /* =========================================================
-       3. ÉVÉNEMENTS WEBSOCKET
+       3. WEBSOCKET EVENTS
     ========================================================= */
     socket.on("connect", () => {
         console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
-        if (tapMessage) tapMessage.textContent = "🔥 À TOI DE TAPPER !";
-        
-        // Connexion à la salle de jeu
-        socket.emit("joinGame", { playerId, playerName });
+        if (tapMessage) {
+            tapMessage.textContent = "🔥 À TOI DE TAPPER !";
+        }
+        socket.emit("join", { playerId, playerName });
     });
 
     socket.on("connect_error", (err) => {
         console.error("❌ Erreur de connexion WebSocket :", err);
-        if (tapMessage) tapMessage.textContent = "🔴 Connexion au serveur perdue...";
-    });
-
-    // Initialisation au chargement de la page
-    socket.on("initGame", (data) => {
-        if (data) {
-            if (timerDisplay && data.timerLeft !== undefined) {
-                timerDisplay.textContent = formatTime(data.timerLeft);
-            }
-            if (data.leaderboard) {
-                renderLeaderboard(data.leaderboard);
-            }
+        if (tapMessage) {
+            tapMessage.textContent = "🔴 Connexion au serveur perdue...";
         }
     });
 
-    // Mise à jour du Minuteur (Chrono)
-    socket.on("timerUpdate", (data) => {
-        if (timerDisplay && data && data.timerLeft !== undefined) {
-            timerDisplay.textContent = formatTime(data.timerLeft);
+    // Reinitialisation lors d'une nouvelle partie
+    socket.on("newGame", () => {
+        localTaps = 0;
+        updateScoreDisplays(0);
+        if (tapMessage) tapMessage.textContent = "🔥 NOUVELLE PARTIE !";
+    });
+
+    // Minuteur
+    socket.on("timer", (timeLeft) => {
+        if (timerDisplay) {
+            const seconds = Math.max(0, Number(timeLeft) || 0);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
         }
-    });
-
-    // Fin de partie et début d'une nouvelle
-    socket.on("gameOver", (data) => {
-        if (tapMessage) tapMessage.textContent = "🏁 FIN DE LA PARTIE !";
-        localTaps = 0;
-        updateScoreDisplays(0);
-    });
-
-    socket.on("gameStart", () => {
-        localTaps = 0;
-        updateScoreDisplays(0);
-        if (tapMessage) tapMessage.textContent = "🔥 NOUVELLE PARTIE COMMENCÉE !";
     });
 
     // Compteur de joueurs en ligne
     socket.on("onlineCount", (count) => {
-        if (onlineCount) onlineCount.textContent = count;
+        if (onlineCount) {
+            onlineCount.textContent = count;
+        }
     });
 
-    // Classement / Leaderboard
-    socket.on("leaderboardUpdate", (players) => {
-        renderLeaderboard(players);
+    // Classement
+    socket.on("leaderboard", (players) => {
+        if (!leaderboardList) return;
+
+        if (!players || players.length === 0) {
+            leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
+            return;
+        }
+
+        leaderboardList.innerHTML = players.map((p, index) => {
+            const isMe = p._id === playerId || p.playerId === playerId;
+            const displayName = escapeHTML(p.playerName || "Anonyme");
+            const score = p.score || 0;
+
+            return `
+                <div class="leaderboard-item">
+                    <div class="rank">#${index + 1}</div>
+                    <div class="player-name">${displayName} ${isMe ? "<strong>(toi)</strong>" : ""}</div>
+                    <div class="player-score">${score} ⚡</div>
+                </div>
+            `;
+        }).join("");
     });
 
-    // Réception des messages Chat
+    // Chat en direct
     socket.on("chatMessage", (msg) => {
         if (!chatMessages) return;
 
@@ -297,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     });
 
-    // Envoi d'un message Chat
+    // Envoi de message
     if (chatSend && chatInput) {
         const sendMsg = () => {
             const text = chatInput.value.trim();
@@ -320,22 +249,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================================================
-       4. ACTION DE TAP
+       4. BOUTON DE TAP PRINCIPAL
     ========================================================= */
     if (tapButton) {
         tapButton.addEventListener("click", () => {
             localTaps++;
+
+            // Mise à jour visuelle des scores
             updateScoreDisplays(localTaps);
 
+            // Animation visuelle
             tapButton.classList.add("tap-active");
             setTimeout(() => tapButton.classList.remove("tap-active"), 80);
 
-            socket.emit("tap", { playerId, playerName });
+            // Envoi au serveur
+            socket.emit("tap", { playerId, playerName, taps: 1 });
         });
     }
 
     /* =========================================================
-       5. CONDITIONS D'UTILISATION
+       5. GESTION DU COLLAPSE (CONDITIONS D'UTILISATION)
     ========================================================= */
     window.toggleConditions = function() {
         const content = document.getElementById("conditions-content");
@@ -344,7 +277,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!content || !arrow) return;
         
         content.classList.toggle("open");
-        arrow.style.transform = content.classList.contains("open") ? "rotate(180deg)" : "rotate(0deg)";
+        
+        if (content.classList.contains("open")) {
+            arrow.style.transform = "rotate(180deg)";
+        } else {
+            arrow.style.transform = "rotate(0deg)";
+        }
     };
 });
-redonne le code complet
