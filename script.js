@@ -658,10 +658,6 @@ function openChallengeForm() {
                 }
 
 
-                /* -----------------------------------------
-                   CONTRÔLE LOCAL ADRESSE
-                ----------------------------------------- */
-
                 if (
                     playerAddress &&
                     playerAddress.toLowerCase() !==
@@ -860,10 +856,6 @@ function openChallengeForm() {
             }
 
 
-            /* -----------------------------------------
-               VERROUILLAGE ADRESSE AVANT PAIEMENT
-            ----------------------------------------- */
-
             const walletBeforePayment =
                 connectedWallet;
 
@@ -906,10 +898,6 @@ function openChallengeForm() {
 
             try {
 
-                /* -----------------------------------------
-                   RELECTURE WALLET
-                ----------------------------------------- */
-
                 const wallet =
                     await connectTronLink();
 
@@ -920,10 +908,6 @@ function openChallengeForm() {
                     );
                 }
 
-
-                /* -----------------------------------------
-                   CONTRÔLE ANTI-CHANGEMENT
-                ----------------------------------------- */
 
                 if (
                     wallet.toLowerCase() !==
@@ -951,10 +935,6 @@ function openChallengeForm() {
                     wallet;
 
 
-                /* -----------------------------------------
-                   PAIEMENT
-                ----------------------------------------- */
-
                 paymentStatus.innerHTML =
                     `
                     <span style="color:#ffcc00">
@@ -979,10 +959,6 @@ function openChallengeForm() {
                     );
                 }
 
-
-                /* -----------------------------------------
-                   VERIFICATION BACKEND
-                ----------------------------------------- */
 
                 paymentStatus.innerHTML =
                     `
@@ -1014,10 +990,6 @@ function openChallengeForm() {
                     );
                 }
 
-
-                /* -----------------------------------------
-                   VALIDATION
-                ----------------------------------------- */
 
                 selectedBet =
                     amount;
@@ -1084,9 +1056,7 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-
                             ❌ TronLink n'est pas détecté.
-
                         </span>
                         `;
 
@@ -1098,9 +1068,7 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-
                             ❌ Transaction annulée.
-
                         </span>
                         `;
 
@@ -1115,18 +1083,12 @@ function openChallengeForm() {
                             color:#ff6b6b;
                             font-weight:900;
                         ">
-
                             ⚠️ ADRESSE WALLET MODIFIÉE
-
                             <br><br>
-
                             🔒 Paiement bloqué par sécurité.
-
                             <br><br>
-
                             L'adresse utilisée doit rester
                             identique pendant toute la procédure.
-
                         </span>
                         `;
 
@@ -1138,9 +1100,7 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-
                             ❌ Cette transaction a déjà été utilisée.
-
                         </span>
                         `;
 
@@ -1149,13 +1109,11 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-
                             ❌
                             ${escapeHtml(
                                 error.message ||
                                 "Paiement refusé."
                             )}
-
                         </span>
                         `;
                 }
@@ -1457,9 +1415,6 @@ async function sendUsdtPayment(
         );
     }
 
-
-    /* IMPORTANT :
-       Vérification finale avant signature */
 
     if (
         expectedWallet &&
@@ -2012,10 +1967,7 @@ function connectSocket() {
 
     /* =====================================================
        CHAT
-       CORRECTION UNIQUE :
-       on écoute UNE SEULE fois chatMessage.
-       L'ancien listener "chat:message" provoquait
-       l'affichage en double.
+       UNE SEULE ÉCOUTE POUR ÉVITER LE DOUBLE AFFICHAGE
     ===================================================== */
 
     socket.on(
@@ -2027,6 +1979,7 @@ function connectSocket() {
             );
         }
     );
+
 }
 
 
