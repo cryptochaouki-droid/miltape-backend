@@ -1,6 +1,3 @@
-/* =====================================================
-   RESET & VARIABLES GLOBALES
-===================================================== */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -58,9 +55,6 @@ body {
     min-height: 100vh;
 }
 
-/* =====================================================
-   APP CONTAINER
-===================================================== */
 .app {
     width: 100%;
     max-width: 480px;
@@ -88,29 +82,6 @@ body {
     pointer-events: none;
 }
 
-/* =====================================================
-   BOUTON PWA
-===================================================== */
-.install-pwa-button {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 99;
-    padding: 8px 14px;
-    background: linear-gradient(135deg, var(--gold2), var(--gold));
-    color: #10001b;
-    border: none;
-    border-radius: 20px;
-    font-weight: 800;
-    font-size: 11px;
-    box-shadow: 0 4px 15px rgba(255, 216, 77, 0.4);
-    cursor: pointer;
-    display: none; /* Affiché via JavaScript si éligible */
-}
-
-/* =====================================================
-   HEADER
-===================================================== */
 .top-header {
     position: sticky;
     top: 0;
@@ -185,136 +156,6 @@ body {
     text-shadow: 0 0 12px rgba(255, 216, 77, .35);
 }
 
-/* =====================================================
-   HERO BANNER
-===================================================== */
-.hero-combined {
-    padding: 20px 12px 10px;
-    text-align: center;
-}
-
-.hero-content h1 {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    color: #fff;
-}
-
-.hero-content h1 span {
-    display: block;
-    color: var(--purple2);
-    font-size: 14px;
-    letter-spacing: 2px;
-}
-
-.hero-content .slogan {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 5px;
-    letter-spacing: 1px;
-}
-
-.hero-content .slogan strong {
-    color: var(--gold);
-}
-
-/* =====================================================
-   MENU LATÉRAL & OVERLAY
-===================================================== */
-.side-menu {
-    position: fixed;
-    top: 0;
-    left: -280px;
-    width: 280px;
-    height: 100%;
-    background: var(--bg2);
-    z-index: 200;
-    padding: 20px 15px;
-    transition: left 0.3s ease;
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-}
-
-.side-menu.open {
-    left: 0;
-}
-
-.close-menu {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.side-menu-content h3 {
-    color: var(--gold);
-    margin-bottom: 20px;
-    font-size: 16px;
-}
-
-.menu-block {
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.menu-nav-btn {
-    width: 100%;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: white;
-    text-align: left;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.menu-block select {
-    width: 100%;
-    padding: 8px;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-}
-
-.trust-contact-box {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.support-link {
-    color: var(--purple2);
-    text-decoration: none;
-    font-size: 12px;
-    display: inline-block;
-    margin-top: 5px;
-}
-
-.menu-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 150;
-    display: none;
-    backdrop-filter: blur(4px);
-}
-
-.menu-overlay.open {
-    display: block;
-}
-
-/* =====================================================
-   RULES
-===================================================== */
 .rules {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -357,9 +198,6 @@ body {
     color: var(--muted);
 }
 
-/* =====================================================
-   TIMER
-===================================================== */
 .timer-card {
     margin: 2px 12px 12px;
     padding: 14px;
@@ -398,9 +236,6 @@ body {
     letter-spacing: 2px;
 }
 
-/* =====================================================
-   STATS
-===================================================== */
 .stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -430,9 +265,6 @@ body {
     text-shadow: 0 0 10px rgba(255, 216, 77, .3);
 }
 
-/* =====================================================
-   PLAY BUTTON & MESSAGES
-===================================================== */
 .main-play-button {
     width: calc(100% - 24px);
     margin: 0 12px 13px;
@@ -480,9 +312,6 @@ body {
     min-height: 16px;
 }
 
-/* =====================================================
-   TAP ZONE & BUTTON
-===================================================== */
 .tap-zone {
     min-height: 245px;
     display: flex;
@@ -585,9 +414,6 @@ body {
     filter: blur(18px);
 }
 
-/* =====================================================
-   LEADERBOARD
-===================================================== */
 .leaderboard {
     margin: 0 12px 13px;
     padding: 15px;
@@ -652,9 +478,6 @@ body {
     font-size: 10px;
 }
 
-/* =====================================================
-   CHAT
-===================================================== */
 .chat-section {
     margin: 0 12px 13px;
     padding: 15px;
@@ -685,55 +508,6 @@ body {
     color: var(--gold);
 }
 
-/* =====================================================
-   MODAL DYNAMIQUE ET BASSES
-===================================================== */
-.modal, .legal-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 300;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-    background: rgba(0,0,0,.75);
-    backdrop-filter: blur(8px);
-}
-
-.modal.show, .legal-modal.open {
-    display: flex;
-}
-
-.legal-content {
-    position: relative;
-    width: 100%;
-    max-width: 420px;
-    max-height: 80vh;
-    overflow-y: auto;
-    padding: 25px 18px 20px;
-    border-radius: 20px;
-    background: linear-gradient(150deg, #27073d, #0e0118);
-    border: 1px solid rgba(255,216,77,.25);
-    color: white;
-}
-
-.legal-close {
-    position: absolute;
-    top: 13px;
-    right: 13px;
-    width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255,255,255,.07);
-    color: white;
-    cursor: pointer;
-    font-size: 18px;
-}
-
-/* =====================================================
-   ANIMATIONS
-===================================================== */
 @keyframes pulseTap {
     0% { transform: scale(1); }
     50% { transform: scale(1.025); }
@@ -754,9 +528,6 @@ body {
     animation: onlinePulse 1.5s infinite;
 }
 
-/* =====================================================
-   RESPONSIVE DESIGN
-===================================================== */
 @media (max-width: 360px) {
     .tap-button {
         width: 170px;
