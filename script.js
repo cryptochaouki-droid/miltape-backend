@@ -1233,38 +1233,40 @@ function openChallengeForm() {
 
 
 /* =========================================================
-   TRONLINK DETECTION
+   TRONLINK DETECTION (CORRIGÉ POUR ÉVITER LES ERREURS D'OBJET)
 ========================================================= */
 
 async function getTronLinkAddress() {
 
     try {
+        let address = "";
 
-        if (
-            window.tronWeb &&
-            window.tronWeb.defaultAddress &&
-            window.tronWeb.defaultAddress.base58
-        ) {
-
-            return window.tronWeb
-                .defaultAddress
-                .base58;
+        // Vérification de window.tronWeb standard
+        if (window.tronWeb) {
+            if (typeof window.tronWeb.defaultAddress?.base58 === "string") {
+                address = window.tronWeb.defaultAddress.base58;
+            } else if (typeof window.tronWeb.defaultAddress?.hex === "string") {
+                // Conversion du format hex en base58 si nécessaire
+                try {
+                    address = window.tronWeb.address.fromHex(window.tronWeb.defaultAddress.hex);
+                } catch (e) {}
+            }
         }
 
-
-        if (
-            window.tronLink &&
-            window.tronLink.tronWeb &&
-            window.tronLink.tronWeb.defaultAddress &&
-            window.tronLink.tronWeb.defaultAddress.base58
-        ) {
-
-            return window.tronLink
-                .tronWeb
-                .defaultAddress
-                .base58;
+        // Si non trouvé, vérification de window.tronLink.tronWeb
+        if (!address && window.tronLink && window.tronLink.tronWeb) {
+            if (typeof window.tronLink.tronWeb.defaultAddress?.base58 === "string") {
+                address = window.tronLink.tronWeb.defaultAddress.base58;
+            } else if (typeof window.tronLink.tronWeb.defaultAddress?.hex === "string") {
+                try {
+                    address = window.tronLink.tronWeb.address.fromHex(window.tronLink.tronWeb.defaultAddress.hex);
+                } catch (e) {}
+            }
         }
 
+        if (address && isValidTronAddress(address)) {
+            return address;
+        }
 
         return "";
 
@@ -1404,7 +1406,7 @@ async function sendUsdtPayment(
 
 
     const from =
-        tron.defaultAddress?.base58;
+        await getTronLinkAddress();
 
 
     if (!from) {
