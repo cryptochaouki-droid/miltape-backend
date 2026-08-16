@@ -66,6 +66,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let connectionWaitInterval = null;
 
+    let serverGameEndsAt = 0;
+
+    let gameId = null;
+
 
     /* =========================================================
        IDENTITÉ
@@ -311,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       TIMER
+       ⏱️ CHRONO LOCAL
     ========================================================= */
 
     function startLocalTimer() {
@@ -334,39 +338,73 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        let lastTick =
-            Date.now();
-
-
         timerInterval =
             setInterval(() => {
 
-                const now =
-                    Date.now();
+                /*
+                   Si le serveur nous a donné
+                   une date de fin, on utilise
+                   cette date comme référence.
+                */
+
+                if (serverGameEndsAt > 0) {
+
+                    const remaining =
+                        Math.ceil(
+                            (
+                                serverGameEndsAt -
+                                Date.now()
+                            ) / 1000
+                        );
 
 
-                const elapsed =
-                    Math.floor(
-                        (
-                            now -
-                            lastTick
-                        ) / 1000
+                    updateTimerDisplay(
+                        remaining
                     );
 
 
-                if (elapsed <= 0) {
+                    if (
+                        remaining <= 0
+                    ) {
+
+                        stopLocalTimer();
+
+
+                        gameJoined =
+                            false;
+
+
+                        serverGameEndsAt =
+                            0;
+
+
+                        if (tapButton) {
+
+                            tapButton.disabled =
+                                true;
+                        }
+
+
+                        setMessage(
+                            "⏰ PARTIE TERMINÉE"
+                        );
+
+                        return;
+                    }
+
+
                     return;
                 }
 
 
-                lastTick = now;
-
+                /*
+                   Fallback local.
+                */
 
                 currentTimer =
                     Math.max(
                         0,
-                        currentTimer -
-                        elapsed
+                        currentTimer - 1
                     );
 
 
@@ -382,7 +420,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     stopLocalTimer();
 
 
-                    gameJoined = false;
+                    gameJoined =
+                        false;
 
 
                     if (tapButton) {
@@ -397,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
                 }
 
-            }, 250);
+            }, 1000);
     }
 
 
@@ -423,9 +462,288 @@ document.addEventListener("DOMContentLoaded", () => {
 
         stopLocalTimer();
 
+
+        serverGameEndsAt = 0;
+
+
         updateTimerDisplay(
             seconds
         );
+    }
+
+
+    /* =========================================================
+       ⏱️ RÉCUPÉRATION DU VRAI CHRONO SERVEUR
+    ========================================================= */
+
+    async function syncGameTimer() {
+
+        try {
+
+            const response =
+                await fetch(
+                    BACKEND_URL + "/api/game",
+                    {
+                        method: "GET",
+                        cache: "no-store"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "HTTP " +
+                    response.status
+                );
+            }
+
+
+            const data =
+                await response.json();
+
+
+            console.log(
+                "⏱️ /api/game :",
+                data
+            );
+
+
+            /*
+               Compatible avec plusieurs formats
+               possibles de ton backend.
+            */
+
+            const game =
+                data.game ??
+                data.data ??
+                data;
+
+
+            if (!game) {
+                return;
+            }
+
+
+            gameId =
+                game._id ??
+                game.id ??
+                game.gameId ??
+                null;
+
+
+            let remaining = null;
+
+
+            /*
+               1️⃣ timeLeft
+            */
+
+            if (
+                game.timeLeft !== undefined
+            ) {
+
+                remaining =
+                    Number(
+                        game.timeLeft
+                    );
+            }
+
+
+            /*
+               2️⃣ remaining
+            */
+
+            if (
+                remaining === null &&
+                game.remaining !== undefined
+            ) {
+
+                remaining =
+                    Number(
+                        game.remaining
+                    );
+            }
+
+
+            /*
+               3️⃣ seconds
+            */
+
+            if (
+                remaining === null &&
+                game.seconds !== undefined
+            ) {
+
+                remaining =
+                    Number(
+                        game.seconds
+                    );
+            }
+
+
+            /*
+               4️⃣ endsAt
+            */
+
+            const endsAt =
+                game.endsAt ??
+                game.endTime ??
+                game.endDate ??
+                null;
+
+
+            if (
+                endsAt
+            ) {
+
+                const endTimestamp =
+                    new Date(
+                        endsAt
+                    ).getTime();
+
+
+                if (
+                    Number.isFinite(
+                        endTimestamp
+                    )
+                ) {
+
+                    serverGameEndsAt =
+                        endTimestamp;
+
+
+                    remaining =
+                        Math.ceil(
+                            (
+                                endTimestamp -
+                                Date.now()
+                            ) / 1000
+                        );
+                }
+            }
+
+
+            /*
+               5️⃣ startsAt + duration
+            */
+
+            if (
+                remaining === null
+            ) {
+
+                const startsAt =
+                    game.startsAt ??
+                    game.startTime ??
+                    game.createdAt ??
+                    null;
+
+
+                const duration =
+                    Number(
+                        game.duration ??
+                        game.durationSeconds ??
+                        GAME_DURATION
+                    );
+
+
+                if (
+                    startsAt
+                ) {
+
+                    const startTimestamp =
+                        new Date(
+                            startsAt
+                        ).getTime();
+
+
+                    if (
+                        Number.isFinite(
+                            startTimestamp
+                        )
+                    ) {
+
+                        serverGameEndsAt =
+                            startTimestamp +
+                            duration * 1000;
+
+
+                        remaining =
+                            Math.ceil(
+                                (
+                                    serverGameEndsAt -
+                                    Date.now()
+                                ) / 1000
+                            );
+                    }
+                }
+            }
+
+
+            if (
+                remaining === null ||
+                !Number.isFinite(
+                    remaining
+                )
+            ) {
+
+                console.warn(
+                    "⚠️ Impossible de déterminer le chrono :",
+                    game
+                );
+
+                return;
+            }
+
+
+            remaining =
+                Math.max(
+                    0,
+                    Math.floor(
+                        remaining
+                    )
+                );
+
+
+            updateTimerDisplay(
+                remaining
+            );
+
+
+            if (
+                remaining > 0
+            ) {
+
+                startLocalTimer();
+
+            } else {
+
+                stopLocalTimer();
+
+
+                gameJoined =
+                    false;
+
+
+                if (tapButton) {
+
+                    tapButton.disabled =
+                        true;
+                }
+
+
+                setMessage(
+                    "⏰ PARTIE TERMINÉE"
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "❌ SYNC CHRONO",
+                error
+            );
+        }
     }
 
 
@@ -439,15 +757,6 @@ document.addEventListener("DOMContentLoaded", () => {
             "🎮 OUVERTURE DU CHALLENGE"
         );
 
-
-        /*
-           IMPORTANT :
-           On vérifie d'abord la mise.
-
-           Ainsi, même si Socket.IO n'est pas
-           encore connecté, le bouton JOUER
-           ouvre immédiatement le choix de mise.
-        */
 
         if (selectedBet <= 0) {
 
@@ -467,10 +776,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /*
-           Serveur déjà connecté.
-        */
-
         if (
             socket &&
             socket.connected
@@ -482,10 +787,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /*
-           Serveur pas encore connecté.
-        */
-
         setMessage(
             "🟠 Connexion au serveur..."
         );
@@ -493,10 +794,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         connectSocket();
 
-
-        /*
-           On attend la connexion.
-        */
 
         clearInterval(
             connectionWaitInterval
@@ -522,11 +819,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
 
 
-                    console.log(
-                        "🟢 SOCKET PRÊT — JOIN GAME"
-                    );
-
-
                     joinGame();
 
 
@@ -534,7 +826,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                if (attempts >= 50) {
+                if (
+                    attempts >= 50
+                ) {
 
                     clearInterval(
                         connectionWaitInterval
@@ -543,10 +837,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     setMessage(
                         "🔴 Impossible de contacter le serveur"
-                    );
-
-                    console.error(
-                        "❌ Timeout connexion Socket.IO"
                     );
                 }
 
@@ -642,12 +932,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             `💰 Mise sélectionnée : $${amount}`
                         );
 
-
-                        /*
-                           Après sélection de la mise,
-                           on lance automatiquement
-                           la connexion puis la partie.
-                        */
 
                         if (
                             socket &&
@@ -767,11 +1051,6 @@ document.addEventListener("DOMContentLoaded", () => {
             !socket.connected
         ) {
 
-            console.warn(
-                "⚠️ JOIN demandé mais Socket.IO non connecté"
-            );
-
-
             connectSocket();
 
             return;
@@ -786,16 +1065,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        console.log(
-            "🎮 JOIN GAME",
-            {
-                playerId,
-                playerName,
-                bet: selectedBet
-            }
-        );
-
-
         const data = {
 
             playerId,
@@ -807,10 +1076,6 @@ document.addEventListener("DOMContentLoaded", () => {
             amount: selectedBet
         };
 
-
-        /*
-           Compatible avec ton backend actuel.
-        */
 
         socket.emit(
             "join",
@@ -824,7 +1089,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        gameJoined = true;
+        gameJoined =
+            true;
 
 
         if (tapButton) {
@@ -839,7 +1105,12 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        startLocalTimer();
+        /*
+           Synchronisation immédiate
+           du vrai chrono serveur.
+        */
+
+        syncGameTimer();
     }
 
 
@@ -1101,6 +1372,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
+        /*
+           Le chat doit avoir une connexion.
+        */
+
         if (
             !socket ||
             !socket.connected
@@ -1112,6 +1387,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             connectSocket();
+
 
             return;
         }
@@ -1148,6 +1424,27 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
 
+        console.log(
+            "💬 ENVOI CHAT :",
+            data
+        );
+
+
+        /*
+           Événement principal du backend.
+        */
+
+        socket.emit(
+            "chat:new",
+            data
+        );
+
+
+        /*
+           Compatibilité avec les anciens
+           événements de ton backend.
+        */
+
         socket.emit(
             "chatMessage",
             data
@@ -1171,6 +1468,8 @@ document.addEventListener("DOMContentLoaded", () => {
         event => {
 
             event.preventDefault();
+
+            event.stopPropagation();
 
             sendChatMessage();
         }
@@ -1229,12 +1528,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                /*
-                   Demandes au backend.
-                   Si un événement n'existe pas côté serveur,
-                   il est simplement ignoré.
-                */
-
                 socket.emit(
                     "getGame"
                 );
@@ -1261,22 +1554,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 /*
-                   Si l'utilisateur avait déjà
-                   sélectionné une mise et venait
-                   d'appuyer sur JOUER, le join
-                   est effectué.
+                   On synchronise aussi le chrono
+                   par HTTP.
                 */
 
-                if (
-                    selectedBet > 0 &&
-                    !gameJoined &&
-                    connectionWaitInterval
-                ) {
-
-                    console.log(
-                        "🎮 Connexion prête"
-                    );
-                }
+                syncGameTimer();
             }
         );
 
@@ -1333,8 +1615,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           CHAT
+           💬 CHAT
         ===================================================== */
+
+        socket.on(
+            "chat:new",
+            receiveChatMessage
+        );
+
 
         socket.on(
             "chatMessage",
@@ -1381,7 +1669,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           TIMER
+           ⏱️ TIMER SOCKET
         ===================================================== */
 
         function handleServerTimer(data) {
@@ -1395,13 +1683,60 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeof data === "object"
             ) {
 
-                value =
-                    data.timeLeft ??
-                    data.time ??
-                    data.seconds ??
-                    data.remaining ??
-                    data.timer ??
-                    data.duration;
+                /*
+                   Priorité aux dates de fin.
+                */
+
+                const endsAt =
+                    data.endsAt ??
+                    data.endTime ??
+                    data.endDate ??
+                    null;
+
+
+                if (
+                    endsAt
+                ) {
+
+                    const timestamp =
+                        new Date(
+                            endsAt
+                        ).getTime();
+
+
+                    if (
+                        Number.isFinite(
+                            timestamp
+                        )
+                    ) {
+
+                        serverGameEndsAt =
+                            timestamp;
+
+
+                        value =
+                            Math.ceil(
+                                (
+                                    timestamp -
+                                    Date.now()
+                                ) / 1000
+                            );
+                    }
+                }
+
+
+                if (
+                    value === data
+                ) {
+
+                    value =
+                        data.timeLeft ??
+                        data.remaining ??
+                        data.time ??
+                        data.seconds ??
+                        data.timer ??
+                        data.duration;
+                }
             }
 
 
@@ -1437,6 +1772,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     false;
 
 
+                serverGameEndsAt =
+                    0;
+
+
                 if (tapButton) {
 
                     tapButton.disabled =
@@ -1453,10 +1792,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            if (gameJoined) {
-
-                startLocalTimer();
-            }
+            startLocalTimer();
         }
 
 
@@ -1511,6 +1847,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 false;
 
 
+            serverGameEndsAt =
+                0;
+
+
             let duration =
                 GAME_DURATION;
 
@@ -1527,6 +1867,41 @@ document.addEventListener("DOMContentLoaded", () => {
                         data.seconds ??
                         GAME_DURATION
                     );
+
+
+                const endsAt =
+                    data.endsAt ??
+                    data.endTime ??
+                    null;
+
+
+                if (endsAt) {
+
+                    const timestamp =
+                        new Date(
+                            endsAt
+                        ).getTime();
+
+
+                    if (
+                        Number.isFinite(
+                            timestamp
+                        )
+                    ) {
+
+                        serverGameEndsAt =
+                            timestamp;
+
+
+                        duration =
+                            Math.ceil(
+                                (
+                                    timestamp -
+                                    Date.now()
+                                ) / 1000
+                            );
+                    }
+                }
             }
 
 
@@ -1542,7 +1917,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            resetLocalTimer(
+            updateTimerDisplay(
                 duration
             );
 
@@ -1577,33 +1952,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ===================================================== */
 
         function extractOnlineCount(data) {
-
-            /*
-               Le serveur peut envoyer :
-
-               5
-
-               ou :
-
-               { count: 5 }
-
-               ou :
-
-               { online: 5 }
-
-               ou :
-
-               { onlineCount: 5 }
-
-               ou :
-
-               { users: 5 }
-
-               ou :
-
-               { total: 5 }
-            */
-
 
             if (
                 typeof data === "number"
@@ -1698,19 +2046,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             if (
-                count === null
+                count === null ||
+                !onlineCount
             ) {
 
-                console.warn(
-                    "⚠️ Compteur en ligne reçu mais format inconnu :",
-                    data
-                );
-
-                return;
-            }
-
-
-            if (!onlineCount) {
                 return;
             }
 
@@ -1734,8 +2073,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         background:#2ecc71;
                         border-radius:50%;
                         margin-right:5px;
-                        box-shadow:
-                            0 0 8px #2ecc71;
+                        box-shadow:0 0 8px #2ecc71;
                     "
                 ></span>
 
@@ -1746,10 +2084,6 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
         }
 
-
-        /*
-           Événements actuels possibles
-        */
 
         socket.on(
             "onlineCount",
@@ -1768,10 +2102,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateOnlineCount
         );
 
-
-        /*
-           Compatibilité avec d'autres noms
-        */
 
         socket.on(
             "userCount",
@@ -2067,69 +2397,106 @@ document.addEventListener("DOMContentLoaded", () => {
            JOIN SUCCESS
         ===================================================== */
 
+        function handleJoinSuccess(data) {
+
+            gameJoined =
+                true;
+
+
+            if (
+                data?.score !==
+                undefined
+            ) {
+
+                updateScoreDisplays(
+                    data.score
+                );
+            }
+
+
+            /*
+               Si le serveur renvoie le chrono
+               dans joinSuccess.
+            */
+
+            if (data) {
+
+                const endsAt =
+                    data.endsAt ??
+                    data.endTime ??
+                    data.endDate ??
+                    null;
+
+
+                if (endsAt) {
+
+                    const timestamp =
+                        new Date(
+                            endsAt
+                        ).getTime();
+
+
+                    if (
+                        Number.isFinite(
+                            timestamp
+                        )
+                    ) {
+
+                        serverGameEndsAt =
+                            timestamp;
+
+
+                        const remaining =
+                            Math.ceil(
+                                (
+                                    timestamp -
+                                    Date.now()
+                                ) / 1000
+                            );
+
+
+                        updateTimerDisplay(
+                            remaining
+                        );
+
+
+                        startLocalTimer();
+                    }
+                }
+
+            }
+
+
+            /*
+               Synchronisation supplémentaire
+               avec le serveur.
+            */
+
+            syncGameTimer();
+
+
+            setMessage(
+                "🔥 À TOI DE TAPPER !"
+            );
+
+
+            if (tapButton) {
+
+                tapButton.disabled =
+                    false;
+            }
+        }
+
+
         socket.on(
             "joinSuccess",
-            data => {
-
-                gameJoined =
-                    true;
-
-
-                if (
-                    data?.score !==
-                    undefined
-                ) {
-
-                    updateScoreDisplays(
-                        data.score
-                    );
-                }
-
-
-                setMessage(
-                    "🔥 À TOI DE TAPPER !"
-                );
-
-
-                if (tapButton) {
-
-                    tapButton.disabled =
-                        false;
-                }
-            }
+            handleJoinSuccess
         );
 
 
         socket.on(
             "join:success",
-            data => {
-
-                gameJoined =
-                    true;
-
-
-                if (
-                    data?.score !==
-                    undefined
-                ) {
-
-                    updateScoreDisplays(
-                        data.score
-                    );
-                }
-
-
-                setMessage(
-                    "🔥 À TOI DE TAPPER !"
-                );
-
-
-                if (tapButton) {
-
-                    tapButton.disabled =
-                        false;
-                }
-            }
+            handleJoinSuccess
         );
 
 
@@ -2137,49 +2504,35 @@ document.addEventListener("DOMContentLoaded", () => {
            JOIN ERROR
         ===================================================== */
 
+        function handleJoinError(data) {
+
+            gameJoined =
+                false;
+
+
+            if (tapButton) {
+
+                tapButton.disabled =
+                    true;
+            }
+
+
+            setMessage(
+                data?.message ||
+                "❌ Impossible de rejoindre la partie"
+            );
+        }
+
+
         socket.on(
             "joinError",
-            data => {
-
-                gameJoined =
-                    false;
-
-
-                if (tapButton) {
-
-                    tapButton.disabled =
-                        true;
-                }
-
-
-                setMessage(
-                    data?.message ||
-                    "❌ Impossible de rejoindre la partie"
-                );
-            }
+            handleJoinError
         );
 
 
         socket.on(
             "join:error",
-            data => {
-
-                gameJoined =
-                    false;
-
-
-                if (tapButton) {
-
-                    tapButton.disabled =
-                        true;
-                }
-
-
-                setMessage(
-                    data?.message ||
-                    "❌ Impossible de rejoindre la partie"
-                );
-            }
+            handleJoinError
         );
     }
 
@@ -2190,10 +2543,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function connectSocket() {
 
-        /*
-           Déjà connecté.
-        */
-
         if (
             socket &&
             socket.connected
@@ -2202,10 +2551,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-
-        /*
-           Socket déjà en cours de création.
-        */
 
         if (
             socket &&
@@ -2227,10 +2572,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-
-        /*
-           Vérification de Socket.IO.
-        */
 
         if (
             typeof window.io !==
@@ -2286,7 +2627,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             setupSocketEvents();
-
 
         } catch (error) {
 
@@ -2398,6 +2738,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 event.preventDefault();
 
+
                 console.log(
                     "🖱️ CLIC JOUER MAINTENANT"
                 );
@@ -2505,7 +2846,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 USDT_TRON_ADDRESS
             );
 
-
         } catch (error) {
 
             console.error(
@@ -2545,9 +2885,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     >
 
                         <strong
-                            style="
-                                color:#2ecc71;
-                            "
+                            style="color:#2ecc71;"
                         >
                             🟢 WALLET CONNECTÉ
                         </strong>
@@ -2654,9 +2992,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 "
             >
 
-                <strong
-                    style="color:#ffcc00;"
-                >
+                <strong style="color:#ffcc00;">
                     Adresse de paiement :
                 </strong>
 
@@ -2665,7 +3001,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${USDT_TRON_ADDRESS}
 
             </div>
-
         `;
 
 
@@ -3175,7 +3510,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       ETAT INITIAL
+       ÉTAT INITIAL
     ========================================================= */
 
     updateScoreDisplays(
@@ -3200,6 +3535,29 @@ document.addEventListener("DOMContentLoaded", () => {
     ========================================================= */
 
     connectSocket();
+
+
+    /*
+       Synchronisation du chrono même
+       avant une connexion Socket.IO.
+    */
+
+    syncGameTimer();
+
+
+    /*
+       Nouvelle synchronisation périodique
+       pour éviter que le chrono reste bloqué.
+    */
+
+    setInterval(
+        () => {
+
+            syncGameTimer();
+
+        },
+        15000
+    );
 
 
     /* =========================================================
