@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 /* =========================================================
-   MILTAPE WORLD CHALLENGE - BACKEND
+   MILTAPE WORLD CHALLENGE - BACKEND (OPTIMISÉ)
    ========================================================= */
 
 const app = express();
@@ -37,7 +37,9 @@ const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    pingTimeout: 30000,
+    pingInterval: 10000
 });
 
 /* =========================================================
@@ -88,7 +90,7 @@ const SATURDAY_JACKPOT_PERCENT = Number(process.env.SATURDAY_JACKPOT_PERCENT) ||
 const JACKPOT_PERCENT = Math.min(100, Math.max(0, SATURDAY_JACKPOT_PERCENT));
 
 /* =========================================================
-   ETAT SERVEUR
+   ÉTAT SERVEUR & CACHE MÉMOIRE
    ========================================================= */
 
 let mongoConnected = false;
@@ -97,6 +99,7 @@ let timerLeft = GAME_DURATION;
 
 const activePlayers = new Map(); // playerId -> socketId
 const tapRate = new Map(); // playerId -> { startedAt, count }
+const scoresCache = new Map(); // playerId -> score (en mémoire pour fluidité)
 
 /* =========================================================
    LOGS INITIALISATION
@@ -262,13 +265,18 @@ function tronHeaders() {
 
 async function fetchJson(url, options = {}) {
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
         const response = await fetch(url, {
             ...options,
+            signal: controller.signal,
             headers: {
                 ...tronHeaders(),
                 ...(options.headers || {})
             }
         });
+        clearTimeout(timeout);
         const data = await response.json().catch(() => null);
         return { response, data };
     } catch {
@@ -343,6 +351,45 @@ async function broadcastSaturdayJackpot() {
         io.emit("saturdayJackpot", jackpot);
     } catch (error) {
         console.error("❌ Jackpot broadcast:", error.message);
+    }
+}
+
+/* =========================================================
+   LEADERBOARD (UTILISATION DU CACHE MÉMOIRE)
+   ========================================================= */
+
+async function getLeaderboard() {
+    if (!mongoConnected) return [];
+
+    try {
+        const players = await Player.aggregate([
+            {
+                $match: {
+                    gameId: Number(gameId),
+                    paymentStatus: "paid"
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    playerId: 1,
+                    playerName: 1,
+                    score: 1,
+                    amount: 1
+                }
+            }
+        ]);
+
+        // Mise à jour avec les scores temps réel en mémoire
+        const merged = players.map((p) => ({
+            ...p,
+            score: scoresCache.has(p.playerId) ? scoresCache.get(p.playerId) : p.score
+        }));
+
+        return merged.sort((a, b) => b.score - a.score).slice(0, TOP_WINNERS);
+    } catch (error) {
+        console.error("❌ Leaderboard Error:", error.message);
+        return [];
     }
 }
 
@@ -506,56 +553,13 @@ app.get("/api/player-stats/:playerId", async (req, res) => {
     }
 });
 
-/* =========================================================
-   LEADERBOARD (AGRÉGATION AGRÉGÉE CORRIGÉE)
-   ========================================================= */
-
-async function getLeaderboard() {
-    if (!mongoConnected) return [];
-
-    try {
-        const players = await Player.aggregate([
-            {
-                $match: {
-                    gameId: Number(gameId),
-                    paymentStatus: "paid"
-                }
-            },
-            {
-                $group: {
-                    _id: "$playerId",
-                    playerName: { $first: "$playerName" },
-                    score: { $sum: { $ifNull: ["$score", 0] } },
-                    amount: { $sum: { $ifNull: ["$amount", 0] } }
-                }
-            },
-            { $sort: { score: -1 } },
-            { $limit: TOP_WINNERS },
-            {
-                $project: {
-                    _id: 0,
-                    playerId: "$_id",
-                    playerName: 1,
-                    score: 1,
-                    amount: 1
-                }
-            }
-        ]);
-
-        return players;
-    } catch (error) {
-        console.error("❌ Leaderboard Error:", error.message);
-        return [];
-    }
-}
-
 app.get("/api/leaderboard", async (req, res) => {
     const leaderboard = await getLeaderboard();
     res.json({ success: true, gameId, leaderboard });
 });
 
 /* =========================================================
-   VERIFICATION TRANSACTIONS TRONGRID
+   VÉRIFICATION TRANSACTIONS TRONGRID
    ========================================================= */
 
 app.post("/api/verify-payment", async (req, res) => {
@@ -591,7 +595,6 @@ app.post("/api/verify-payment", async (req, res) => {
         }
 
         const result = transferEvent.result;
-        const toAddress = result.to || result[1];
         const rawValue = result.value || result[2];
         const valueUsdt = unitsToUsdt(rawValue);
 
@@ -611,6 +614,8 @@ app.post("/api/verify-payment", async (req, res) => {
         });
 
         await newPlayer.save();
+        scoresCache.set(playerId, 0);
+
         await broadcastSaturdayJackpot();
 
         const leaderboard = await getLeaderboard();
@@ -632,12 +637,22 @@ setInterval(async () => {
         timerLeft--;
         io.emit("timerUpdate", { timerLeft, gameId });
     } else {
-        // Fin de la partie : Réinitialisation
+        // Sauvegarde finale des scores en base de données
+        for (const [pId, score] of scoresCache.entries()) {
+            await Player.updateOne(
+                { playerId: pId, gameId, paymentStatus: "paid" },
+                { $set: { score } }
+            );
+        }
+
+        // Fin de la partie
         const winners = await getLeaderboard();
         io.emit("gameOver", { gameId, winners });
 
+        // Réinitialisation de session
         gameId++;
         timerLeft = GAME_DURATION;
+        scoresCache.clear();
 
         io.emit("gameStart", { gameId, duration: GAME_DURATION });
     }
@@ -674,23 +689,15 @@ io.on("connection", (socket) => {
         tapRate.set(playerId, userTapInfo);
 
         if (userTapInfo.count > MAX_TAPS_PER_SECOND) {
-            return; // Bloquer les taps excessifs
+            return; // Ignorer les clics excessifs
         }
 
-        // Mettre à jour la partie active payée
-        const playerDoc = await Player.findOne({
-            playerId,
-            gameId,
-            paymentStatus: "paid"
-        }).sort({ createdAt: -1 });
+        // Mettre à jour le score en mémoire instantanément
+        const currentScore = scoresCache.get(playerId) || 0;
+        scoresCache.set(playerId, currentScore + 1);
 
-        if (playerDoc) {
-            playerDoc.score += 1;
-            await playerDoc.save();
-
-            const leaderboard = await getLeaderboard();
-            io.emit("leaderboardUpdate", leaderboard);
-        }
+        const leaderboard = await getLeaderboard();
+        io.emit("leaderboardUpdate", leaderboard);
     });
 
     socket.on("disconnect", () => {
