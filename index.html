@@ -55,16 +55,14 @@
         href="./style.css"
     >
 
-    <!-- TronWeb -->
+    <!-- TronWeb (Chargé en premier) -->
     <script
         src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"
-        defer
     ></script>
 
-    <!-- Socket.IO UNE SEULE FOIS -->
+    <!-- Socket.IO (Chargé avant le script principal) -->
     <script
         src="https://cdn.socket.io/4.7.5/socket.io.min.js"
-        defer
     ></script>
 
     <style>
@@ -1171,7 +1169,7 @@
 
     <!-- SCRIPT PRINCIPAL -->
 
-    <script src="./script.js"></script>
+    <script src="./script.js" defer></script>
 
 </body>
 
