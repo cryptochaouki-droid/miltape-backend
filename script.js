@@ -1,2437 +1,1747 @@
-document.addEventListener("DOMContentLoaded", () => {
+/* =========================================================
+   MILTAPE WORLD CHALLENGE
+   SCRIPT.JS COMPLET
+   Paiement USDT TRC20 + TronLink + Socket.IO
+========================================================= */
 
-    "use strict";
+"use strict";
 
-    /* =========================================================
-       PROTECTION
-    ========================================================= */
+/* =========================================================
+   CONFIGURATION
+========================================================= */
 
-    if (window.__MILTAPE_INITIALIZED__) {
-        console.warn("Miltape déjà initialisé.");
-        return;
-    }
+const API_URL =
+    "https://miltape-backend-production.up.railway.app";
 
-    window.__MILTAPE_INITIALIZED__ = true;
+const SOCKET_URL =
+    API_URL;
 
-    console.log("🚀 MILTAPE WORLD CHALLENGE");
+const MILTAPE_WALLET =
+    "TBZZ3nakc3w5SnJ1EZpvVWYWY3q1NffNPM";
 
+const USDT_CONTRACT =
+    "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-    /* =========================================================
-       CONFIGURATION
-    ========================================================= */
+const USDT_DECIMALS = 6;
 
-    const BACKEND_URL =
-        (
-            window.location.hostname === "localhost" ||
-            window.location.hostname === "127.0.0.1"
-        )
-            ? "http://localhost:3000"
-            : "https://miltape-backend-production.up.railway.app";
+const GAME_DURATION = 600;
 
+/* =========================================================
+   VARIABLES
+========================================================= */
 
-    const USDT_TRON_ADDRESS =
-        "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
+let socket = null;
 
+let playerId = "";
 
-    const GAME_DURATION = 600;
+let playerName = "";
 
+let walletAddress = "";
 
-    /* =========================================================
-       VARIABLES
-    ========================================================= */
+let selectedBet = 1;
 
-    let socket = null;
+let hasPaid = false;
 
-    let localTaps = 0;
+let currentGameId = null;
 
-    let currentTimer = GAME_DURATION;
+let timerLeft = GAME_DURATION;
 
-    let timerInterval = null;
+let isPaying = false;
 
-    let timerRunning = false;
+let deferredInstallPrompt = null;
 
-    let gameJoined = false;
+/* =========================================================
+   DOM
+========================================================= */
 
-    let tapLocked = false;
+const $ = id =>
+    document.getElementById(id);
 
-    let selectedBet =
-        Number(
-            localStorage.getItem("miltape_bet") || 0
-        );
+const enterChallenge =
+    $("enterChallenge");
 
-    let deferredPrompt = null;
+const tapButton =
+    $("tapButton");
 
-    let lastSentMessage = "";
+const tapCount =
+    $("tapCount");
 
-    let lastSentMessageTime = 0;
+const tapButtonCount =
+    $("tapButtonCount");
 
+const timerElement =
+    $("timer");
 
-    /* =========================================================
-       IDENTITÉ
-    ========================================================= */
+const tapMessage =
+    $("tapMessage");
 
-    let playerId =
+const displayBet =
+    $("displayBet");
+
+const globalTotalStakes =
+    $("globalTotalStakes");
+
+const onlineCount =
+    $("onlineCount");
+
+const leaderboardList =
+    $("leaderboardList");
+
+const chatMessages =
+    $("chatMessages");
+
+const chatInput =
+    $("chatInput");
+
+const chatSend =
+    $("chatSend");
+
+/* =========================================================
+   PLAYER ID
+========================================================= */
+
+function getPlayerId() {
+
+    let id =
         localStorage.getItem(
             "miltape_player_id"
         );
 
+    if (!id) {
 
-    if (!playerId) {
-
-        playerId =
+        id =
             "player_" +
+            Date.now() +
+            "_" +
             Math.random()
                 .toString(36)
-                .substring(2, 11);
+                .substring(2, 10);
 
         localStorage.setItem(
             "miltape_player_id",
-            playerId
+            id
         );
     }
 
+    return id;
+}
 
-    let playerName =
+playerId =
+    getPlayerId();
+
+/* =========================================================
+   PLAYER NAME
+========================================================= */
+
+function getPlayerName() {
+
+    let name =
         localStorage.getItem(
             "miltape_player_name"
         );
 
+    if (!name) {
 
-    if (!playerName) {
+        name =
+            prompt(
+                "Choisis ton pseudo Miltape :"
+            ) ||
+            "Joueur";
 
-        playerName =
-            "Joueur" +
-            Math.floor(
-                Math.random() * 10000
-            );
+        name =
+            String(name)
+                .trim()
+                .substring(0, 30);
+
+        if (!name) {
+            name = "Joueur";
+        }
 
         localStorage.setItem(
             "miltape_player_name",
-            playerName
+            name
         );
     }
 
+    return name;
+}
 
-    /* =========================================================
-       ELEMENTS
-    ========================================================= */
+playerName =
+    getPlayerName();
 
-    const timerDisplay =
-        document.getElementById("timer");
+/* =========================================================
+   MESSAGE
+========================================================= */
 
-    const tapButton =
-        document.getElementById("tapButton");
+function showMessage(
+    message,
+    type = "normal"
+) {
 
-    const tapCountDisplay =
-        document.getElementById("tapCount");
-
-    const tapButtonCountDisplay =
-        document.getElementById("tapButtonCount");
-
-    const tapMessage =
-        document.getElementById("tapMessage");
-
-    const onlineCount =
-        document.getElementById("onlineCount");
-
-    const leaderboardList =
-        document.getElementById(
-            "leaderboardList"
-        );
-
-    const chatMessages =
-        document.getElementById(
-            "chatMessages"
-        );
-
-    const chatInput =
-        document.getElementById(
-            "chatInput"
-        );
-
-    const chatSend =
-        document.getElementById(
-            "chatSend"
-        );
-
-    const displayBet =
-        document.getElementById(
-            "displayBet"
-        );
-
-    const globalTotalStakes =
-        document.getElementById(
-            "globalTotalStakes"
-        );
-
-    const walletButton =
-        document.getElementById(
-            "walletButton"
-        );
-
-    const enterChallenge =
-        document.getElementById(
-            "enterChallenge"
-        );
-
-
-    /* =========================================================
-       UTILITAIRES
-    ========================================================= */
-
-    function escapeHTML(value) {
-
-        return String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+    if (!tapMessage) {
+        return;
     }
 
+    tapMessage.textContent =
+        message;
 
-    function setMessage(text) {
+    if (type === "success") {
 
-        if (tapMessage) {
+        tapMessage.style.color =
+            "#2ecc71";
 
-            tapMessage.textContent =
-                text;
-        }
-    }
+    } else if (type === "error") {
 
-
-    function formatTime(seconds) {
-
-        seconds =
-            Math.max(
-                0,
-                Math.floor(
-                    Number(seconds) || 0
-                )
-            );
-
-
-        const minutes =
-            Math.floor(
-                seconds / 60
-            );
-
-
-        const secs =
-            seconds % 60;
-
-
-        return (
-            String(minutes).padStart(2, "0") +
-            ":" +
-            String(secs).padStart(2, "0")
-        );
-    }
-
-
-    function updateTimerDisplay(seconds) {
-
-        currentTimer =
-            Math.max(
-                0,
-                Math.floor(
-                    Number(seconds) || 0
-                )
-            );
-
-
-        if (timerDisplay) {
-
-            timerDisplay.textContent =
-                formatTime(
-                    currentTimer
-                );
-        }
-    }
-
-
-    function updateScoreDisplays(value) {
-
-        localTaps =
-            Math.max(
-                0,
-                Number(value) || 0
-            );
-
-
-        if (tapCountDisplay) {
-
-            tapCountDisplay.textContent =
-                localTaps;
-        }
-
-
-        if (tapButtonCountDisplay) {
-
-            tapButtonCountDisplay.textContent =
-                localTaps;
-        }
-
-
-        const headerScore =
-            document.getElementById(
-                "headerScore"
-            );
-
-
-        if (headerScore) {
-
-            headerScore.textContent =
-                localTaps;
-        }
-
-
-        const statTaps =
-            document.getElementById(
-                "statTaps"
-            );
-
-
-        if (statTaps) {
-
-            statTaps.textContent =
-                localTaps;
-        }
-
-
-        const statTotal =
-            document.getElementById(
-                "statTotal"
-            );
-
-
-        if (statTotal) {
-
-            statTotal.textContent =
-                localTaps;
-        }
-    }
-
-
-    /* =========================================================
-       MODAL
-    ========================================================= */
-
-    const dynamicModal =
-        document.getElementById(
-            "dynamicModal"
-        );
-
-    const dynamicModalTitle =
-        document.getElementById(
-            "dynamicModalTitle"
-        );
-
-    const dynamicModalBody =
-        document.getElementById(
-            "dynamicModalBody"
-        );
-
-    const closeDynamicModal =
-        document.getElementById(
-            "closeDynamicModal"
-        );
-
-
-    function openModal(
-        title,
-        content
-    ) {
-
-        console.log(
-            "📂 OUVERTURE MODAL :",
-            title
-        );
-
-
-        if (!dynamicModal) {
-
-            console.error(
-                "❌ dynamicModal introuvable dans index.html"
-            );
-
-            alert(
-                title +
-                "\n\n" +
-                "Impossible d'afficher la fenêtre."
-            );
-
-            return;
-        }
-
-
-        if (dynamicModalTitle) {
-
-            dynamicModalTitle.textContent =
-                title;
-        }
-
-
-        if (dynamicModalBody) {
-
-            dynamicModalBody.innerHTML =
-                content;
-        }
-
-
-        dynamicModal.classList.add(
-            "show"
-        );
-
-
-        dynamicModal.style.display =
-            "flex";
-    }
-
-
-    function closeModal() {
-
-        if (!dynamicModal) {
-            return;
-        }
-
-
-        dynamicModal.classList.remove(
-            "show"
-        );
-
-
-        dynamicModal.style.display =
-            "none";
-    }
-
-
-    closeDynamicModal?.addEventListener(
-        "click",
-        closeModal
-    );
-
-
-    dynamicModal?.addEventListener(
-        "click",
-        event => {
-
-            if (
-                event.target ===
-                dynamicModal
-            ) {
-
-                closeModal();
-            }
-        }
-    );
-
-
-    /* =========================================================
-       💰 MISE
-    ========================================================= */
-
-    function setBet(value) {
-
-        selectedBet =
-            Number(value) || 0;
-
-
-        localStorage.setItem(
-            "miltape_bet",
-            String(selectedBet)
-        );
-
-
-        if (displayBet) {
-
-            displayBet.textContent =
-                "$" + selectedBet;
-        }
-    }
-
-
-    if (selectedBet > 0) {
-
-        setBet(
-            selectedBet
-        );
+        tapMessage.style.color =
+            "#ff4d6d";
 
     } else {
 
-        if (displayBet) {
-
-            displayBet.textContent =
-                "$0";
-        }
+        tapMessage.style.color =
+            "#ffcc00";
     }
+}
 
+/* =========================================================
+   API JSON
+========================================================= */
 
-    /* =========================================================
-       💰 WALLET
-    ========================================================= */
+async function api(
+    path,
+    options = {}
+) {
 
-    function isTronLinkAvailable() {
+    const response =
+        await fetch(
+            API_URL + path,
+            {
+                ...options,
 
-        return !!(
-            window.tronWeb &&
-            window.tronWeb.ready &&
-            window.tronWeb.defaultAddress &&
-            window.tronWeb.defaultAddress.base58
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    ...(options.headers || {})
+                }
+            }
+        );
+
+    const data =
+        await response
+            .json()
+            .catch(() => ({}));
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.message ||
+            data.error ||
+            "Erreur serveur"
         );
     }
 
+    return data;
+}
 
-    function getConnectedTronAddress() {
+/* =========================================================
+   TRONLINK
+========================================================= */
+
+function getTronWeb() {
+
+    /*
+    TronLink injecte généralement
+    window.tronWeb.
+    */
+
+    if (
+        window.tronWeb &&
+        typeof window.tronWeb.trx !==
+            "undefined"
+    ) {
+
+        return window.tronWeb;
+    }
+
+    return null;
+}
+
+/* =========================================================
+   DÉTECTER TRONLINK
+========================================================= */
+
+async function waitForTronLink(
+    timeout = 5000
+) {
+
+    const start =
+        Date.now();
+
+    while (
+        Date.now() - start <
+        timeout
+    ) {
 
         if (
-            !isTronLinkAvailable()
+            window.tronWeb &&
+            window.tronWeb.ready
         ) {
 
-            return "";
+            return window.tronWeb;
         }
 
-
-        return (
-            window.tronWeb
-                .defaultAddress
-                .base58 ||
-            ""
-        );
-    }
-
-
-    async function copyTronAddress() {
-
-        try {
+        if (
+            window.tronLink &&
+            window.tronLink.ready
+        ) {
 
             if (
-                navigator.clipboard &&
-                window.isSecureContext
+                window.tronLink.tronWeb
             ) {
 
-                await navigator.clipboard.writeText(
-                    USDT_TRON_ADDRESS
-                );
-
-            } else {
-
-                const textarea =
-                    document.createElement(
-                        "textarea"
-                    );
-
-
-                textarea.value =
-                    USDT_TRON_ADDRESS;
-
-
-                textarea.style.position =
-                    "fixed";
-
-
-                textarea.style.opacity =
-                    "0";
-
-
-                document.body.appendChild(
-                    textarea
-                );
-
-
-                textarea.focus();
-
-                textarea.select();
-
-
-                document.execCommand(
-                    "copy"
-                );
-
-
-                textarea.remove();
+                return window.tronLink.tronWeb;
             }
-
-
-            setMessage(
-                "📋 Adresse USDT TRC20 copiée !"
-            );
-
-
-            alert(
-                "📋 Adresse USDT TRC20 copiée !\n\n" +
-                USDT_TRON_ADDRESS
-            );
-
-
-        } catch (error) {
-
-            alert(
-                "Adresse USDT TRC20 :\n\n" +
-                USDT_TRON_ADDRESS
-            );
         }
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    250
+                )
+        );
     }
 
+    return null;
+}
 
-    /* =========================================================
-       💰 OUVRIR WALLET
-    ========================================================= */
+/* =========================================================
+   CONNECTER TRONLINK
+========================================================= */
 
-    function openWalletChoice() {
+async function connectTronLink() {
 
-        console.log(
-            "💰 OUVERTURE WALLET"
+    /*
+    Déjà connecté
+    */
+
+    let tronWeb =
+        getTronWeb();
+
+    if (
+        tronWeb &&
+        tronWeb.defaultAddress &&
+        tronWeb.defaultAddress.base58
+    ) {
+
+        walletAddress =
+            tronWeb
+                .defaultAddress
+                .base58;
+
+        return tronWeb;
+    }
+
+    /*
+    Demande de connexion à TronLink
+    */
+
+    try {
+
+        if (
+            window.tronLink &&
+            typeof window.tronLink.request ===
+                "function"
+        ) {
+
+            await window.tronLink.request(
+                {
+                    method:
+                        "tron_requestAccounts"
+                }
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "TronLink request:",
+            error
         );
 
+        throw new Error(
+            "Connexion TronLink refusée."
+        );
+    }
 
-        const connectedAddress =
-            getConnectedTronAddress();
+    /*
+    Attendre injection
+    */
 
+    tronWeb =
+        await waitForTronLink(7000);
 
-        const connectedHTML =
-            connectedAddress
-                ? `
-                    <div style="
-                        padding:12px;
-                        margin-bottom:12px;
-                        border-radius:12px;
-                        background:rgba(46,204,113,.10);
-                        border:1px solid rgba(46,204,113,.35);
-                        color:#fff;
-                        font-size:12px;
-                        word-break:break-all;
-                    ">
+    if (!tronWeb) {
 
-                        <strong style="
-                            color:#2ecc71;
-                        ">
-                            🟢 WALLET CONNECTÉ
-                        </strong>
+        throw new Error(
+            "TronLink n'est pas détecté. Ouvre Miltape dans TronLink."
+        );
+    }
 
-                        <br><br>
+    /*
+    Récupérer adresse
+    */
 
-                        ${escapeHTML(
-                            connectedAddress
-                        )}
+    if (
+        !tronWeb.defaultAddress ||
+        !tronWeb.defaultAddress.base58
+    ) {
 
-                    </div>
-                `
-                : "";
+        throw new Error(
+            "Aucun wallet TRON connecté."
+        );
+    }
 
+    walletAddress =
+        tronWeb
+            .defaultAddress
+            .base58;
 
-        const html = `
+    /*
+    Vérifier réseau
+    */
 
-            ${connectedHTML}
+    try {
 
+        const network =
+            await tronWeb.trx.getChainParameters();
+
+        console.log(
+            "TRON network:",
+            network
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "Impossible de lire le réseau:",
+            error
+        );
+    }
+
+    return tronWeb;
+}
+
+/* =========================================================
+   VALIDATION ADRESSE TRON
+========================================================= */
+
+function isValidTronAddress(
+    address
+) {
+
+    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/
+        .test(
+            String(address || "")
+        );
+}
+
+/* =========================================================
+   MONTANT USDT
+========================================================= */
+
+function usdtUnits(
+    amount
+) {
+
+    return Math.round(
+        Number(amount) *
+        1000000
+    );
+}
+
+/* =========================================================
+   OUVRIR LA FENÊTRE DE MISE
+========================================================= */
+
+function openBetModal() {
+
+    /*
+    Si un ancien modal existe
+    */
+
+    const old =
+        document.getElementById(
+            "miltapeBetModal"
+        );
+
+    if (old) {
+        old.remove();
+    }
+
+    const modal =
+        document.createElement(
+            "div"
+        );
+
+    modal.id =
+        "miltapeBetModal";
+
+    modal.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.88);
+        z-index:99999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+        box-sizing:border-box;
+    `;
+
+    modal.innerHTML = `
+
+        <div style="
+            width:100%;
+            max-width:380px;
+            background:#120624;
+            border:1px solid #ffcc00;
+            border-radius:20px;
+            padding:24px;
+            box-sizing:border-box;
+            color:white;
+            text-align:center;
+            box-shadow:0 0 40px rgba(255,204,0,.18);
+        ">
+
+            <button
+                id="closeBetModal"
+                type="button"
+                style="
+                    float:right;
+                    background:none;
+                    border:0;
+                    color:white;
+                    font-size:28px;
+                    cursor:pointer;
+                "
+            >
+                ×
+            </button>
+
+            <h2 style="
+                color:#ffcc00;
+                margin:5px 0 8px;
+            ">
+                💰 CHOISIS TA MISE
+            </h2>
 
             <p style="
-                color:#ddd;
-                line-height:1.5;
+                color:#aaa;
+                font-size:13px;
+                margin-bottom:20px;
             ">
-                Choisis ta mise pour entrer
-                dans le challenge.
+                Paiement sécurisé en USDT TRC20
             </p>
 
+            <div
+                id="betChoices"
+                style="
+                    display:grid;
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                    margin-bottom:20px;
+                "
+            >
 
-            <div style="
-                display:grid;
-                grid-template-columns:repeat(2,1fr);
-                gap:10px;
-                margin-top:15px;
-            ">
-
-                ${[
-                    1,
-                    2,
-                    5,
-                    10,
-                    20,
-                    50,
-                    100
-                ].map(
+                ${[1, 2, 5, 10].map(
                     amount => `
                         <button
                             type="button"
-                            class="miltape-bet-option"
+                            class="bet-choice"
                             data-bet="${amount}"
                             style="
-                                padding:14px;
+                                padding:16px 10px;
                                 border-radius:12px;
-                                border:1px solid #ffcc00;
-                                background:#1a0828;
-                                color:#ffcc00;
+                                border:1px solid rgba(255,204,0,.35);
+                                background:#1a092b;
+                                color:white;
+                                font-size:17px;
                                 font-weight:900;
-                                font-size:15px;
                                 cursor:pointer;
                             "
                         >
-                            $${amount}
+                            ${amount} USDT
                         </button>
                     `
                 ).join("")}
 
             </div>
 
-
-            ${
-                selectedBet > 0
-                    ? `
-                        <div style="
-                            margin-top:15px;
-                            padding:12px;
-                            text-align:center;
-                            border-radius:12px;
-                            border:1px solid #2ecc71;
-                            background:rgba(46,204,113,.08);
-                            color:#2ecc71;
-                            font-weight:900;
-                        ">
-                            💰 MISE : $${selectedBet}
-                        </div>
-                    `
-                    : ""
-            }
-
-
             <button
+                id="payNowButton"
                 type="button"
-                id="miltapeTronLink"
                 style="
                     width:100%;
-                    padding:15px;
-                    margin-top:15px;
-                    border-radius:12px;
-                    border:1px solid #ffcc00;
+                    padding:16px;
+                    border:0;
+                    border-radius:14px;
                     background:linear-gradient(
                         135deg,
                         #ffcc00,
                         #ff8a00
                     );
                     color:#16051f;
+                    font-size:16px;
                     font-weight:900;
-                    font-size:14px;
                     cursor:pointer;
                 "
             >
-                🔗 TRONLINK
+                💳 PAYER ${selectedBet} USDT
             </button>
 
-
-            <button
-                type="button"
-                id="miltapeTrustWallet"
+            <p
+                id="paymentStatus"
                 style="
-                    width:100%;
-                    padding:15px;
-                    margin-top:10px;
-                    border-radius:12px;
-                    border:1px solid #6c63ff;
-                    background:#1a0828;
-                    color:#fff;
-                    font-weight:900;
-                    font-size:14px;
-                    cursor:pointer;
-                "
-            >
-                💙 TRUST WALLET
-            </button>
-
-
-            <button
-                type="button"
-                id="miltapeCopyAddress"
-                style="
-                    width:100%;
-                    padding:15px;
-                    margin-top:10px;
-                    border-radius:12px;
-                    border:1px solid #2ecc71;
-                    background:#10251b;
-                    color:#2ecc71;
-                    font-weight:900;
-                    font-size:14px;
-                    cursor:pointer;
-                "
-            >
-                📋 COPIER L'ADRESSE TRC20
-            </button>
-
-
-            <div style="
-                margin-top:15px;
-                padding:12px;
-                border-radius:10px;
-                background:rgba(255,255,255,.04);
-                color:#aaa;
-                font-size:11px;
-                word-break:break-all;
-            ">
-
-                <strong style="
-                    color:#ffcc00;
-                ">
-                    Adresse USDT TRC20 :
-                </strong>
-
-                <br><br>
-
-                ${USDT_TRON_ADDRESS}
-
-            </div>
-
-
-            <button
-                type="button"
-                id="miltapeContinue"
-                style="
-                    width:100%;
-                    padding:16px;
+                    color:#aaa;
+                    font-size:12px;
+                    line-height:1.5;
                     margin-top:15px;
-                    border:0;
-                    border-radius:13px;
-                    background:linear-gradient(
-                        135deg,
-                        #2ecc71,
-                        #16a085
-                    );
-                    color:#07150e;
-                    font-weight:900;
-                    font-size:15px;
-                    cursor:pointer;
                 "
             >
-                ✅ CONTINUER
-            </button>
+                Ton wallet TronLink sera demandé
+                au moment du paiement.
+            </p>
 
-        `;
+        </div>
+    `;
 
+    document.body.appendChild(
+        modal
+    );
 
-        openModal(
-            "💰 WALLET & PAIEMENT",
-            html
+    const choices =
+        modal.querySelectorAll(
+            ".bet-choice"
         );
 
+    function refreshChoices() {
 
-        /* CHOIX MISE */
+        choices.forEach(
+            button => {
 
-        document
-            .querySelectorAll(
-                ".miltape-bet-option"
-            )
-            .forEach(
-                button => {
-
-                    button.addEventListener(
-                        "click",
-                        () => {
-
-                            const amount =
-                                Number(
-                                    button.dataset.bet
-                                );
-
-
-                            setBet(
-                                amount
-                            );
-
-
-                            /*
-                               On garde la fenêtre
-                               ouverte et on la
-                               reconstruit.
-                            */
-
-                            openWalletChoice();
-                        }
-                    );
-                }
-            );
-
-
-        /* TRONLINK */
-
-        document
-            .getElementById(
-                "miltapeTronLink"
-            )
-            ?.addEventListener(
-                "click",
-                () => {
-
-                    if (
-                        isTronLinkAvailable()
-                    ) {
-
-                        alert(
-                            "🟢 TRONLINK CONNECTÉ !\n\n" +
-                            getConnectedTronAddress()
-                        );
-
-                    } else {
-
-                        alert(
-                            "⚠️ TronLink n'est pas détecté.\n\n" +
-                            "Ouvre Miltape depuis le navigateur intégré de TronLink."
-                        );
-                    }
-                }
-            );
-
-
-        /* TRUST WALLET */
-
-        document
-            .getElementById(
-                "miltapeTrustWallet"
-            )
-            ?.addEventListener(
-                "click",
-                () => {
-
-                    const trustURL =
-                        "https://link.trustwallet.com/open_url?coin=195&url=" +
-                        encodeURIComponent(
-                            window.location.href
-                        );
-
-
-                    window.location.href =
-                        trustURL;
-                }
-            );
-
-
-        /* COPIER */
-
-        document
-            .getElementById(
-                "miltapeCopyAddress"
-            )
-            ?.addEventListener(
-                "click",
-                copyTronAddress
-            );
-
-
-        /* CONTINUER */
-
-        document
-            .getElementById(
-                "miltapeContinue"
-            )
-            ?.addEventListener(
-                "click",
-                () => {
-
-                    if (
-                        selectedBet <= 0
-                    ) {
-
-                        alert(
-                            "⚠️ Choisis d'abord une mise."
-                        );
-
-                        return;
-                    }
-
-
-                    closeModal();
-
-
-                    setMessage(
-                        "💰 Mise sélectionnée : $" +
-                        selectedBet
+                const value =
+                    Number(
+                        button.dataset.bet
                     );
 
+                if (
+                    value ===
+                    selectedBet
+                ) {
 
-                    if (
-                        socket &&
-                        socket.connected
-                    ) {
+                    button.style.background =
+                        "linear-gradient(135deg,#ffcc00,#ff8a00)";
 
-                        joinGame();
+                    button.style.color =
+                        "#16051f";
 
-                    } else {
+                    button.style.border =
+                        "1px solid #ffcc00";
 
-                        connectSocket();
+                } else {
 
-                        waitForSocketThenJoin();
-                    }
+                    button.style.background =
+                        "#1a092b";
+
+                    button.style.color =
+                        "#fff";
                 }
-            );
-    }
-
-
-    /* =========================================================
-       ⭐ BOUTON JOUER
-       ========================================================= */
-
-    function openChallenge() {
-
-        console.log(
-            "🎮 JOUER MAINTENANT → WALLET"
-        );
-
-
-        /*
-           IMPORTANT :
-           On ouvre TOUJOURS le wallet.
-        */
-
-        openWalletChoice();
-    }
-
-
-    if (enterChallenge) {
-
-        enterChallenge.addEventListener(
-            "click",
-            event => {
-
-                event.preventDefault();
-
-                event.stopPropagation();
-
-                openChallenge();
             }
         );
 
-    } else {
+        const pay =
+            document.getElementById(
+                "payNowButton"
+            );
 
-        console.error(
-            "❌ Bouton enterChallenge introuvable"
-        );
+        if (pay) {
+
+            pay.textContent =
+                `💳 PAYER ${selectedBet} USDT`;
+        }
     }
 
+    choices.forEach(
+        button => {
 
-    /* =========================================================
-       💰 BOUTON WALLET HEADER
-    ========================================================= */
+            button.addEventListener(
+                "click",
+                () => {
 
-    walletButton?.addEventListener(
-        "click",
-        event => {
+                    selectedBet =
+                        Number(
+                            button.dataset.bet
+                        );
 
-            event.preventDefault();
+                    displayBet.textContent =
+                        "$" +
+                        selectedBet;
 
-            openWalletChoice();
+                    refreshChoices();
+                }
+            );
         }
     );
 
-
-    /* =========================================================
-       ⏱️ TIMER
-    ========================================================= */
-
-    function startLocalTimer() {
-
-        if (
-            timerRunning ||
-            currentTimer <= 0
-        ) {
-
-            return;
-        }
-
-
-        timerRunning = true;
-
-
-        clearInterval(
-            timerInterval
+    document
+        .getElementById(
+            "closeBetModal"
+        )
+        .addEventListener(
+            "click",
+            () => modal.remove()
         );
 
+    document
+        .getElementById(
+            "payNowButton"
+        )
+        .addEventListener(
+            "click",
+            payUSDT
+        );
 
-        let lastTick =
-            Date.now();
+    refreshChoices();
+}
 
+/* =========================================================
+   PAIEMENT USDT
+========================================================= */
 
-        timerInterval =
-            setInterval(
-                () => {
+async function payUSDT() {
 
-                    const now =
-                        Date.now();
+    if (isPaying) {
+        return;
+    }
 
+    isPaying = true;
 
-                    const elapsed =
-                        Math.floor(
-                            (
-                                now -
-                                lastTick
-                            ) / 1000
-                        );
+    const payButton =
+        document.getElementById(
+            "payNowButton"
+        );
 
+    const status =
+        document.getElementById(
+            "paymentStatus"
+        );
 
-                    if (
-                        elapsed <= 0
-                    ) {
+    try {
 
-                        return;
-                    }
+        if (payButton) {
 
+            payButton.disabled =
+                true;
 
-                    lastTick +=
-                        elapsed *
-                        1000;
+            payButton.textContent =
+                "🔌 CONNEXION WALLET...";
+        }
 
+        if (status) {
 
-                    currentTimer =
-                        Math.max(
-                            0,
-                            currentTimer -
-                            elapsed
-                        );
+            status.textContent =
+                "Connexion à TronLink...";
+        }
 
+        /*
+        ==============================================
+        CONNEXION
+        ==============================================
+        */
 
-                    updateTimerDisplay(
-                        currentTimer
-                    );
+        const tronWeb =
+            await connectTronLink();
 
+        if (!tronWeb) {
 
-                    if (
-                        currentTimer <= 0
-                    ) {
-
-                        clearInterval(
-                            timerInterval
-                        );
-
-
-                        timerInterval =
-                            null;
-
-
-                        timerRunning =
-                            false;
-
-
-                        gameJoined =
-                            false;
-
-
-                        if (tapButton) {
-
-                            tapButton.disabled =
-                                true;
-                        }
-
-
-                        setMessage(
-                            "⏰ PARTIE TERMINÉE"
-                        );
-                    }
-
-                },
-                250
+            throw new Error(
+                "TronLink introuvable."
             );
-    }
-
-
-    function stopLocalTimer() {
-
-        clearInterval(
-            timerInterval
-        );
-
-
-        timerInterval =
-            null;
-
-
-        timerRunning =
-            false;
-    }
-
-
-    function updateServerTimer(data) {
-
-        let value =
-            data;
-
-
-        if (
-            data &&
-            typeof data === "object"
-        ) {
-
-            value =
-                data.timeLeft ??
-                data.time ??
-                data.seconds ??
-                data.remaining ??
-                data.timer ??
-                data.duration;
         }
 
+        /*
+        ==============================================
+        ADRESSE
+        ==============================================
+        */
 
-        const seconds =
-            Number(value);
-
+        const from =
+            tronWeb
+                .defaultAddress
+                .base58;
 
         if (
-            !Number.isFinite(
-                seconds
+            !isValidTronAddress(
+                from
             )
         ) {
 
-            return;
+            throw new Error(
+                "Adresse TRON du wallet invalide."
+            );
         }
 
+        walletAddress =
+            from;
 
-        updateTimerDisplay(
-            seconds
-        );
+        if (status) {
 
-
-        if (
-            seconds <= 0
-        ) {
-
-            stopLocalTimer();
-
-
-            gameJoined =
-                false;
-
-
-            if (tapButton) {
-
-                tapButton.disabled =
-                    true;
-            }
-
-
-            setMessage(
-                "⏰ PARTIE TERMINÉE"
-            );
-
-        } else if (
-            gameJoined
-        ) {
-
-            startLocalTimer();
-        }
-    }
-
-
-    /* =========================================================
-       🔌 SOCKET
-    ========================================================= */
-
-    function connectSocket() {
-
-        if (
-            socket &&
-            socket.connected
-        ) {
-
-            return;
+            status.textContent =
+                `Wallet connecté : ${from.substring(
+                    0,
+                    6
+                )}...${from.substring(
+                    from.length - 6
+                )}`;
         }
 
-
-        if (
-            typeof window.io !==
-            "function"
-        ) {
-
-            console.error(
-                "❌ Socket.IO non chargé"
-            );
-
-
-            setMessage(
-                "🟠 Chargement du serveur..."
-            );
-
-
-            setTimeout(
-                connectSocket,
-                1000
-            );
-
-
-            return;
-        }
-
+        /*
+        ==============================================
+        RÉSEAU MAINNET
+        ==============================================
+        */
 
         try {
 
-            if (
-                socket
-            ) {
+            const network =
+                await tronWeb.trx.getChainParameters();
 
-                socket.connect();
-
-                return;
-            }
-
-
-            socket =
-                window.io(
-                    BACKEND_URL,
-                    {
-                        transports: [
-                            "websocket",
-                            "polling"
-                        ],
-
-                        reconnection: true,
-
-                        reconnectionAttempts:
-                            Infinity,
-
-                        reconnectionDelay:
-                            1000,
-
-                        reconnectionDelayMax:
-                            5000,
-
-                        timeout:
-                            20000
-                    }
-                );
-
-
-            setupSocketEvents();
+            console.log(
+                "Chain parameters:",
+                network
+            );
 
         } catch (error) {
 
-            console.error(
-                "❌ SOCKET",
+            console.warn(
+                "Network check failed:",
                 error
             );
+        }
 
+        /*
+        ==============================================
+        SOLDE TRX
+        ==============================================
+        */
 
-            setMessage(
-                "🔴 Erreur serveur"
+        try {
+
+            const trxBalance =
+                await tronWeb.trx.getBalance(
+                    from
+                );
+
+            console.log(
+                "TRX balance:",
+                trxBalance / 1000000
+            );
+
+        } catch (error) {
+
+            console.warn(
+                "TRX balance:",
+                error
             );
         }
-    }
 
+        /*
+        ==============================================
+        SOLDE USDT
+        ==============================================
+        */
 
-    function waitForSocketThenJoin() {
+        try {
 
-        let attempts =
-            0;
+            const contract =
+                await tronWeb
+                    .contract()
+                    .at(
+                        USDT_CONTRACT
+                    );
 
+            const rawBalance =
+                await contract
+                    .balanceOf(from)
+                    .call();
 
-        const interval =
-            setInterval(
-                () => {
+            const balance =
+                Number(
+                    rawBalance
+                ) /
+                1000000;
 
-                    attempts++;
-
-
-                    if (
-                        socket &&
-                        socket.connected
-                    ) {
-
-                        clearInterval(
-                            interval
-                        );
-
-
-                        joinGame();
-
-
-                        return;
-                    }
-
-
-                    if (
-                        attempts >= 50
-                    ) {
-
-                        clearInterval(
-                            interval
-                        );
-
-
-                        setMessage(
-                            "🔴 Serveur indisponible"
-                        );
-                    }
-
-                },
-                300
+            console.log(
+                "USDT balance:",
+                balance
             );
-    }
 
+            if (
+                balance <
+                selectedBet
+            ) {
 
-    /* =========================================================
-       🎮 JOIN
-    ========================================================= */
+                throw new Error(
+                    `Solde USDT insuffisant. Tu as ${balance} USDT.`
+                );
+            }
 
-    function joinGame() {
+        } catch (error) {
+
+            if (
+                String(
+                    error.message || ""
+                ).includes(
+                    "Solde USDT insuffisant"
+                )
+            ) {
+
+                throw error;
+            }
+
+            console.warn(
+                "Impossible de lire le solde USDT:",
+                error
+            );
+        }
+
+        /*
+        ==============================================
+        PRÉPARATION
+        ==============================================
+        */
+
+        if (payButton) {
+
+            payButton.textContent =
+                `🔐 CONFIRME ${selectedBet} USDT`;
+        }
+
+        if (status) {
+
+            status.textContent =
+                "Une fenêtre TronLink va s'ouvrir. Confirme le paiement.";
+        }
+
+        /*
+        ==============================================
+        CONTRAT USDT
+        ==============================================
+        */
+
+        const contract =
+            await tronWeb
+                .contract()
+                .at(
+                    USDT_CONTRACT
+                );
+
+        /*
+        ==============================================
+        TRANSFERT
+        ==============================================
+        */
+
+        const amount =
+            usdtUnits(
+                selectedBet
+            );
+
+        console.log(
+            "Paiement:",
+            {
+                from,
+                to: MILTAPE_WALLET,
+                amount,
+                selectedBet
+            }
+        );
+
+        /*
+        TronWeb crée la transaction
+        puis TronLink demande
+        la signature de l'utilisateur.
+        */
+
+        const txid =
+            await contract
+                .transfer(
+                    MILTAPE_WALLET,
+                    amount
+                )
+                .send(
+                    {
+                        feeLimit:
+                            100000000,
+
+                        callValue:
+                            0,
+
+                        shouldPollResponse:
+                            false
+                    }
+                );
+
+        console.log(
+            "TXID:",
+            txid
+        );
+
+        if (!txid) {
+
+            throw new Error(
+                "Le wallet n'a pas retourné de TXID."
+            );
+        }
+
+        if (status) {
+
+            status.textContent =
+                "✅ Transaction envoyée. Vérification du paiement...";
+        }
+
+        if (payButton) {
+
+            payButton.textContent =
+                "⏳ VÉRIFICATION...";
+        }
+
+        /*
+        ==============================================
+        ATTENDRE UN PEU
+        ==============================================
+        */
+
+        await wait(
+            4000
+        );
+
+        /*
+        ==============================================
+        BACKEND
+        ==============================================
+        */
+
+        const result =
+            await verifyPayment(
+                txid,
+                selectedBet,
+                walletAddress
+            );
+
+        /*
+        ==============================================
+        SUCCÈS
+        ==============================================
+        */
 
         if (
-            !socket ||
-            !socket.connected
+            result &&
+            result.success
         ) {
+
+            hasPaid =
+                true;
+
+            localStorage.setItem(
+                "miltape_has_paid",
+                "true"
+            );
+
+            localStorage.setItem(
+                "miltape_wallet",
+                walletAddress
+            );
+
+            localStorage.setItem(
+                "miltape_game_id",
+                String(
+                    result.gameId ||
+                    currentGameId ||
+                    ""
+                )
+            );
+
+            displayBet.textContent =
+                "$" +
+                selectedBet;
+
+            showMessage(
+                "✅ PAIEMENT VALIDÉ — TU PEUX JOUER !",
+                "success"
+            );
+
+            tapButton.disabled =
+                false;
+
+            tapButton.style.opacity =
+                "1";
+
+            tapButton.style.cursor =
+                "pointer";
+
+            /*
+            Fermer modal
+            */
+
+            const modal =
+                document.getElementById(
+                    "miltapeBetModal"
+                );
+
+            if (modal) {
+                modal.remove();
+            }
+
+            /*
+            Rejoindre Socket
+            */
 
             connectSocket();
 
             return;
         }
 
-
-        if (
-            selectedBet <= 0
-        ) {
-
-            openWalletChoice();
-
-            return;
-        }
-
-
-        const data = {
-
-            playerId,
-
-            playerName,
-
-            bet:
-                selectedBet,
-
-            amount:
-                selectedBet
-        };
-
-
-        console.log(
-            "🎮 JOIN",
-            data
+        throw new Error(
+            result?.message ||
+            "Paiement non validé."
         );
 
+    } catch (error) {
 
-        socket.emit(
-            "join",
-            data
+        console.error(
+            "❌ PAYMENT ERROR:",
+            error
         );
 
-
-        socket.emit(
-            "joinGame",
-            data
-        );
-
-
-        gameJoined =
-            true;
-
-
-        if (tapButton) {
-
-            tapButton.disabled =
-                false;
-        }
-
-
-        setMessage(
-            "🔥 À TOI DE TAPPER !"
-        );
-
-
-        startLocalTimer();
-    }
-
-
-    /* =========================================================
-       SOCKET EVENTS
-    ========================================================= */
-
-    function setupSocketEvents() {
-
-        socket.on(
-            "connect",
-            () => {
-
-                console.log(
-                    "🟢 SOCKET CONNECTÉ",
-                    socket.id
-                );
-
-
-                socket.emit(
-                    "getGame"
-                );
-
-
-                socket.emit(
-                    "getLeaderboard"
-                );
-
-
-                socket.emit(
-                    "getChatHistory"
-                );
-
-
-                socket.emit(
-                    "getOnlineCount"
-                );
-
-
-                socket.emit(
-                    "online:request"
-                );
-            }
-        );
-
-
-        socket.on(
-            "disconnect",
-            () => {
-
-                if (
-                    gameJoined
-                ) {
-
-                    setMessage(
-                        "🟠 Reconnexion..."
-                    );
-                }
-            }
-        );
-
-
-        socket.on(
-            "connect_error",
-            error => {
-
-                console.error(
-                    "Socket error",
-                    error
-                );
-
-
-                setMessage(
-                    "🟠 Serveur momentanément indisponible"
-                );
-            }
-        );
-
-
-        /* TIMER */
-
-        [
-            "timer",
-            "gameTimer",
-            "timer:update",
-            "game:timer",
-            "countdown"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    updateServerTimer
-                );
-            }
-        );
-
-
-        /* JOIN SUCCESS */
-
-        [
-            "joinSuccess",
-            "join:success"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    data => {
-
-                        gameJoined =
-                            true;
-
-
-                        if (
-                            data &&
-                            data.score !==
-                            undefined
-                        ) {
-
-                            updateScoreDisplays(
-                                data.score
-                            );
-                        }
-
-
-                        if (tapButton) {
-
-                            tapButton.disabled =
-                                false;
-                        }
-
-
-                        setMessage(
-                            "🔥 À TOI DE TAPPER !"
-                        );
-
-
-                        startLocalTimer();
-                    }
-                );
-            }
-        );
-
-
-        /* JOIN ERROR */
-
-        [
-            "joinError",
-            "join:error"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    data => {
-
-                        gameJoined =
-                            false;
-
-
-                        if (tapButton) {
-
-                            tapButton.disabled =
-                                true;
-                        }
-
-
-                        setMessage(
-                            data?.message ||
-                            "❌ Impossible de rejoindre"
-                        );
-                    }
-                );
-            }
-        );
-
-
-        /* TAP */
-
-        [
-            "tapResult",
-            "tap:result",
-            "score:update"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    data => {
-
-                        if (
-                            !data
-                        ) {
-
-                            return;
-                        }
-
-
-                        const id =
-                            data.playerId ??
-                            data.id;
-
-
-                        if (
-                            id &&
-                            String(id) !==
-                            String(playerId)
-                        ) {
-
-                            return;
-                        }
-
-
-                        const score =
-                            data.score ??
-                            data.taps ??
-                            data.totalTaps ??
-                            data.tapCount;
-
-
-                        if (
-                            score !==
-                            undefined
-                        ) {
-
-                            updateScoreDisplays(
-                                score
-                            );
-                        }
-                    }
-                );
-            }
-        );
-
-
-        /* LEADERBOARD */
-
-        [
-            "leaderboard",
-            "leaderboard:update"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    updateLeaderboard
-                );
-            }
-        );
-
-
-        /* ONLINE */
-
-        [
-            "onlineCount",
-            "online:count",
-            "online",
-            "userCount",
-            "users:online",
-            "onlineUsers",
-            "usersOnline"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    updateOnlineCount
-                );
-            }
-        );
-
-
-        /* TOTAL STAKES */
-
-        [
-            "totalStakes",
-            "stakes:update"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    updateTotalStakes
-                );
-            }
-        );
-
-
-        /* CHAT */
-
-        [
-            "chatMessage",
-            "chat:message"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    receiveChatMessage
-                );
-            }
-        );
-
-
-        [
-            "chatHistory",
-            "chat:history"
-        ].forEach(
-            event => {
-
-                socket.on(
-                    event,
-                    messages => {
-
-                        if (
-                            Array.isArray(
-                                messages
-                            )
-                        ) {
-
-                            messages.forEach(
-                                receiveChatMessage
-                            );
-                        }
-                    }
-                );
-            }
-        );
-    }
-
-
-    /* =========================================================
-       LEADERBOARD
-    ========================================================= */
-
-    function updateLeaderboard(players) {
-
-        if (
-            !leaderboardList
-        ) {
-
-            return;
-        }
-
-
-        if (
-            players &&
-            typeof players === "object" &&
-            !Array.isArray(players)
-        ) {
-
-            players =
-                players.players ??
-                players.data ??
-                players.leaderboard ??
-                [];
-        }
-
-
-        if (
-            !Array.isArray(players) ||
-            players.length === 0
-        ) {
-
-            leaderboardList.innerHTML = `
-                <div class="empty-ranking">
-                    Aucun joueur pour le moment
-                </div>
-            `;
-
-            return;
-        }
-
-
-        leaderboardList.innerHTML =
-            [...players]
-                .sort(
-                    (a, b) => {
-
-                        return (
-                            Number(
-                                b.score ??
-                                b.taps ??
-                                b.tapCount ??
-                                0
-                            ) -
-                            Number(
-                                a.score ??
-                                a.taps ??
-                                a.tapCount ??
-                                0
-                            )
-                        );
-                    }
-                )
-                .slice(
-                    0,
-                    5
-                )
-                .map(
-                    (p, index) => {
-
-                        const id =
-                            p.playerId ??
-                            p._id ??
-                            p.id ??
-                            "";
-
-
-                        const name =
-                            p.playerName ??
-                            p.name ??
-                            "Anonyme";
-
-
-                        const score =
-                            Number(
-                                p.score ??
-                                p.taps ??
-                                p.tapCount ??
-                                0
-                            );
-
-
-                        const isMe =
-                            String(id) ===
-                            String(playerId);
-
-
-                        return `
-                            <div class="leaderboard-item">
-
-                                <div class="rank">
-                                    #${index + 1}
-                                </div>
-
-                                <div class="player-name">
-
-                                    ${escapeHTML(
-                                        name
-                                    )}
-
-                                    ${
-                                        isMe
-                                            ? "<strong> (toi)</strong>"
-                                            : ""
-                                    }
-
-                                </div>
-
-                                <div class="player-score">
-
-                                    ${score} ⚡
-
-                                </div>
-
-                            </div>
-                        `;
-                    }
-                )
-                .join("");
-    }
-
-
-    /* =========================================================
-       ONLINE
-    ========================================================= */
-
-    function updateOnlineCount(data) {
-
-        let count =
-            data;
-
-
-        if (
-            data &&
-            typeof data === "object"
-        ) {
-
-            count =
-                data.count ??
-                data.online ??
-                data.onlineCount ??
-                data.users ??
-                data.total ??
-                data.connected ??
-                data.playersOnline;
-        }
-
-
-        count =
-            Number(count);
-
-
-        if (
-            !Number.isFinite(
-                count
-            ) ||
-            !onlineCount
-        ) {
-
-            return;
-        }
-
-
-        count =
-            Math.max(
-                0,
-                Math.floor(count)
+        const message =
+            String(
+                error?.message ||
+                error ||
+                "Paiement annulé."
             );
 
+        if (status) {
 
-        onlineCount.innerHTML = `
-
-            <span style="
-                display:inline-block;
-                width:8px;
-                height:8px;
-                background:#2ecc71;
-                border-radius:50%;
-                margin-right:5px;
-                box-shadow:0 0 8px #2ecc71;
-            "></span>
-
-            <span>
-                ${count} EN LIGNE
-            </span>
-        `;
-    }
-
-
-    /* =========================================================
-       TOTAL STAKES
-    ========================================================= */
-
-    function updateTotalStakes(data) {
-
-        let total =
-            data;
-
-
-        if (
-            data &&
-            typeof data === "object"
-        ) {
-
-            total =
-                data.total ??
-                data.amount ??
-                data.totalStakes;
+            status.textContent =
+                "❌ " + message;
         }
 
+        if (payButton) {
 
-        if (
-            total !== undefined &&
-            globalTotalStakes
-        ) {
+            payButton.disabled =
+                false;
 
-            globalTotalStakes.textContent =
-                "$" + total;
+            payButton.textContent =
+                `💳 PAYER ${selectedBet} USDT`;
         }
+
+        showMessage(
+            "⚠️ " + message,
+            "error"
+        );
+
+    } finally {
+
+        isPaying =
+            false;
     }
+}
 
+/* =========================================================
+   ATTENTE
+========================================================= */
 
-    /* =========================================================
-       💬 CHAT
-    ========================================================= */
+function wait(ms) {
 
-    const receivedChatIds =
-        new Set();
-
-
-    const receivedChatKeys =
-        new Map();
-
-
-    function normalizeChatText(text) {
-
-        return String(
-            text ?? ""
-        )
-            .trim()
-            .replace(
-                /\s+/g,
-                " "
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                ms
             )
-            .toLowerCase();
+    );
+}
+
+/* =========================================================
+   VÉRIFICATION BACKEND
+========================================================= */
+
+async function verifyPayment(
+    txid,
+    amount,
+    address
+) {
+
+    /*
+    Le backend que tu as envoyé
+    attend exactement ces champs.
+    */
+
+    const result =
+        await api(
+            "/api/verify-payment",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify(
+                        {
+
+                            playerId,
+
+                            playerName,
+
+                            txid,
+
+                            amount,
+
+                            cryptoAddress:
+                                address
+                        }
+                    )
+            }
+        );
+
+    return result;
+}
+
+/* =========================================================
+   SOCKET.IO
+========================================================= */
+
+function connectSocket() {
+
+    if (
+        socket &&
+        socket.connected
+    ) {
+
+        joinGame();
+
+        return;
     }
 
+    if (
+        typeof io !==
+        "function"
+    ) {
 
-    function receiveChatMessage(msg) {
+        console.error(
+            "Socket.IO non chargé."
+        );
 
-        if (
-            !chatMessages
-        ) {
+        return;
+    }
 
-            return;
+    socket =
+        io(
+            SOCKET_URL,
+            {
+                transports: [
+                    "websocket",
+                    "polling"
+                ]
+            }
+        );
+
+    socket.on(
+        "connect",
+        () => {
+
+            console.log(
+                "🟢 Socket connecté"
+            );
+
+            joinGame();
         }
+    );
 
+    socket.on(
+        "connect_error",
+        error => {
 
-        let data;
-
-
-        if (
-            typeof msg === "string"
-        ) {
-
-            data = {
-
-                playerName:
-                    "Anonyme",
-
-                message:
-                    msg,
-
-                id:
-                    ""
-            };
-
-        } else if (
-            msg &&
-            typeof msg === "object"
-        ) {
-
-            data = {
-
-                playerName:
-                    msg.playerName ??
-                    msg.name ??
-                    msg.username ??
-                    msg.senderName ??
-                    "Anonyme",
-
-                message:
-                    msg.message ??
-                    msg.text ??
-                    msg.content ??
-                    msg.msg ??
-                    "",
-
-                id:
-                    msg._id ??
-                    msg.id ??
-                    msg.messageId ??
-                    msg.uuid ??
-                    ""
-            };
-
-        } else {
-
-            return;
+            console.error(
+                "Socket error:",
+                error.message
+            );
         }
+    );
 
+    /*
+    INIT
+    */
 
-        const sender =
-            String(
-                data.playerName ||
-                "Anonyme"
-            ).trim();
+    socket.on(
+        "initGame",
+        data => {
 
+            if (!data) {
+                return;
+            }
 
-        const text =
-            String(
-                data.message ||
-                ""
-            ).trim();
+            currentGameId =
+                data.gameId;
 
-
-        if (
-            !text
-        ) {
-
-            return;
-        }
-
-
-        if (
-            data.id
-        ) {
-
-            const id =
-                String(
-                    data.id
+            timerLeft =
+                Number(
+                    data.timerLeft ??
+                    GAME_DURATION
                 );
 
+            updateTimer(
+                timerLeft
+            );
 
             if (
-                receivedChatIds.has(
-                    id
+                Array.isArray(
+                    data.leaderboard
                 )
+            ) {
+
+                renderLeaderboard(
+                    data.leaderboard
+                );
+            }
+
+            if (
+                data.joined
+            ) {
+
+                hasPaid =
+                    true;
+
+                tapButton.disabled =
+                    false;
+            }
+        }
+    );
+
+    /*
+    TIMER
+    */
+
+    socket.on(
+        "timer",
+        value => {
+
+            timerLeft =
+                Number(value);
+
+            updateTimer(
+                timerLeft
+            );
+        }
+    );
+
+    socket.on(
+        "timer:update",
+        data => {
+
+            if (!data) {
+                return;
+            }
+
+            timerLeft =
+                Number(
+                    data.timeLeft ??
+                    timerLeft
+                );
+
+            currentGameId =
+                data.gameId ??
+                currentGameId;
+
+            updateTimer(
+                timerLeft
+            );
+        }
+    );
+
+    socket.on(
+        "timerUpdate",
+        data => {
+
+            if (!data) {
+                return;
+            }
+
+            timerLeft =
+                Number(
+                    data.timerLeft ??
+                    timerLeft
+                );
+
+            updateTimer(
+                timerLeft
+            );
+        }
+    );
+
+    /*
+    LEADERBOARD
+    */
+
+    socket.on(
+        "leaderboard",
+        renderLeaderboard
+    );
+
+    socket.on(
+        "leaderboard:update",
+        renderLeaderboard
+    );
+
+    /*
+    SCORE
+    */
+
+    socket.on(
+        "score:update",
+        data => {
+
+            if (
+                data &&
+                data.playerId ===
+                    playerId
+            ) {
+
+                const score =
+                    Number(
+                        data.score || 0
+                    );
+
+                updateLocalScore(
+                    score
+                );
+            }
+        }
+    );
+
+    /*
+    TAP RESULT
+    */
+
+    socket.on(
+        "tapResult",
+        data => {
+
+            if (
+                !data ||
+                !data.success
             ) {
 
                 return;
             }
 
-
-            receivedChatIds.add(
-                id
+            updateLocalScore(
+                Number(
+                    data.score || 0
+                )
             );
         }
+    );
 
+    /*
+    ONLINE
+    */
 
-        const key =
-            normalizeChatText(
-                sender
-            ) +
-            "|" +
-            normalizeChatText(
-                text
-            );
+    socket.on(
+        "onlineCount",
+        count => {
 
-
-        const now =
-            Date.now();
-
-
-        const previous =
-            receivedChatKeys.get(
-                key
-            );
-
-
-        if (
-            previous &&
-            now - previous < 1500
-        ) {
-
-            return;
-        }
-
-
-        receivedChatKeys.set(
-            key,
-            now
-        );
-
-
-        const element =
-            document.createElement(
-                "div"
-            );
-
-
-        element.className =
-            "chat-message";
-
-
-        const strong =
-            document.createElement(
-                "strong"
-            );
-
-
-        strong.textContent =
-            sender + ": ";
-
-
-        element.appendChild(
-            strong
-        );
-
-
-        element.appendChild(
-            document.createTextNode(
-                text
-            )
-        );
-
-
-        chatMessages.appendChild(
-            element
-        );
-
-
-        while (
-            chatMessages.children.length >
-            100
-        ) {
-
-            chatMessages.removeChild(
-                chatMessages.firstChild
+            updateOnline(
+                count
             );
         }
+    );
 
+    socket.on(
+        "online:count",
+        data => {
 
-        chatMessages.scrollTop =
-            chatMessages.scrollHeight;
+            updateOnline(
+                data?.count || 0
+            );
+        }
+    );
+
+    /*
+    TOTAL STAKES
+    */
+
+    socket.on(
+        "totalStakes",
+        total => {
+
+            updateTotalStakes(
+                total
+            );
+        }
+    );
+
+    socket.on(
+        "stakes:update",
+        data => {
+
+            updateTotalStakes(
+                data?.total || 0
+            );
+        }
+    );
+
+    /*
+    CHAT
+    */
+
+    socket.on(
+        "chatHistory",
+        messages => {
+
+            renderChatHistory(
+                messages
+            );
+        }
+    );
+
+    socket.on(
+        "chatMessage",
+        message => {
+
+            addChatMessage(
+                message
+            );
+        }
+    );
+
+    socket.on(
+        "chat:message",
+        message => {
+
+            addChatMessage(
+                message
+            );
+        }
+    );
+
+    /*
+    NOUVELLE PARTIE
+    */
+
+    socket.on(
+        "newGame",
+        data => {
+
+            newGame(
+                data
+            );
+        }
+    );
+
+    socket.on(
+        "game:new",
+        data => {
+
+            newGame(
+                data
+            );
+        }
+    );
+
+    socket.on(
+        "gameStart",
+        data => {
+
+            newGame(
+                data
+            );
+        }
+    );
+
+    /*
+    GAME OVER
+    */
+
+    socket.on(
+        "gameOver",
+        data => {
+
+            showMessage(
+                "🏁 Partie terminée !",
+                "normal"
+            );
+
+            tapButton.disabled =
+                true;
+        }
+    );
+}
+
+/* =========================================================
+   JOIN GAME
+========================================================= */
+
+function joinGame() {
+
+    if (
+        !socket ||
+        !socket.connected
+    ) {
+
+        return;
     }
 
-
-    function sendChatMessage() {
-
-        if (
-            !chatInput
-        ) {
-
-            return;
-        }
-
-
-        const text =
-            chatInput.value.trim();
-
-
-        if (
-            !text
-        ) {
-
-            chatInput.focus();
-
-            return;
-        }
-
-
-        if (
-            text.length > 200
-        ) {
-
-            alert(
-                "⚠️ Maximum 200 caractères."
-            );
-
-            return;
-        }
-
-
-        if (
-            !socket ||
-            !socket.connected
-        ) {
-
-            setMessage(
-                "🟠 Connexion au serveur..."
-            );
-
-
-            connectSocket();
-
-
-            return;
-        }
-
-
-        const now =
-            Date.now();
-
-
-        if (
-            text ===
-                lastSentMessage &&
-            now -
-                lastSentMessageTime <
-                1000
-        ) {
-
-            return;
-        }
-
-
-        lastSentMessage =
-            text;
-
-
-        lastSentMessageTime =
-            now;
-
-
-        const data = {
+    socket.emit(
+        "join",
+        {
 
             playerId,
 
-            playerName,
+            playerName
+        }
+    );
+}
 
-            message:
-                text
-        };
+/* =========================================================
+   TIMER
+========================================================= */
 
+function updateTimer(
+    seconds
+) {
 
-        socket.emit(
-            "chatMessage",
-            data
+    seconds =
+        Math.max(
+            0,
+            Number(seconds) || 0
         );
 
-
-        socket.emit(
-            "chat:message",
-            data
+    const minutes =
+        Math.floor(
+            seconds / 60
         );
 
+    const secs =
+        seconds % 60;
 
-        chatInput.value =
-            "";
+    if (timerElement) {
 
-
-        chatInput.focus();
+        timerElement.textContent =
+            String(minutes)
+                .padStart(2, "0") +
+            ":" +
+            String(secs)
+                .padStart(2, "0");
     }
 
+    if (
+        seconds <= 0
+    ) {
 
-    chatSend?.addEventListener(
-        "click",
-        event => {
+        tapButton.disabled =
+            true;
 
-            event.preventDefault();
+    } else if (
+        hasPaid
+    ) {
 
-            event.stopPropagation();
+        tapButton.disabled =
+            false;
+    }
+}
 
-            sendChatMessage();
-        }
+/* =========================================================
+   NOUVELLE PARTIE
+========================================================= */
+
+function newGame(
+    data
+) {
+
+    currentGameId =
+        data?.gameId ??
+        currentGameId;
+
+    timerLeft =
+        Number(
+            data?.timerLeft ??
+            GAME_DURATION
+        );
+
+    updateTimer(
+        timerLeft
     );
 
-
-    chatInput?.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key === "Enter" &&
-                !event.shiftKey
-            ) {
-
-                event.preventDefault();
-
-                sendChatMessage();
-            }
-        }
+    updateLocalScore(
+        0
     );
 
+    /*
+    Le paiement de la partie
+    précédente ne doit pas
+    automatiquement payer la
+    nouvelle partie.
+    */
 
-    /* =========================================================
-       ⚡ TAP
-    ========================================================= */
+    hasPaid =
+        false;
 
-    tapButton?.addEventListener(
+    tapButton.disabled =
+        true;
+
+    showMessage(
+        "⚡ NOUVELLE PARTIE — CHOISIS TA MISE",
+        "normal"
+    );
+
+    if (displayBet) {
+
+        displayBet.textContent =
+            "$0";
+    }
+}
+
+/* =========================================================
+   TAP
+========================================================= */
+
+if (tapButton) {
+
+    tapButton.addEventListener(
         "click",
         () => {
 
             if (
-                !gameJoined
-            ) {
-
-                setMessage(
-                    "⚡ Appuie d'abord sur JOUER"
-                );
-
-                return;
-            }
-
-
-            if (
-                currentTimer <= 0 ||
-                tapLocked
-            ) {
-
-                return;
-            }
-
-
-            if (
+                !hasPaid ||
                 !socket ||
                 !socket.connected
             ) {
 
-                connectSocket();
+                showMessage(
+                    "🔒 Tu dois d'abord payer ta mise.",
+                    "error"
+                );
 
                 return;
             }
-
-
-            tapLocked =
-                true;
-
 
             tapButton.classList.add(
                 "tap-active"
             );
 
-
-            socket.emit(
-                "tap",
-                {
-                    playerId,
-                    playerName,
-                    taps: 1
-                }
-            );
-
-
             setTimeout(
                 () => {
-
-                    tapLocked =
-                        false;
-
 
                     tapButton.classList.remove(
                         "tap-active"
@@ -2440,381 +1750,870 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 80
             );
-        }
-    );
 
-
-    /* =========================================================
-       🧭 MENU
-    ========================================================= */
-
-    const menuButton =
-        document.getElementById(
-            "menuButton"
-        );
-
-    const sideMenu =
-        document.getElementById(
-            "sideMenu"
-        );
-
-    const closeMenu =
-        document.getElementById(
-            "closeMenu"
-        );
-
-    const menuOverlay =
-        document.getElementById(
-            "menuOverlay"
-        );
-
-
-    function openSideMenu() {
-
-        sideMenu?.classList.add(
-            "show"
-        );
-
-        menuOverlay?.classList.add(
-            "show"
-        );
-
-        document.body.style.overflow =
-            "hidden";
-    }
-
-
-    function closeSideMenu() {
-
-        sideMenu?.classList.remove(
-            "show"
-        );
-
-        menuOverlay?.classList.remove(
-            "show"
-        );
-
-        document.body.style.overflow =
-            "";
-    }
-
-
-    menuButton?.addEventListener(
-        "click",
-        openSideMenu
-    );
-
-
-    closeMenu?.addEventListener(
-        "click",
-        closeSideMenu
-    );
-
-
-    menuOverlay?.addEventListener(
-        "click",
-        closeSideMenu
-    );
-
-
-    /* =========================================================
-       MENU NAVIGATION
-    ========================================================= */
-
-    document
-        .getElementById(
-            "menuGamesBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                openModal(
-                    "🎮 Mes parties",
-                    `
-                        <p>
-                            Ton historique de parties
-                            apparaîtra ici.
-                        </p>
-                    `
-                );
-            }
-        );
-
-
-    document
-        .getElementById(
-            "menuRankingsBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                document
-                    .querySelector(
-                        ".leaderboard"
-                    )
-                    ?.scrollIntoView({
-                        behavior:
-                            "smooth"
-                    });
-            }
-        );
-
-
-    document
-        .getElementById(
-            "menuGainsBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                openModal(
-                    "💰 Mes gains",
-                    `
-                        <p>
-                            Tes gains apparaîtront
-                            ici.
-                        </p>
-                    `
-                );
-            }
-        );
-
-
-    document
-        .getElementById(
-            "menuWithdrawalsBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                openModal(
-                    "💸 Mes retraits",
-                    `
-                        <p>
-                            La gestion des retraits
-                            sera disponible ici.
-                        </p>
-                    `
-                );
-            }
-        );
-
-
-    document
-        .getElementById(
-            "menuReferralBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                openModal(
-                    "👥 Parrainage",
-                    `
-                        <p>
-                            Ton identifiant :
-                        </p>
-
-                        <p>
-                            <strong>
-                                ${escapeHTML(
-                                    playerId
-                                )}
-                            </strong>
-                        </p>
-                    `
-                );
-            }
-        );
-
-
-    document
-        .getElementById(
-            "menuChatBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                document
-                    .querySelector(
-                        ".chat-section"
-                    )
-                    ?.scrollIntoView({
-                        behavior:
-                            "smooth"
-                    });
-
-
-                setTimeout(
-                    () => {
-
-                        chatInput?.focus();
-
-                    },
-                    500
-                );
-            }
-        );
-
-
-    document
-        .getElementById(
-            "menuRulesBtn"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-
-                closeSideMenu();
-
-                openModal(
-                    "📜 Règles Miltape",
-                    `
-                        <p>
-                            ⏱️ Une partie dure
-                            10 minutes.
-                        </p>
-
-                        <p>
-                            🏆 Les 5 meilleurs
-                            joueurs sont classés.
-                        </p>
-
-                        <p>
-                            🪙 Les mises utilisent
-                            USDT TRC20.
-                        </p>
-                    `
-                );
-            }
-        );
-
-
-    /* =========================================================
-       📲 PWA
-    ========================================================= */
-
-    const installButton =
-        document.getElementById(
-            "installPwaButton"
-        );
-
-
-    window.addEventListener(
-        "beforeinstallprompt",
-        event => {
-
-            event.preventDefault();
-
-            deferredPrompt =
-                event;
-
-            installButton?.classList.add(
-                "show"
+            socket.emit(
+                "tap",
+                {
+                    playerId
+                }
             );
         }
     );
+}
 
+/* =========================================================
+   PLAY BUTTON
+========================================================= */
 
-    installButton?.addEventListener(
+if (enterChallenge) {
+
+    enterChallenge.addEventListener(
+        "click",
+        () => {
+
+            openBetModal();
+        }
+    );
+}
+
+/* =========================================================
+   SCORE LOCAL
+========================================================= */
+
+function updateLocalScore(
+    score
+) {
+
+    const value =
+        Math.max(
+            0,
+            Number(score) || 0
+        );
+
+    if (tapCount) {
+
+        tapCount.textContent =
+            value;
+    }
+
+    if (tapButtonCount) {
+
+        tapButtonCount.textContent =
+            value;
+    }
+}
+
+/* =========================================================
+   LEADERBOARD
+========================================================= */
+
+function renderLeaderboard(
+    players
+) {
+
+    if (!leaderboardList) {
+        return;
+    }
+
+    if (
+        !Array.isArray(players) ||
+        players.length === 0
+    ) {
+
+        leaderboardList.innerHTML = `
+            <div class="empty-ranking">
+                Aucun joueur pour le moment
+            </div>
+        `;
+
+        return;
+    }
+
+    leaderboardList.innerHTML =
+        players
+            .slice(0, 5)
+            .map(
+                (player, index) => {
+
+                    const medal =
+                        [
+                            "🥇",
+                            "🥈",
+                            "🥉",
+                            "🏅",
+                            "🏅"
+                        ][index] ||
+                        "🏅";
+
+                    return `
+                        <div style="
+                            display:flex;
+                            align-items:center;
+                            justify-content:space-between;
+                            padding:10px;
+                            margin-bottom:6px;
+                            border-radius:10px;
+                            background:rgba(255,255,255,.035);
+                        ">
+
+                            <div>
+                                <strong style="color:#ffcc00;">
+                                    ${medal}
+                                    ${escapeHtml(
+                                        player.playerName ||
+                                        "Joueur"
+                                    )}
+                                </strong>
+                            </div>
+
+                            <strong style="color:white;">
+                                ${Number(
+                                    player.score || 0
+                                ).toLocaleString(
+                                    "fr-FR"
+                                )}
+                                TAP
+                            </strong>
+
+                        </div>
+                    `;
+                }
+            )
+            .join("");
+}
+
+/* =========================================================
+   ONLINE
+========================================================= */
+
+function updateOnline(
+    count
+) {
+
+    if (!onlineCount) {
+        return;
+    }
+
+    onlineCount.innerHTML = `
+        <span style="
+            display:inline-block;
+            width:8px;
+            height:8px;
+            background:#2ecc71;
+            border-radius:50%;
+            margin-right:5px;
+        "></span>
+
+        <span>
+            ${Number(count || 0)}
+            EN LIGNE
+        </span>
+    `;
+}
+
+/* =========================================================
+   TOTAL STAKES
+========================================================= */
+
+function updateTotalStakes(
+    total
+) {
+
+    if (!globalTotalStakes) {
+        return;
+    }
+
+    const value =
+        Number(total || 0);
+
+    globalTotalStakes.textContent =
+        "$" +
+        value.toLocaleString(
+            "fr-FR",
+            {
+                maximumFractionDigits: 2
+            }
+        );
+}
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+function sendChat() {
+
+    if (!socket) {
+
+        showMessage(
+            "Chat non connecté.",
+            "error"
+        );
+
+        return;
+    }
+
+    const message =
+        String(
+            chatInput?.value || ""
+        ).trim();
+
+    if (!message) {
+        return;
+    }
+
+    if (
+        !socket.connected
+    ) {
+
+        showMessage(
+            "Connexion au chat en cours...",
+            "error"
+        );
+
+        return;
+    }
+
+    socket.emit(
+        "chatMessage",
+        {
+
+            playerId,
+
+            playerName,
+
+            message
+        }
+    );
+
+    chatInput.value =
+        "";
+}
+
+if (chatSend) {
+
+    chatSend.addEventListener(
+        "click",
+        sendChat
+    );
+}
+
+if (chatInput) {
+
+    chatInput.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Enter"
+            ) {
+
+                event.preventDefault();
+
+                sendChat();
+            }
+        }
+    );
+}
+
+/* =========================================================
+   CHAT HISTORY
+========================================================= */
+
+function renderChatHistory(
+    messages
+) {
+
+    if (!chatMessages) {
+        return;
+    }
+
+    chatMessages.innerHTML =
+        "";
+
+    if (
+        !Array.isArray(messages) ||
+        messages.length === 0
+    ) {
+
+        addChatMessage(
+            {
+                playerName:
+                    "Système",
+
+                message:
+                    "Bienvenue sur Miltape !"
+            }
+        );
+
+        return;
+    }
+
+    messages.forEach(
+        addChatMessage
+    );
+}
+
+/* =========================================================
+   CHAT MESSAGE
+========================================================= */
+
+function addChatMessage(
+    data
+) {
+
+    if (!chatMessages) {
+        return;
+    }
+
+    if (!data) {
+        return;
+    }
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.className =
+        "chat-message";
+
+    div.innerHTML = `
+        <strong>
+            ${escapeHtml(
+                data.playerName ||
+                "Anonyme"
+            )} :
+        </strong>
+
+        ${escapeHtml(
+            data.message ||
+            ""
+        )}
+    `;
+
+    chatMessages.appendChild(
+        div
+    );
+
+    chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+}
+
+/* =========================================================
+   SÉCURITÉ HTML
+========================================================= */
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+}
+
+/* =========================================================
+   WALLET BUTTON
+========================================================= */
+
+const walletButton =
+    $("walletButton");
+
+if (walletButton) {
+
+    walletButton.addEventListener(
         "click",
         async () => {
 
-            if (
-                !deferredPrompt
-            ) {
-
-                return;
-            }
-
-
             try {
 
-                await deferredPrompt.prompt();
+                const tronWeb =
+                    await connectTronLink();
 
-                await deferredPrompt.userChoice;
+                walletAddress =
+                    tronWeb
+                        .defaultAddress
+                        .base58;
+
+                showMessage(
+                    `💰 Wallet connecté : ${walletAddress.substring(
+                        0,
+                        6
+                    )}...${walletAddress.substring(
+                        walletAddress.length - 6
+                    )}`,
+                    "success"
+                );
 
             } catch (error) {
 
-                console.warn(
-                    "PWA",
-                    error
+                showMessage(
+                    "❌ " +
+                    error.message,
+                    "error"
                 );
             }
-
-
-            deferredPrompt =
-                null;
-
-
-            installButton.classList.remove(
-                "show"
-            );
         }
     );
+}
 
+/* =========================================================
+   MENU
+========================================================= */
 
-    /* =========================================================
-       INITIALISATION
-    ========================================================= */
+const menuButton =
+    $("menuButton");
 
-    updateScoreDisplays(
-        0
+const sideMenu =
+    $("sideMenu");
+
+const menuOverlay =
+    $("menuOverlay");
+
+const closeMenu =
+    $("closeMenu");
+
+function openMenu() {
+
+    sideMenu?.classList.add(
+        "show"
     );
 
+    menuOverlay?.classList.add(
+        "show"
+    );
+}
 
-    updateTimerDisplay(
-        GAME_DURATION
+function closeSideMenu() {
+
+    sideMenu?.classList.remove(
+        "show"
     );
 
+    menuOverlay?.classList.remove(
+        "show"
+    );
+}
 
-    if (tapButton) {
+menuButton?.addEventListener(
+    "click",
+    openMenu
+);
 
-        tapButton.disabled =
-            true;
+closeMenu?.addEventListener(
+    "click",
+    closeSideMenu
+);
+
+menuOverlay?.addEventListener(
+    "click",
+    closeSideMenu
+);
+
+/* =========================================================
+   PWA
+========================================================= */
+
+const installButton =
+    $("installPwaButton");
+
+window.addEventListener(
+    "beforeinstallprompt",
+    event => {
+
+        event.preventDefault();
+
+        deferredInstallPrompt =
+            event;
+
+        installButton?.classList.add(
+            "show"
+        );
+    }
+);
+
+installButton?.addEventListener(
+    "click",
+    async () => {
+
+        if (
+            !deferredInstallPrompt
+        ) {
+            return;
+        }
+
+        deferredInstallPrompt.prompt();
+
+        await deferredInstallPrompt
+            .userChoice;
+
+        deferredInstallPrompt =
+            null;
+
+        installButton.classList.remove(
+            "show"
+        );
+    }
+);
+
+/* =========================================================
+   DYNAMIC MODAL
+========================================================= */
+
+const dynamicModal =
+    $("dynamicModal");
+
+const closeDynamicModal =
+    $("closeDynamicModal");
+
+closeDynamicModal?.addEventListener(
+    "click",
+    () => {
+
+        dynamicModal?.classList.remove(
+            "show"
+        );
+    }
+);
+
+/* =========================================================
+   MENU ACTIONS
+========================================================= */
+
+function showDynamicModal(
+    title,
+    html
+) {
+
+    const titleElement =
+        $("dynamicModalTitle");
+
+    const bodyElement =
+        $("dynamicModalBody");
+
+    if (titleElement) {
+        titleElement.textContent =
+            title;
     }
 
+    if (bodyElement) {
+        bodyElement.innerHTML =
+            html;
+    }
 
-    connectSocket();
-
-
-    console.log(
-        "✅ MILTAPE INITIALISÉ"
+    dynamicModal?.classList.add(
+        "show"
     );
 
+    closeSideMenu();
+}
+
+$("menuGamesBtn")?.addEventListener(
+    "click",
+    () => {
+
+        showDynamicModal(
+            "🎮 Mes parties",
+            `
+                <p>
+                    Ton historique de parties
+                    sera affiché ici.
+                </p>
+            `
+        );
+    }
+);
+
+$("menuRankingsBtn")?.addEventListener(
+    "click",
+    () => {
+
+        showDynamicModal(
+            "🏆 Mes classements",
+            `
+                <p>
+                    Consulte tes classements
+                    Miltape ici.
+                </p>
+            `
+        );
+    }
+);
+
+$("menuGainsBtn")?.addEventListener(
+    "click",
+    () => {
+
+        showDynamicModal(
+            "💰 Mes gains",
+            `
+                <p>
+                    Tes gains seront affichés
+                    ici.
+                </p>
+            `
+        );
+    }
+);
+
+$("menuWithdrawalsBtn")?.addEventListener(
+    "click",
+    () => {
+
+        showDynamicModal(
+            "💸 Mes retraits",
+            `
+                <p>
+                    La gestion des retraits
+                    sera disponible ici.
+                </p>
+            `
+        );
+    }
+);
+
+$("menuReferralBtn")?.addEventListener(
+    "click",
+    () => {
+
+        showDynamicModal(
+            "👥 Parrainage",
+            `
+                <p>
+                    Invite tes amis sur Miltape.
+                </p>
+            `
+        );
+    }
+);
+
+$("menuChatBtn")?.addEventListener(
+    "click",
+    () => {
+
+        closeSideMenu();
+
+        document
+            .getElementById(
+                "globalChat"
+            )
+            ?.scrollIntoView(
+                {
+                    behavior:
+                        "smooth"
+                }
+            );
+    }
+);
+
+$("menuRulesBtn")?.addEventListener(
+    "click",
+    () => {
+
+        showDynamicModal(
+            "📜 Règles",
+            `
+                <ul>
+                    <li>Une partie dure 10 minutes.</li>
+                    <li>Les 5 meilleurs joueurs sont classés.</li>
+                    <li>La mise est payée en USDT TRC20.</li>
+                    <li>Le paiement doit être validé avant de jouer.</li>
+                </ul>
+            `
+        );
+    }
+);
+
+/* =========================================================
+   LANGUE
+========================================================= */
+
+$("languageSelect")?.addEventListener(
+    "change",
+    event => {
+
+        localStorage.setItem(
+            "miltape_language",
+            event.target.value
+        );
+    }
+);
+
+/* =========================================================
+   CHARGER CONFIG SERVEUR
+========================================================= */
+
+async function loadServerConfig() {
+
+    try {
+
+        const data =
+            await api(
+                "/api/game-config"
+            );
+
+        if (
+            data?.game?.gameId
+        ) {
+
+            currentGameId =
+                data.game.gameId;
+        }
+
+        if (
+            data?.game?.timerLeft !==
+            undefined
+        ) {
+
+            timerLeft =
+                Number(
+                    data.game.timerLeft
+                );
+
+            updateTimer(
+                timerLeft
+            );
+        }
+
+        if (
+            data?.payment?.minimumBet
+        ) {
+
+            selectedBet =
+                Number(
+                    data.payment.minimumBet
+                );
+        }
+
+        if (
+            data?.payment?.address
+        ) {
+
+            console.log(
+                "Miltape wallet:",
+                data.payment.address
+            );
+        }
+
+        if (
+            data?.payment?.contract
+        ) {
+
+            console.log(
+                "USDT contract:",
+                data.payment.contract
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Config serveur:",
+            error.message
+        );
+    }
+}
+
+/* =========================================================
+   INITIALISATION
+========================================================= */
+
+async function init() {
 
     console.log(
-        "🔌 BACKEND :",
-        BACKEND_URL
+        "🔥 Miltape initialisation..."
     );
 
-
     console.log(
-        "👤 PLAYER :",
+        "Player:",
         playerId
     );
 
-
     console.log(
-        "💰 USDT TRC20 :",
-        USDT_TRON_ADDRESS
+        "Name:",
+        playerName
     );
 
-});
+    /*
+    Charger serveur
+    */
+
+    await loadServerConfig();
+
+    /*
+    Socket
+    */
+
+    connectSocket();
+
+    /*
+    État initial
+    */
+
+    tapButton.disabled =
+        true;
+
+    showMessage(
+        "⚡ CHOISIS TA MISE POUR COMMENCER",
+        "normal"
+    );
+
+    /*
+    Vérifier si TronLink
+    existe déjà
+    */
+
+    setTimeout(
+        async () => {
+
+            const tronWeb =
+                getTronWeb();
+
+            if (
+                tronWeb &&
+                tronWeb.defaultAddress &&
+                tronWeb.defaultAddress.base58
+            ) {
+
+                walletAddress =
+                    tronWeb
+                        .defaultAddress
+                        .base58;
+
+                console.log(
+                    "Wallet détecté:",
+                    walletAddress
+                );
+            }
+
+        },
+        1000
+    );
+}
+
+init();
+
+/* =========================================================
+   FIN
+========================================================= */
