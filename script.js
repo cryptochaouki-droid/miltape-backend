@@ -1502,4 +1502,1730 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
 
-           
+            updateScoreDisplays(
+                0
+            );
+
+
+            gameJoined =
+                false;
+
+
+            let duration =
+                GAME_DURATION;
+
+
+            if (
+                data &&
+                typeof data === "object"
+            ) {
+
+                duration =
+                    Number(
+                        data.timeLeft ??
+                        data.duration ??
+                        data.seconds ??
+                        GAME_DURATION
+                    );
+            }
+
+
+            if (
+                !Number.isFinite(
+                    duration
+                ) ||
+                duration <= 0
+            ) {
+
+                duration =
+                    GAME_DURATION;
+            }
+
+
+            resetLocalTimer(
+                duration
+            );
+
+
+            if (tapButton) {
+
+                tapButton.disabled =
+                    true;
+            }
+
+
+            setMessage(
+                "🔥 NOUVELLE PARTIE — CHOISIS TA MISE"
+            );
+        }
+
+
+        socket.on(
+            "newGame",
+            handleNewGame
+        );
+
+
+        socket.on(
+            "game:new",
+            handleNewGame
+        );
+
+
+        /* =====================================================
+           👥 COMPTEUR EN LIGNE
+        ===================================================== */
+
+        function extractOnlineCount(data) {
+
+            /*
+               Le serveur peut envoyer :
+
+               5
+
+               ou :
+
+               { count: 5 }
+
+               ou :
+
+               { online: 5 }
+
+               ou :
+
+               { onlineCount: 5 }
+
+               ou :
+
+               { users: 5 }
+
+               ou :
+
+               { total: 5 }
+            */
+
+
+            if (
+                typeof data === "number"
+            ) {
+
+                return data;
+            }
+
+
+            if (
+                typeof data === "string"
+            ) {
+
+                const parsed =
+                    Number(
+                        data
+                    );
+
+
+                if (
+                    Number.isFinite(
+                        parsed
+                    )
+                ) {
+
+                    return parsed;
+                }
+            }
+
+
+            if (
+                data &&
+                typeof data === "object"
+            ) {
+
+                const possibleValues = [
+
+                    data.count,
+
+                    data.online,
+
+                    data.onlineCount,
+
+                    data.users,
+
+                    data.usersOnline,
+
+                    data.total,
+
+                    data.connected,
+
+                    data.connectedUsers,
+
+                    data.playersOnline
+
+                ];
+
+
+                for (
+                    const value
+                    of possibleValues
+                ) {
+
+                    const parsed =
+                        Number(
+                            value
+                        );
+
+
+                    if (
+                        Number.isFinite(
+                            parsed
+                        )
+                    ) {
+
+                        return parsed;
+                    }
+                }
+            }
+
+
+            return null;
+        }
+
+
+        function updateOnlineCount(data) {
+
+            const count =
+                extractOnlineCount(
+                    data
+                );
+
+
+            if (
+                count === null
+            ) {
+
+                console.warn(
+                    "⚠️ Compteur en ligne reçu mais format inconnu :",
+                    data
+                );
+
+                return;
+            }
+
+
+            if (!onlineCount) {
+                return;
+            }
+
+
+            const safeCount =
+                Math.max(
+                    0,
+                    Math.floor(
+                        count
+                    )
+                );
+
+
+            onlineCount.innerHTML = `
+
+                <span
+                    style="
+                        display:inline-block;
+                        width:8px;
+                        height:8px;
+                        background:#2ecc71;
+                        border-radius:50%;
+                        margin-right:5px;
+                        box-shadow:
+                            0 0 8px #2ecc71;
+                    "
+                ></span>
+
+                <span>
+                    ${safeCount} EN LIGNE
+                </span>
+
+            `;
+        }
+
+
+        /*
+           Événements actuels possibles
+        */
+
+        socket.on(
+            "onlineCount",
+            updateOnlineCount
+        );
+
+
+        socket.on(
+            "online:count",
+            updateOnlineCount
+        );
+
+
+        socket.on(
+            "online",
+            updateOnlineCount
+        );
+
+
+        /*
+           Compatibilité avec d'autres noms
+        */
+
+        socket.on(
+            "userCount",
+            updateOnlineCount
+        );
+
+
+        socket.on(
+            "users:online",
+            updateOnlineCount
+        );
+
+
+        socket.on(
+            "onlineUsers",
+            updateOnlineCount
+        );
+
+
+        socket.on(
+            "usersOnline",
+            updateOnlineCount
+        );
+
+
+        /* =====================================================
+           LEADERBOARD
+        ===================================================== */
+
+        function updateLeaderboard(players) {
+
+            if (!leaderboardList) {
+                return;
+            }
+
+
+            if (
+                players &&
+                typeof players === "object" &&
+                !Array.isArray(players)
+            ) {
+
+                players =
+                    players.players ??
+                    players.data ??
+                    players.leaderboard ??
+                    [];
+            }
+
+
+            if (
+                !Array.isArray(players) ||
+                players.length === 0
+            ) {
+
+                leaderboardList.innerHTML = `
+
+                    <div class="empty-ranking">
+                        Aucun joueur pour le moment
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            const sorted =
+                [...players].sort(
+                    (a, b) => {
+
+                        const scoreA =
+                            Number(
+                                a.score ??
+                                a.taps ??
+                                a.tapCount ??
+                                0
+                            );
+
+
+                        const scoreB =
+                            Number(
+                                b.score ??
+                                b.taps ??
+                                b.tapCount ??
+                                0
+                            );
+
+
+                        return (
+                            scoreB -
+                            scoreA
+                        );
+                    }
+                );
+
+
+            leaderboardList.innerHTML =
+                sorted
+                    .slice(
+                        0,
+                        5
+                    )
+                    .map(
+                        (p, index) => {
+
+                            const id =
+                                p.playerId ??
+                                p._id ??
+                                p.id ??
+                                "";
+
+
+                            const name =
+                                p.playerName ??
+                                p.name ??
+                                "Anonyme";
+
+
+                            const score =
+                                Number(
+                                    p.score ??
+                                    p.taps ??
+                                    p.tapCount ??
+                                    0
+                                );
+
+
+                            const isMe =
+                                String(id) ===
+                                String(playerId);
+
+
+                            return `
+
+                                <div
+                                    class="leaderboard-item"
+                                >
+
+                                    <div class="rank">
+                                        #${index + 1}
+                                    </div>
+
+                                    <div class="player-name">
+
+                                        ${escapeHTML(
+                                            name
+                                        )}
+
+                                        ${
+                                            isMe
+                                                ? "<strong> (toi)</strong>"
+                                                : ""
+                                        }
+
+                                    </div>
+
+                                    <div class="player-score">
+
+                                        ${score} ⚡
+
+                                    </div>
+
+                                </div>
+
+                            `;
+                        }
+                    )
+                    .join("");
+        }
+
+
+        socket.on(
+            "leaderboard",
+            updateLeaderboard
+        );
+
+
+        socket.on(
+            "leaderboard:update",
+            updateLeaderboard
+        );
+
+
+        /* =====================================================
+           TAP RESULT
+        ===================================================== */
+
+        function handleTapResult(data) {
+
+            if (!data) {
+                return;
+            }
+
+
+            const id =
+                data.playerId ??
+                data.id;
+
+
+            if (
+                id &&
+                String(id) !==
+                String(playerId)
+            ) {
+
+                return;
+            }
+
+
+            const score =
+                data.score ??
+                data.taps ??
+                data.totalTaps ??
+                data.tapCount;
+
+
+            if (
+                score !== undefined
+            ) {
+
+                updateScoreDisplays(
+                    score
+                );
+            }
+        }
+
+
+        socket.on(
+            "tapResult",
+            handleTapResult
+        );
+
+
+        socket.on(
+            "tap:result",
+            handleTapResult
+        );
+
+
+        socket.on(
+            "score:update",
+            handleTapResult
+        );
+
+
+        /* =====================================================
+           TOTAL STAKES
+        ===================================================== */
+
+        function updateTotalStakes(data) {
+
+            let total =
+                data;
+
+
+            if (
+                data &&
+                typeof data === "object"
+            ) {
+
+                total =
+                    data.total ??
+                    data.amount ??
+                    data.totalStakes;
+            }
+
+
+            if (
+                total !== undefined &&
+                globalTotalStakes
+            ) {
+
+                globalTotalStakes.textContent =
+                    "$" +
+                    total;
+            }
+        }
+
+
+        socket.on(
+            "totalStakes",
+            updateTotalStakes
+        );
+
+
+        socket.on(
+            "stakes:update",
+            updateTotalStakes
+        );
+
+
+        /* =====================================================
+           JOIN SUCCESS
+        ===================================================== */
+
+        socket.on(
+            "joinSuccess",
+            data => {
+
+                gameJoined =
+                    true;
+
+
+                if (
+                    data?.score !==
+                    undefined
+                ) {
+
+                    updateScoreDisplays(
+                        data.score
+                    );
+                }
+
+
+                setMessage(
+                    "🔥 À TOI DE TAPPER !"
+                );
+
+
+                if (tapButton) {
+
+                    tapButton.disabled =
+                        false;
+                }
+            }
+        );
+
+
+        socket.on(
+            "join:success",
+            data => {
+
+                gameJoined =
+                    true;
+
+
+                if (
+                    data?.score !==
+                    undefined
+                ) {
+
+                    updateScoreDisplays(
+                        data.score
+                    );
+                }
+
+
+                setMessage(
+                    "🔥 À TOI DE TAPPER !"
+                );
+
+
+                if (tapButton) {
+
+                    tapButton.disabled =
+                        false;
+                }
+            }
+        );
+
+
+        /* =====================================================
+           JOIN ERROR
+        ===================================================== */
+
+        socket.on(
+            "joinError",
+            data => {
+
+                gameJoined =
+                    false;
+
+
+                if (tapButton) {
+
+                    tapButton.disabled =
+                        true;
+                }
+
+
+                setMessage(
+                    data?.message ||
+                    "❌ Impossible de rejoindre la partie"
+                );
+            }
+        );
+
+
+        socket.on(
+            "join:error",
+            data => {
+
+                gameJoined =
+                    false;
+
+
+                if (tapButton) {
+
+                    tapButton.disabled =
+                        true;
+                }
+
+
+                setMessage(
+                    data?.message ||
+                    "❌ Impossible de rejoindre la partie"
+                );
+            }
+        );
+    }
+
+
+    /* =========================================================
+       🔌 CONNEXION SOCKET.IO
+    ========================================================= */
+
+    function connectSocket() {
+
+        /*
+           Déjà connecté.
+        */
+
+        if (
+            socket &&
+            socket.connected
+        ) {
+
+            return;
+        }
+
+
+        /*
+           Socket déjà en cours de création.
+        */
+
+        if (
+            socket &&
+            socket.connect
+        ) {
+
+            try {
+
+                socket.connect();
+
+                return;
+
+            } catch (error) {
+
+                console.warn(
+                    "⚠️ Reconnexion Socket.IO impossible",
+                    error
+                );
+            }
+        }
+
+
+        /*
+           Vérification de Socket.IO.
+        */
+
+        if (
+            typeof window.io !==
+            "function"
+        ) {
+
+            console.error(
+                "❌ Socket.IO non chargé."
+            );
+
+
+            setMessage(
+                "🟠 Chargement de la connexion..."
+            );
+
+
+            setTimeout(
+                connectSocket,
+                1000
+            );
+
+
+            return;
+        }
+
+
+        try {
+
+            socket =
+                window.io(
+                    BACKEND_URL,
+                    {
+                        transports: [
+                            "websocket",
+                            "polling"
+                        ],
+
+                        reconnection: true,
+
+                        reconnectionAttempts:
+                            Infinity,
+
+                        reconnectionDelay:
+                            1000,
+
+                        reconnectionDelayMax:
+                            5000,
+
+                        timeout:
+                            20000
+                    }
+                );
+
+
+            setupSocketEvents();
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ SOCKET ERROR",
+                error
+            );
+
+
+            setMessage(
+                "🟠 Connexion au serveur..."
+            );
+        }
+    }
+
+
+    /* =========================================================
+       ⚡ TAP BUTTON
+    ========================================================= */
+
+    if (tapButton) {
+
+        tapButton.addEventListener(
+            "click",
+            () => {
+
+                if (!gameJoined) {
+
+                    setMessage(
+                        "⚡ Appuie d'abord sur JOUER"
+                    );
+
+                    return;
+                }
+
+
+                if (
+                    currentTimer <= 0
+                ) {
+
+                    return;
+                }
+
+
+                if (
+                    !socket ||
+                    !socket.connected
+                ) {
+
+                    connectSocket();
+
+                    return;
+                }
+
+
+                if (tapLocked) {
+
+                    return;
+                }
+
+
+                tapLocked =
+                    true;
+
+
+                tapButton.classList.add(
+                    "tap-active"
+                );
+
+
+                socket.emit(
+                    "tap",
+                    {
+                        playerId,
+                        playerName,
+                        taps: 1
+                    }
+                );
+
+
+                setTimeout(
+                    () => {
+
+                        tapLocked =
+                            false;
+
+
+                        tapButton.classList.remove(
+                            "tap-active"
+                        );
+
+                    },
+                    80
+                );
+            }
+        );
+    }
+
+
+    /* =========================================================
+       🎮 BOUTON JOUER
+    ========================================================= */
+
+    if (enterChallenge) {
+
+        enterChallenge.addEventListener(
+            "click",
+            event => {
+
+                event.preventDefault();
+
+                console.log(
+                    "🖱️ CLIC JOUER MAINTENANT"
+                );
+
+
+                openChallenge();
+            }
+        );
+    }
+
+
+    /* =========================================================
+       💰 WALLET
+    ========================================================= */
+
+    function isTronLinkAvailable() {
+
+        return !!(
+            window.tronWeb &&
+            window.tronWeb.ready &&
+            window.tronWeb.defaultAddress &&
+            window.tronWeb.defaultAddress.base58
+        );
+    }
+
+
+    function getConnectedTronAddress() {
+
+        if (
+            !isTronLinkAvailable()
+        ) {
+
+            return "";
+        }
+
+
+        return (
+            window.tronWeb
+                .defaultAddress
+                .base58 ||
+            ""
+        );
+    }
+
+
+    async function copyTronAddress() {
+
+        try {
+
+            if (
+                navigator.clipboard &&
+                window.isSecureContext
+            ) {
+
+                await navigator.clipboard.writeText(
+                    USDT_TRON_ADDRESS
+                );
+
+            } else {
+
+                const textarea =
+                    document.createElement(
+                        "textarea"
+                    );
+
+
+                textarea.value =
+                    USDT_TRON_ADDRESS;
+
+
+                textarea.style.position =
+                    "fixed";
+
+
+                textarea.style.opacity =
+                    "0";
+
+
+                document.body.appendChild(
+                    textarea
+                );
+
+
+                textarea.focus();
+
+                textarea.select();
+
+
+                document.execCommand(
+                    "copy"
+                );
+
+
+                textarea.remove();
+            }
+
+
+            setMessage(
+                "📋 Adresse USDT TRC20 copiée !"
+            );
+
+
+            alert(
+                "📋 Adresse USDT TRC20 copiée !\n\n" +
+                USDT_TRON_ADDRESS
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ COPIE ADRESSE",
+                error
+            );
+
+
+            alert(
+                "Adresse USDT TRC20 :\n\n" +
+                USDT_TRON_ADDRESS
+            );
+        }
+    }
+
+
+    function openWalletChoice() {
+
+        const connectedAddress =
+            getConnectedTronAddress();
+
+
+        const connectedHTML =
+            connectedAddress
+                ? `
+                    <div
+                        style="
+                            padding:12px;
+                            margin-bottom:12px;
+                            border-radius:12px;
+                            background:rgba(46,204,113,.10);
+                            border:1px solid rgba(46,204,113,.35);
+                            color:#fff;
+                            font-size:12px;
+                            word-break:break-all;
+                        "
+                    >
+
+                        <strong
+                            style="
+                                color:#2ecc71;
+                            "
+                        >
+                            🟢 WALLET CONNECTÉ
+                        </strong>
+
+                        <br><br>
+
+                        ${escapeHTML(
+                            connectedAddress
+                        )}
+
+                    </div>
+                `
+                : "";
+
+
+        const html = `
+
+            ${connectedHTML}
+
+            <p
+                style="
+                    color:#ddd;
+                    line-height:1.5;
+                "
+            >
+                Choisis ton moyen de paiement
+                <strong>USDT TRC20</strong>.
+            </p>
+
+
+            <button
+                type="button"
+                id="miltapeTronLink"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-top:8px;
+                    border-radius:12px;
+                    border:1px solid #ffcc00;
+                    background:linear-gradient(
+                        135deg,
+                        #ffcc00,
+                        #ff8a00
+                    );
+                    color:#16051f;
+                    font-weight:900;
+                    font-size:14px;
+                    cursor:pointer;
+                "
+            >
+                🔗 TRONLINK
+            </button>
+
+
+            <button
+                type="button"
+                id="miltapeTrustWallet"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-top:10px;
+                    border-radius:12px;
+                    border:1px solid #6c63ff;
+                    background:#1a0828;
+                    color:#fff;
+                    font-weight:900;
+                    font-size:14px;
+                    cursor:pointer;
+                "
+            >
+                💙 TRUST WALLET
+            </button>
+
+
+            <button
+                type="button"
+                id="miltapeCopyAddress"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-top:10px;
+                    border-radius:12px;
+                    border:1px solid #2ecc71;
+                    background:#10251b;
+                    color:#2ecc71;
+                    font-weight:900;
+                    font-size:14px;
+                    cursor:pointer;
+                "
+            >
+                📋 COPIER L'ADRESSE TRC20
+            </button>
+
+
+            <div
+                style="
+                    margin-top:15px;
+                    padding:12px;
+                    border-radius:10px;
+                    background:rgba(255,255,255,.04);
+                    color:#aaa;
+                    font-size:11px;
+                    word-break:break-all;
+                "
+            >
+
+                <strong
+                    style="color:#ffcc00;"
+                >
+                    Adresse de paiement :
+                </strong>
+
+                <br><br>
+
+                ${USDT_TRON_ADDRESS}
+
+            </div>
+
+        `;
+
+
+        openModal(
+            "💰 WALLET & PAIEMENT",
+            html
+        );
+
+
+        document
+            .getElementById(
+                "miltapeTronLink"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    if (
+                        isTronLinkAvailable()
+                    ) {
+
+                        const address =
+                            getConnectedTronAddress();
+
+
+                        alert(
+                            "🟢 TRONLINK EST CONNECTÉ !\n\n" +
+                            address
+                        );
+
+
+                        return;
+                    }
+
+
+                    closeModal();
+
+
+                    setTimeout(
+                        () => {
+
+                            alert(
+                                "⚠️ TronLink n'est pas détecté.\n\n" +
+                                "Ouvre Miltape depuis le navigateur intégré de ton wallet TRON ou ouvre TronLink, puis reviens sur Miltape."
+                            );
+
+                        },
+                        100
+                    );
+                }
+            );
+
+
+        document
+            .getElementById(
+                "miltapeTrustWallet"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    closeModal();
+
+
+                    const trustAppURL =
+                        "https://link.trustwallet.com/open_url?coin=195&url=" +
+                        encodeURIComponent(
+                            window.location.href
+                        );
+
+
+                    window.location.href =
+                        trustAppURL;
+                }
+            );
+
+
+        document
+            .getElementById(
+                "miltapeCopyAddress"
+            )
+            ?.addEventListener(
+                "click",
+                () => {
+
+                    copyTronAddress();
+                }
+            );
+    }
+
+
+    walletButton?.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+
+            openWalletChoice();
+        }
+    );
+
+
+    /* =========================================================
+       MENU
+    ========================================================= */
+
+    const menuButton =
+        document.getElementById(
+            "menuButton"
+        );
+
+    const sideMenu =
+        document.getElementById(
+            "sideMenu"
+        );
+
+    const closeMenu =
+        document.getElementById(
+            "closeMenu"
+        );
+
+    const menuOverlay =
+        document.getElementById(
+            "menuOverlay"
+        );
+
+
+    function openSideMenu() {
+
+        sideMenu?.classList.add(
+            "show"
+        );
+
+        menuOverlay?.classList.add(
+            "show"
+        );
+
+        document.body.style.overflow =
+            "hidden";
+    }
+
+
+    function closeSideMenu() {
+
+        sideMenu?.classList.remove(
+            "show"
+        );
+
+        menuOverlay?.classList.remove(
+            "show"
+        );
+
+        document.body.style.overflow =
+            "";
+    }
+
+
+    menuButton?.addEventListener(
+        "click",
+        openSideMenu
+    );
+
+
+    closeMenu?.addEventListener(
+        "click",
+        closeSideMenu
+    );
+
+
+    menuOverlay?.addEventListener(
+        "click",
+        closeSideMenu
+    );
+
+
+    /* =========================================================
+       MODAL
+    ========================================================= */
+
+    const dynamicModal =
+        document.getElementById(
+            "dynamicModal"
+        );
+
+    const closeDynamicModal =
+        document.getElementById(
+            "closeDynamicModal"
+        );
+
+    const dynamicModalTitle =
+        document.getElementById(
+            "dynamicModalTitle"
+        );
+
+    const dynamicModalBody =
+        document.getElementById(
+            "dynamicModalBody"
+        );
+
+
+    function openModal(
+        title,
+        content
+    ) {
+
+        if (!dynamicModal) {
+
+            console.error(
+                "❌ dynamicModal introuvable"
+            );
+
+            return;
+        }
+
+
+        if (dynamicModalTitle) {
+
+            dynamicModalTitle.textContent =
+                title;
+        }
+
+
+        if (dynamicModalBody) {
+
+            dynamicModalBody.innerHTML =
+                content;
+        }
+
+
+        dynamicModal.classList.add(
+            "show"
+        );
+    }
+
+
+    function closeModal() {
+
+        dynamicModal?.classList.remove(
+            "show"
+        );
+    }
+
+
+    closeDynamicModal?.addEventListener(
+        "click",
+        closeModal
+    );
+
+
+    dynamicModal?.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                dynamicModal
+            ) {
+
+                closeModal();
+            }
+        }
+    );
+
+
+    /* =========================================================
+       MENU BUTTONS
+    ========================================================= */
+
+    document
+        .getElementById("menuGamesBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                openModal(
+                    "🎮 Mes parties",
+                    `
+                    <p>
+                        Ton historique de parties
+                        apparaîtra ici.
+                    </p>
+                    `
+                );
+            }
+        );
+
+
+    document
+        .getElementById("menuRankingsBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                document
+                    .querySelector(
+                        ".leaderboard"
+                    )
+                    ?.scrollIntoView({
+                        behavior: "smooth"
+                    });
+            }
+        );
+
+
+    document
+        .getElementById("menuGainsBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                openModal(
+                    "💰 Mes gains",
+                    `
+                    <p>
+                        Tes gains seront affichés
+                        ici lorsque le système
+                        de paiement sera actif.
+                    </p>
+                    `
+                );
+            }
+        );
+
+
+    document
+        .getElementById("menuWithdrawalsBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                openModal(
+                    "💸 Mes retraits",
+                    `
+                    <p>
+                        La gestion des retraits
+                        sera disponible ici.
+                    </p>
+                    `
+                );
+            }
+        );
+
+
+    document
+        .getElementById("menuReferralBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                openModal(
+                    "👥 Parrainage",
+                    `
+                    <p>
+                        Ton identifiant de parrainage :
+                    </p>
+
+                    <p>
+                        <strong>
+                            ${escapeHTML(
+                                playerId
+                            )}
+                        </strong>
+                    </p>
+                    `
+                );
+            }
+        );
+
+
+    document
+        .getElementById("menuChatBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                document
+                    .querySelector(
+                        ".chat-section"
+                    )
+                    ?.scrollIntoView({
+                        behavior: "smooth"
+                    });
+
+
+                setTimeout(
+                    () => {
+
+                        chatInput?.focus();
+
+                    },
+                    500
+                );
+            }
+        );
+
+
+    document
+        .getElementById("menuRulesBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+
+                openModal(
+                    "📜 Règles Miltape",
+                    `
+                    <p>
+                        ⏱️ Une partie dure 10 minutes.
+                    </p>
+
+                    <p>
+                        🏆 Les 5 meilleurs joueurs
+                        sont classés.
+                    </p>
+
+                    <p>
+                        🪙 Les mises utilisent
+                        USDT TRC20.
+                    </p>
+                    `
+                );
+            }
+        );
+
+
+    /* =========================================================
+       PWA
+    ========================================================= */
+
+    const installButton =
+        document.getElementById(
+            "installPwaButton"
+        );
+
+
+    window.addEventListener(
+        "beforeinstallprompt",
+        event => {
+
+            event.preventDefault();
+
+
+            deferredPrompt =
+                event;
+
+
+            installButton?.classList.add(
+                "show"
+            );
+        }
+    );
+
+
+    installButton?.addEventListener(
+        "click",
+        async () => {
+
+            if (!deferredPrompt) {
+                return;
+            }
+
+
+            try {
+
+                await deferredPrompt.prompt();
+
+                await deferredPrompt.userChoice;
+
+            } catch (error) {
+
+                console.warn(
+                    "PWA",
+                    error
+                );
+            }
+
+
+            deferredPrompt =
+                null;
+
+
+            installButton.classList.remove(
+                "show"
+            );
+        }
+    );
+
+
+    /* =========================================================
+       ETAT INITIAL
+    ========================================================= */
+
+    updateScoreDisplays(
+        0
+    );
+
+
+    updateTimerDisplay(
+        GAME_DURATION
+    );
+
+
+    if (tapButton) {
+
+        tapButton.disabled =
+            true;
+    }
+
+
+    /* =========================================================
+       CONNEXION INITIALE
+    ========================================================= */
+
+    connectSocket();
+
+
+    /* =========================================================
+       LOG FINAL
+    ========================================================= */
+
+    console.log(
+        "✅ MILTAPE INITIALISÉ"
+    );
+
+
+    console.log(
+        "🔌 BACKEND :",
+        BACKEND_URL
+    );
+
+
+    console.log(
+        "👤 PLAYER :",
+        playerId
+    );
+
+
+    console.log(
+        "💰 ADRESSE TRON :",
+        USDT_TRON_ADDRESS
+    );
+
+});
