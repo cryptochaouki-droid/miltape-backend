@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+
     "use strict";
 
     /* =========================================================
@@ -16,43 +17,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       ⚙️ CONFIGURATION
+       CONFIGURATION
     ========================================================= */
 
-    const isLocalhost =
-        window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1";
+    const BACKEND_URL =
+        (
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1"
+        )
+            ? "http://localhost:3000"
+            : "https://miltape-backend-production.up.railway.app";
 
-    const BACKEND_URL = isLocalhost
-        ? "http://localhost:3000"
-        : "https://miltape-backend-production.up.railway.app";
 
     const USDT_TRON_ADDRESS =
         "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
 
+
     const GAME_DURATION = 600;
-
-    const MAX_CHAT_MESSAGES = 100;
-
-    const MAX_MESSAGE_LENGTH = 200;
 
 
     /* =========================================================
-       🔌 VARIABLES SOCKET
+       VARIABLES
     ========================================================= */
 
     let socket = null;
 
     let socketReady = false;
-
-    let socketConnecting = false;
-
-    let socketEventsConfigured = false;
-
-
-    /* =========================================================
-       🎮 ÉTAT DU JEU
-    ========================================================= */
 
     let localTaps = 0;
 
@@ -62,39 +52,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let timerRunning = false;
 
-    let gameJoined = false;
-
-    let gameStarted = false;
+    let deferredPrompt = null;
 
     let tapLocked = false;
 
+    let gameJoined = false;
 
-    /* =========================================================
-       💬 CHAT
-    ========================================================= */
+    let selectedBet = 0;
 
     let lastSentMessage = "";
 
     let lastSentMessageTime = 0;
 
-    const receivedChatIds = new Set();
-
-    const receivedChatKeys = new Map();
-
 
     /* =========================================================
-       📲 PWA
-    ========================================================= */
-
-    let deferredPrompt = null;
-
-
-    /* =========================================================
-       👤 IDENTITÉ JOUEUR
+       IDENTITÉ
     ========================================================= */
 
     let playerId =
         localStorage.getItem("miltape_player_id");
+
 
     if (!playerId) {
 
@@ -112,7 +89,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     let playerName =
-        localStorage.getItem("miltape_player_name");
+        localStorage.getItem(
+            "miltape_player_name"
+        );
+
 
     if (!playerName) {
 
@@ -137,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🧩 ELEMENTS HTML
+       ELEMENTS
     ========================================================= */
 
     const timerDisplay =
@@ -150,28 +130,44 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("tapCount");
 
     const tapButtonCountDisplay =
-        document.getElementById("tapButtonCount");
+        document.getElementById(
+            "tapButtonCount"
+        );
 
     const tapMessage =
-        document.getElementById("tapMessage");
+        document.getElementById(
+            "tapMessage"
+        );
 
     const onlineCount =
-        document.getElementById("onlineCount");
+        document.getElementById(
+            "onlineCount"
+        );
 
     const leaderboardList =
-        document.getElementById("leaderboardList");
+        document.getElementById(
+            "leaderboardList"
+        );
 
     const chatMessages =
-        document.getElementById("chatMessages");
+        document.getElementById(
+            "chatMessages"
+        );
 
     const chatInput =
-        document.getElementById("chatInput");
+        document.getElementById(
+            "chatInput"
+        );
 
     const chatSend =
-        document.getElementById("chatSend");
+        document.getElementById(
+            "chatSend"
+        );
 
     const displayBet =
-        document.getElementById("displayBet");
+        document.getElementById(
+            "displayBet"
+        );
 
     const globalTotalStakes =
         document.getElementById(
@@ -190,42 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🔎 DEBUG
-    ========================================================= */
-
-    console.log(
-        "========== MILTAPE =========="
-    );
-
-    console.log(
-        "BACKEND :",
-        BACKEND_URL
-    );
-
-    console.log(
-        "Chat :",
-        !!chatMessages,
-        !!chatInput,
-        !!chatSend
-    );
-
-    console.log(
-        "Tap :",
-        !!tapButton
-    );
-
-    console.log(
-        "Jouer :",
-        !!enterChallenge
-    );
-
-    console.log(
-        "============================="
-    );
-
-
-    /* =========================================================
-       🧰 UTILITAIRES
+       UTILITAIRES
     ========================================================= */
 
     function escapeHTML(value) {
@@ -241,20 +202,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function formatTime(seconds) {
 
-        seconds = Math.max(
-            0,
-            Math.floor(
-                Number(seconds) || 0
-            )
-        );
+        seconds =
+            Math.max(
+                0,
+                Math.floor(
+                    Number(seconds) || 0
+                )
+            );
+
 
         const minutes =
             Math.floor(
                 seconds / 60
             );
 
+
         const secs =
             seconds % 60;
+
 
         return (
             String(minutes).padStart(2, "0") +
@@ -274,17 +239,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 )
             );
 
+
         if (timerDisplay) {
 
             timerDisplay.textContent =
-                formatTime(currentTimer);
+                formatTime(
+                    currentTimer
+                );
         }
     }
 
-
-    /* =========================================================
-       📊 SCORE
-    ========================================================= */
 
     function updateScoreDisplays(value) {
 
@@ -294,18 +258,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 Number(value) || 0
             );
 
+
         localTaps = score;
 
 
         if (tapCountDisplay) {
-
             tapCountDisplay.textContent =
                 score;
         }
 
 
         if (tapButtonCountDisplay) {
-
             tapButtonCountDisplay.textContent =
                 score;
         }
@@ -316,8 +279,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 "headerScore"
             );
 
-        if (headerScore) {
 
+        if (headerScore) {
             headerScore.textContent =
                 score;
         }
@@ -328,8 +291,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 "statTaps"
             );
 
-        if (statTaps) {
 
+        if (statTaps) {
             statTaps.textContent =
                 score;
         }
@@ -340,8 +303,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 "statTotal"
             );
 
-        if (statTotal) {
 
+        if (statTotal) {
             statTotal.textContent =
                 score;
         }
@@ -349,28 +312,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🎮 ÉTAT TAP
+       MESSAGE
     ========================================================= */
 
-    function updateTapButtonState() {
+    function setMessage(text) {
 
-        if (!tapButton) {
-            return;
+        if (tapMessage) {
+            tapMessage.textContent =
+                text;
         }
-
-        const canTap =
-            socketReady &&
-            gameJoined &&
-            gameStarted &&
-            currentTimer > 0;
-
-        tapButton.disabled =
-            !canTap;
     }
 
 
     /* =========================================================
-       ⏱️ TIMER
+       TIMER LOCAL
     ========================================================= */
 
     function startLocalTimer() {
@@ -379,13 +334,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+
         if (currentTimer <= 0) {
             return;
         }
 
+
         timerRunning = true;
 
-        clearInterval(timerInterval);
+
+        clearInterval(
+            timerInterval
+        );
+
 
         let lastTick =
             Date.now();
@@ -397,18 +358,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 const now =
                     Date.now();
 
+
                 const elapsed =
                     Math.floor(
-                        (now - lastTick) /
-                        1000
+                        (
+                            now -
+                            lastTick
+                        ) / 1000
                     );
+
 
                 if (elapsed <= 0) {
                     return;
                 }
 
-                lastTick =
-                    now;
+
+                lastTick = now;
 
 
                 currentTimer =
@@ -430,17 +395,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     stopLocalTimer();
 
-                    gameStarted =
-                        false;
-
-                    updateTapButtonState();
-
-
-                    if (tapMessage) {
-
-                        tapMessage.textContent =
-                            "⏰ PARTIE TERMINÉE";
+                    if (tapButton) {
+                        tapButton.disabled =
+                            true;
                     }
+
+                    gameJoined = false;
+
+                    setMessage(
+                        "⏰ PARTIE TERMINÉE"
+                    );
                 }
 
             }, 250);
@@ -455,6 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 timerInterval
             );
         }
+
 
         timerInterval = null;
 
@@ -475,47 +440,262 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🎮 DÉMARRER PARTIE CÔTÉ CLIENT
+       🎮 OUVERTURE PARTIE
     ========================================================= */
 
-    function startGameClient(
-        duration = GAME_DURATION
-    ) {
+    function openChallenge() {
 
-        const seconds =
-            Number(duration);
-
-
-        currentTimer =
-            Number.isFinite(seconds) &&
-            seconds > 0
-                ? seconds
-                : GAME_DURATION;
-
-
-        updateTimerDisplay(
-            currentTimer
+        console.log(
+            "🎮 OUVERTURE DU CHALLENGE"
         );
 
 
-        updateScoreDisplays(0);
+        if (!socket || !socket.connected) {
 
+            setMessage(
+                "🟠 Connexion au serveur..."
+            );
 
-        gameJoined =
-            true;
+            connectSocket();
 
-        gameStarted =
-            true;
-
-
-        updateTapButtonState();
-
-
-        if (tapMessage) {
-
-            tapMessage.textContent =
-                "🔥 À TOI DE TAPPER !";
+            return;
         }
+
+
+        if (gameJoined) {
+
+            setMessage(
+                "🔥 TU ES DÉJÀ DANS LA PARTIE !"
+            );
+
+            return;
+        }
+
+
+        if (
+            selectedBet <= 0
+        ) {
+
+            openBetModal();
+
+            return;
+        }
+
+
+        joinGame();
+    }
+
+
+    /* =========================================================
+       💰 CHOIX DE MISE
+    ========================================================= */
+
+    function openBetModal() {
+
+        const options = [
+            1,
+            2,
+            5,
+            10,
+            20,
+            50,
+            100
+        ];
+
+
+        const html = `
+
+            <p>
+                Choisis ta mise pour cette partie :
+            </p>
+
+            <div
+                style="
+                    display:grid;
+                    grid-template-columns:
+                        repeat(2,1fr);
+                    gap:10px;
+                    margin-top:15px;
+                "
+            >
+
+                ${options.map(
+                    amount => `
+                        <button
+                            type="button"
+                            class="miltape-bet-option"
+                            data-bet="${amount}"
+                            style="
+                                padding:14px;
+                                border-radius:12px;
+                                border:
+                                    1px solid
+                                    #ffcc00;
+                                background:
+                                    #1a0828;
+                                color:#ffcc00;
+                                font-weight:900;
+                                cursor:pointer;
+                            "
+                        >
+                            $${amount}
+                        </button>
+                    `
+                ).join("")}
+
+            </div>
+        `;
+
+
+        openModal(
+            "💰 CHOISIR TA MISE",
+            html
+        );
+
+
+        document
+            .querySelectorAll(
+                ".miltape-bet-option"
+            )
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        const amount =
+                            Number(
+                                button.dataset.bet
+                            );
+
+
+                        setBet(amount);
+
+                        closeModal();
+
+                        setMessage(
+                            `💰 Mise sélectionnée : $${amount}`
+                        );
+
+
+                        if (
+                            socket &&
+                            socket.connected
+                        ) {
+
+                            joinGame();
+                        }
+                    }
+                );
+            });
+    }
+
+
+    function setBet(value) {
+
+        const amount =
+            Number(value) || 0;
+
+
+        selectedBet =
+            amount;
+
+
+        if (displayBet) {
+
+            displayBet.textContent =
+                "$" + amount;
+        }
+
+
+        localStorage.setItem(
+            "miltape_bet",
+            String(amount)
+        );
+    }
+
+
+    const savedBet =
+        localStorage.getItem(
+            "miltape_bet"
+        );
+
+
+    if (savedBet) {
+
+        setBet(
+            savedBet
+        );
+    }
+
+
+    /* =========================================================
+       🎮 JOIN
+    ========================================================= */
+
+    function joinGame() {
+
+        if (
+            !socket ||
+            !socket.connected
+        ) {
+
+            connectSocket();
+
+            return;
+        }
+
+
+        if (selectedBet <= 0) {
+
+            openBetModal();
+
+            return;
+        }
+
+
+        console.log(
+            "🎮 JOIN GAME"
+        );
+
+
+        const data = {
+
+            playerId,
+
+            playerName,
+
+            bet: selectedBet,
+
+            amount: selectedBet
+        };
+
+
+        socket.emit(
+            "join",
+            data
+        );
+
+
+        socket.emit(
+            "joinGame",
+            data
+        );
+
+
+        gameJoined = true;
+
+
+        if (tapButton) {
+
+            tapButton.disabled =
+                false;
+        }
+
+
+        setMessage(
+            "🔥 À TOI DE TAPPER !"
+        );
 
 
         startLocalTimer();
@@ -523,30 +703,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🛑 TERMINER PARTIE
+       💬 CHAT
     ========================================================= */
 
-    function finishGameClient() {
-
-        stopLocalTimer();
-
-        gameStarted =
-            false;
-
-        updateTapButtonState();
+    const receivedChatIds =
+        new Set();
 
 
-        if (tapMessage) {
+    const receivedChatKeys =
+        new Map();
 
-            tapMessage.textContent =
-                "⏰ PARTIE TERMINÉE";
-        }
-    }
-
-
-    /* =========================================================
-       💬 NORMALISATION CHAT
-    ========================================================= */
 
     function normalizeChatText(text) {
 
@@ -559,7 +725,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getChatMessageData(msg) {
 
-        if (typeof msg === "string") {
+        if (
+            typeof msg === "string"
+        ) {
 
             return {
 
@@ -568,8 +736,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 playerName:
                     "Anonyme",
 
-                message:
-                    msg,
+                message: msg,
 
                 id: "",
 
@@ -582,7 +749,6 @@ document.addEventListener("DOMContentLoaded", () => {
             !msg ||
             typeof msg !== "object"
         ) {
-
             return null;
         }
 
@@ -625,18 +791,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    /* =========================================================
-       💬 AFFICHER MESSAGE
-    ========================================================= */
-
     function receiveChatMessage(msg) {
 
         if (!chatMessages) {
-
-            console.error(
-                "❌ #chatMessages introuvable."
-            );
-
             return;
         }
 
@@ -659,8 +816,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const text =
             String(
-                data.message ||
-                ""
+                data.message || ""
             ).trim();
 
 
@@ -668,10 +824,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-
-        /* =====================================================
-           ANTI DOUBLON ID
-        ===================================================== */
 
         if (data.id) {
 
@@ -690,8 +842,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             if (
-                receivedChatIds.size >
-                1000
+                receivedChatIds.size > 1000
             ) {
 
                 const first =
@@ -700,6 +851,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         .next()
                         .value;
 
+
                 receivedChatIds.delete(
                     first
                 );
@@ -707,14 +859,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /* =====================================================
-           ANTI DOUBLON CONTENU
-        ===================================================== */
-
         const contentKey =
-            normalizeChatText(sender) +
+            normalizeChatText(
+                sender
+            ) +
             "|" +
-            normalizeChatText(text);
+            normalizeChatText(
+                text
+            );
 
 
         const now =
@@ -731,7 +883,6 @@ document.addEventListener("DOMContentLoaded", () => {
             previous &&
             now - previous < 1500
         ) {
-
             return;
         }
 
@@ -742,16 +893,13 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           MESSAGE HTML SÉCURISÉ
-        ===================================================== */
-
-        const messageElement =
+        const element =
             document.createElement(
                 "div"
             );
 
-        messageElement.className =
+
+        element.className =
             "chat-message";
 
 
@@ -760,37 +908,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 "strong"
             );
 
+
         strong.textContent =
             sender + ": ";
 
 
-        const textNode =
-            document.createTextNode(
-                text
-            );
-
-
-        messageElement.appendChild(
+        element.appendChild(
             strong
         );
 
-        messageElement.appendChild(
-            textNode
+
+        element.appendChild(
+            document.createTextNode(
+                text
+            )
         );
 
 
         chatMessages.appendChild(
-            messageElement
+            element
         );
 
 
-        /* =====================================================
-           MAX 100
-        ===================================================== */
-
         while (
-            chatMessages.children.length >
-            MAX_CHAT_MESSAGES
+            chatMessages.children.length > 100
         ) {
 
             chatMessages.removeChild(
@@ -801,28 +942,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         chatMessages.scrollTop =
             chatMessages.scrollHeight;
-
-
-        console.log(
-            "💬 MESSAGE :",
-            sender,
-            text
-        );
     }
 
-
-    /* =========================================================
-       💬 ENVOYER CHAT
-    ========================================================= */
 
     function sendChatMessage() {
 
         if (!chatInput) {
-
-            console.error(
-                "❌ chatInput introuvable."
-            );
-
             return;
         }
 
@@ -840,8 +965,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (
-            text.length >
-            MAX_MESSAGE_LENGTH
+            text.length > 200
         ) {
 
             alert(
@@ -852,21 +976,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /* =====================================================
-           SOCKET NON CONNECTÉ
-        ===================================================== */
-
         if (
             !socket ||
             !socket.connected
         ) {
 
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🟠 Connexion au serveur...";
-            }
-
+            setMessage(
+                "🟠 Connexion au serveur..."
+            );
 
             connectSocket();
 
@@ -874,22 +991,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /* =====================================================
-           ANTI DOUBLE ENVOI
-        ===================================================== */
-
         const now =
             Date.now();
 
 
         if (
-            text ===
-                lastSentMessage &&
-            now -
-                lastSentMessageTime <
-                1000
+            text === lastSentMessage &&
+            now - lastSentMessageTime < 1000
         ) {
-
             return;
         }
 
@@ -897,36 +1006,30 @@ document.addEventListener("DOMContentLoaded", () => {
         lastSentMessage =
             text;
 
+
         lastSentMessageTime =
             now;
 
 
-        /* =====================================================
-           MESSAGE
-        ===================================================== */
+        const data = {
 
-        const messageData = {
+            playerId,
 
-            playerId:
-                playerId,
+            playerName,
 
-            playerName:
-                playerName,
-
-            message:
-                text
+            message: text
         };
-
-
-        console.log(
-            "📤 CHAT :",
-            messageData
-        );
 
 
         socket.emit(
             "chatMessage",
-            messageData
+            data
+        );
+
+
+        socket.emit(
+            "chat:message",
+            data
         );
 
 
@@ -936,51 +1039,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    /* =========================================================
-       💬 BOUTON CHAT
-    ========================================================= */
-
     if (chatSend) {
-
-        chatSend.onclick = null;
-
 
         chatSend.addEventListener(
             "click",
-            (event) => {
+            event => {
 
                 event.preventDefault();
 
-                event.stopPropagation();
-
                 sendChatMessage();
-            },
-            {
-                passive: false
             }
         );
-
-
-        chatSend.style.pointerEvents =
-            "auto";
-
-        chatSend.style.touchAction =
-            "manipulation";
-
-        chatSend.style.cursor =
-            "pointer";
     }
 
-
-    /* =========================================================
-       💬 ENTER CHAT
-    ========================================================= */
 
     if (chatInput) {
 
         chatInput.addEventListener(
             "keydown",
-            (event) => {
+            event => {
 
                 if (
                     event.key === "Enter" &&
@@ -997,246 +1074,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🔌 CHARGER SOCKET.IO
-    ========================================================= */
-
-    function loadSocketIO() {
-
-        return new Promise(
-            (resolve, reject) => {
-
-                if (
-                    typeof window.io ===
-                    "function"
-                ) {
-
-                    resolve(
-                        window.io
-                    );
-
-                    return;
-                }
-
-
-                const existing =
-                    document.querySelector(
-                        "script[data-miltape-socket]"
-                    );
-
-
-                if (existing) {
-
-                    const interval =
-                        setInterval(() => {
-
-                            if (
-                                typeof window.io ===
-                                "function"
-                            ) {
-
-                                clearInterval(
-                                    interval
-                                );
-
-                                resolve(
-                                    window.io
-                                );
-                            }
-
-                        }, 100);
-
-
-                    setTimeout(() => {
-
-                        clearInterval(
-                            interval
-                        );
-
-
-                        if (
-                            typeof window.io !==
-                            "function"
-                        ) {
-
-                            reject(
-                                new Error(
-                                    "Socket.IO indisponible"
-                                )
-                            );
-                        }
-
-                    }, 15000);
-
-                    return;
-                }
-
-
-                const script =
-                    document.createElement(
-                        "script"
-                    );
-
-
-                script.src =
-                    "https://cdn.socket.io/4.7.5/socket.io.min.js";
-
-                script.async =
-                    true;
-
-                script.dataset.miltapeSocket =
-                    "true";
-
-
-                script.onload = () => {
-
-                    if (
-                        typeof window.io ===
-                        "function"
-                    ) {
-
-                        resolve(
-                            window.io
-                        );
-
-                    } else {
-
-                        reject(
-                            new Error(
-                                "io absent"
-                            )
-                        );
-                    }
-                };
-
-
-                script.onerror = () => {
-
-                    reject(
-                        new Error(
-                            "Erreur chargement Socket.IO"
-                        )
-                    );
-                };
-
-
-                document.head.appendChild(
-                    script
-                );
-            }
-        );
-    }
-
-
-    /* =========================================================
-       🔌 CONNEXION SOCKET
-    ========================================================= */
-
-    async function connectSocket() {
-
-        if (
-            socket &&
-            socket.connected
-        ) {
-
-            socketReady = true;
-
-            return;
-        }
-
-
-        if (socketConnecting) {
-            return;
-        }
-
-
-        socketConnecting = true;
-
-
-        try {
-
-            const io =
-                await loadSocketIO();
-
-
-            if (
-                socket &&
-                !socket.connected
-            ) {
-
-                socket.connect();
-
-                socketConnecting =
-                    false;
-
-                return;
-            }
-
-
-            console.log(
-                "🔌 Connexion :",
-                BACKEND_URL
-            );
-
-
-            socket =
-                io(
-                    BACKEND_URL,
-                    {
-
-                        transports: [
-                            "websocket",
-                            "polling"
-                        ],
-
-                        reconnection:
-                            true,
-
-                        reconnectionAttempts:
-                            Infinity,
-
-                        reconnectionDelay:
-                            1000,
-
-                        reconnectionDelayMax:
-                            5000,
-
-                        timeout:
-                            20000
-                    }
-                );
-
-
-            setupSocketEvents();
-
-
-        } catch (error) {
-
-            console.error(
-                "❌ SOCKET ERROR :",
-                error
-            );
-
-
-            socketReady =
-                false;
-
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🟠 Serveur en attente...";
-            }
-
-        } finally {
-
-            socketConnecting =
-                false;
-        }
-    }
-
-
-    /* =========================================================
-       🔌 SOCKET EVENTS
+       🔌 SOCKET.IO
     ========================================================= */
 
     function setupSocketEvents() {
@@ -1246,25 +1084,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        if (socketEventsConfigured) {
-            return;
-        }
-
-
-        socketEventsConfigured =
-            true;
-
-
-        /* =====================================================
-           CONNECT
-        ===================================================== */
-
         socket.on(
             "connect",
             () => {
 
-                socketReady =
-                    true;
+                socketReady = true;
 
 
                 console.log(
@@ -1273,29 +1097,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                if (tapMessage) {
-
-                    tapMessage.textContent =
-                        "⚡ Choisis ta mise puis joue !";
-                }
-
-
-                /* =================================================
-                   IDENTIFICATION
-                ================================================= */
-
-                socket.emit(
-                    "join",
-                    {
-                        playerId,
-                        playerName
-                    }
+                setMessage(
+                    "🟢 SERVEUR CONNECTÉ"
                 );
 
-
-                /* =================================================
-                   DEMANDES SERVEUR
-                ================================================= */
 
                 socket.emit(
                     "getGame"
@@ -1312,29 +1117,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                updateTapButtonState();
+                if (
+                    selectedBet > 0 &&
+                    !gameJoined
+                ) {
+
+                    setMessage(
+                        `💰 Mise $${selectedBet} sélectionnée — appuie sur JOUER`
+                    );
+                }
             }
         );
 
 
-        /* =====================================================
-           DISCONNECT
-        ===================================================== */
-
         socket.on(
             "disconnect",
-            (reason) => {
+            reason => {
 
-                socketReady =
-                    false;
-
-
-                gameStarted =
-                    false;
-
-
-                updateTapButtonState();
-
+                socketReady = false;
 
                 console.warn(
                     "🔴 SOCKET DÉCONNECTÉ :",
@@ -1342,41 +1142,36 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                if (tapMessage) {
+                if (gameJoined) {
 
-                    tapMessage.textContent =
-                        "🟠 Reconnexion...";
+                    setMessage(
+                        "🟠 Reconnexion..."
+                    );
                 }
             }
         );
 
 
-        /* =====================================================
-           CONNECT ERROR
-        ===================================================== */
-
         socket.on(
             "connect_error",
-            (error) => {
+            error => {
 
-                socketReady =
-                    false;
-
+                socketReady = false;
 
                 console.error(
-                    "❌ SOCKET CONNECT ERROR :",
+                    "❌ SOCKET ERROR :",
                     error
                 );
 
 
-                updateTapButtonState();
+                setMessage(
+                    "🟠 Serveur momentanément indisponible"
+                );
             }
         );
 
 
-        /* =====================================================
-           CHAT
-        ===================================================== */
+        /* CHAT */
 
         socket.on(
             "chatMessage",
@@ -1390,13 +1185,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           HISTORIQUE CHAT
-        ===================================================== */
-
         socket.on(
             "chatHistory",
-            (messages) => {
+            messages => {
 
                 if (
                     Array.isArray(messages)
@@ -1412,7 +1203,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         socket.on(
             "chat:history",
-            (messages) => {
+            messages => {
 
                 if (
                     Array.isArray(messages)
@@ -1426,9 +1217,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           TIMER SERVEUR
-        ===================================================== */
+        /* TIMER */
 
         function handleServerTimer(data) {
 
@@ -1438,8 +1227,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 data &&
-                typeof data ===
-                "object"
+                typeof data === "object"
             ) {
 
                 value =
@@ -1457,11 +1245,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             if (
-                !Number.isFinite(
-                    seconds
-                )
+                !Number.isFinite(seconds)
             ) {
-
                 return;
             }
 
@@ -1475,21 +1260,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 seconds <= 0
             ) {
 
-                finishGameClient();
+                stopLocalTimer();
+
+                gameJoined = false;
+
+
+                if (tapButton) {
+                    tapButton.disabled =
+                        true;
+                }
+
+
+                setMessage(
+                    "⏰ PARTIE TERMINÉE"
+                );
+
 
                 return;
             }
 
 
-            if (
-                gameJoined
-            ) {
-
-                gameStarted =
-                    true;
-
-                updateTapButtonState();
-
+            if (gameJoined) {
                 startLocalTimer();
             }
         }
@@ -1521,16 +1312,22 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           NOUVELLE PARTIE
-        ===================================================== */
+        /* NOUVELLE PARTIE */
 
         function handleNewGame(data) {
 
             console.log(
-                "🎮 NOUVELLE PARTIE :",
+                "🎮 NOUVELLE PARTIE",
                 data
             );
+
+
+            updateScoreDisplays(
+                0
+            );
+
+
+            gameJoined = false;
 
 
             let duration =
@@ -1539,8 +1336,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 data &&
-                typeof data ===
-                "object"
+                typeof data === "object"
             ) {
 
                 duration =
@@ -1554,9 +1350,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             if (
-                !Number.isFinite(
-                    duration
-                ) ||
+                !Number.isFinite(duration) ||
                 duration <= 0
             ) {
 
@@ -1565,31 +1359,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            updateScoreDisplays(0);
-
             resetLocalTimer(
                 duration
             );
 
 
-            /*
-             * Une nouvelle partie existe,
-             * mais le joueur doit rejoindre
-             * avec JOUER MAINTENANT.
-             */
-
-            gameStarted =
-                false;
-
-
-            updateTapButtonState();
-
-
-            if (tapMessage) {
-
-                tapMessage.textContent =
-                    "🔥 NOUVELLE PARTIE — JOUE MAINTENANT !";
+            if (tapButton) {
+                tapButton.disabled =
+                    true;
             }
+
+
+            setMessage(
+                "🔥 NOUVELLE PARTIE — CHOISIS TA MISE"
+            );
         }
 
 
@@ -1605,9 +1388,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           ONLINE
-        ===================================================== */
+        /* ONLINE */
 
         function updateOnlineCount(data) {
 
@@ -1617,8 +1398,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 data &&
-                typeof data ===
-                "object"
+                typeof data === "object"
             ) {
 
                 count =
@@ -1638,6 +1418,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ) {
 
                 onlineCount.innerHTML = `
+
                     <span
                         style="
                             display:inline-block;
@@ -1646,10 +1427,14 @@ document.addEventListener("DOMContentLoaded", () => {
                             background:#2ecc71;
                             border-radius:50%;
                             margin-right:5px;
-                            box-shadow:0 0 8px #2ecc71;
+                            box-shadow:
+                                0 0 8px #2ecc71;
                         "
                     ></span>
-                    <span>${count} EN LIGNE</span>
+
+                    <span>
+                        ${count} EN LIGNE
+                    </span>
                 `;
             }
         }
@@ -1673,9 +1458,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           LEADERBOARD
-        ===================================================== */
+        /* LEADERBOARD */
 
         function updateLeaderboard(players) {
 
@@ -1686,8 +1469,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 players &&
-                typeof players ===
-                    "object" &&
+                typeof players === "object" &&
                 !Array.isArray(players)
             ) {
 
@@ -1705,6 +1487,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ) {
 
                 leaderboardList.innerHTML = `
+
                     <div class="empty-ranking">
                         Aucun joueur pour le moment
                     </div>
@@ -1716,7 +1499,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const sorted =
                 [...players].sort(
-                    (a, b) => {
+                    (a,b) => {
 
                         const scoreA =
                             Number(
@@ -1736,19 +1519,17 @@ document.addEventListener("DOMContentLoaded", () => {
                             );
 
 
-                        return (
-                            scoreB -
-                            scoreA
-                        );
+                        return scoreB -
+                               scoreA;
                     }
                 );
 
 
             leaderboardList.innerHTML =
                 sorted
-                    .slice(0, 5)
+                    .slice(0,5)
                     .map(
-                        (p, index) => {
+                        (p,index) => {
 
                             const id =
                                 p.playerId ??
@@ -1778,23 +1559,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                             return `
-                                <div class="leaderboard-item">
+
+                                <div
+                                    class="leaderboard-item"
+                                >
 
                                     <div class="rank">
                                         #${index + 1}
                                     </div>
 
                                     <div class="player-name">
+
                                         ${escapeHTML(name)}
+
                                         ${
                                             isMe
-                                                ? ' <strong>(toi)</strong>'
+                                                ? "<strong> (toi)</strong>"
                                                 : ""
                                         }
+
                                     </div>
 
                                     <div class="player-score">
+
                                         ${score} ⚡
+
                                     </div>
 
                                 </div>
@@ -1817,13 +1606,25 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           TAP RESULT
-        ===================================================== */
+        /* TAP */
 
         function handleTapResult(data) {
 
             if (!data) {
+                return;
+            }
+
+
+            const id =
+                data.playerId ??
+                data.id;
+
+
+            if (
+                id &&
+                String(id) !==
+                String(playerId)
+            ) {
                 return;
             }
 
@@ -1858,55 +1659,15 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           SCORE UPDATE
-        ===================================================== */
+        /* SCORE */
 
         socket.on(
             "score:update",
-            (data) => {
-
-                if (!data) {
-                    return;
-                }
-
-
-                const id =
-                    data.playerId ??
-                    data.id;
-
-
-                if (
-                    id &&
-                    String(id) !==
-                    String(playerId)
-                ) {
-
-                    return;
-                }
-
-
-                const score =
-                    data.score ??
-                    data.taps ??
-                    data.tapCount;
-
-
-                if (
-                    score !== undefined
-                ) {
-
-                    updateScoreDisplays(
-                        score
-                    );
-                }
-            }
+            handleTapResult
         );
 
 
-        /* =====================================================
-           TOTAL MISES
-        ===================================================== */
+        /* TOTAL STAKES */
 
         function updateTotalStakes(data) {
 
@@ -1916,8 +1677,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 data &&
-                typeof data ===
-                "object"
+                typeof data === "object"
             ) {
 
                 total =
@@ -1933,8 +1693,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ) {
 
                 globalTotalStakes.textContent =
-                    "$" +
-                    Number(total || 0);
+                    "$" + total;
             }
         }
 
@@ -1949,11 +1708,189 @@ document.addEventListener("DOMContentLoaded", () => {
             "stakes:update",
             updateTotalStakes
         );
+
+
+        /* JOIN SUCCESS */
+
+        socket.on(
+            "joinSuccess",
+            data => {
+
+                gameJoined = true;
+
+
+                if (data?.score !== undefined) {
+
+                    updateScoreDisplays(
+                        data.score
+                    );
+                }
+
+
+                setMessage(
+                    "🔥 À TOI DE TAPPER !"
+                );
+
+
+                if (tapButton) {
+                    tapButton.disabled =
+                        false;
+                }
+            }
+        );
+
+
+        socket.on(
+            "join:success",
+            data => {
+
+                gameJoined = true;
+
+
+                if (data?.score !== undefined) {
+
+                    updateScoreDisplays(
+                        data.score
+                    );
+                }
+
+
+                if (tapButton) {
+                    tapButton.disabled =
+                        false;
+                }
+            }
+        );
+
+
+        /* JOIN ERROR */
+
+        socket.on(
+            "joinError",
+            data => {
+
+                gameJoined = false;
+
+
+                if (tapButton) {
+                    tapButton.disabled =
+                        true;
+                }
+
+
+                setMessage(
+                    data?.message ||
+                    "❌ Impossible de rejoindre la partie"
+                );
+            }
+        );
+
+
+        socket.on(
+            "join:error",
+            data => {
+
+                gameJoined = false;
+
+
+                if (tapButton) {
+                    tapButton.disabled =
+                        true;
+                }
+
+
+                setMessage(
+                    data?.message ||
+                    "❌ Impossible de rejoindre la partie"
+                );
+            }
+        );
+    }
+
+
+    async function connectSocket() {
+
+        if (
+            socket &&
+            socket.connected
+        ) {
+            return;
+        }
+
+
+        if (
+            typeof window.io !==
+            "function"
+        ) {
+
+            console.error(
+                "❌ Socket.IO non chargé."
+            );
+
+
+            setMessage(
+                "🟠 Chargement de la connexion..."
+            );
+
+
+            setTimeout(
+                connectSocket,
+                1000
+            );
+
+
+            return;
+        }
+
+
+        try {
+
+            socket =
+                window.io(
+                    BACKEND_URL,
+                    {
+                        transports: [
+                            "websocket",
+                            "polling"
+                        ],
+
+                        reconnection: true,
+
+                        reconnectionAttempts:
+                            Infinity,
+
+                        reconnectionDelay:
+                            1000,
+
+                        reconnectionDelayMax:
+                            5000,
+
+                        timeout:
+                            20000
+                    }
+                );
+
+
+            setupSocketEvents();
+
+
+        } catch (error) {
+
+            console.error(
+                "❌ SOCKET ERROR",
+                error
+            );
+
+
+            setMessage(
+                "🟠 Connexion au serveur..."
+            );
+        }
     }
 
 
     /* =========================================================
-       ⚡ TAP
+       ⚡ TAP BUTTON
     ========================================================= */
 
     if (tapButton) {
@@ -1963,8 +1900,13 @@ document.addEventListener("DOMContentLoaded", () => {
             () => {
 
                 if (
-                    tapButton.disabled
+                    !gameJoined
                 ) {
+
+                    setMessage(
+                        "⚡ Appuie d'abord sur JOUER"
+                    );
+
                     return;
                 }
 
@@ -1972,7 +1914,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (
                     currentTimer <= 0
                 ) {
-
                     return;
                 }
 
@@ -1988,32 +1929,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                if (!gameJoined) {
-
-                    if (tapMessage) {
-
-                        tapMessage.textContent =
-                            "⚠️ Appuie d'abord sur JOUER MAINTENANT.";
-                    }
-
-                    return;
-                }
-
-
-                if (!gameStarted) {
-
-                    return;
-                }
-
-
                 if (tapLocked) {
-
                     return;
                 }
 
 
-                tapLocked =
-                    true;
+                tapLocked = true;
 
 
                 tapButton.classList.add(
@@ -2024,174 +1945,51 @@ document.addEventListener("DOMContentLoaded", () => {
                 socket.emit(
                     "tap",
                     {
-
-                        playerId:
-                            playerId,
-
-                        playerName:
-                            playerName,
-
-                        taps:
-                            1
+                        playerId,
+                        playerName,
+                        taps: 1
                     }
                 );
 
 
-                setTimeout(() => {
+                setTimeout(
+                    () => {
 
-                    tapLocked =
-                        false;
+                        tapLocked =
+                            false;
 
+                        tapButton.classList.remove(
+                            "tap-active"
+                        );
 
-                    tapButton.classList.remove(
-                        "tap-active"
-                    );
-
-                }, 70);
+                    },
+                    80
+                );
             }
         );
     }
 
 
     /* =========================================================
-       🎮 JOUER MAINTENANT
+       🎮 BOUTON JOUER
     ========================================================= */
 
     if (enterChallenge) {
 
         enterChallenge.addEventListener(
             "click",
-            () => {
+            event => {
 
-                console.log(
-                    "🎮 JOUER MAINTENANT"
-                );
+                event.preventDefault();
 
-
-                if (
-                    !socket ||
-                    !socket.connected
-                ) {
-
-                    if (tapMessage) {
-
-                        tapMessage.textContent =
-                            "🟠 Connexion au serveur...";
-                    }
-
-
-                    connectSocket();
-
-                    return;
-                }
-
-
-                const savedBet =
-                    Number(
-                        localStorage.getItem(
-                            "miltape_bet"
-                        )
-                    ) || 0;
-
-
-                /*
-                 * Si aucune mise n'est sélectionnée,
-                 * on demande à l'utilisateur de
-                 * choisir une mise.
-                 */
-
-                if (
-                    savedBet <= 0
-                ) {
-
-                    if (tapMessage) {
-
-                        tapMessage.textContent =
-                            "⚠️ Choisis ta mise avant de jouer.";
-                    }
-
-
-                    alert(
-                        "⚠️ Choisis d'abord ta mise."
-                    );
-
-                    return;
-                }
-
-
-                /*
-                 * Rejoindre la partie.
-                 *
-                 * On garde l'événement "join"
-                 * compatible avec ton backend actuel.
-                 */
-
-                socket.emit(
-                    "join",
-                    {
-
-                        playerId:
-                            playerId,
-
-                        playerName:
-                            playerName,
-
-                        bet:
-                            savedBet,
-
-                        amount:
-                            savedBet
-                    }
-                );
-
-
-                gameJoined =
-                    true;
-
-
-                /*
-                 * Si le serveur envoie ensuite
-                 * un timer, celui-ci prendra
-                 * automatiquement le contrôle.
-                 *
-                 * En attendant, on utilise
-                 * 10 minutes.
-                 */
-
-                if (
-                    currentTimer <= 0 ||
-                    currentTimer >
-                        GAME_DURATION
-                ) {
-
-                    resetLocalTimer(
-                        GAME_DURATION
-                    );
-                }
-
-
-                gameStarted =
-                    true;
-
-
-                updateTapButtonState();
-
-
-                if (tapMessage) {
-
-                    tapMessage.textContent =
-                        "🔥 À TOI DE TAPPER !";
-                }
-
-
-                enterChallenge.blur();
+                openChallenge();
             }
         );
     }
 
 
     /* =========================================================
-       💰 WALLET TRON
+       💰 WALLET
     ========================================================= */
 
     async function handleWalletAction() {
@@ -2215,6 +2013,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     address
                 );
 
+
                 return;
             }
 
@@ -2234,6 +2033,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     USDT_TRON_ADDRESS
                 );
 
+
             } else {
 
                 alert(
@@ -2242,10 +2042,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
             }
 
+
         } catch (error) {
 
             console.error(
-                "❌ Wallet :",
+                "❌ WALLET",
                 error
             );
 
@@ -2258,59 +2059,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    if (walletButton) {
-
-        walletButton.addEventListener(
-            "click",
-            handleWalletAction
-        );
-    }
+    walletButton?.addEventListener(
+        "click",
+        handleWalletAction
+    );
 
 
     /* =========================================================
-       💰 MISE
-    ========================================================= */
-
-    function setBet(value) {
-
-        const amount =
-            Math.max(
-                0,
-                Number(value) || 0
-            );
-
-
-        if (displayBet) {
-
-            displayBet.textContent =
-                "$" +
-                amount;
-        }
-
-
-        localStorage.setItem(
-            "miltape_bet",
-            String(amount)
-        );
-    }
-
-
-    const savedBet =
-        localStorage.getItem(
-            "miltape_bet"
-        );
-
-
-    if (savedBet !== null) {
-
-        setBet(
-            savedBet
-        );
-    }
-
-
-    /* =========================================================
-       🧭 MENU
+       MENU
     ========================================================= */
 
     const menuButton =
@@ -2383,7 +2139,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🪟 MODAL
+       MODAL
     ========================================================= */
 
     const dynamicModal =
@@ -2453,7 +2209,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     dynamicModal?.addEventListener(
         "click",
-        (event) => {
+        event => {
 
             if (
                 event.target ===
@@ -2467,130 +2223,103 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🧭 BOUTONS MENU
+       MENU BUTTONS
     ========================================================= */
 
-    const menuGamesBtn =
-        document.getElementById(
-            "menuGamesBtn"
-        );
+    document
+        .getElementById("menuGamesBtn")
+        ?.addEventListener(
+            "click",
+            () => {
 
-    const menuRankingsBtn =
-        document.getElementById(
-            "menuRankingsBtn"
-        );
+                closeSideMenu();
 
-    const menuGainsBtn =
-        document.getElementById(
-            "menuGainsBtn"
-        );
-
-    const menuWithdrawalsBtn =
-        document.getElementById(
-            "menuWithdrawalsBtn"
-        );
-
-    const menuReferralBtn =
-        document.getElementById(
-            "menuReferralBtn"
-        );
-
-    const menuChatBtn =
-        document.getElementById(
-            "menuChatBtn"
-        );
-
-    const menuRulesBtn =
-        document.getElementById(
-            "menuRulesBtn"
-        );
-
-
-    menuGamesBtn?.addEventListener(
-        "click",
-        () => {
-
-            closeSideMenu();
-
-            openModal(
-                "🎮 Mes parties",
-                `
+                openModal(
+                    "🎮 Mes parties",
+                    `
                     <p>
-                        Tes parties seront affichées ici.
+                        Ton historique de parties
+                        apparaîtra ici.
                     </p>
-                `
-            );
-        }
-    );
+                    `
+                );
+            }
+        );
 
 
-    menuRankingsBtn?.addEventListener(
-        "click",
-        () => {
+    document
+        .getElementById("menuRankingsBtn")
+        ?.addEventListener(
+            "click",
+            () => {
 
-            closeSideMenu();
+                closeSideMenu();
 
-            document
-                .querySelector(
-                    ".leaderboard"
-                )
-                ?.scrollIntoView({
-                    behavior: "smooth"
-                });
-        }
-    );
+                document
+                    .querySelector(".leaderboard")
+                    ?.scrollIntoView({
+                        behavior: "smooth"
+                    });
+            }
+        );
 
 
-    menuGainsBtn?.addEventListener(
-        "click",
-        () => {
+    document
+        .getElementById("menuGainsBtn")
+        ?.addEventListener(
+            "click",
+            () => {
 
-            closeSideMenu();
+                closeSideMenu();
 
-            openModal(
-                "💰 Mes gains",
-                `
+                openModal(
+                    "💰 Mes gains",
+                    `
                     <p>
-                        Tes gains apparaîtront ici
-                        lorsque le système de paiement
-                        sera actif.
+                        Tes gains seront affichés
+                        ici lorsque le système
+                        de paiement sera actif.
                     </p>
-                `
-            );
-        }
-    );
+                    `
+                );
+            }
+        );
 
 
-    menuWithdrawalsBtn?.addEventListener(
-        "click",
-        () => {
+    document
+        .getElementById("menuWithdrawalsBtn")
+        ?.addEventListener(
+            "click",
+            () => {
 
-            closeSideMenu();
+                closeSideMenu();
 
-            openModal(
-                "💸 Mes retraits",
-                `
+                openModal(
+                    "💸 Mes retraits",
+                    `
                     <p>
-                        La gestion des retraits sera
-                        disponible ici.
+                        La gestion des retraits
+                        sera disponible ici.
                     </p>
-                `
-            );
-        }
-    );
+                    `
+                );
+            }
+        );
 
 
-    menuReferralBtn?.addEventListener(
-        "click",
-        () => {
+    document
+        .getElementById("menuReferralBtn")
+        ?.addEventListener(
+            "click",
+            () => {
 
-            closeSideMenu();
+                closeSideMenu();
 
-            openModal(
-                "👥 Parrainage",
-                `
+                openModal(
+                    "👥 Parrainage",
+                    `
                     <p>
-                        Ton code de parrainage :
+                        Ton identifiant de parrainage :
                     </p>
 
                     <p>
@@ -2598,49 +2327,48 @@ document.addEventListener("DOMContentLoaded", () => {
                             ${escapeHTML(playerId)}
                         </strong>
                     </p>
-                `
-            );
-        }
-    );
+                    `
+                );
+            }
+        );
 
 
-    menuChatBtn?.addEventListener(
-        "click",
-        () => {
+    document
+        .getElementById("menuChatBtn")
+        ?.addEventListener(
+            "click",
+            () => {
 
-            closeSideMenu();
+                closeSideMenu();
 
-
-            document
-                .querySelector(
-                    ".chat-section"
-                )
-                ?.scrollIntoView({
-                    behavior: "smooth"
-                });
-
-
-            setTimeout(
-                () => {
-
-                    chatInput?.focus();
-
-                },
-                500
-            );
-        }
-    );
+                document
+                    .querySelector(".chat-section")
+                    ?.scrollIntoView({
+                        behavior: "smooth"
+                    });
 
 
-    menuRulesBtn?.addEventListener(
-        "click",
-        () => {
+                setTimeout(
+                    () => {
+                        chatInput?.focus();
+                    },
+                    500
+                );
+            }
+        );
 
-            closeSideMenu();
 
-            openModal(
-                "📜 Règles Miltape",
-                `
+    document
+        .getElementById("menuRulesBtn")
+        ?.addEventListener(
+            "click",
+            () => {
+
+                closeSideMenu();
+
+                openModal(
+                    "📜 Règles Miltape",
+                    `
                     <p>
                         ⏱️ Une partie dure 10 minutes.
                     </p>
@@ -2654,14 +2382,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         🪙 Les mises utilisent
                         USDT TRC20.
                     </p>
-                `
-            );
-        }
-    );
+                    `
+                );
+            }
+        );
 
 
     /* =========================================================
-       📲 PWA
+       PWA
     ========================================================= */
 
     const installButton =
@@ -2672,7 +2400,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.addEventListener(
         "beforeinstallprompt",
-        (event) => {
+        event => {
 
             event.preventDefault();
 
@@ -2705,14 +2433,13 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (error) {
 
                 console.warn(
-                    "PWA :",
+                    "PWA",
                     error
                 );
             }
 
 
-            deferredPrompt =
-                null;
+            deferredPrompt = null;
 
 
             installButton.classList.remove(
@@ -2723,119 +2450,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       🧹 VISIBILITÉ PAGE
+       ETAT INITIAL
     ========================================================= */
 
-    document.addEventListener(
-        "visibilitychange",
-        () => {
-
-            if (
-                document.visibilityState ===
-                "visible"
-            ) {
-
-                updateTapButtonState();
-            }
-        }
+    updateScoreDisplays(
+        0
     );
 
-
-    /* =========================================================
-       🔄 ÉTAT INITIAL
-    ========================================================= */
-
-    updateScoreDisplays(0);
 
     updateTimerDisplay(
         GAME_DURATION
     );
 
 
-    gameJoined =
-        false;
+    if (tapButton) {
 
-    gameStarted =
-        false;
-
-
-    updateTapButtonState();
-
-
-    if (tapMessage) {
-
-        tapMessage.textContent =
-            "⚡ CHOISIS TA MISE ET APPUIE SUR JOUER";
+        tapButton.disabled =
+            true;
     }
 
 
     /* =========================================================
-       🔌 CONNEXION
+       CONNEXION
     ========================================================= */
 
     connectSocket();
 
 
     /* =========================================================
-       🔁 VÉRIFICATION SOCKET
-    ========================================================= */
-
-    const connectionCheck =
-        setInterval(
-            () => {
-
-                if (
-                    socket &&
-                    socket.connected
-                ) {
-
-                    socketReady =
-                        true;
-
-                    updateTapButtonState();
-
-                }
-
-            },
-            1000
-        );
-
-
-    /*
-     * Sécurité pour éviter un intervalle
-     * inutile pendant des heures.
-     */
-
-    setTimeout(
-        () => {
-
-            clearInterval(
-                connectionCheck
-            );
-
-        },
-        300000
-    );
-
-
-    /* =========================================================
-       📱 EMPÊCHER LE ZOOM DOUBLE TAP
-    ========================================================= */
-
-    if (tapButton) {
-
-        tapButton.addEventListener(
-            "dblclick",
-            (event) => {
-
-                event.preventDefault();
-            }
-        );
-    }
-
-
-    /* =========================================================
-       ✅ FIN
+       LOG
     ========================================================= */
 
     console.log(
@@ -2843,16 +2486,13 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     console.log(
-        "💬 CHAT : OK"
-    );
-
-    console.log(
-        "🎮 JEU : OK"
-    );
-
-    console.log(
         "🔌 BACKEND :",
         BACKEND_URL
+    );
+
+    console.log(
+        "👤 PLAYER :",
+        playerId
     );
 
 });
