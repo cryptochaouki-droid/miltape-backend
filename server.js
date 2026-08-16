@@ -6,7 +6,7 @@ const cors = require("cors");
 
 /* =========================================================
    MILTAPE WORLD CHALLENGE
-   BACKEND COMPLET
+   BACKEND COMPLET - VERSION CORRIGÉE
    ========================================================= */
 
 const app = express();
@@ -20,7 +20,10 @@ app.use(
     cors({
         origin: "*",
         methods: ["GET", "POST", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"]
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization"
+        ]
     })
 );
 
@@ -39,7 +42,11 @@ const io = new Server(server, {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    transports: ["websocket", "polling"]
+
+    transports: [
+        "websocket",
+        "polling"
+    ]
 });
 
 /* =========================================================
@@ -56,7 +63,12 @@ const TRONGRID_API_KEY =
     process.env.TRONGRID_API_KEY || "";
 
 const ADMIN_PASSWORD =
-    process.env.ADMIN_PASSWORD || "admin123";
+    process.env.ADMIN_PASSWORD || "";
+
+const SATURDAY_JACKPOT_PERCENT =
+    Number(
+        process.env.SATURDAY_JACKPOT_PERCENT
+    ) || 5;
 
 /* =========================================================
    CONFIGURATION JEU
@@ -73,7 +85,7 @@ const MAX_TAPS_PER_SECOND = 25;
    ========================================================= */
 
 const MILTAPE_WALLET =
-    "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
+    "TBZZ3nakc3w5SnJ1EZpvVWYWY3q1NffNPM";
 
 /* =========================================================
    USDT TRC20
@@ -99,13 +111,8 @@ const MINIMUM_BET = 1;
 const MAXIMUM_BET = null;
 
 /* =========================================================
-   JACKPOT SAMEDI
+   JACKPOT
    ========================================================= */
-
-const SATURDAY_JACKPOT_PERCENT =
-    Number(
-        process.env.SATURDAY_JACKPOT_PERCENT
-    ) || 5;
 
 const JACKPOT_PERCENT =
     Math.min(
@@ -117,16 +124,19 @@ const JACKPOT_PERCENT =
     );
 
 /* =========================================================
-   ETAT DU SERVEUR
+   ETAT SERVEUR
    ========================================================= */
 
 let mongoConnected = false;
 
 let gameId = 1;
 
-let timerLeft = GAME_DURATION;
+let timerLeft =
+    GAME_DURATION;
 
 let gameRunning = true;
+
+let changingGame = false;
 
 /*
  * playerId -> socketId
@@ -147,58 +157,83 @@ const tapRate =
    ========================================================= */
 
 console.log("");
-console.log("======================================");
+console.log("==========================================");
 console.log("🔥 MILTAPE WORLD CHALLENGE BACKEND");
-console.log("======================================");
-console.log("Port :", PORT);
+console.log("==========================================");
+
+console.log(
+    "Port :",
+    PORT
+);
+
 console.log(
     "Durée partie :",
     GAME_DURATION,
     "secondes"
 );
+
 console.log(
     "Top gagnants :",
     TOP_WINNERS
 );
+
 console.log(
     "Réseau :",
     NETWORK
 );
+
 console.log(
     "Token :",
     TOKEN
 );
+
 console.log(
     "Standard :",
     CHAIN
 );
+
 console.log(
     "Wallet :",
     MILTAPE_WALLET
 );
+
 console.log(
     "Mise minimum :",
     MINIMUM_BET,
     "USDT"
 );
+
 console.log(
     "Jackpot samedi :",
     JACKPOT_PERCENT,
     "%"
 );
+
 console.log(
     "MongoDB :",
     MONGO_URI
         ? "CONFIGURÉ"
         : "❌ MANQUANT"
 );
+
 console.log(
     "TronGrid API :",
     TRONGRID_API_KEY
         ? "CONFIGURÉE"
         : "NON CONFIGURÉE"
 );
-console.log("======================================");
+
+console.log(
+    "Admin password :",
+    ADMIN_PASSWORD
+        ? "CONFIGURÉ"
+        : "❌ MANQUANT"
+);
+
+console.log(
+    "=========================================="
+);
+
 console.log("");
 
 /* =========================================================
@@ -251,12 +286,15 @@ const playerSchema =
 
             paymentStatus: {
                 type: String,
+
                 enum: [
                     "pending",
                     "paid",
                     "rejected"
                 ],
+
                 default: "pending",
+
                 index: true
             },
 
@@ -276,25 +314,31 @@ const playerSchema =
                 default: null
             }
         },
+
         {
             versionKey: false
         }
     );
 
 /* =========================================================
-   INDEX
+   INDEX TRANSACTION UNIQUE
    ========================================================= */
 
 playerSchema.index(
     {
         transactionHash: 1
     },
+
     {
         unique: true,
         sparse: true,
         name: "unique_transaction_hash"
     }
 );
+
+/* =========================================================
+   INDEX GAME / PLAYER
+   ========================================================= */
 
 playerSchema.index(
     {
@@ -303,6 +347,7 @@ playerSchema.index(
         playerId: 1,
         score: -1
     },
+
     {
         name:
             "game_payment_player_score"
@@ -345,6 +390,7 @@ const chatSchema =
                 default: Date.now
             }
         },
+
         {
             versionKey: false
         }
@@ -379,7 +425,16 @@ async function connectMongoDB() {
             MONGO_URI,
             {
                 serverSelectionTimeoutMS: 10000,
-                connectTimeoutMS: 10000
+
+                connectTimeoutMS: 10000,
+
+                socketTimeoutMS: 20000,
+
+                maxPoolSize: 20,
+
+                minPoolSize: 2,
+
+                retryWrites: true
             }
         );
 
@@ -404,7 +459,34 @@ async function connectMongoDB() {
     }
 }
 
+/*
+ * Première connexion
+ */
+
 connectMongoDB();
+
+/*
+ * Tentative de reconnexion périodique
+ */
+
+setInterval(
+    async () => {
+
+        if (
+            !mongoConnected &&
+            MONGO_URI
+        ) {
+
+            console.log(
+                "🔄 Tentative reconnexion MongoDB..."
+            );
+
+            await connectMongoDB();
+        }
+
+    },
+    15000
+);
 
 /* =========================================================
    UTILITAIRES
@@ -426,7 +508,7 @@ function cleanString(
 }
 
 /* =========================================================
-   ADRESSE TRON
+   TRON ADDRESS
    ========================================================= */
 
 function isValidTronAddress(
@@ -462,7 +544,7 @@ function isValidTxid(
 }
 
 /* =========================================================
-   USDT
+   USDT UNIT CONVERSION
    ========================================================= */
 
 function usdtToUnits(
@@ -507,6 +589,7 @@ function isValidBet(
             numeric
         )
     ) {
+
         return false;
     }
 
@@ -514,6 +597,7 @@ function isValidBet(
         numeric <
         MINIMUM_BET
     ) {
+
         return false;
     }
 
@@ -522,6 +606,7 @@ function isValidBet(
         numeric >
         MAXIMUM_BET
     ) {
+
         return false;
     }
 
@@ -536,7 +621,7 @@ function isValidBet(
 }
 
 /* =========================================================
-   TRONGRID
+   TRONGRID HEADERS
    ========================================================= */
 
 function tronHeaders() {
@@ -578,6 +663,7 @@ async function fetchJson(
 
                     headers: {
                         ...tronHeaders(),
+
                         ...(options.headers || {})
                     }
                 }
@@ -610,7 +696,7 @@ async function fetchJson(
 }
 
 /* =========================================================
-   JACKPOT SAMEDI
+   SATURDAY START
    ========================================================= */
 
 function getSaturdayStart() {
@@ -645,6 +731,10 @@ function getSaturdayStart() {
     return saturday;
 }
 
+/* =========================================================
+   NEXT SATURDAY
+   ========================================================= */
+
 function getNextSaturday() {
 
     const next =
@@ -659,37 +749,45 @@ function getNextSaturday() {
     return next;
 }
 
+/* =========================================================
+   SATURDAY JACKPOT
+   ========================================================= */
+
 async function getSaturdayJackpot() {
+
+    const periodStart =
+        getSaturdayStart();
+
+    const nextSaturday =
+        getNextSaturday();
 
     if (!mongoConnected) {
 
         return {
+
             totalStakes: 0,
+
             jackpot: 0,
+
             percent:
                 JACKPOT_PERCENT,
+
             periodStart:
-                getSaturdayStart()
-                    .toISOString(),
+                periodStart.toISOString(),
+
             nextSaturday:
-                getNextSaturday()
-                    .toISOString()
+                nextSaturday.toISOString()
         };
     }
 
     try {
-
-        const periodStart =
-            getSaturdayStart();
-
-        const nextSaturday =
-            getNextSaturday();
 
         const result =
             await Player.aggregate(
                 [
                     {
                         $match: {
+
                             paymentStatus:
                                 "paid",
 
@@ -705,6 +803,7 @@ async function getSaturdayJackpot() {
 
                     {
                         $group: {
+
                             _id: null,
 
                             totalStakes: {
@@ -720,8 +819,7 @@ async function getSaturdayJackpot() {
             result.length
                 ? Number(
                     result[0]
-                        .totalStakes ||
-                    0
+                        .totalStakes || 0
                 )
                 : 0;
 
@@ -733,6 +831,7 @@ async function getSaturdayJackpot() {
             );
 
         return {
+
             totalStakes:
                 Number(
                     totalStakes.toFixed(
@@ -765,10 +864,19 @@ async function getSaturdayJackpot() {
         );
 
         return {
+
             totalStakes: 0,
+
             jackpot: 0,
+
             percent:
-                JACKPOT_PERCENT
+                JACKPOT_PERCENT,
+
+            periodStart:
+                periodStart.toISOString(),
+
+            nextSaturday:
+                nextSaturday.toISOString()
         };
     }
 }
@@ -779,23 +887,13 @@ async function getSaturdayJackpot() {
 
 async function broadcastSaturdayJackpot() {
 
-    try {
+    const jackpot =
+        await getSaturdayJackpot();
 
-        const jackpot =
-            await getSaturdayJackpot();
-
-        io.emit(
-            "saturdayJackpot",
-            jackpot
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Jackpot broadcast:",
-            error.message
-        );
-    }
+    io.emit(
+        "saturdayJackpot",
+        jackpot
+    );
 }
 
 /* =========================================================
@@ -815,6 +913,7 @@ async function getTotalStakes() {
                 [
                     {
                         $match: {
+
                             paymentStatus:
                                 "paid"
                         }
@@ -822,6 +921,7 @@ async function getTotalStakes() {
 
                     {
                         $group: {
+
                             _id: null,
 
                             total: {
@@ -839,7 +939,12 @@ async function getTotalStakes() {
             )
             : 0;
 
-    } catch {
+    } catch (error) {
+
+        console.error(
+            "Total stakes:",
+            error.message
+        );
 
         return 0;
     }
@@ -862,6 +967,7 @@ async function getLeaderboard() {
                 [
                     {
                         $match: {
+
                             gameId:
                                 Number(
                                     gameId
@@ -905,7 +1011,10 @@ async function getLeaderboard() {
 
                     {
                         $sort: {
-                            score: -1
+
+                            score: -1,
+
+                            playerName: 1
                         }
                     },
 
@@ -964,10 +1073,6 @@ async function broadcastLeaderboard() {
         leaderboard
     );
 
-    /*
-     * Compatibilité avec ancienne version
-     */
-
     io.emit(
         "leaderboardUpdate",
         leaderboard
@@ -975,7 +1080,7 @@ async function broadcastLeaderboard() {
 }
 
 /* =========================================================
-   BROADCAST TOTAL STAKES
+   BROADCAST TOTAL
    ========================================================= */
 
 async function broadcastTotalStakes() {
@@ -997,7 +1102,7 @@ async function broadcastTotalStakes() {
 }
 
 /* =========================================================
-   HTTP ROOT
+   ROOT
    ========================================================= */
 
 app.get(
@@ -1009,6 +1114,7 @@ app.get(
 
         res.json(
             {
+
                 success: true,
 
                 app:
@@ -1028,6 +1134,9 @@ app.get(
                 timerLeft,
 
                 gameRunning,
+
+                online:
+                    activePlayers.size,
 
                 saturdayJackpot:
                     jackpot,
@@ -1076,6 +1185,7 @@ app.get(
 
         res.json(
             {
+
                 success: true,
 
                 server:
@@ -1092,6 +1202,9 @@ app.get(
                     GAME_DURATION,
 
                 gameRunning,
+
+                online:
+                    activePlayers.size,
 
                 saturdayJackpot:
                     jackpot,
@@ -1140,6 +1253,7 @@ app.get(
 
         res.json(
             {
+
                 success: true,
 
                 game: {
@@ -1153,7 +1267,12 @@ app.get(
                     gameId,
 
                     topWinners:
-                        TOP_WINNERS
+                        TOP_WINNERS,
+
+                    running:
+                        gameRunning,
+
+                    timerLeft
                 },
 
                 saturdayJackpot:
@@ -1200,7 +1319,7 @@ app.get(
 );
 
 /* =========================================================
-   SATURDAY JACKPOT
+   JACKPOT
    ========================================================= */
 
 app.get(
@@ -1213,6 +1332,7 @@ app.get(
         res.json(
             {
                 success: true,
+
                 ...jackpot
             }
         );
@@ -1232,6 +1352,7 @@ app.get(
 
         res.json(
             {
+
                 success: true,
 
                 totalStakes:
@@ -1255,6 +1376,7 @@ app.get(
 
         res.json(
             {
+
                 success: true,
 
                 online:
@@ -1278,9 +1400,13 @@ app.get(
 
                 return res.json(
                     {
+
                         success: true,
+
                         totalTaps: 0,
+
                         totalUsdt: 0,
+
                         history: []
                     }
                 );
@@ -1297,7 +1423,9 @@ app.get(
                 return res.status(400)
                     .json(
                         {
+
                             success: false,
+
                             error:
                                 "PLAYER_ID_REQUIRED"
                         }
@@ -1321,11 +1449,13 @@ app.get(
                         sum,
                         player
                     ) =>
+
                         sum +
                         Number(
                             player.score ||
                             0
                         ),
+
                     0
                 );
 
@@ -1335,6 +1465,7 @@ app.get(
                         sum,
                         player
                     ) =>
+
                         sum +
                         (
                             player.paymentStatus ===
@@ -1347,11 +1478,13 @@ app.get(
 
                                 : 0
                         ),
+
                     0
                 );
 
             return res.json(
                 {
+
                     success: true,
 
                     totalTaps,
@@ -1366,6 +1499,7 @@ app.get(
                     history:
                         records.map(
                             player => ({
+
                                 date:
                                     player.createdAt,
 
@@ -1401,7 +1535,9 @@ app.get(
             return res.status(500)
                 .json(
                     {
+
                         success: false,
+
                         error:
                             "PLAYER_STATS_ERROR"
                     }
@@ -1423,6 +1559,7 @@ app.get(
 
         res.json(
             {
+
                 success: true,
 
                 gameId,
@@ -1444,15 +1581,31 @@ app.post(
         const password =
             cleanString(
                 req.body.password,
-                100
+                200
             );
+
+        if (!ADMIN_PASSWORD) {
+
+            return res.status(503)
+                .json(
+                    {
+
+                        success: false,
+
+                        message:
+                            "ADMIN_PASSWORD non configuré sur le serveur."
+                    }
+                );
+        }
 
         if (!password) {
 
             return res.status(400)
                 .json(
                     {
+
                         success: false,
+
                         message:
                             "Mot de passe requis."
                     }
@@ -1460,27 +1613,31 @@ app.post(
         }
 
         if (
-            password ===
+            password !==
             ADMIN_PASSWORD
         ) {
 
-            return res.json(
-                {
-                    success: true,
-                    message:
-                        "Connexion réussie."
-                }
-            );
+            return res.status(401)
+                .json(
+                    {
+
+                        success: false,
+
+                        message:
+                            "Mot de passe incorrect."
+                    }
+                );
         }
 
-        return res.status(401)
-            .json(
-                {
-                    success: false,
-                    message:
-                        "Mot de passe incorrect !"
-                }
-            );
+        return res.json(
+            {
+
+                success: true,
+
+                message:
+                    "Connexion réussie."
+            }
+        );
     }
 );
 
@@ -1499,6 +1656,7 @@ app.post(
                 return res.status(503)
                     .json(
                         {
+
                             success: false,
 
                             message:
@@ -1531,30 +1689,73 @@ app.post(
                     req.body.amount
                 );
 
-            /*
-             * Validation
-             */
+            const cryptoAddress =
+                cleanString(
+                    req.body.cryptoAddress ||
+                    "",
+                    64
+                );
+
+            /* -------------------------------------------------
+               VALIDATION
+               ------------------------------------------------- */
+
+            if (!playerId) {
+
+                return res.status(400)
+                    .json(
+                        {
+                            success: false,
+                            message:
+                                "Player ID requis."
+                        }
+                    );
+            }
+
+            if (!isValidTxid(txid)) {
+
+                return res.status(400)
+                    .json(
+                        {
+                            success: false,
+                            message:
+                                "TXID TRON invalide."
+                        }
+                    );
+            }
+
+            if (!isValidBet(amount)) {
+
+                return res.status(400)
+                    .json(
+                        {
+                            success: false,
+                            message:
+                                "Montant de mise invalide."
+                        }
+                    );
+            }
 
             if (
-                !playerId ||
-                !isValidTxid(txid) ||
-                !isValidBet(amount)
+                cryptoAddress &&
+                !isValidTronAddress(
+                    cryptoAddress
+                )
             ) {
 
                 return res.status(400)
                     .json(
                         {
                             success: false,
-
                             message:
-                                "Paramètres de paiement invalides."
+                                "Adresse TRON invalide."
                         }
                     );
             }
 
-            /*
-             * Vérifie transaction déjà utilisée
-             */
+            /* -------------------------------------------------
+               TRANSACTION DÉJÀ UTILISÉE
+               ------------------------------------------------- */
 
             const existingTx =
                 await Player.findOne(
@@ -1566,9 +1767,10 @@ app.post(
 
             if (existingTx) {
 
-                return res.status(400)
+                return res.status(409)
                     .json(
                         {
+
                             success: false,
 
                             message:
@@ -1577,19 +1779,116 @@ app.post(
                     );
             }
 
-            /*
-             * Récupération événement Transfer
-             */
+            /* -------------------------------------------------
+               EMPÊCHER DOUBLE PARTICIPATION
+               ------------------------------------------------- */
 
-            const url =
-                `https://api.trongrid.io/v1/transactions/${txid}/events`;
+            const existingPlayer =
+                await Player.findOne(
+                    {
+
+                        playerId,
+
+                        gameId,
+
+                        paymentStatus:
+                            "paid"
+                    }
+                );
+
+            if (existingPlayer) {
+
+                return res.status(409)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "Ce joueur participe déjà à cette partie."
+                        }
+                    );
+            }
+
+            /* -------------------------------------------------
+               RÉCUPÉRATION TRANSACTION TRON
+               ------------------------------------------------- */
+
+            const txUrl =
+                `https://api.trongrid.io/v1/transactions/${txid}`;
+
+            const {
+                response:
+                    txResponse,
+                data:
+                    txData
+            } =
+                await fetchJson(
+                    txUrl
+                );
+
+            if (
+                !txResponse ||
+                !txResponse.ok ||
+                !txData
+            ) {
+
+                return res.status(400)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "Transaction TRON introuvable."
+                        }
+                    );
+            }
+
+            /* -------------------------------------------------
+               TRANSACTION CONFIRMÉE / SUCCESS
+               ------------------------------------------------- */
+
+            const txInfo =
+                txData;
+
+            const contractRet =
+                txInfo?.ret?.[0]?.contractRet;
+
+            if (
+                contractRet &&
+                contractRet !==
+                    "SUCCESS"
+            ) {
+
+                return res.status(400)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "La transaction TRON n'est pas confirmée avec succès.",
+
+                            status:
+                                contractRet
+                        }
+                    );
+            }
+
+            /* -------------------------------------------------
+               ÉVÉNEMENTS TRC20
+               ------------------------------------------------- */
+
+            const eventsUrl =
+                `https://api.trongrid.io/v1/transactions/${txid}/events?limit=200`;
 
             const {
                 response,
                 data
             } =
                 await fetchJson(
-                    url
+                    eventsUrl
                 );
 
             if (
@@ -1600,10 +1899,11 @@ app.post(
                 return res.status(400)
                     .json(
                         {
+
                             success: false,
 
                             message:
-                                "Impossible de vérifier la transaction TRON."
+                                "Impossible de vérifier les événements TRON."
                         }
                     );
             }
@@ -1619,39 +1919,39 @@ app.post(
                 return res.status(400)
                     .json(
                         {
+
                             success: false,
 
                             message:
-                                "Transaction introuvable."
+                                "Aucun transfert TRC20 trouvé."
                         }
                     );
             }
 
-            /*
-             * Recherche transfert USDT
-             */
+            /* -------------------------------------------------
+               RECHERCHE TRANSFERT USDT
+               ------------------------------------------------- */
 
             const transferEvent =
                 data.data.find(
                     event => {
 
                         const contractAddress =
-                            event
-                                .contract_address ||
-                            event
-                                .address ||
-                            "";
+                            String(
+                                event.contract_address ||
+                                event.address ||
+                                ""
+                            ).trim();
 
                         return (
+
                             event.event_name ===
-                            "Transfer" &&
+                            "Transfer"
 
-                            (
-                                !contractAddress ||
+                            &&
 
-                                contractAddress.toLowerCase() ===
-                                USDT_CONTRACT.toLowerCase()
-                            )
+                            contractAddress.toLowerCase() ===
+                            USDT_CONTRACT.toLowerCase()
                         );
                     }
                 );
@@ -1661,51 +1961,72 @@ app.post(
                 return res.status(400)
                     .json(
                         {
+
                             success: false,
 
                             message:
-                                "Transfert USDT TRC20 introuvable."
+                                "Transfert USDT TRC20 valide introuvable."
                         }
                     );
             }
+
+            /* -------------------------------------------------
+               RESULT EVENT
+               ------------------------------------------------- */
 
             const result =
                 transferEvent.result ||
                 {};
 
-            /*
-             * Adresse destinataire
-             */
-
             const toAddress =
-                result.to ||
-                result._to ||
-                result[1] ||
-                "";
+                String(
+                    result.to ||
+                    result._to ||
+                    result["1"] ||
+                    ""
+                ).trim();
 
-            /*
-             * Valeur transférée
-             */
+            const fromAddress =
+                String(
+                    result.from ||
+                    result._from ||
+                    result["0"] ||
+                    ""
+                ).trim();
 
             const rawValue =
-                result.value ||
-                result._value ||
-                result[2] ||
+                result.value ??
+                result._value ??
+                result["2"] ??
                 0;
 
-            /*
-             * Vérifie destination
-             */
+            /* -------------------------------------------------
+               DESTINATION
+               ------------------------------------------------- */
+
+            if (!toAddress) {
+
+                return res.status(400)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "Adresse destinataire introuvable."
+                        }
+                    );
+            }
 
             if (
-                toAddress &&
                 toAddress !==
-                    MILTAPE_WALLET
+                MILTAPE_WALLET
             ) {
 
                 return res.status(400)
                     .json(
                         {
+
                             success: false,
 
                             message:
@@ -1714,13 +2035,37 @@ app.post(
                     );
             }
 
-            /*
-             * Montant
-             */
+            /* -------------------------------------------------
+               MONTANT
+               ------------------------------------------------- */
+
+            const rawValueNumber =
+                Number(
+                    rawValue
+                );
+
+            if (
+                !Number.isFinite(
+                    rawValueNumber
+                ) ||
+                rawValueNumber <= 0
+            ) {
+
+                return res.status(400)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "Montant USDT invalide."
+                        }
+                    );
+            }
 
             const valueUsdt =
                 unitsToUsdt(
-                    rawValue
+                    rawValueNumber
                 );
 
             if (
@@ -1731,6 +2076,7 @@ app.post(
                 return res.status(400)
                     .json(
                         {
+
                             success: false,
 
                             message:
@@ -1745,13 +2091,14 @@ app.post(
                     );
             }
 
-            /*
-             * Création joueur
-             */
+            /* -------------------------------------------------
+               CRÉATION PARTICIPATION
+               ------------------------------------------------- */
 
             const newPlayer =
                 new Player(
                     {
+
                         playerId,
 
                         playerName,
@@ -1759,6 +2106,11 @@ app.post(
                         amount,
 
                         score: 0,
+
+                        cryptoAddress:
+
+                            cryptoAddress ||
+                            fromAddress,
 
                         transactionHash:
                             txid,
@@ -1775,33 +2127,45 @@ app.post(
 
             await newPlayer.save();
 
-            /*
-             * Mise à jour jackpot
-             */
+            /* -------------------------------------------------
+               BROADCAST
+               ------------------------------------------------- */
 
             await broadcastSaturdayJackpot();
 
-            /*
-             * Classement
-             */
-
             await broadcastLeaderboard();
-
-            /*
-             * Total mises
-             */
 
             await broadcastTotalStakes();
 
+            /* -------------------------------------------------
+               RÉPONSE
+               ------------------------------------------------- */
+
             return res.json(
                 {
+
                     success: true,
 
                     message:
                         "Paiement validé avec succès !",
 
-                    player:
-                        newPlayer
+                    gameId,
+
+                    paidAmount:
+                        valueUsdt,
+
+                    player: {
+
+                        playerId,
+
+                        playerName,
+
+                        amount,
+
+                        score: 0,
+
+                        gameId
+                    }
                 }
             );
 
@@ -1809,12 +2173,33 @@ app.post(
 
             console.error(
                 "❌ Verify payment:",
-                error.message
+                error
             );
+
+            /*
+             * Duplicate MongoDB
+             */
+
+            if (
+                error?.code === 11000
+            ) {
+
+                return res.status(409)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "Cette transaction ou participation existe déjà."
+                        }
+                    );
+            }
 
             return res.status(500)
                 .json(
                     {
+
                         success: false,
 
                         message:
@@ -1837,7 +2222,9 @@ app.get(
 
             return res.json(
                 {
+
                     success: true,
+
                     messages: []
                 }
             );
@@ -1857,6 +2244,7 @@ app.get(
 
             return res.json(
                 {
+
                     success: true,
 
                     messages
@@ -1865,10 +2253,17 @@ app.get(
 
         } catch (error) {
 
+            console.error(
+                "Chat GET:",
+                error.message
+            );
+
             return res.status(500)
                 .json(
                     {
+
                         success: false,
+
                         messages: []
                     }
                 );
@@ -1877,7 +2272,7 @@ app.get(
 );
 
 /* =========================================================
-   TIMER / GAME LOOP
+   TIMER
    ========================================================= */
 
 setInterval(
@@ -1886,27 +2281,25 @@ setInterval(
         try {
 
             if (
-                timerLeft > 0
+                timerLeft > 0 &&
+                gameRunning
             ) {
 
                 timerLeft--;
 
-                /*
-                 * Frontend principal
-                 */
+                /* ---------------------------------------------
+                   TIMER
+                   --------------------------------------------- */
 
                 io.emit(
                     "timer",
                     timerLeft
                 );
 
-                /*
-                 * Frontend alternatif
-                 */
-
                 io.emit(
                     "timer:update",
                     {
+
                         timeLeft:
                             timerLeft,
 
@@ -1917,19 +2310,24 @@ setInterval(
                 io.emit(
                     "timerUpdate",
                     {
+
                         timerLeft,
 
                         gameId
                     }
                 );
 
-                /*
-                 * Fin de partie
-                 */
+                /* ---------------------------------------------
+                   FIN PARTIE
+                   --------------------------------------------- */
 
                 if (
-                    timerLeft === 0
+                    timerLeft === 0 &&
+                    !changingGame
                 ) {
+
+                    changingGame =
+                        true;
 
                     gameRunning =
                         false;
@@ -1937,95 +2335,121 @@ setInterval(
                     const winners =
                         await getLeaderboard();
 
-                    /*
-                     * Résultats
-                     */
+                    /* -----------------------------------------
+                       GAME OVER
+                       ----------------------------------------- */
 
                     io.emit(
                         "gameOver",
                         {
+
                             gameId,
 
                             winners
                         }
                     );
 
-                    /*
-                     * Bloquer taps
-                     */
-
                     io.emit(
                         "timer",
                         0
                     );
 
-                    /*
-                     * Nouvelle partie après
-                     * quelques secondes.
-                     */
+                    io.emit(
+                        "timer:update",
+                        {
+
+                            timeLeft: 0,
+
+                            gameId
+                        }
+                    );
+
+                    console.log(
+                        "🏁 Partie terminée :",
+                        gameId
+                    );
+
+                    /* -----------------------------------------
+                       NOUVELLE PARTIE
+                       ----------------------------------------- */
 
                     setTimeout(
                         async () => {
 
-                            gameId++;
+                            try {
 
-                            timerLeft =
-                                GAME_DURATION;
+                                gameId++;
 
-                            gameRunning =
-                                true;
+                                timerLeft =
+                                    GAME_DURATION;
 
-                            /*
-                             * Nouvelle partie
-                             */
+                                gameRunning =
+                                    true;
 
-                            io.emit(
-                                "newGame",
-                                {
-                                    gameId,
+                                changingGame =
+                                    false;
 
-                                    duration:
-                                        GAME_DURATION,
+                                tapRate.clear();
 
-                                    timerLeft:
-                                        GAME_DURATION
-                                }
-                            );
+                                console.log(
+                                    "🎮 Nouvelle partie :",
+                                    gameId
+                                );
 
-                            io.emit(
-                                "game:new",
-                                {
-                                    gameId,
+                                io.emit(
+                                    "newGame",
+                                    {
 
-                                    duration:
-                                        GAME_DURATION,
+                                        gameId,
 
-                                    timerLeft:
-                                        GAME_DURATION
-                                }
-                            );
+                                        duration:
+                                            GAME_DURATION,
 
-                            io.emit(
-                                "gameStart",
-                                {
-                                    gameId,
+                                        timerLeft:
+                                            GAME_DURATION
+                                    }
+                                );
 
-                                    duration:
-                                        GAME_DURATION
-                                }
-                            );
+                                io.emit(
+                                    "game:new",
+                                    {
 
-                            /*
-                             * Nettoyage rate limit
-                             */
+                                        gameId,
 
-                            tapRate.clear();
+                                        duration:
+                                            GAME_DURATION,
 
-                            /*
-                             * Actualiser classement
-                             */
+                                        timerLeft:
+                                            GAME_DURATION
+                                    }
+                                );
 
-                            await broadcastLeaderboard();
+                                io.emit(
+                                    "gameStart",
+                                    {
+
+                                        gameId,
+
+                                        duration:
+                                            GAME_DURATION,
+
+                                        timerLeft:
+                                            GAME_DURATION
+                                    }
+                                );
+
+                                await broadcastLeaderboard();
+
+                            } catch (error) {
+
+                                changingGame =
+                                    false;
+
+                                console.error(
+                                    "New game error:",
+                                    error.message
+                                );
+                            }
 
                         },
                         3000
@@ -2058,9 +2482,9 @@ io.on(
             socket.id
         );
 
-        /*
-         * Envoyer nombre online
-         */
+        /* =====================================================
+           ONLINE
+           ===================================================== */
 
         io.emit(
             "onlineCount",
@@ -2076,182 +2500,246 @@ io.on(
         );
 
         /* =====================================================
-           FONCTION JOIN
+           JOIN
            ===================================================== */
 
         async function handleJoin(
             data
         ) {
 
-            const playerId =
-                cleanString(
-                    data?.playerId,
-                    100
-                );
+            try {
 
-            const playerName =
-                cleanString(
-                    data?.playerName ||
-                    "Anonyme",
-                    30
-                );
-
-            if (!playerId) {
-                return;
-            }
-
-            /*
-             * Enregistrer joueur
-             */
-
-            activePlayers.set(
-                playerId,
-                socket.id
-            );
-
-            /*
-             * Sauvegarder nom localement
-             * dans la session socket
-             */
-
-            socket.data.playerId =
-                playerId;
-
-            socket.data.playerName =
-                playerName;
-
-            /*
-             * Données initiales
-             */
-
-            const leaderboard =
-                await getLeaderboard();
-
-            /*
-             * Réponse principale
-             */
-
-            socket.emit(
-                "initGame",
-                {
-                    gameId,
-
-                    timerLeft,
-
-                    gameRunning,
-
-                    duration:
-                        GAME_DURATION,
-
-                    leaderboard
-                }
-            );
-
-            /*
-             * Compatible frontend
-             */
-
-            socket.emit(
-                "timer",
-                timerLeft
-            );
-
-            socket.emit(
-                "timer:update",
-                {
-                    timeLeft:
-                        timerLeft,
-
-                    gameId
-                }
-            );
-
-            socket.emit(
-                "leaderboard",
-                leaderboard
-            );
-
-            socket.emit(
-                "leaderboard:update",
-                leaderboard
-            );
-
-            /*
-             * Jackpot
-             */
-
-            const jackpot =
-                await getSaturdayJackpot();
-
-            socket.emit(
-                "saturdayJackpot",
-                jackpot
-            );
-
-            /*
-             * Total mises
-             */
-
-            const total =
-                await getTotalStakes();
-
-            socket.emit(
-                "totalStakes",
-                total
-            );
-
-            /*
-             * Historique chat
-             */
-
-            if (mongoConnected) {
-
-                try {
-
-                    const messages =
-                        await Chat.find()
-                            .sort({
-                                createdAt: -1
-                            })
-                            .limit(100)
-                            .lean();
-
-                    messages.reverse();
-
-                    socket.emit(
-                        "chatHistory",
-                        messages
+                const playerId =
+                    cleanString(
+                        data?.playerId,
+                        100
                     );
 
-                } catch {}
-            }
+                const playerName =
+                    cleanString(
+                        data?.playerName ||
+                        "Anonyme",
+                        30
+                    );
 
-            /*
-             * Nombre online
-             */
+                if (!playerId) {
 
-            io.emit(
-                "onlineCount",
-                activePlayers.size
-            );
+                    socket.emit(
+                        "joinError",
+                        {
 
-            io.emit(
-                "online:count",
-                {
-                    count:
-                        activePlayers.size
+                            success: false,
+
+                            message:
+                                "Player ID requis."
+                        }
+                    );
+
+                    return;
                 }
-            );
 
-            console.log(
-                "👤 Joueur connecté :",
-                playerName,
-                playerId
-            );
+                /* ---------------------------------------------
+                   ANCIENNE SOCKET DU JOUEUR
+                   --------------------------------------------- */
+
+                const oldSocketId =
+                    activePlayers.get(
+                        playerId
+                    );
+
+                if (
+                    oldSocketId &&
+                    oldSocketId !==
+                        socket.id
+                ) {
+
+                    const oldSocket =
+                        io.sockets.sockets.get(
+                            oldSocketId
+                        );
+
+                    if (oldSocket) {
+
+                        oldSocket.disconnect(
+                            true
+                        );
+                    }
+                }
+
+                /* ---------------------------------------------
+                   ENREGISTREMENT
+                   --------------------------------------------- */
+
+                activePlayers.set(
+                    playerId,
+                    socket.id
+                );
+
+                socket.data.playerId =
+                    playerId;
+
+                socket.data.playerName =
+                    playerName;
+
+                /* ---------------------------------------------
+                   GAME
+                   --------------------------------------------- */
+
+                const leaderboard =
+                    await getLeaderboard();
+
+                socket.emit(
+                    "initGame",
+                    {
+
+                        gameId,
+
+                        timerLeft,
+
+                        gameRunning,
+
+                        duration:
+                            GAME_DURATION,
+
+                        leaderboard
+                    }
+                );
+
+                /* ---------------------------------------------
+                   TIMER
+                   --------------------------------------------- */
+
+                socket.emit(
+                    "timer",
+                    timerLeft
+                );
+
+                socket.emit(
+                    "timer:update",
+                    {
+
+                        timeLeft:
+                            timerLeft,
+
+                        gameId
+                    }
+                );
+
+                socket.emit(
+                    "timerUpdate",
+                    {
+
+                        timerLeft,
+
+                        gameId
+                    }
+                );
+
+                /* ---------------------------------------------
+                   LEADERBOARD
+                   --------------------------------------------- */
+
+                socket.emit(
+                    "leaderboard",
+                    leaderboard
+                );
+
+                socket.emit(
+                    "leaderboard:update",
+                    leaderboard
+                );
+
+                /* ---------------------------------------------
+                   JACKPOT
+                   --------------------------------------------- */
+
+                const jackpot =
+                    await getSaturdayJackpot();
+
+                socket.emit(
+                    "saturdayJackpot",
+                    jackpot
+                );
+
+                /* ---------------------------------------------
+                   TOTAL STAKES
+                   --------------------------------------------- */
+
+                const total =
+                    await getTotalStakes();
+
+                socket.emit(
+                    "totalStakes",
+                    total
+                );
+
+                /* ---------------------------------------------
+                   CHAT HISTORY
+                   --------------------------------------------- */
+
+                if (mongoConnected) {
+
+                    try {
+
+                        const messages =
+                            await Chat.find()
+                                .sort({
+                                    createdAt: -1
+                                })
+                                .limit(100)
+                                .lean();
+
+                        messages.reverse();
+
+                        socket.emit(
+                            "chatHistory",
+                            messages
+                        );
+
+                    } catch (error) {
+
+                        console.error(
+                            "Chat history:",
+                            error.message
+                        );
+                    }
+                }
+
+                /* ---------------------------------------------
+                   ONLINE
+                   --------------------------------------------- */
+
+                io.emit(
+                    "onlineCount",
+                    activePlayers.size
+                );
+
+                io.emit(
+                    "online:count",
+                    {
+
+                        count:
+                            activePlayers.size
+                    }
+                );
+
+                console.log(
+                    "👤 Joueur connecté :",
+                    playerName,
+                    playerId
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Join error:",
+                    error.message
+                );
+            }
         }
 
         /* =====================================================
-           JOIN COMPATIBLE FRONTEND
+           JOIN COMPATIBILITÉ
            ===================================================== */
 
         socket.on(
@@ -2276,6 +2764,7 @@ io.on(
             socket.emit(
                 "initGame",
                 {
+
                     gameId,
 
                     timerLeft,
@@ -2297,6 +2786,7 @@ io.on(
             socket.emit(
                 "timer:update",
                 {
+
                     timeLeft:
                         timerLeft,
 
@@ -2306,6 +2796,11 @@ io.on(
 
             socket.emit(
                 "leaderboard",
+                leaderboard
+            );
+
+            socket.emit(
+                "leaderboard:update",
                 leaderboard
             );
         }
@@ -2361,12 +2856,37 @@ io.on(
                         );
 
                     if (!playerId) {
+
                         return;
                     }
 
-                    /*
-                     * Partie terminée
-                     */
+                    /* -----------------------------------------
+                       VÉRIFICATION SOCKET
+                       ----------------------------------------- */
+
+                    if (
+                        socket.data.playerId &&
+                        socket.data.playerId !==
+                            playerId
+                    ) {
+
+                        socket.emit(
+                            "tapResult",
+                            {
+
+                                success: false,
+
+                                message:
+                                    "Session joueur invalide."
+                            }
+                        );
+
+                        return;
+                    }
+
+                    /* -----------------------------------------
+                       PARTIE
+                       ----------------------------------------- */
 
                     if (
                         !gameRunning ||
@@ -2376,31 +2896,30 @@ io.on(
                         socket.emit(
                             "tapResult",
                             {
-                                success:
-                                    false,
+
+                                success: false,
 
                                 message:
                                     "La partie est terminée.",
 
-                                score:
-                                    0
+                                score: 0
                             }
                         );
 
                         return;
                     }
 
-                    /*
-                     * MongoDB obligatoire
-                     */
+                    /* -----------------------------------------
+                       MONGO
+                       ----------------------------------------- */
 
                     if (!mongoConnected) {
 
                         socket.emit(
                             "tapResult",
                             {
-                                success:
-                                    false,
+
+                                success: false,
 
                                 message:
                                     "Serveur temporairement indisponible."
@@ -2410,9 +2929,9 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Anti-autoclick
-                     */
+                    /* -----------------------------------------
+                       RATE LIMIT
+                       ----------------------------------------- */
 
                     const now =
                         Date.now();
@@ -2425,6 +2944,7 @@ io.on(
                     if (!info) {
 
                         info = {
+
                             startedAt:
                                 now,
 
@@ -2434,11 +2954,12 @@ io.on(
 
                     if (
                         now -
-                        info.startedAt >
+                        info.startedAt >=
                         1000
                     ) {
 
                         info = {
+
                             startedAt:
                                 now,
 
@@ -2461,28 +2982,27 @@ io.on(
                         socket.emit(
                             "tapResult",
                             {
-                                success:
-                                    false,
+
+                                success: false,
 
                                 message:
                                     "Trop de taps.",
 
-                                blocked:
-                                    true
+                                blocked: true
                             }
                         );
 
                         return;
                     }
 
-                    /*
-                     * Chercher participation
-                     * payée dans la partie actuelle
-                     */
+                    /* -----------------------------------------
+                       PARTICIPATION PAYÉE
+                       ----------------------------------------- */
 
                     const playerDoc =
                         await Player.findOne(
                             {
+
                                 playerId,
 
                                 gameId,
@@ -2496,17 +3016,13 @@ io.on(
                                     -1
                             });
 
-                    /*
-                     * Pas de paiement
-                     */
-
                     if (!playerDoc) {
 
                         socket.emit(
                             "tapResult",
                             {
-                                success:
-                                    false,
+
+                                success: false,
 
                                 message:
                                     "Tu dois rejoindre la partie avec une mise validée."
@@ -2516,67 +3032,93 @@ io.on(
                         return;
                     }
 
-                    /*
-                     * Ajouter 1 tap
-                     */
+                    /* -----------------------------------------
+                       INCRÉMENT ATOMIQUE
+                       ----------------------------------------- */
 
-                    playerDoc.score += 1;
+                    const updatedPlayer =
+                        await Player.findOneAndUpdate(
+                            {
 
-                    await playerDoc.save();
+                                _id:
+                                    playerDoc._id,
 
-                    /*
-                     * Retour joueur
-                     */
+                                paymentStatus:
+                                    "paid"
+                            },
+
+                            {
+                                $inc: {
+                                    score: 1
+                                }
+                            },
+
+                            {
+                                new: true,
+
+                                lean: true
+                            }
+                        );
+
+                    if (!updatedPlayer) {
+
+                        return;
+                    }
+
+                    /* -----------------------------------------
+                       SCORE JOUEUR
+                       ----------------------------------------- */
 
                     socket.emit(
                         "tapResult",
                         {
-                            success:
-                                true,
+
+                            success: true,
 
                             playerId,
 
                             score:
-                                playerDoc.score,
+                                updatedPlayer.score,
 
                             taps:
-                                playerDoc.score
+                                updatedPlayer.score
                         }
                     );
 
                     socket.emit(
                         "tap:result",
                         {
-                            success:
-                                true,
+
+                            success: true,
 
                             playerId,
 
                             score:
-                                playerDoc.score
+                                updatedPlayer.score
                         }
                     );
 
-                    /*
-                     * Score update
-                     */
+                    /* -----------------------------------------
+                       SCORE UPDATE
+                       ----------------------------------------- */
 
                     io.emit(
                         "score:update",
                         {
+
                             playerId,
 
                             playerName:
-                                playerDoc.playerName,
+                                updatedPlayer.playerName,
 
                             score:
-                                playerDoc.score
+                                updatedPlayer.score
                         }
                     );
 
-                    /*
-                     * Classement
-                     */
+                    /* -----------------------------------------
+                       LEADERBOARD
+                       ----------------------------------------- */
 
                     await broadcastLeaderboard();
 
@@ -2585,6 +3127,17 @@ io.on(
                     console.error(
                         "❌ TAP ERROR:",
                         error.message
+                    );
+
+                    socket.emit(
+                        "tapResult",
+                        {
+
+                            success: false,
+
+                            message:
+                                "Erreur pendant le tap."
+                        }
                     );
                 }
             }
@@ -2624,12 +3177,33 @@ io.on(
                     );
 
                 if (!message) {
+
                     return;
                 }
 
-                /*
-                 * Sauvegarder MongoDB
-                 */
+                /* ---------------------------------------------
+                   ANTI-SPAM SIMPLE
+                   --------------------------------------------- */
+
+                const now =
+                    Date.now();
+
+                if (
+                    socket.data.lastChat &&
+                    now -
+                        socket.data.lastChat <
+                        1000
+                ) {
+
+                    return;
+                }
+
+                socket.data.lastChat =
+                    now;
+
+                /* ---------------------------------------------
+                   SAVE
+                   --------------------------------------------- */
 
                 if (mongoConnected) {
 
@@ -2637,6 +3211,7 @@ io.on(
 
                         await Chat.create(
                             {
+
                                 playerId,
 
                                 playerName,
@@ -2645,9 +3220,7 @@ io.on(
                             }
                         );
 
-                    } catch (
-                        error
-                    ) {
+                    } catch (error) {
 
                         console.error(
                             "Chat MongoDB:",
@@ -2658,6 +3231,7 @@ io.on(
 
                 const chatData =
                     {
+
                         playerId,
 
                         playerName,
@@ -2668,9 +3242,9 @@ io.on(
                             new Date()
                     };
 
-                /*
-                 * Envoyer à tous
-                 */
+                /* ---------------------------------------------
+                   BROADCAST
+                   --------------------------------------------- */
 
                 io.emit(
                     "chatMessage",
@@ -2739,10 +3313,6 @@ io.on(
                     );
                 }
 
-                /*
-                 * Nombre en ligne
-                 */
-
                 io.emit(
                     "onlineCount",
                     activePlayers.size
@@ -2751,6 +3321,7 @@ io.on(
                 io.emit(
                     "online:count",
                     {
+
                         count:
                             activePlayers.size
                     }
@@ -2766,14 +3337,15 @@ io.on(
 );
 
 /* =========================================================
-   ERREUR MONGODB
+   MONGOOSE EVENTS
    ========================================================= */
 
 mongoose.connection.on(
     "error",
     (error) => {
 
-        mongoConnected = false;
+        mongoConnected =
+            false;
 
         console.error(
             "❌ MongoDB connection error:",
@@ -2786,7 +3358,8 @@ mongoose.connection.on(
     "disconnected",
     () => {
 
-        mongoConnected = false;
+        mongoConnected =
+            false;
 
         console.warn(
             "⚠️ MongoDB déconnecté"
@@ -2798,7 +3371,8 @@ mongoose.connection.on(
     "connected",
     () => {
 
-        mongoConnected = true;
+        mongoConnected =
+            true;
 
         console.log(
             "🟢 MongoDB connecté"
@@ -2817,6 +3391,7 @@ app.get(
         res.status(200)
             .json(
                 {
+
                     success: true,
 
                     status:
@@ -2827,7 +3402,12 @@ app.get(
 
                     gameId,
 
-                    timerLeft
+                    timerLeft,
+
+                    gameRunning,
+
+                    online:
+                        activePlayers.size
                 }
             );
     }
@@ -2843,6 +3423,7 @@ app.use(
         res.status(404)
             .json(
                 {
+
                     success: false,
 
                     error:
@@ -2861,6 +3442,7 @@ server.listen(
     () => {
 
         console.log("");
+
         console.log(
             "🚀 MILTAPE BACKEND DÉMARRÉ"
         );
@@ -2881,6 +3463,37 @@ server.listen(
             `🏆 Top ${TOP_WINNERS}`
         );
 
+        console.log(
+            `💰 Wallet : ${MILTAPE_WALLET}`
+        );
+
         console.log("");
+
+    }
+);
+
+/* =========================================================
+   ERREUR PROCESS
+   ========================================================= */
+
+process.on(
+    "unhandledRejection",
+    (reason) => {
+
+        console.error(
+            "❌ Unhandled Rejection:",
+            reason
+        );
+    }
+);
+
+process.on(
+    "uncaughtException",
+    (error) => {
+
+        console.error(
+            "❌ Uncaught Exception:",
+            error
+        );
     }
 );
