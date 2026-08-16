@@ -7,7 +7,7 @@ const cors = require("cors");
 /*
 =========================================================
  MILTAPE WORLD CHALLENGE
- BACKEND COMPLET
+ BACKEND V2
 =========================================================
 */
 
@@ -146,7 +146,7 @@ const JACKPOT_PERCENT =
 
 /*
 =========================================================
- ETAT
+ ETAT DU SERVEUR
 =========================================================
 */
 
@@ -161,16 +161,19 @@ let gameRunning = true;
 let changingGame = false;
 
 /*
- playerId -> socketId
+=========================================================
+ JOUEURS EN LIGNE
+=========================================================
 */
+
 const activePlayers = new Map();
 
 /*
- playerId -> {
-    startedAt,
-    count
- }
+=========================================================
+ ANTI-SPAM TAPS
+=========================================================
 */
+
 const tapRate = new Map();
 
 /*
@@ -181,7 +184,7 @@ const tapRate = new Map();
 
 console.log("");
 console.log("==========================================");
-console.log("🔥 MILTAPE WORLD CHALLENGE BACKEND");
+console.log("🔥 MILTAPE WORLD CHALLENGE V2");
 console.log("==========================================");
 
 console.log("Port :", PORT);
@@ -243,7 +246,7 @@ console.log("");
 
 /*
 =========================================================
- SCHEMA PLAYER
+ PLAYER SCHEMA
 =========================================================
 */
 
@@ -367,7 +370,7 @@ const Player =
 
 /*
 =========================================================
- SCHEMA CHAT
+ CHAT SCHEMA
 =========================================================
 */
 
@@ -471,17 +474,11 @@ async function connectMongoDB() {
     }
 }
 
-/*
-=========================================================
- PREMIÈRE CONNEXION
-=========================================================
-*/
-
 connectMongoDB();
 
 /*
 =========================================================
- RECONNEXION
+ RECONNEXION MONGODB
 =========================================================
 */
 
@@ -568,6 +565,16 @@ function cleanString(
         );
 }
 
+function normalizeAddress(
+    value
+) {
+
+    return cleanString(
+        value,
+        64
+    );
+}
+
 /*
 =========================================================
  TRON ADDRESS
@@ -579,9 +586,8 @@ function isValidTronAddress(
 ) {
 
     const value =
-        cleanString(
-            address,
-            64
+        normalizeAddress(
+            address
         );
 
     return /^T[1-9A-HJ-NP-Za-km-z]{33}$/
@@ -610,7 +616,7 @@ function isValidTxid(
 
 /*
 =========================================================
- USDT CONVERSION
+ USDT
 =========================================================
 */
 
@@ -836,17 +842,12 @@ async function getSaturdayJackpot() {
     if (!mongoConnected) {
 
         return {
-
             totalStakes: 0,
-
             jackpot: 0,
-
             percent:
                 JACKPOT_PERCENT,
-
             periodStart:
                 periodStart.toISOString(),
-
             nextSaturday:
                 nextSaturday.toISOString()
         };
@@ -1110,7 +1111,7 @@ async function getLeaderboard() {
 
 /*
 =========================================================
- BROADCAST
+ BROADCASTS
 =========================================================
 */
 
@@ -1184,6 +1185,9 @@ app.get(
 
                 app:
                     "Miltape World Challenge",
+
+                version:
+                    "2.0",
 
                 status:
                     "online",
@@ -1495,7 +1499,7 @@ app.get(
 
 /*
 =========================================================
- LEADERBOARD HTTP
+ LEADERBOARD
 =========================================================
 */
 
@@ -1579,7 +1583,6 @@ app.get(
                     .lean();
 
             let totalTaps = 0;
-
             let totalUsdt = 0;
 
             for (
@@ -1749,6 +1752,12 @@ app.post(
                     );
             }
 
+            /*
+            ---------------------------------------------
+            DONNÉES CLIENT
+            ---------------------------------------------
+            */
+
             const playerId =
                 cleanString(
                     req.body.playerId,
@@ -1774,16 +1783,15 @@ app.post(
                 );
 
             const cryptoAddress =
-                cleanString(
+                normalizeAddress(
                     req.body.cryptoAddress ||
-                    "",
-                    64
+                    ""
                 );
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             VALIDATIONS
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             if (!playerId) {
@@ -1848,9 +1856,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
-            TX DÉJÀ UTILISÉE
-            -------------------------------------------------
+            ---------------------------------------------
+            TRANSACTION DÉJÀ UTILISÉE
+            ---------------------------------------------
             */
 
             const existingTx =
@@ -1859,7 +1867,8 @@ app.post(
                         transactionHash:
                             txid
                     }
-                );
+                )
+                    .lean();
 
             if (existingTx) {
 
@@ -1876,9 +1885,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             JOUEUR DÉJÀ DANS LA PARTIE
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             const existingPlayer =
@@ -1892,7 +1901,8 @@ app.post(
                         paymentStatus:
                             "paid"
                     }
-                );
+                )
+                    .lean();
 
             if (existingPlayer) {
 
@@ -1909,9 +1919,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
-            TRANSACTION TRON
-            -------------------------------------------------
+            ---------------------------------------------
+            RÉCUPÉRATION TRANSACTION TRON
+            ---------------------------------------------
             */
 
             const txUrl =
@@ -1947,9 +1957,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             TRANSACTION SUCCESS
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             const contractRet =
@@ -1976,9 +1986,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
-            ÉVÉNEMENTS TRC20
-            -------------------------------------------------
+            ---------------------------------------------
+            RÉCUPÉRATION DES ÉVÉNEMENTS TRC20
+            ---------------------------------------------
             */
 
             const eventsUrl =
@@ -2032,9 +2042,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
-            TROUVER TRANSFERT USDT
-            -------------------------------------------------
+            ---------------------------------------------
+            TROUVER LE BON TRANSFER USDT
+            ---------------------------------------------
             */
 
             const transferEvent =
@@ -2053,9 +2063,7 @@ app.post(
                                 event.event_name ||
                                 ""
                             ) === "Transfer"
-
                             &&
-
                             contractAddress
                                 .toLowerCase() ===
                             USDT_CONTRACT
@@ -2079,9 +2087,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             RÉSULTAT TRANSFERT
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             const result =
@@ -2089,20 +2097,20 @@ app.post(
                 {};
 
             const toAddress =
-                String(
+                normalizeAddress(
                     result.to ||
                     result._to ||
                     result["1"] ||
                     ""
-                ).trim();
+                );
 
             const fromAddress =
-                String(
+                normalizeAddress(
                     result.from ||
                     result._from ||
                     result["0"] ||
                     ""
-                ).trim();
+                );
 
             const rawValue =
                 result.value ??
@@ -2111,9 +2119,9 @@ app.post(
                 0;
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             DESTINATION
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             if (!toAddress) {
@@ -2131,8 +2139,8 @@ app.post(
             }
 
             if (
-                toAddress !==
-                MILTAPE_WALLET
+                toAddress.toLowerCase() !==
+                MILTAPE_WALLET.toLowerCase()
             ) {
 
                 return res.status(400)
@@ -2148,13 +2156,13 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             EXPÉDITEUR
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             if (
-                fromAddress &&
+                !fromAddress ||
                 !isValidTronAddress(
                     fromAddress
                 )
@@ -2173,9 +2181,34 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
+            SI LE CLIENT FOURNIT UNE ADRESSE,
+            ELLE DOIT CORRESPONDRE À L'EXPÉDITEUR
+            ---------------------------------------------
+            */
+
+            if (
+                cryptoAddress &&
+                cryptoAddress.toLowerCase() !==
+                fromAddress.toLowerCase()
+            ) {
+
+                return res.status(400)
+                    .json(
+                        {
+
+                            success: false,
+
+                            message:
+                                "L'adresse de paiement ne correspond pas à l'expéditeur de la transaction."
+                        }
+                    );
+            }
+
+            /*
+            ---------------------------------------------
             MONTANT
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             const rawValueNumber =
@@ -2208,9 +2241,10 @@ app.post(
                 );
 
             /*
-            -------------------------------------------------
-            MONTANT PAYÉ >= MISE
-            -------------------------------------------------
+            ---------------------------------------------
+            LE PAIEMENT DOIT ÊTRE AU MOINS ÉGAL
+            À LA MISE DEMANDÉE
+            ---------------------------------------------
             */
 
             if (
@@ -2237,9 +2271,9 @@ app.post(
             }
 
             /*
-            -------------------------------------------------
-            CRÉATION JOUEUR
-            -------------------------------------------------
+            ---------------------------------------------
+            NOUVEAU JOUEUR
+            ---------------------------------------------
             */
 
             const newPlayer =
@@ -2255,7 +2289,6 @@ app.post(
                         score: 0,
 
                         cryptoAddress:
-                            cryptoAddress ||
                             fromAddress,
 
                         transactionHash:
@@ -2274,9 +2307,9 @@ app.post(
             await newPlayer.save();
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             BROADCAST
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             await broadcastSaturdayJackpot();
@@ -2286,9 +2319,9 @@ app.post(
             await broadcastTotalStakes();
 
             /*
-            -------------------------------------------------
+            ---------------------------------------------
             RÉPONSE
-            -------------------------------------------------
+            ---------------------------------------------
             */
 
             return res.json(
@@ -2421,7 +2454,7 @@ app.get(
 
 /*
 =========================================================
- TIMER / PARTIES
+ TIMER / NOUVELLES PARTIES
 =========================================================
 */
 
@@ -2430,17 +2463,11 @@ setInterval(
 
         try {
 
-            if (
-                !gameRunning
-            ) {
-
+            if (!gameRunning) {
                 return;
             }
 
-            if (
-                timerLeft <= 0
-            ) {
-
+            if (timerLeft <= 0) {
                 return;
             }
 
@@ -2480,7 +2507,7 @@ setInterval(
 
             /*
             ---------------------------------------------
-            FIN
+            FIN DE PARTIE
             ---------------------------------------------
             */
 
@@ -2495,10 +2522,6 @@ setInterval(
 
                 const winners =
                     await getLeaderboard();
-
-                /*
-                GAME OVER
-                */
 
                 io.emit(
                     "gameOver",
@@ -2517,7 +2540,7 @@ setInterval(
 
                 /*
                 -----------------------------------------
-                NOUVELLE PARTIE
+                NOUVELLE PARTIE APRÈS 3 SECONDES
                 -----------------------------------------
                 */
 
@@ -2596,6 +2619,17 @@ setInterval(
                                 {
 
                                     timeLeft:
+                                        GAME_DURATION,
+
+                                    gameId
+                                }
+                            );
+
+                            io.emit(
+                                "timerUpdate",
+                                {
+
+                                    timerLeft:
                                         GAME_DURATION,
 
                                     gameId
@@ -2688,7 +2722,7 @@ io.on(
 
                 /*
                 ---------------------------------------------
-                PARTICIPATION PAYÉE
+                RECHERCHE PARTICIPATION PAYÉE
                 ---------------------------------------------
                 */
 
@@ -2717,7 +2751,7 @@ io.on(
 
                 /*
                 ---------------------------------------------
-                SOCKET
+                ÉVITER DE GARDER DEUX SOCKETS
                 ---------------------------------------------
                 */
 
@@ -2925,12 +2959,6 @@ io.on(
             }
         }
 
-        /*
-        =====================================================
-        JOIN COMPATIBILITÉ
-        =====================================================
-        */
-
         socket.on(
             "join",
             handleJoin
@@ -2980,6 +3008,16 @@ io.on(
 
                     timeLeft:
                         timerLeft,
+
+                    gameId
+                }
+            );
+
+            socket.emit(
+                "timerUpdate",
+                {
+
+                    timerLeft,
 
                     gameId
                 }
@@ -3043,28 +3081,19 @@ io.on(
 
                 try {
 
-                    const playerId =
+                    /*
+                    -----------------------------------------
+                    SESSION SERVEUR
+                    -----------------------------------------
+                    */
+
+                    const sessionPlayerId =
                         cleanString(
-                            data?.playerId ||
                             socket.data.playerId,
                             100
                         );
 
-                    if (!playerId) {
-                        return;
-                    }
-
-                    /*
-                    -----------------------------------------
-                    SESSION
-                    -----------------------------------------
-                    */
-
-                    if (
-                        socket.data.playerId &&
-                        socket.data.playerId !==
-                            playerId
-                    ) {
+                    if (!sessionPlayerId) {
 
                         socket.emit(
                             "tapResult",
@@ -3073,12 +3102,22 @@ io.on(
                                 success: false,
 
                                 message:
-                                    "Session joueur invalide."
+                                    "Tu dois rejoindre la partie."
                             }
                         );
 
                         return;
                     }
+
+                    /*
+                    IMPORTANT :
+                    On utilise l'identité enregistrée
+                    dans la socket et PAS une identité
+                    librement envoyée par le navigateur.
+                    */
+
+                    const playerId =
+                        sessionPlayerId;
 
                     /*
                     -----------------------------------------
@@ -3237,6 +3276,10 @@ io.on(
                                 _id:
                                     playerDoc._id,
 
+                                playerId,
+
+                                gameId,
+
                                 paymentStatus:
                                     "paid"
                             },
@@ -3253,7 +3296,6 @@ io.on(
                         ).lean();
 
                     if (!updatedPlayer) {
-
                         return;
                     }
 
@@ -3353,15 +3395,16 @@ io.on(
 
                 const playerId =
                     cleanString(
+                        socket.data.playerId ||
                         data?.playerId ||
-                        socket.data.playerId,
+                        "",
                         100
                     );
 
                 const playerName =
                     cleanString(
-                        data?.playerName ||
                         socket.data.playerName ||
+                        data?.playerName ||
                         "Anonyme",
                         30
                     );
@@ -3370,7 +3413,8 @@ io.on(
                     cleanString(
                         data?.message ||
                         data?.text ||
-                        data?.content,
+                        data?.content ||
+                        "",
                         300
                     );
 
@@ -3379,7 +3423,9 @@ io.on(
                 }
 
                 /*
+                ---------------------------------------------
                 ANTI-SPAM
+                ---------------------------------------------
                 */
 
                 const now =
@@ -3399,7 +3445,9 @@ io.on(
                     now;
 
                 /*
-                SAVE
+                ---------------------------------------------
+                SAVE MONGODB
+                ---------------------------------------------
                 */
 
                 if (mongoConnected) {
@@ -3440,7 +3488,9 @@ io.on(
                     };
 
                 /*
+                ---------------------------------------------
                 BROADCAST
+                ---------------------------------------------
                 */
 
                 io.emit(
@@ -3570,7 +3620,7 @@ server.listen(
         console.log("");
 
         console.log(
-            "🚀 MILTAPE BACKEND DÉMARRÉ"
+            "🚀 MILTAPE BACKEND V2 DÉMARRÉ"
         );
 
         console.log(
