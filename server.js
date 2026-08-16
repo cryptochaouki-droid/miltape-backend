@@ -1,714 +1,294 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const mongoose = require("mongoose");
-const cors = require("cors");
-
-/* =========================================================
-   MILTAPE WORLD CHALLENGE - BACKEND
-   ========================================================= */
-
-const app = express();
-const server = http.createServer(app);
-
-/* =========================================================
-   CORS & MIDDLEWARE
-   ========================================================= */
-
-app.use(
-    cors({
-        origin: "*",
-        methods: ["GET", "POST", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"]
-    })
-);
-
-app.use(
-    express.json({
-        limit: "1mb"
-    })
-);
-
-/* =========================================================
-   SOCKET.IO
-   ========================================================= */
-
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
-
-/* =========================================================
-   CONFIGURATION
-   ========================================================= */
-
-const PORT = Number(process.env.PORT) || 8080;
-const MONGO_URI = process.env.MONGO_URI || "";
-const TRONGRID_API_KEY = process.env.TRONGRID_API_KEY || "";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
-
-/* =========================================================
-   JEU
-   ========================================================= */
-
-const GAME_DURATION = 600;
-const TOP_WINNERS = 5;
-const MAX_TAPS_PER_SECOND = 25;
-
-/* =========================================================
-   WALLET MILTAPE
-   ========================================================= */
-
-const MILTAPE_WALLET = "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
-
-/* =========================================================
-   USDT TRC20
-   ========================================================= */
-
-const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const USDT_DECIMALS = 6;
-const NETWORK = "TRON";
-const TOKEN = "USDT";
-const CHAIN = "TRC20";
-
-/* =========================================================
-   MISE
-   ========================================================= */
-
-const MINIMUM_BET = 1;
-const MAXIMUM_BET = null;
-
-/* =========================================================
-   CAGNOTTE SAMEDI
-   ========================================================= */
-
-const SATURDAY_JACKPOT_PERCENT = Number(process.env.SATURDAY_JACKPOT_PERCENT) || 5;
-const JACKPOT_PERCENT = Math.min(100, Math.max(0, SATURDAY_JACKPOT_PERCENT));
-
-/* =========================================================
-   ETAT SERVEUR
-   ========================================================= */
-
-let mongoConnected = false;
-let gameId = 1;
-let timerLeft = GAME_DURATION;
-
-const activePlayers = new Map(); // playerId -> socketId
-const tapRate = new Map(); // playerId -> { startedAt, count }
-
-/* =========================================================
-   LOGS INITIALISATION
-   ========================================================= */
-
-console.log("======================================");
-console.log("🔥 MILTAPE WORLD CHALLENGE BACKEND");
-console.log("======================================");
-console.log("Port :", PORT);
-console.log("Durée :", GAME_DURATION, "secondes");
-console.log("Gagnants : TOP", TOP_WINNERS);
-console.log("Réseau :", NETWORK);
-console.log("Token :", TOKEN);
-console.log("Standard :", CHAIN);
-console.log("Wallet :", MILTAPE_WALLET);
-console.log("Mise minimale :", MINIMUM_BET, "USDT");
-console.log("Cagnotte samedi :", JACKPOT_PERCENT, "%");
-console.log("TronGrid API Key :", TRONGRID_API_KEY ? "CONFIGURÉE" : "NON CONFIGURÉE");
-console.log("MongoDB :", MONGO_URI ? "CONFIGURÉ" : "❌ MANQUANT");
-console.log("======================================");
-
-/* =========================================================
-   SCHEMA PLAYER
-   ========================================================= */
-
-const playerSchema = new mongoose.Schema(
-    {
-        playerId: {
-            type: String,
-            required: true,
-            trim: true,
-            maxlength: 100,
-            index: true
-        },
-        playerName: {
-            type: String,
-            default: "Anonyme",
-            trim: true,
-            maxlength: 30
-        },
-        score: {
-            type: Number,
-            default: 0,
-            min: 0
-        },
-        amount: {
-            type: Number,
-            required: true,
-            min: MINIMUM_BET
-        },
-        cryptoAddress: {
-            type: String,
-            default: "",
-            trim: true,
-            maxlength: 64
-        },
-        transactionHash: {
-            type: String,
-            trim: true,
-            maxlength: 100,
-            default: undefined
-        },
-        paymentStatus: {
-            type: String,
-            enum: ["pending", "paid", "rejected"],
-            default: "pending",
-            index: true
-        },
-        gameId: {
-            type: Number,
-            required: true,
-            index: true
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now
-        },
-        paidAt: {
-            type: Date,
-            default: null
-        }
-    },
-    { versionKey: false }
-);
-
-playerSchema.index(
-    { transactionHash: 1 },
-    { unique: true, sparse: true, name: "unique_transaction_hash" }
-);
-
-playerSchema.index(
-    { gameId: 1, paymentStatus: 1, playerId: 1, score: -1 },
-    { name: "game_payment_player_score" }
-);
-
-const Player = mongoose.model("Player", playerSchema);
-
-/* =========================================================
-   CONNEXION MONGODB
-   ========================================================= */
-
-async function connectMongoDB() {
-    if (!MONGO_URI) {
-        console.error("❌ MONGO_URI manquant.");
-        return false;
-    }
-    try {
-        await mongoose.connect(MONGO_URI, {
-            serverSelectionTimeoutMS: 10000
-        });
-        mongoConnected = true;
-        console.log("✅ MongoDB connecté");
-        return true;
-    } catch (error) {
-        mongoConnected = false;
-        console.error("❌ MongoDB :", error.message);
-        return false;
-    }
-}
-connectMongoDB();
-
-/* =========================================================
-   UTILITAIRES
-   ========================================================= */
-
-function cleanString(value, maxLength = 100) {
-    return String(value ?? "").trim().substring(0, maxLength);
-}
-
-function isValidTronAddress(address) {
-    const value = cleanString(address, 64);
-    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value);
-}
-
-function isValidTxid(txid) {
-    const value = cleanString(txid, 100);
-    return /^[a-fA-F0-9]{64}$/.test(value);
-}
-
-function usdtToUnits(amount) {
-    return Math.round(Number(amount) * Math.pow(10, USDT_DECIMALS));
-}
-
-function unitsToUsdt(units) {
-    return Number(units) / Math.pow(10, USDT_DECIMALS);
-}
-
-function isValidBet(amount) {
-    const numeric = Number(amount);
-    if (!Number.isFinite(numeric) || numeric < MINIMUM_BET) return false;
-    if (MAXIMUM_BET !== null && numeric > MAXIMUM_BET) return false;
-    const units = usdtToUnits(numeric);
-    return Number.isSafeInteger(units);
-}
-
-function tronHeaders() {
-    const headers = { Accept: "application/json" };
-    if (TRONGRID_API_KEY) {
-        headers["TRON-PRO-API-KEY"] = TRONGRID_API_KEY;
-    }
-    return headers;
-}
-
-async function fetchJson(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            ...options,
-            headers: {
-                ...tronHeaders(),
-                ...(options.headers || {})
-            }
-        });
-        const data = await response.json().catch(() => null);
-        return { response, data };
-    } catch {
-        return { response: null, data: null };
-    }
-}
-
-/* =========================================================
-   CAGNOTTE DATES & CALCULS
-   ========================================================= */
-
-function getSaturdayStart() {
-    const now = new Date();
-    const day = now.getUTCDay();
-    const daysSinceSaturday = (day + 1) % 7;
-    const saturday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    saturday.setUTCDate(saturday.getUTCDate() - daysSinceSaturday);
-    return saturday;
-}
-
-function getNextSaturday() {
-    const start = getSaturdayStart();
-    const next = new Date(start);
-    next.setUTCDate(next.getUTCDate() + 7);
-    return next;
-}
-
-async function getSaturdayJackpot() {
-    if (!mongoConnected) {
-        return {
-            totalStakes: 0,
-            jackpot: 0,
-            percent: JACKPOT_PERCENT,
-            periodStart: getSaturdayStart().toISOString(),
-            nextSaturday: getNextSaturday().toISOString()
-        };
-    }
-
-    const periodStart = getSaturdayStart();
-    const nextSaturday = getNextSaturday();
-
-    const result = await Player.aggregate([
-        {
-            $match: {
-                paymentStatus: "paid",
-                paidAt: { $gte: periodStart, $lt: nextSaturday }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                totalStakes: { $sum: "$amount" }
-            }
-        }
-    ]);
-
-    const totalStakes = result.length ? Number(result[0].totalStakes || 0) : 0;
-    const jackpot = totalStakes * (JACKPOT_PERCENT / 100);
-
-    return {
-        totalStakes: Number(totalStakes.toFixed(6)),
-        jackpot: Number(jackpot.toFixed(6)),
-        percent: JACKPOT_PERCENT,
-        periodStart: periodStart.toISOString(),
-        nextSaturday: nextSaturday.toISOString()
-    };
-}
-
-async function broadcastSaturdayJackpot() {
-    try {
-        const jackpot = await getSaturdayJackpot();
-        io.emit("saturdayJackpot", jackpot);
-    } catch (error) {
-        console.error("❌ Jackpot broadcast:", error.message);
-    }
-}
-
-/* =========================================================
-   ENDPOINTS HTTP API
-   ========================================================= */
-
-app.get("/", async (req, res) => {
-    try {
-        const jackpot = await getSaturdayJackpot();
-        res.json({
-            success: true,
-            app: "Miltape World Challenge",
-            status: "online",
-            mongo: mongoConnected,
-            gameId,
-            gameDuration: GAME_DURATION,
-            timerLeft,
-            saturdayJackpot: jackpot,
-            payment: {
-                token: TOKEN,
-                network: NETWORK,
-                chain: CHAIN,
-                address: MILTAPE_WALLET,
-                contract: USDT_CONTRACT,
-                decimals: USDT_DECIMALS,
-                minimumBet: MINIMUM_BET,
-                maximumBet: MAXIMUM_BET
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "ROOT_ERROR" });
-    }
-});
-
-app.post("/api/admin/login", (req, res) => {
-    const password = cleanString(req.body.password, 100);
-    if (!password) {
-        return res.status(400).json({ success: false, message: "Mot de passe requis." });
-    }
-    if (password === ADMIN_PASSWORD) {
-        return res.json({ success: true, message: "Connexion réussie." });
-    }
-    return res.status(401).json({ success: false, message: "Mot de passe incorrect !" });
-});
-
-app.get("/api/status", async (req, res) => {
-    try {
-        const jackpot = await getSaturdayJackpot();
-        res.json({
-            success: true,
-            server: "online",
-            mongo: mongoConnected,
-            gameId,
-            timerLeft,
-            gameDuration: GAME_DURATION,
-            saturdayJackpot: jackpot,
-            payment: {
-                token: TOKEN,
-                network: NETWORK,
-                chain: CHAIN,
-                wallet: MILTAPE_WALLET,
-                contract: USDT_CONTRACT,
-                decimals: USDT_DECIMALS,
-                minimumBet: MINIMUM_BET,
-                maximumBet: MAXIMUM_BET
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "STATUS_ERROR" });
-    }
-});
-
-app.get("/api/game-config", async (req, res) => {
-    try {
-        const jackpot = await getSaturdayJackpot();
-        res.json({
-            success: true,
-            game: {
-                name: "Miltape World Challenge",
-                duration: GAME_DURATION,
-                gameId,
-                topWinners: TOP_WINNERS
-            },
-            saturdayJackpot: jackpot,
-            jackpotConfig: {
-                percent: JACKPOT_PERCENT,
-                minimumBet: MINIMUM_BET
-            },
-            payment: {
-                token: TOKEN,
-                network: NETWORK,
-                chain: CHAIN,
-                address: MILTAPE_WALLET,
-                contract: USDT_CONTRACT,
-                decimals: USDT_DECIMALS,
-                minimumBet: MINIMUM_BET,
-                maximumBet: MAXIMUM_BET
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: "GAME_CONFIG_ERROR" });
-    }
-});
-
-app.get("/api/saturday-jackpot", async (req, res) => {
-    try {
-        const jackpot = await getSaturdayJackpot();
-        return res.json({ success: true, ...jackpot });
-    } catch (error) {
-        return res.status(500).json({ success: false, jackpot: 0, error: "SATURDAY_JACKPOT_ERROR" });
-    }
-});
-
-app.get("/api/total-stakes", async (req, res) => {
-    try {
-        if (!mongoConnected) return res.json({ success: true, totalStakes: 0 });
-        const result = await Player.aggregate([
-            { $match: { paymentStatus: "paid" } },
-            { $group: { _id: null, total: { $sum: "$amount" } } }
-        ]);
-        const total = result.length ? Number(result[0].total || 0) : 0;
-        return res.json({ success: true, totalStakes: Number(total.toFixed(6)) });
-    } catch (error) {
-        return res.status(500).json({ success: false, totalStakes: 0, error: "TOTAL_STAKES_ERROR" });
-    }
-});
-
-app.get("/api/player-stats/:playerId", async (req, res) => {
-    try {
-        if (!mongoConnected) {
-            return res.json({ success: true, totalTaps: 0, totalUsdt: 0, history: [] });
-        }
-        const playerId = cleanString(req.params.playerId, 100);
-        if (!playerId) {
-            return res.status(400).json({ success: false, error: "PLAYER_ID_REQUIRED" });
-        }
-
-        const records = await Player.find({ playerId }).sort({ createdAt: -1 }).lean();
-        const totalTaps = records.reduce((sum, p) => sum + Number(p.score || 0), 0);
-        const totalUsdt = records.reduce(
-            (sum, p) => sum + (p.paymentStatus === "paid" ? Number(p.amount || 0) : 0),
-            0
-        );
-
-        return res.json({
-            success: true,
-            totalTaps,
-            totalUsdt: Number(totalUsdt.toFixed(6)),
-            history: records.map((p) => ({
-                date: p.createdAt,
-                score: p.score || 0,
-                amount: p.amount || 0,
-                paymentStatus: p.paymentStatus,
-                gameId: p.gameId,
-                transactionHash: p.transactionHash || ""
-            }))
-        });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: "PLAYER_STATS_ERROR" });
-    }
-});
-
-/* =========================================================
-   LEADERBOARD (AGRÉGATION AGRÉGÉE CORRIGÉE)
-   ========================================================= */
-
-async function getLeaderboard() {
-    if (!mongoConnected) return [];
-
-    try {
-        const players = await Player.aggregate([
-            {
-                $match: {
-                    gameId: Number(gameId),
-                    paymentStatus: "paid"
-                }
-            },
-            {
-                $group: {
-                    _id: "$playerId",
-                    playerName: { $first: "$playerName" },
-                    score: { $sum: { $ifNull: ["$score", 0] } },
-                    amount: { $sum: { $ifNull: ["$amount", 0] } }
-                }
-            },
-            { $sort: { score: -1 } },
-            { $limit: TOP_WINNERS },
-            {
-                $project: {
-                    _id: 0,
-                    playerId: "$_id",
-                    playerName: 1,
-                    score: 1,
-                    amount: 1
-                }
-            }
-        ]);
-
-        return players;
-    } catch (error) {
-        console.error("❌ Leaderboard Error:", error.message);
-        return [];
-    }
-}
-
-app.get("/api/leaderboard", async (req, res) => {
-    const leaderboard = await getLeaderboard();
-    res.json({ success: true, gameId, leaderboard });
-});
-
-/* =========================================================
-   VERIFICATION TRANSACTIONS TRONGRID
-   ========================================================= */
-
-app.post("/api/verify-payment", async (req, res) => {
-    try {
-        if (!mongoConnected) {
-            return res.status(503).json({ success: false, message: "Base de données indisponible." });
-        }
-
-        const playerId = cleanString(req.body.playerId, 100);
-        const playerName = cleanString(req.body.playerName || "Anonyme", 30);
-        const txid = cleanString(req.body.txid, 100);
-        const amount = Number(req.body.amount);
-
-        if (!playerId || !isValidTxid(txid) || !isValidBet(amount)) {
-            return res.status(400).json({ success: false, message: "Paramètres invalides." });
-        }
-
-        const existingTx = await Player.findOne({ transactionHash: txid });
-        if (existingTx) {
-            return res.status(400).json({ success: false, message: "Transaction déjà utilisée." });
-        }
-
-        const url = `https://api.trongrid.io/v1/transactions/${txid}/events`;
-        const { data } = await fetchJson(url);
-
-        if (!data || !data.data || data.data.length === 0) {
-            return res.status(400).json({ success: false, message: "Transaction introuvable sur le réseau TRON." });
-        }
-
-        const transferEvent = data.data.find((e) => e.event_name === "Transfer");
-        if (!transferEvent) {
-            return res.status(400).json({ success: false, message: "Événement de transfert USDT introuvable." });
-        }
-
-        const result = transferEvent.result;
-        const toAddress = result.to || result[1];
-        const rawValue = result.value || result[2];
-        const valueUsdt = unitsToUsdt(rawValue);
-
-        if (valueUsdt < amount) {
-            return res.status(400).json({ success: false, message: "Montant payé insuffisant." });
-        }
-
-        const newPlayer = new Player({
-            playerId,
-            playerName,
-            amount,
-            score: 0,
-            transactionHash: txid,
-            paymentStatus: "paid",
-            gameId,
-            paidAt: new Date()
-        });
-
-        await newPlayer.save();
-        await broadcastSaturdayJackpot();
-
-        const leaderboard = await getLeaderboard();
-        io.emit("leaderboardUpdate", leaderboard);
-
-        return res.json({ success: true, message: "Paiement validé avec succès !", player: newPlayer });
-    } catch (error) {
-        console.error("❌ Erreur validation paiement:", error.message);
-        return res.status(500).json({ success: false, message: "Erreur serveur lors de la vérification." });
-    }
-});
-
-/* =========================================================
-   BOUCLE DU JEU & SOCKET.IO
-   ========================================================= */
-
-setInterval(async () => {
-    if (timerLeft > 0) {
-        timerLeft--;
-        io.emit("timerUpdate", { timerLeft, gameId });
-    } else {
-        // Fin de la partie : Réinitialisation
-        const winners = await getLeaderboard();
-        io.emit("gameOver", { gameId, winners });
-
-        gameId++;
-        timerLeft = GAME_DURATION;
-
-        io.emit("gameStart", { gameId, duration: GAME_DURATION });
-    }
-}, 1000);
-
-io.on("connection", (socket) => {
-    socket.on("joinGame", async (data) => {
-        const playerId = cleanString(data?.playerId, 100);
-        if (playerId) {
-            activePlayers.set(playerId, socket.id);
-        }
-        socket.emit("initGame", {
-            gameId,
-            timerLeft,
-            leaderboard: await getLeaderboard()
-        });
+document.addEventListener("DOMContentLoaded", () => {
+    "use strict";
+
+    /* =========================================================
+       CONFIGURATION ET CONSTANTES
+    ========================================================= */
+    // Détection automatique : Si tu es sur PC en local, pointe vers localhost:3000.
+    // Sinon, utilise l'URL distante (ou remplace-la par ta nouvelle URL de serveur si tu en as une).
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const BACKEND_URL = isLocalhost 
+        ? "http://localhost:3000" 
+        : "https://miltape-backend-production.up.railway.app";
+
+    const USDT_TRON_ADDRESS = "TBZZ3nakc3w5SnJ1EZpvVWYWZ3q1NffNPM";
+
+    console.log("🚀 Initialisation du script frontend Miltape sur :", BACKEND_URL);
+
+    /* =========================================================
+       CONNEXION WEBSOCKET
+    ========================================================= */
+    const socket = io(BACKEND_URL, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        timeout: 20000
     });
 
-    socket.on("tap", async (data) => {
-        const playerId = cleanString(data?.playerId, 100);
-        if (!playerId || timerLeft <= 0 || !mongoConnected) return;
+    /* =========================================================
+       ÉLÉMENTS DU DOM
+    ========================================================= */
+    // Jeu & Score
+    const timerDisplay = document.getElementById("timer");
+    const tapButton = document.getElementById("tapButton");
+    const tapCountDisplay = document.getElementById("tapCount");
+    const tapButtonCountDisplay = document.getElementById("tapButtonCount");
+    const headerScore = document.getElementById("headerScore");
+    const statTaps = document.getElementById("statTaps");
+    const statTotal = document.getElementById("statTotal");
+    const tapMessage = document.getElementById("tapMessage");
+    const onlineCount = document.getElementById("onlineCount");
+    const leaderboardList = document.getElementById("leaderboardList");
 
-        // Anti-autoclicker / Rate limiting
-        const now = Date.now();
-        const userTapInfo = tapRate.get(playerId) || { startedAt: now, count: 0 };
+    // Chat
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    const chatSend = document.getElementById("chatSend");
 
-        if (now - userTapInfo.startedAt > 1000) {
-            userTapInfo.startedAt = now;
-            userTapInfo.count = 1;
+    // Menu / Modale (☰)
+    const menuBtn = document.getElementById("menuBtn");
+    const menuModal = document.getElementById("menuModal");
+    const closeModal = document.getElementById("closeModal");
+    const modalCloseBtn = document.getElementById("modalCloseBtn");
+    const modalPlayerId = document.getElementById("modalPlayerId");
+
+    // Paiement & Wallet
+    const walletConnectBtn = document.querySelector(".btn-wallet, #chooseWalletBtn");
+    const addressCopyBox = document.querySelector(".address-box, #tronAddressDisplay");
+
+    /* =========================================================
+       GESTION DES DONNÉES JOUEUR (LOCALSTORAGE)
+    ========================================================= */
+    let localTaps = 0;
+
+    let playerId = localStorage.getItem("miltape_player_id");
+    if (!playerId) {
+        playerId = "player_" + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem("miltape_player_id", playerId);
+    }
+
+    let playerName = localStorage.getItem("miltape_player_name");
+    if (!playerName) {
+        playerName = "JoueurTest" + Math.floor(Math.random() * 1000);
+        localStorage.setItem("miltape_player_name", playerName);
+    }
+
+    /* =========================================================
+       FONCTIONS UTILITAIRES
+    ========================================================= */
+    function updateScoreDisplays(value) {
+        if (tapCountDisplay) tapCountDisplay.textContent = value;
+        if (tapButtonCountDisplay) tapButtonCountDisplay.textContent = value;
+        if (headerScore) headerScore.textContent = value;
+        if (statTaps) statTaps.textContent = value;
+        if (statTotal) statTotal.textContent = value;
+    }
+
+    function escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    /* =========================================================
+       1. GESTION DES BOUTONS WALLET & PAIEMENT
+    ========================================================= */
+    const handleWalletAction = async () => {
+        if (window.tronWeb && window.tronWeb.ready) {
+            try {
+                const userAddress = window.tronWeb.defaultAddress.base58;
+                alert("Portefeuille connecté : " + userAddress);
+            } catch (err) {
+                console.error("Erreur de connexion wallet:", err);
+            }
         } else {
-            userTapInfo.count++;
-        }
-
-        tapRate.set(playerId, userTapInfo);
-
-        if (userTapInfo.count > MAX_TAPS_PER_SECOND) {
-            return; // Bloquer les taps excessifs
-        }
-
-        // Mettre à jour la partie active payée
-        const playerDoc = await Player.findOne({
-            playerId,
-            gameId,
-            paymentStatus: "paid"
-        }).sort({ createdAt: -1 });
-
-        if (playerDoc) {
-            playerDoc.score += 1;
-            await playerDoc.save();
-
-            const leaderboard = await getLeaderboard();
-            io.emit("leaderboardUpdate", leaderboard);
-        }
-    });
-
-    socket.on("disconnect", () => {
-        for (const [pId, sId] of activePlayers.entries()) {
-            if (sId === socket.id) {
-                activePlayers.delete(pId);
-                tapRate.delete(pId);
-                break;
+            try {
+                await navigator.clipboard.writeText(USDT_TRON_ADDRESS);
+                alert(
+                    "📋 Adresse USDT TRC20 copiée dans le presse-papier !\n\n" +
+                    "Adresse : " + USDT_TRON_ADDRESS + "\n\n" +
+                    "Ouvre ton application crypto (Binance, Trust Wallet...) pour effectuer le virement."
+                );
+            } catch (err) {
+                alert("Adresse de paiement USDT TRC20 :\n" + USDT_TRON_ADDRESS);
             }
         }
+    };
+
+    if (walletConnectBtn) {
+        walletConnectBtn.addEventListener("click", handleWalletAction);
+    }
+
+    if (addressCopyBox) {
+        addressCopyBox.style.cursor = "pointer";
+        addressCopyBox.addEventListener("click", handleWalletAction);
+    }
+
+    /* =========================================================
+       2. GESTION DU MENU MODAL
+    ========================================================= */
+    if (menuBtn && menuModal) {
+        menuBtn.addEventListener("click", () => {
+            if (modalPlayerId) modalPlayerId.textContent = playerId;
+            menuModal.classList.add("show");
+        });
+    }
+
+    const closeMenuModal = () => {
+        if (menuModal) menuModal.classList.remove("show");
+    };
+
+    if (closeModal) closeModal.addEventListener("click", closeMenuModal);
+    if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeMenuModal);
+
+    /* =========================================================
+       3. WEBSOCKET EVENTS
+    ========================================================= */
+    socket.on("connect", () => {
+        console.log("✅ Connecté au serveur WebSocket ! ID:", socket.id);
+        if (tapMessage) {
+            tapMessage.textContent = "🔥 À TOI DE TAPPER !";
+        }
+        socket.emit("join", { playerId, playerName });
     });
-});
 
-/* =========================================================
-   LANCEMENT DU SERVEUR
-   ========================================================= */
+    socket.on("connect_error", (err) => {
+        console.error("❌ Erreur de connexion WebSocket :", err);
+        if (tapMessage) {
+            tapMessage.textContent = "🔴 Connexion au serveur perdue...";
+        }
+    });
 
-server.listen(PORT, () => {
-    console.log(`🚀 Serveur en écoute sur le port ${PORT}`);
+    // Reinitialisation lors d'une nouvelle partie
+    socket.on("newGame", () => {
+        localTaps = 0;
+        updateScoreDisplays(0);
+        if (tapMessage) tapMessage.textContent = "🔥 NOUVELLE PARTIE !";
+    });
+
+    // Minuteur
+    socket.on("timer", (timeLeft) => {
+        if (timerDisplay) {
+            const seconds = Math.max(0, Number(timeLeft) || 0);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        }
+    });
+
+    // Compteur de joueurs en ligne
+    socket.on("onlineCount", (count) => {
+        if (onlineCount) {
+            onlineCount.textContent = count;
+        }
+    });
+
+    // Classement
+    socket.on("leaderboard", (players) => {
+        if (!leaderboardList) return;
+
+        if (!players || players.length === 0) {
+            leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
+            return;
+        }
+
+        leaderboardList.innerHTML = players.map((p, index) => {
+            const isMe = p._id === playerId || p.playerId === playerId;
+            const displayName = escapeHTML(p.playerName || "Anonyme");
+            const score = p.score || 0;
+
+            return `
+                <div class="leaderboard-item">
+                    <div class="rank">#${index + 1}</div>
+                    <div class="player-name">${displayName} ${isMe ? "<strong>(toi)</strong>" : ""}</div>
+                    <div class="player-score">${score} ⚡</div>
+                </div>
+            `;
+        }).join("");
+    });
+
+    // Chat en direct
+    socket.on("chatMessage", (msg) => {
+        if (!chatMessages) return;
+
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("chat-message");
+
+        const senderName = msg.playerName || msg.name || "Anonyme";
+        const messageText = msg.message || msg.text || "";
+
+        const strongTag = document.createElement("strong");
+        strongTag.textContent = senderName + ": ";
+
+        const textNode = document.createTextNode(messageText);
+
+        messageElement.appendChild(strongTag);
+        messageElement.appendChild(textNode);
+
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    // Envoi de message
+    if (chatSend && chatInput) {
+        const sendMsg = () => {
+            const text = chatInput.value.trim();
+            if (text) {
+                socket.emit("chatMessage", {
+                    playerId: playerId,
+                    playerName: playerName,
+                    message: text
+                });
+                chatInput.value = "";
+            }
+        };
+
+        chatSend.addEventListener("click", sendMsg);
+        chatInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                sendMsg();
+            }
+        });
+    }
+
+    /* =========================================================
+       4. BOUTON DE TAP PRINCIPAL
+    ========================================================= */
+    if (tapButton) {
+        tapButton.addEventListener("click", () => {
+            localTaps++;
+
+            // Mise à jour visuelle des scores
+            updateScoreDisplays(localTaps);
+
+            // Animation visuelle
+            tapButton.classList.add("tap-active");
+            setTimeout(() => tapButton.classList.remove("tap-active"), 80);
+
+            // Envoi au serveur
+            socket.emit("tap", { playerId, playerName, taps: 1 });
+        });
+    }
+
+    /* =========================================================
+       5. GESTION DU COLLAPSE (CONDITIONS D'UTILISATION)
+    ========================================================= */
+    window.toggleConditions = function() {
+        const content = document.getElementById("conditions-content");
+        const arrow = document.getElementById("arrow-icon");
+        
+        if (!content || !arrow) return;
+        
+        content.classList.toggle("open");
+        
+        if (content.classList.contains("open")) {
+            arrow.style.transform = "rotate(180deg)";
+        } else {
+            arrow.style.transform = "rotate(0deg)";
+        }
+    };
 });
-voici server redonne code complet corriger
+REDONNE CODE COMPLET CORRIGER  REMARQUE LE CHRONO ET LE CHATTE MARCHE TOUJOURS PAS
