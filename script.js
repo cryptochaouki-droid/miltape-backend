@@ -2010,19 +2010,16 @@ function connectSocket() {
     );
 
 
+    /* =====================================================
+       CHAT
+       CORRECTION UNIQUE :
+       on écoute UNE SEULE fois chatMessage.
+       L'ancien listener "chat:message" provoquait
+       l'affichage en double.
+    ===================================================== */
+
     socket.on(
         "chatMessage",
-        message => {
-
-            addChatMessage(
-                message
-            );
-        }
-    );
-
-
-    socket.on(
-        "chat:message",
         message => {
 
             addChatMessage(
