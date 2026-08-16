@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       CONFIGURATION
+       ⚙️ CONFIGURATION
     ========================================================= */
 
     const isLocalhost =
@@ -32,39 +32,72 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const GAME_DURATION = 600;
 
+    const MAX_CHAT_MESSAGES = 100;
+
+    const MAX_MESSAGE_LENGTH = 200;
+
 
     /* =========================================================
-       VARIABLES
+       🔌 VARIABLES SOCKET
     ========================================================= */
 
     let socket = null;
+
     let socketReady = false;
+
+    let socketConnecting = false;
+
+    let socketEventsConfigured = false;
+
+
+    /* =========================================================
+       🎮 ÉTAT DU JEU
+    ========================================================= */
 
     let localTaps = 0;
 
     let currentTimer = GAME_DURATION;
 
     let timerInterval = null;
+
     let timerRunning = false;
 
-    let deferredPrompt = null;
+    let gameJoined = false;
+
+    let gameStarted = false;
 
     let tapLocked = false;
 
+
+    /* =========================================================
+       💬 CHAT
+    ========================================================= */
+
     let lastSentMessage = "";
+
     let lastSentMessageTime = 0;
 
-    let socketEventsConfigured = false;
+    const receivedChatIds = new Set();
+
+    const receivedChatKeys = new Map();
 
 
     /* =========================================================
-       IDENTITÉ JOUEUR
+       📲 PWA
+    ========================================================= */
+
+    let deferredPrompt = null;
+
+
+    /* =========================================================
+       👤 IDENTITÉ JOUEUR
     ========================================================= */
 
     let playerId =
         localStorage.getItem("miltape_player_id");
 
     if (!playerId) {
+
         playerId =
             "player_" +
             Math.random()
@@ -82,9 +115,12 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.getItem("miltape_player_name");
 
     if (!playerName) {
+
         playerName =
             "Joueur" +
-            Math.floor(Math.random() * 10000);
+            Math.floor(
+                Math.random() * 10000
+            );
 
         localStorage.setItem(
             "miltape_player_name",
@@ -101,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       ELEMENTS HTML
+       🧩 ELEMENTS HTML
     ========================================================= */
 
     const timerDisplay =
@@ -138,46 +174,62 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("displayBet");
 
     const globalTotalStakes =
-        document.getElementById("globalTotalStakes");
+        document.getElementById(
+            "globalTotalStakes"
+        );
 
     const walletButton =
-        document.getElementById("walletButton");
+        document.getElementById(
+            "walletButton"
+        );
+
+    const enterChallenge =
+        document.getElementById(
+            "enterChallenge"
+        );
 
 
     /* =========================================================
-       🔎 VERIFICATION CHAT
+       🔎 DEBUG
     ========================================================= */
 
-    console.log("========== VERIFICATION CHAT ==========");
-
     console.log(
-        "chatMessages:",
-        chatMessages
+        "========== MILTAPE =========="
     );
 
     console.log(
-        "chatInput:",
-        chatInput
-    );
-
-    console.log(
-        "chatSend:",
-        chatSend
-    );
-
-    console.log(
-        "BACKEND:",
+        "BACKEND :",
         BACKEND_URL
     );
 
-    console.log("=======================================");
+    console.log(
+        "Chat :",
+        !!chatMessages,
+        !!chatInput,
+        !!chatSend
+    );
+
+    console.log(
+        "Tap :",
+        !!tapButton
+    );
+
+    console.log(
+        "Jouer :",
+        !!enterChallenge
+    );
+
+    console.log(
+        "============================="
+    );
 
 
     /* =========================================================
-       UTILITAIRES
+       🧰 UTILITAIRES
     ========================================================= */
 
     function escapeHTML(value) {
+
         return String(value ?? "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -191,11 +243,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         seconds = Math.max(
             0,
-            Math.floor(Number(seconds) || 0)
+            Math.floor(
+                Number(seconds) || 0
+            )
         );
 
         const minutes =
-            Math.floor(seconds / 60);
+            Math.floor(
+                seconds / 60
+            );
 
         const secs =
             seconds % 60;
@@ -210,17 +266,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateTimerDisplay(seconds) {
 
-        currentTimer = Math.max(
-            0,
-            Math.floor(Number(seconds) || 0)
-        );
+        currentTimer =
+            Math.max(
+                0,
+                Math.floor(
+                    Number(seconds) || 0
+                )
+            );
 
         if (timerDisplay) {
+
             timerDisplay.textContent =
                 formatTime(currentTimer);
         }
     }
 
+
+    /* =========================================================
+       📊 SCORE
+    ========================================================= */
 
     function updateScoreDisplays(value) {
 
@@ -232,36 +296,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
         localTaps = score;
 
+
         if (tapCountDisplay) {
+
             tapCountDisplay.textContent =
                 score;
         }
 
+
         if (tapButtonCountDisplay) {
+
             tapButtonCountDisplay.textContent =
                 score;
         }
 
+
         const headerScore =
-            document.getElementById("headerScore");
+            document.getElementById(
+                "headerScore"
+            );
 
         if (headerScore) {
+
             headerScore.textContent =
                 score;
         }
 
+
         const statTaps =
-            document.getElementById("statTaps");
+            document.getElementById(
+                "statTaps"
+            );
 
         if (statTaps) {
+
             statTaps.textContent =
                 score;
         }
 
+
         const statTotal =
-            document.getElementById("statTotal");
+            document.getElementById(
+                "statTotal"
+            );
 
         if (statTotal) {
+
             statTotal.textContent =
                 score;
         }
@@ -269,7 +349,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       ⏱️ TIMER LOCAL
+       🎮 ÉTAT TAP
+    ========================================================= */
+
+    function updateTapButtonState() {
+
+        if (!tapButton) {
+            return;
+        }
+
+        const canTap =
+            socketReady &&
+            gameJoined &&
+            gameStarted &&
+            currentTimer > 0;
+
+        tapButton.disabled =
+            !canTap;
+    }
+
+
+    /* =========================================================
+       ⏱️ TIMER
     ========================================================= */
 
     function startLocalTimer() {
@@ -286,58 +387,77 @@ document.addEventListener("DOMContentLoaded", () => {
 
         clearInterval(timerInterval);
 
-        let lastTick = Date.now();
+        let lastTick =
+            Date.now();
 
-        timerInterval = setInterval(() => {
 
-            const now = Date.now();
+        timerInterval =
+            setInterval(() => {
 
-            const elapsed =
-                Math.floor(
-                    (now - lastTick) / 1000
-                );
+                const now =
+                    Date.now();
 
-            if (elapsed <= 0) {
-                return;
-            }
+                const elapsed =
+                    Math.floor(
+                        (now - lastTick) /
+                        1000
+                    );
 
-            lastTick = now;
-
-            currentTimer =
-                Math.max(
-                    0,
-                    currentTimer - elapsed
-                );
-
-            updateTimerDisplay(
-                currentTimer
-            );
-
-            if (currentTimer <= 0) {
-
-                stopLocalTimer();
-
-                if (tapButton) {
-                    tapButton.disabled = true;
+                if (elapsed <= 0) {
+                    return;
                 }
 
-                if (tapMessage) {
-                    tapMessage.textContent =
-                        "⏰ PARTIE TERMINÉE";
-                }
-            }
+                lastTick =
+                    now;
 
-        }, 250);
+
+                currentTimer =
+                    Math.max(
+                        0,
+                        currentTimer -
+                        elapsed
+                    );
+
+
+                updateTimerDisplay(
+                    currentTimer
+                );
+
+
+                if (
+                    currentTimer <= 0
+                ) {
+
+                    stopLocalTimer();
+
+                    gameStarted =
+                        false;
+
+                    updateTapButtonState();
+
+
+                    if (tapMessage) {
+
+                        tapMessage.textContent =
+                            "⏰ PARTIE TERMINÉE";
+                    }
+                }
+
+            }, 250);
     }
 
 
     function stopLocalTimer() {
 
         if (timerInterval) {
-            clearInterval(timerInterval);
+
+            clearInterval(
+                timerInterval
+            );
         }
 
         timerInterval = null;
+
         timerRunning = false;
     }
 
@@ -348,20 +468,85 @@ document.addEventListener("DOMContentLoaded", () => {
 
         stopLocalTimer();
 
-        updateTimerDisplay(seconds);
+        updateTimerDisplay(
+            seconds
+        );
     }
 
 
     /* =========================================================
-       💬 CHAT
+       🎮 DÉMARRER PARTIE CÔTÉ CLIENT
     ========================================================= */
 
-    const receivedChatIds =
-        new Set();
+    function startGameClient(
+        duration = GAME_DURATION
+    ) {
 
-    const receivedChatKeys =
-        new Map();
+        const seconds =
+            Number(duration);
 
+
+        currentTimer =
+            Number.isFinite(seconds) &&
+            seconds > 0
+                ? seconds
+                : GAME_DURATION;
+
+
+        updateTimerDisplay(
+            currentTimer
+        );
+
+
+        updateScoreDisplays(0);
+
+
+        gameJoined =
+            true;
+
+        gameStarted =
+            true;
+
+
+        updateTapButtonState();
+
+
+        if (tapMessage) {
+
+            tapMessage.textContent =
+                "🔥 À TOI DE TAPPER !";
+        }
+
+
+        startLocalTimer();
+    }
+
+
+    /* =========================================================
+       🛑 TERMINER PARTIE
+    ========================================================= */
+
+    function finishGameClient() {
+
+        stopLocalTimer();
+
+        gameStarted =
+            false;
+
+        updateTapButtonState();
+
+
+        if (tapMessage) {
+
+            tapMessage.textContent =
+                "⏰ PARTIE TERMINÉE";
+        }
+    }
+
+
+    /* =========================================================
+       💬 NORMALISATION CHAT
+    ========================================================= */
 
     function normalizeChatText(text) {
 
@@ -377,10 +562,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof msg === "string") {
 
             return {
+
                 playerId: "",
-                playerName: "Anonyme",
-                message: msg,
+
+                playerName:
+                    "Anonyme",
+
+                message:
+                    msg,
+
                 id: "",
+
                 timestamp: ""
             };
         }
@@ -390,6 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
             !msg ||
             typeof msg !== "object"
         ) {
+
             return null;
         }
 
@@ -432,18 +625,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+    /* =========================================================
+       💬 AFFICHER MESSAGE
+    ========================================================= */
+
     function receiveChatMessage(msg) {
 
         if (!chatMessages) {
+
             console.error(
                 "❌ #chatMessages introuvable."
             );
+
             return;
         }
 
 
         const data =
             getChatMessageData(msg);
+
 
         if (!data) {
             return;
@@ -459,7 +659,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const text =
             String(
-                data.message || ""
+                data.message ||
+                ""
             ).trim();
 
 
@@ -469,7 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           ANTI DOUBLON PAR ID
+           ANTI DOUBLON ID
         ===================================================== */
 
         if (data.id) {
@@ -477,14 +678,20 @@ document.addEventListener("DOMContentLoaded", () => {
             const id =
                 String(data.id);
 
-            if (receivedChatIds.has(id)) {
+
+            if (
+                receivedChatIds.has(id)
+            ) {
                 return;
             }
 
+
             receivedChatIds.add(id);
 
+
             if (
-                receivedChatIds.size > 1000
+                receivedChatIds.size >
+                1000
             ) {
 
                 const first =
@@ -493,13 +700,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         .next()
                         .value;
 
-                receivedChatIds.delete(first);
+                receivedChatIds.delete(
+                    first
+                );
             }
         }
 
 
         /* =====================================================
-           ANTI DOUBLON CONTENU RÉCENT
+           ANTI DOUBLON CONTENU
         ===================================================== */
 
         const contentKey =
@@ -508,7 +717,9 @@ document.addEventListener("DOMContentLoaded", () => {
             normalizeChatText(text);
 
 
-        const now = Date.now();
+        const now =
+            Date.now();
+
 
         const previous =
             receivedChatKeys.get(
@@ -520,6 +731,7 @@ document.addEventListener("DOMContentLoaded", () => {
             previous &&
             now - previous < 1500
         ) {
+
             return;
         }
 
@@ -531,25 +743,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           CREATION MESSAGE
+           MESSAGE HTML SÉCURISÉ
         ===================================================== */
 
         const messageElement =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
         messageElement.className =
             "chat-message";
 
 
         const strong =
-            document.createElement("strong");
+            document.createElement(
+                "strong"
+            );
 
         strong.textContent =
             sender + ": ";
 
 
         const textNode =
-            document.createTextNode(text);
+            document.createTextNode(
+                text
+            );
 
 
         messageElement.appendChild(
@@ -567,11 +785,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           MAX 100 MESSAGES
+           MAX 100
         ===================================================== */
 
         while (
-            chatMessages.children.length > 100
+            chatMessages.children.length >
+            MAX_CHAT_MESSAGES
         ) {
 
             chatMessages.removeChild(
@@ -585,7 +804,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         console.log(
-            "💬 MESSAGE AFFICHÉ :",
+            "💬 MESSAGE :",
             sender,
             text
         );
@@ -593,15 +812,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       💬 ENVOI CHAT
+       💬 ENVOYER CHAT
     ========================================================= */
 
     function sendChatMessage() {
-
-        console.log(
-            "🟣 CLIC CHAT DÉTECTÉ"
-        );
-
 
         if (!chatInput) {
 
@@ -617,17 +831,7 @@ document.addEventListener("DOMContentLoaded", () => {
             chatInput.value.trim();
 
 
-        console.log(
-            "📝 Texte :",
-            text
-        );
-
-
         if (!text) {
-
-            console.log(
-                "⚠️ Message vide."
-            );
 
             chatInput.focus();
 
@@ -635,7 +839,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        if (text.length > 200) {
+        if (
+            text.length >
+            MAX_MESSAGE_LENGTH
+        ) {
 
             alert(
                 "⚠️ Maximum 200 caractères."
@@ -646,8 +853,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           IMPORTANT :
-           LE BOUTON RÉAGIT MÊME SI SOCKET OFFLINE
+           SOCKET NON CONNECTÉ
         ===================================================== */
 
         if (
@@ -655,14 +861,12 @@ document.addEventListener("DOMContentLoaded", () => {
             !socket.connected
         ) {
 
-            console.warn(
-                "⚠️ Socket non connecté."
-            );
-
             if (tapMessage) {
+
                 tapMessage.textContent =
                     "🟠 Connexion au serveur...";
             }
+
 
             connectSocket();
 
@@ -671,7 +875,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           ANTI DOUBLE CLIC
+           ANTI DOUBLE ENVOI
         ===================================================== */
 
         const now =
@@ -679,13 +883,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (
-            text === lastSentMessage &&
-            now - lastSentMessageTime < 1000
+            text ===
+                lastSentMessage &&
+            now -
+                lastSentMessageTime <
+                1000
         ) {
-
-            console.warn(
-                "🛑 Double envoi bloqué."
-            );
 
             return;
         }
@@ -699,7 +902,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           DONNÉES
+           MESSAGE
         ===================================================== */
 
         const messageData = {
@@ -716,14 +919,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         console.log(
-            "📤 ENVOI CHAT :",
+            "📤 CHAT :",
             messageData
         );
 
-
-        /* =====================================================
-           SOCKET.IO
-        ===================================================== */
 
         socket.emit(
             "chatMessage",
@@ -731,19 +930,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /* =====================================================
-           NETTOYAGE
-        ===================================================== */
-
         chatInput.value = "";
 
         chatInput.focus();
-
-
-        if (tapMessage) {
-            tapMessage.textContent =
-                "💬 Message envoyé !";
-        }
     }
 
 
@@ -753,23 +942,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (chatSend) {
 
-        /*
-         * Suppression de tout ancien handler
-         * éventuel clonage propre du bouton.
-         */
-
         chatSend.onclick = null;
+
 
         chatSend.addEventListener(
             "click",
-            function (event) {
+            (event) => {
 
                 event.preventDefault();
-                event.stopPropagation();
 
-                console.log(
-                    "🟢 BOUTON ➤ PRESSÉ"
-                );
+                event.stopPropagation();
 
                 sendChatMessage();
             },
@@ -779,10 +961,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-        /*
-         * Sécurité CSS
-         */
-
         chatSend.style.pointerEvents =
             "auto";
 
@@ -791,29 +969,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         chatSend.style.cursor =
             "pointer";
-
-
-        console.log(
-            "✅ BOUTON CHAT CONNECTÉ"
-        );
-
-    } else {
-
-        console.error(
-            "❌ BOUTON #chatSend INTROUVABLE"
-        );
     }
 
 
     /* =========================================================
-       💬 ENTRÉE CLAVIER
+       💬 ENTER CHAT
     ========================================================= */
 
     if (chatInput) {
 
         chatInput.addEventListener(
             "keydown",
-            function (event) {
+            (event) => {
 
                 if (
                     event.key === "Enter" &&
@@ -826,16 +993,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
         );
-
-
-        console.log(
-            "✅ ENTER CHAT ACTIVÉ"
-        );
     }
 
 
     /* =========================================================
-       🔌 SOCKET.IO
+       🔌 CHARGER SOCKET.IO
     ========================================================= */
 
     function loadSocketIO() {
@@ -848,7 +1010,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     "function"
                 ) {
 
-                    resolve(window.io);
+                    resolve(
+                        window.io
+                    );
+
                     return;
                 }
 
@@ -869,7 +1034,9 @@ document.addEventListener("DOMContentLoaded", () => {
                                 "function"
                             ) {
 
-                                clearInterval(interval);
+                                clearInterval(
+                                    interval
+                                );
 
                                 resolve(
                                     window.io
@@ -881,7 +1048,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     setTimeout(() => {
 
-                        clearInterval(interval);
+                        clearInterval(
+                            interval
+                        );
+
 
                         if (
                             typeof window.io !==
@@ -910,7 +1080,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 script.src =
                     "https://cdn.socket.io/4.7.5/socket.io.min.js";
 
-                script.async = true;
+                script.async =
+                    true;
 
                 script.dataset.miltapeSocket =
                     "true";
@@ -923,7 +1094,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         "function"
                     ) {
 
-                        resolve(window.io);
+                        resolve(
+                            window.io
+                        );
 
                     } else {
 
@@ -965,12 +1138,18 @@ document.addEventListener("DOMContentLoaded", () => {
             socket.connected
         ) {
 
-            console.log(
-                "🟢 Socket déjà connecté."
-            );
+            socketReady = true;
 
             return;
         }
+
+
+        if (socketConnecting) {
+            return;
+        }
+
+
+        socketConnecting = true;
 
 
         try {
@@ -981,17 +1160,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 socket &&
-                socket.connect
+                !socket.connected
             ) {
 
                 socket.connect();
+
+                socketConnecting =
+                    false;
 
                 return;
             }
 
 
             console.log(
-                "🔌 Connexion à :",
+                "🔌 Connexion :",
                 BACKEND_URL
             );
 
@@ -1000,12 +1182,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 io(
                     BACKEND_URL,
                     {
+
                         transports: [
                             "websocket",
                             "polling"
                         ],
 
-                        reconnection: true,
+                        reconnection:
+                            true,
 
                         reconnectionAttempts:
                             Infinity,
@@ -1024,6 +1208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             setupSocketEvents();
 
+
         } catch (error) {
 
             console.error(
@@ -1031,18 +1216,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 error
             );
 
-            socketReady = false;
+
+            socketReady =
+                false;
+
 
             if (tapMessage) {
+
                 tapMessage.textContent =
-                    "🟠 Connexion au serveur...";
+                    "🟠 Serveur en attente...";
             }
+
+        } finally {
+
+            socketConnecting =
+                false;
         }
     }
 
 
     /* =========================================================
-       SOCKET EVENTS
+       🔌 SOCKET EVENTS
     ========================================================= */
 
     function setupSocketEvents() {
@@ -1057,7 +1251,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        socketEventsConfigured = true;
+        socketEventsConfigured =
+            true;
 
 
         /* =====================================================
@@ -1068,7 +1263,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "connect",
             () => {
 
-                socketReady = true;
+                socketReady =
+                    true;
+
 
                 console.log(
                     "🟢 SOCKET CONNECTÉ :",
@@ -1077,10 +1274,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapMessage) {
+
                     tapMessage.textContent =
-                        "🔥 À TOI DE TAPPER !";
+                        "⚡ Choisis ta mise puis joue !";
                 }
 
+
+                /* =================================================
+                   IDENTIFICATION
+                ================================================= */
 
                 socket.emit(
                     "join",
@@ -1090,6 +1292,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 );
 
+
+                /* =================================================
+                   DEMANDES SERVEUR
+                ================================================= */
 
                 socket.emit(
                     "getGame"
@@ -1106,7 +1312,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                startLocalTimer();
+                updateTapButtonState();
             }
         );
 
@@ -1119,7 +1325,16 @@ document.addEventListener("DOMContentLoaded", () => {
             "disconnect",
             (reason) => {
 
-                socketReady = false;
+                socketReady =
+                    false;
+
+
+                gameStarted =
+                    false;
+
+
+                updateTapButtonState();
+
 
                 console.warn(
                     "🔴 SOCKET DÉCONNECTÉ :",
@@ -1128,6 +1343,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 if (tapMessage) {
+
                     tapMessage.textContent =
                         "🟠 Reconnexion...";
                 }
@@ -1143,60 +1359,44 @@ document.addEventListener("DOMContentLoaded", () => {
             "connect_error",
             (error) => {
 
-                socketReady = false;
+                socketReady =
+                    false;
+
 
                 console.error(
                     "❌ SOCKET CONNECT ERROR :",
                     error
                 );
+
+
+                updateTapButtonState();
             }
         );
 
 
         /* =====================================================
-           CHAT MESSAGE
+           CHAT
         ===================================================== */
 
         socket.on(
             "chatMessage",
-            (msg) => {
-
-                console.log(
-                    "📥 chatMessage :",
-                    msg
-                );
-
-                receiveChatMessage(msg);
-            }
+            receiveChatMessage
         );
 
 
         socket.on(
             "chat:message",
-            (msg) => {
-
-                console.log(
-                    "📥 chat:message :",
-                    msg
-                );
-
-                receiveChatMessage(msg);
-            }
+            receiveChatMessage
         );
 
 
         /* =====================================================
-           CHAT HISTORY
+           HISTORIQUE CHAT
         ===================================================== */
 
         socket.on(
             "chatHistory",
             (messages) => {
-
-                console.log(
-                    "📚 chatHistory :",
-                    messages
-                );
 
                 if (
                     Array.isArray(messages)
@@ -1227,16 +1427,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /* =====================================================
-           TIMER
+           TIMER SERVEUR
         ===================================================== */
 
         function handleServerTimer(data) {
 
-            let value = data;
+            let value =
+                data;
+
 
             if (
                 data &&
-                typeof data === "object"
+                typeof data ===
+                "object"
             ) {
 
                 value =
@@ -1254,28 +1457,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             if (
-                !Number.isFinite(seconds)
+                !Number.isFinite(
+                    seconds
+                )
             ) {
-                return;
-            }
-
-
-            updateTimerDisplay(seconds);
-
-
-            if (seconds <= 0) {
-
-                stopLocalTimer();
-
-                if (tapButton) {
-                    tapButton.disabled = true;
-                }
 
                 return;
             }
 
 
-            startLocalTimer();
+            updateTimerDisplay(
+                seconds
+            );
+
+
+            if (
+                seconds <= 0
+            ) {
+
+                finishGameClient();
+
+                return;
+            }
+
+
+            if (
+                gameJoined
+            ) {
+
+                gameStarted =
+                    true;
+
+                updateTapButtonState();
+
+                startLocalTimer();
+            }
         }
 
 
@@ -1317,16 +1533,14 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
 
-            updateScoreDisplays(0);
-
-
             let duration =
                 GAME_DURATION;
 
 
             if (
                 data &&
-                typeof data === "object"
+                typeof data ===
+                "object"
             ) {
 
                 duration =
@@ -1340,7 +1554,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
             if (
-                !Number.isFinite(duration) ||
+                !Number.isFinite(
+                    duration
+                ) ||
                 duration <= 0
             ) {
 
@@ -1349,21 +1565,31 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            resetLocalTimer(duration);
+            updateScoreDisplays(0);
+
+            resetLocalTimer(
+                duration
+            );
 
 
-            if (tapButton) {
-                tapButton.disabled = false;
-            }
+            /*
+             * Une nouvelle partie existe,
+             * mais le joueur doit rejoindre
+             * avec JOUER MAINTENANT.
+             */
+
+            gameStarted =
+                false;
+
+
+            updateTapButtonState();
 
 
             if (tapMessage) {
+
                 tapMessage.textContent =
-                    "🔥 NOUVELLE PARTIE !";
+                    "🔥 NOUVELLE PARTIE — JOUE MAINTENANT !";
             }
-
-
-            startLocalTimer();
         }
 
 
@@ -1371,6 +1597,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "newGame",
             handleNewGame
         );
+
 
         socket.on(
             "game:new",
@@ -1384,11 +1611,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function updateOnlineCount(data) {
 
-            let count = data;
+            let count =
+                data;
+
 
             if (
                 data &&
-                typeof data === "object"
+                typeof data ===
+                "object"
             ) {
 
                 count =
@@ -1430,10 +1660,12 @@ document.addEventListener("DOMContentLoaded", () => {
             updateOnlineCount
         );
 
+
         socket.on(
             "online:count",
             updateOnlineCount
         );
+
 
         socket.on(
             "online",
@@ -1454,7 +1686,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (
                 players &&
-                typeof players === "object" &&
+                typeof players ===
+                    "object" &&
                 !Array.isArray(players)
             ) {
 
@@ -1493,6 +1726,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 0
                             );
 
+
                         const scoreB =
                             Number(
                                 b.score ??
@@ -1501,7 +1735,11 @@ document.addEventListener("DOMContentLoaded", () => {
                                 0
                             );
 
-                        return scoreB - scoreA;
+
+                        return (
+                            scoreB -
+                            scoreA
+                        );
                     }
                 );
 
@@ -1518,10 +1756,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                 p.id ??
                                 "";
 
+
                             const name =
                                 p.playerName ??
                                 p.name ??
                                 "Anonyme";
+
 
                             const score =
                                 Number(
@@ -1548,7 +1788,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                         ${escapeHTML(name)}
                                         ${
                                             isMe
-                                                ? "<strong>(toi)</strong>"
+                                                ? ' <strong>(toi)</strong>'
                                                 : ""
                                         }
                                     </div>
@@ -1570,6 +1810,7 @@ document.addEventListener("DOMContentLoaded", () => {
             updateLeaderboard
         );
 
+
         socket.on(
             "leaderboard:update",
             updateLeaderboard
@@ -1590,14 +1831,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const score =
                 data.score ??
                 data.taps ??
-                data.totalTaps;
+                data.totalTaps ??
+                data.tapCount;
 
 
             if (
                 score !== undefined
             ) {
 
-                updateScoreDisplays(score);
+                updateScoreDisplays(
+                    score
+                );
             }
         }
 
@@ -1606,6 +1850,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "tapResult",
             handleTapResult
         );
+
 
         socket.on(
             "tap:result",
@@ -1636,6 +1881,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     String(id) !==
                     String(playerId)
                 ) {
+
                     return;
                 }
 
@@ -1650,23 +1896,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     score !== undefined
                 ) {
 
-                    updateScoreDisplays(score);
+                    updateScoreDisplays(
+                        score
+                    );
                 }
             }
         );
 
 
         /* =====================================================
-           TOTAL STAKES
+           TOTAL MISES
         ===================================================== */
 
         function updateTotalStakes(data) {
 
-            let total = data;
+            let total =
+                data;
+
 
             if (
                 data &&
-                typeof data === "object"
+                typeof data ===
+                "object"
             ) {
 
                 total =
@@ -1682,7 +1933,8 @@ document.addEventListener("DOMContentLoaded", () => {
             ) {
 
                 globalTotalStakes.textContent =
-                    "$" + total;
+                    "$" +
+                    Number(total || 0);
             }
         }
 
@@ -1692,6 +1944,7 @@ document.addEventListener("DOMContentLoaded", () => {
             updateTotalStakes
         );
 
+
         socket.on(
             "stakes:update",
             updateTotalStakes
@@ -1700,7 +1953,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       ⚡ TAP BUTTON
+       ⚡ TAP
     ========================================================= */
 
     if (tapButton) {
@@ -1710,8 +1963,16 @@ document.addEventListener("DOMContentLoaded", () => {
             () => {
 
                 if (
+                    tapButton.disabled
+                ) {
+                    return;
+                }
+
+
+                if (
                     currentTimer <= 0
                 ) {
+
                     return;
                 }
 
@@ -1721,22 +1982,38 @@ document.addEventListener("DOMContentLoaded", () => {
                     !socket.connected
                 ) {
 
-                    console.warn(
-                        "⚠️ Serveur non connecté."
-                    );
-
                     connectSocket();
 
                     return;
                 }
 
 
-                if (tapLocked) {
+                if (!gameJoined) {
+
+                    if (tapMessage) {
+
+                        tapMessage.textContent =
+                            "⚠️ Appuie d'abord sur JOUER MAINTENANT.";
+                    }
+
                     return;
                 }
 
 
-                tapLocked = true;
+                if (!gameStarted) {
+
+                    return;
+                }
+
+
+                if (tapLocked) {
+
+                    return;
+                }
+
+
+                tapLocked =
+                    true;
 
 
                 tapButton.classList.add(
@@ -1747,29 +2024,174 @@ document.addEventListener("DOMContentLoaded", () => {
                 socket.emit(
                     "tap",
                     {
-                        playerId,
-                        playerName,
-                        taps: 1
+
+                        playerId:
+                            playerId,
+
+                        playerName:
+                            playerName,
+
+                        taps:
+                            1
                     }
                 );
 
 
                 setTimeout(() => {
 
-                    tapLocked = false;
+                    tapLocked =
+                        false;
+
 
                     tapButton.classList.remove(
                         "tap-active"
                     );
 
-                }, 80);
+                }, 70);
             }
         );
     }
 
 
     /* =========================================================
-       💰 WALLET
+       🎮 JOUER MAINTENANT
+    ========================================================= */
+
+    if (enterChallenge) {
+
+        enterChallenge.addEventListener(
+            "click",
+            () => {
+
+                console.log(
+                    "🎮 JOUER MAINTENANT"
+                );
+
+
+                if (
+                    !socket ||
+                    !socket.connected
+                ) {
+
+                    if (tapMessage) {
+
+                        tapMessage.textContent =
+                            "🟠 Connexion au serveur...";
+                    }
+
+
+                    connectSocket();
+
+                    return;
+                }
+
+
+                const savedBet =
+                    Number(
+                        localStorage.getItem(
+                            "miltape_bet"
+                        )
+                    ) || 0;
+
+
+                /*
+                 * Si aucune mise n'est sélectionnée,
+                 * on demande à l'utilisateur de
+                 * choisir une mise.
+                 */
+
+                if (
+                    savedBet <= 0
+                ) {
+
+                    if (tapMessage) {
+
+                        tapMessage.textContent =
+                            "⚠️ Choisis ta mise avant de jouer.";
+                    }
+
+
+                    alert(
+                        "⚠️ Choisis d'abord ta mise."
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * Rejoindre la partie.
+                 *
+                 * On garde l'événement "join"
+                 * compatible avec ton backend actuel.
+                 */
+
+                socket.emit(
+                    "join",
+                    {
+
+                        playerId:
+                            playerId,
+
+                        playerName:
+                            playerName,
+
+                        bet:
+                            savedBet,
+
+                        amount:
+                            savedBet
+                    }
+                );
+
+
+                gameJoined =
+                    true;
+
+
+                /*
+                 * Si le serveur envoie ensuite
+                 * un timer, celui-ci prendra
+                 * automatiquement le contrôle.
+                 *
+                 * En attendant, on utilise
+                 * 10 minutes.
+                 */
+
+                if (
+                    currentTimer <= 0 ||
+                    currentTimer >
+                        GAME_DURATION
+                ) {
+
+                    resetLocalTimer(
+                        GAME_DURATION
+                    );
+                }
+
+
+                gameStarted =
+                    true;
+
+
+                updateTapButtonState();
+
+
+                if (tapMessage) {
+
+                    tapMessage.textContent =
+                        "🔥 À TOI DE TAPPER !";
+                }
+
+
+                enterChallenge.blur();
+            }
+        );
+    }
+
+
+    /* =========================================================
+       💰 WALLET TRON
     ========================================================= */
 
     async function handleWalletAction() {
@@ -1846,27 +2268,81 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       MENU
+       💰 MISE
+    ========================================================= */
+
+    function setBet(value) {
+
+        const amount =
+            Math.max(
+                0,
+                Number(value) || 0
+            );
+
+
+        if (displayBet) {
+
+            displayBet.textContent =
+                "$" +
+                amount;
+        }
+
+
+        localStorage.setItem(
+            "miltape_bet",
+            String(amount)
+        );
+    }
+
+
+    const savedBet =
+        localStorage.getItem(
+            "miltape_bet"
+        );
+
+
+    if (savedBet !== null) {
+
+        setBet(
+            savedBet
+        );
+    }
+
+
+    /* =========================================================
+       🧭 MENU
     ========================================================= */
 
     const menuButton =
-        document.getElementById("menuButton");
+        document.getElementById(
+            "menuButton"
+        );
 
     const sideMenu =
-        document.getElementById("sideMenu");
+        document.getElementById(
+            "sideMenu"
+        );
 
     const closeMenu =
-        document.getElementById("closeMenu");
+        document.getElementById(
+            "closeMenu"
+        );
 
     const menuOverlay =
-        document.getElementById("menuOverlay");
+        document.getElementById(
+            "menuOverlay"
+        );
 
 
     function openSideMenu() {
 
-        sideMenu?.classList.add("show");
+        sideMenu?.classList.add(
+            "show"
+        );
 
-        menuOverlay?.classList.add("show");
+        menuOverlay?.classList.add(
+            "show"
+        );
 
         document.body.style.overflow =
             "hidden";
@@ -1875,9 +2351,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function closeSideMenu() {
 
-        sideMenu?.classList.remove("show");
+        sideMenu?.classList.remove(
+            "show"
+        );
 
-        menuOverlay?.classList.remove("show");
+        menuOverlay?.classList.remove(
+            "show"
+        );
 
         document.body.style.overflow =
             "";
@@ -1903,20 +2383,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       MODAL
+       🪟 MODAL
     ========================================================= */
 
     const dynamicModal =
-        document.getElementById("dynamicModal");
+        document.getElementById(
+            "dynamicModal"
+        );
 
     const closeDynamicModal =
-        document.getElementById("closeDynamicModal");
+        document.getElementById(
+            "closeDynamicModal"
+        );
 
     const dynamicModalTitle =
-        document.getElementById("dynamicModalTitle");
+        document.getElementById(
+            "dynamicModalTitle"
+        );
 
     const dynamicModalBody =
-        document.getElementById("dynamicModalBody");
+        document.getElementById(
+            "dynamicModalBody"
+        );
 
 
     function openModal(
@@ -1930,12 +2418,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         if (dynamicModalTitle) {
+
             dynamicModalTitle.textContent =
                 title;
         }
 
 
         if (dynamicModalBody) {
+
             dynamicModalBody.innerHTML =
                 content;
         }
@@ -1977,29 +2467,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       BOUTONS MENU
+       🧭 BOUTONS MENU
     ========================================================= */
 
     const menuGamesBtn =
-        document.getElementById("menuGamesBtn");
+        document.getElementById(
+            "menuGamesBtn"
+        );
 
     const menuRankingsBtn =
-        document.getElementById("menuRankingsBtn");
+        document.getElementById(
+            "menuRankingsBtn"
+        );
 
     const menuGainsBtn =
-        document.getElementById("menuGainsBtn");
+        document.getElementById(
+            "menuGainsBtn"
+        );
 
     const menuWithdrawalsBtn =
-        document.getElementById("menuWithdrawalsBtn");
+        document.getElementById(
+            "menuWithdrawalsBtn"
+        );
 
     const menuReferralBtn =
-        document.getElementById("menuReferralBtn");
+        document.getElementById(
+            "menuReferralBtn"
+        );
 
     const menuChatBtn =
-        document.getElementById("menuChatBtn");
+        document.getElementById(
+            "menuChatBtn"
+        );
 
     const menuRulesBtn =
-        document.getElementById("menuRulesBtn");
+        document.getElementById(
+            "menuRulesBtn"
+        );
 
 
     menuGamesBtn?.addEventListener(
@@ -2011,9 +2515,9 @@ document.addEventListener("DOMContentLoaded", () => {
             openModal(
                 "🎮 Mes parties",
                 `
-                <p>
-                    Tes parties seront affichées ici.
-                </p>
+                    <p>
+                        Tes parties seront affichées ici.
+                    </p>
                 `
             );
         }
@@ -2027,7 +2531,9 @@ document.addEventListener("DOMContentLoaded", () => {
             closeSideMenu();
 
             document
-                .querySelector(".leaderboard")
+                .querySelector(
+                    ".leaderboard"
+                )
                 ?.scrollIntoView({
                     behavior: "smooth"
                 });
@@ -2044,10 +2550,11 @@ document.addEventListener("DOMContentLoaded", () => {
             openModal(
                 "💰 Mes gains",
                 `
-                <p>
-                    Tes gains apparaîtront ici lorsque
-                    le système de paiement sera actif.
-                </p>
+                    <p>
+                        Tes gains apparaîtront ici
+                        lorsque le système de paiement
+                        sera actif.
+                    </p>
                 `
             );
         }
@@ -2063,10 +2570,10 @@ document.addEventListener("DOMContentLoaded", () => {
             openModal(
                 "💸 Mes retraits",
                 `
-                <p>
-                    La gestion des retraits sera
-                    disponible ici.
-                </p>
+                    <p>
+                        La gestion des retraits sera
+                        disponible ici.
+                    </p>
                 `
             );
         }
@@ -2082,15 +2589,15 @@ document.addEventListener("DOMContentLoaded", () => {
             openModal(
                 "👥 Parrainage",
                 `
-                <p>
-                    Ton code de parrainage :
-                </p>
+                    <p>
+                        Ton code de parrainage :
+                    </p>
 
-                <p>
-                    <strong>
-                        ${escapeHTML(playerId)}
-                    </strong>
-                </p>
+                    <p>
+                        <strong>
+                            ${escapeHTML(playerId)}
+                        </strong>
+                    </p>
                 `
             );
         }
@@ -2103,18 +2610,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
             closeSideMenu();
 
+
             document
-                .querySelector(".chat-section")
+                .querySelector(
+                    ".chat-section"
+                )
                 ?.scrollIntoView({
                     behavior: "smooth"
                 });
 
 
-            setTimeout(() => {
+            setTimeout(
+                () => {
 
-                chatInput?.focus();
+                    chatInput?.focus();
 
-            }, 500);
+                },
+                500
+            );
         }
     );
 
@@ -2128,11 +2641,19 @@ document.addEventListener("DOMContentLoaded", () => {
             openModal(
                 "📜 Règles Miltape",
                 `
-                <p>⏱️ Une partie dure 10 minutes.</p>
+                    <p>
+                        ⏱️ Une partie dure 10 minutes.
+                    </p>
 
-                <p>🏆 Les 5 meilleurs joueurs sont classés.</p>
+                    <p>
+                        🏆 Les 5 meilleurs joueurs
+                        sont classés.
+                    </p>
 
-                <p>🪙 Les mises utilisent USDT TRC20.</p>
+                    <p>
+                        🪙 Les mises utilisent
+                        USDT TRC20.
+                    </p>
                 `
             );
         }
@@ -2140,42 +2661,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       💰 MISE
-    ========================================================= */
-
-    function setBet(value) {
-
-        const amount =
-            Number(value) || 0;
-
-
-        if (displayBet) {
-
-            displayBet.textContent =
-                "$" + amount;
-        }
-
-
-        localStorage.setItem(
-            "miltape_bet",
-            String(amount)
-        );
-    }
-
-
-    const savedBet =
-        localStorage.getItem(
-            "miltape_bet"
-        );
-
-
-    if (savedBet) {
-        setBet(savedBet);
-    }
-
-
-    /* =========================================================
-       PWA
+       📲 PWA
     ========================================================= */
 
     const installButton =
@@ -2190,7 +2676,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             event.preventDefault();
 
-            deferredPrompt = event;
+            deferredPrompt =
+                event;
 
 
             installButton?.classList.add(
@@ -2224,7 +2711,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            deferredPrompt = null;
+            deferredPrompt =
+                null;
+
 
             installButton.classList.remove(
                 "show"
@@ -2234,7 +2723,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =========================================================
-       ÉTAT INITIAL
+       🧹 VISIBILITÉ PAGE
+    ========================================================= */
+
+    document.addEventListener(
+        "visibilitychange",
+        () => {
+
+            if (
+                document.visibilityState ===
+                "visible"
+            ) {
+
+                updateTapButtonState();
+            }
+        }
+    );
+
+
+    /* =========================================================
+       🔄 ÉTAT INITIAL
     ========================================================= */
 
     updateScoreDisplays(0);
@@ -2244,70 +2752,90 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
 
-    if (tapButton) {
-        tapButton.disabled = true;
+    gameJoined =
+        false;
+
+    gameStarted =
+        false;
+
+
+    updateTapButtonState();
+
+
+    if (tapMessage) {
+
+        tapMessage.textContent =
+            "⚡ CHOISIS TA MISE ET APPUIE SUR JOUER";
     }
 
 
     /* =========================================================
-       CONNEXION
+       🔌 CONNEXION
     ========================================================= */
 
     connectSocket();
 
 
     /* =========================================================
-       FALLBACK
-    ========================================================= */
-
-    setTimeout(() => {
-
-        if (
-            currentTimer > 0 &&
-            !timerRunning
-        ) {
-
-            startLocalTimer();
-        }
-
-    }, 1500);
-
-
-    /* =========================================================
-       AUTORISATION TAP
+       🔁 VÉRIFICATION SOCKET
     ========================================================= */
 
     const connectionCheck =
-        setInterval(() => {
-
-            if (
-                socket &&
-                socket.connected
-            ) {
-
-                socketReady = true;
-
+        setInterval(
+            () => {
 
                 if (
-                    currentTimer > 0 &&
-                    tapButton
+                    socket &&
+                    socket.connected
                 ) {
 
-                    tapButton.disabled =
-                        false;
+                    socketReady =
+                        true;
+
+                    updateTapButtonState();
+
                 }
 
+            },
+            1000
+        );
 
-                clearInterval(
-                    connectionCheck
-                );
-            }
 
-        }, 500);
+    /*
+     * Sécurité pour éviter un intervalle
+     * inutile pendant des heures.
+     */
+
+    setTimeout(
+        () => {
+
+            clearInterval(
+                connectionCheck
+            );
+
+        },
+        300000
+    );
 
 
     /* =========================================================
-       LOG FINAL
+       📱 EMPÊCHER LE ZOOM DOUBLE TAP
+    ========================================================= */
+
+    if (tapButton) {
+
+        tapButton.addEventListener(
+            "dblclick",
+            (event) => {
+
+                event.preventDefault();
+            }
+        );
+    }
+
+
+    /* =========================================================
+       ✅ FIN
     ========================================================= */
 
     console.log(
@@ -2315,7 +2843,11 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     console.log(
-        "💬 CHAT : bouton ➤ prêt"
+        "💬 CHAT : OK"
+    );
+
+    console.log(
+        "🎮 JEU : OK"
     );
 
     console.log(
