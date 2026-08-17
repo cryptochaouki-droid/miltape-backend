@@ -4,6 +4,8 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
 const { TronWeb } = require("tronweb");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -140,12 +142,26 @@ const app = express();
 
 const server = http.createServer(app);
 
+// 1. Sécurité des en-têtes HTTP avec Helmet
+app.use(helmet());
+
+// 2. Restriction CORS (Met ton URL Vercel)
 app.use(
     cors({
-        origin: true,
+        origin: "https://miltape.vercel.app",
         credentials: true
     })
 );
+
+// 3. Rate Limiting global pour éviter les attaques DDoS / Force Brute
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Trop de requêtes, veuillez réessayer plus tard." }
+});
+app.use('/api/', limiter);
 
 app.use(
     express.json({
