@@ -1436,10 +1436,8 @@ async function sendUsdtPayment(
 
 
     try {
-        // On récupère le contrat USDT directement avec son adresse de base
         const contract = await tron.contract().at(USDT_CONTRACT);
 
-        // On appelle le transfert en passant l'adresse du destinataire en texte brut (Base58)
         txid = await contract.transfer(
             MILTAPE_WALLET,
             units
@@ -1540,6 +1538,58 @@ async function verifyPayment(
 
 
     return data;
+}
+
+
+/* =========================================================
+   RESTAURATION DE SESSION JOUEUR
+========================================================= */
+
+async function restorePlayerSession() {
+    try {
+        const savedPlayerId = localStorage.getItem("miltape_player_id");
+        const savedWallet = localStorage.getItem("miltape_player_address");
+
+        if (!savedPlayerId && !savedWallet) return;
+
+        const response = await fetch(
+            `${API_URL}/api/player/status?playerId=${encodeURIComponent(savedPlayerId || "")}&wallet=${encodeURIComponent(savedWallet || "")}`
+        );
+
+        const data = await response.json();
+
+        if (data.success && data.player) {
+            console.log("✅ Session restaurée :", data.player);
+
+            playerName = data.player.name || playerName;
+            playerAddress = data.player.wallet || playerAddress;
+            tapCount = Number(data.player.taps || 0);
+            selectedBet = Number(data.player.bet || 0);
+
+            updateTapDisplay();
+
+            if (data.player.paid) {
+                joinedGame = true;
+                localStorage.setItem("miltape_joined", "true");
+                
+                if (displayBet) {
+                    displayBet.textContent = "$" + formatUsdt(selectedBet);
+                }
+
+                if (tapButton) {
+                    tapButton.disabled = false;
+                }
+
+                showMessage("🟢 SESSION RESTAURÉE — BON JEU !");
+            }
+
+            if (socket && socket.connected) {
+                joinSocketGame();
+            }
+        }
+    } catch (error) {
+        console.error("Erreur lors de la restauration de session :", error);
+    }
 }
 
 
@@ -2414,6 +2464,8 @@ document.addEventListener(
         await loadInitialStatus();
 
         await loadChatHistoryRest();
+
+        await restorePlayerSession();
 
         connectSocket();
 
