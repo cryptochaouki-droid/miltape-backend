@@ -1,93 +1,1193 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tap Game</title>
-    <link rel="stylesheet" href="style.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <meta name="theme-color" content="#090014">
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent"
+    >
+
+    <meta
+        name="description"
+        content="Miltape World Challenge — Tape, classe-toi, gagne."
+    >
+
+    <title>Miltape World Challenge</title>
+
+    <link
+        rel="manifest"
+        href="./manifest.json"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="./icon-192~2.jpg"
+    >
+
+    <link
+        rel="icon"
+        href="./icon-192~2.jpg"
+        type="image/jpeg"
+    >
+
+    <link
+        rel="stylesheet"
+        href="./style.css"
+    >
+
+    <!-- TronWeb (Chargé en premier) -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"
+    ></script>
+
+    <!-- Socket.IO (Chargé avant le script principal) -->
+    <script
+        src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+    ></script>
+
+    <style>
+
+        html {
+            width: 100%;
+            min-height: 100%;
+            overflow-x: hidden;
+            overflow-y: scroll;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            width: 100%;
+            min-width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: auto;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            height: auto;
+            margin: 0 auto;
+            padding-bottom: 80px;
+            position: relative;
+            overflow: visible !important;
+        }
+
+        /* PWA */
+
+        .install-pwa-button {
+            position: fixed;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: none;
+            padding: 13px 20px;
+            border: 1px solid #ffcc00;
+            border-radius: 999px;
+            background: #120624;
+            color: #ffcc00;
+            font-size: 13px;
+            font-weight: 900;
+            box-shadow: 0 0 15px rgba(255,204,0,.35);
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .install-pwa-button.show {
+            display: block;
+        }
+
+        /* HERO BANNER INTERACTIVE */
+
+        .hero-banner-container {
+            position: relative;
+            width: calc(100% - 24px);
+            margin: 12px 12px 15px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,204,0,.3);
+            background: #090014;
+        }
+
+        .hero-bg-image {
+            width: 100%;
+            display: block;
+            height: auto;
+        }
+
+        .hero-header-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .player-profile-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 8px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+        }
+
+        .avatar-icon {
+            font-size: 16px;
+        }
+
+        .profile-text .p-name {
+            display: block;
+            font-size: 10px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .profile-text .p-level {
+            display: block;
+            font-size: 8px;
+            background: #7b2cff;
+            color: #fff;
+            padding: 1px 4px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        .timer-badge-top {
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255, 204, 0, 0.5);
+            padding: 4px 10px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .timer-badge-top .tb-label {
+            display: block;
+            font-size: 7px;
+            color: #bbb;
+            font-weight: bold;
+        }
+
+        .timer-badge-top .tb-value {
+            display: block;
+            font-size: 14px;
+            font-weight: 900;
+            color: #ffcc00;
+        }
+
+        .timer-badge-top .tb-sub {
+            font-size: 6px;
+            color: #888;
+        }
+
+        .wallet-badge-top {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(193, 60, 255, 0.5);
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .wallet-badge-top .wb-label {
+            display: block;
+            font-size: 7px;
+            color: #bbb;
+        }
+
+        .wallet-badge-top .wb-value {
+            display: block;
+            font-size: 13px;
+            font-weight: 900;
+            color: #ffcc00;
+        }
+
+        .wallet-badge-top .wallet-icon {
+            font-size: 16px;
+            background: #240046;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        /* MENU */
+
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 280px;
+            height: 100vh;
+            height: 100dvh;
+            background: #0f051d;
+            border-right: 1px solid rgba(255,204,0,.2);
+            z-index: 1000;
+            transition: left .3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .side-menu.show {
+            left: 0;
+        }
+
+        .close-menu {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .side-menu-content {
+            margin-top: 40px;
+            padding-bottom: 30px;
+        }
+
+        .side-menu-content h3 {
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+
+        .menu-block {
+            margin-bottom: 15px;
+            background: rgba(255,255,255,.03);
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        .menu-block label,
+        .menu-block h4 {
+            display: block;
+            font-size: 13px;
+            color: #ffcc00;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .menu-block select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #444;
+            box-sizing: border-box;
+        }
+
+        .menu-nav-btn {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #fff;
+            text-align: left;
+            font-size: 14px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            border-radius: 8px;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        .menu-nav-btn:hover,
+        .menu-nav-btn:active {
+            background: rgba(255,204,0,.15);
+            color: #ffcc00;
+        }
+
+        .trust-contact-box {
+            border-left: 3px solid #2ecc71;
+        }
+
+        .support-link {
+            display: inline-block;
+            padding: 8px 12px;
+            background: #0088cc;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.7);
+            display: none;
+            z-index: 999;
+        }
+
+        .menu-overlay.show {
+            display: block;
+        }
+
+        /* MODAL */
+
+        .legal-modal,
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.82);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .legal-modal.show,
+        .modal.show {
+            display: flex;
+        }
+
+        .legal-content,
+        .modal-content {
+            background: #120624;
+            border: 1px solid #ffcc00;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            max-height: 90dvh;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #fff;
+            position: relative;
+        }
+
+        .legal-content h3,
+        .modal-content h2 {
+            color: #ffcc00;
+            margin-top: 0;
+        }
+
+        .legal-content p,
+        .legal-content li {
+            font-size: 13px;
+            color: #b8b8b8;
+            line-height: 1.5;
+        }
+
+        .legal-close,
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* TAP */
+
+        .tap-zone {
+            width: 100%;
+            min-height: 245px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .tap-button {
+            position: relative;
+            width: 190px;
+            height: 190px;
+            min-width: 190px;
+            min-height: 190px;
+            border-radius: 50%;
+            border: 4px solid #ffcc00;
+            background: radial-gradient(circle at 35% 28%, #ffcf42 0%, #ff8b00 35%, #7b2cff 70%, #240046 100%);
+            overflow: hidden;
+            cursor: pointer;
+            outline: none;
+            transition: transform .08s ease-in-out, filter 0.08s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            padding: 0;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            box-shadow: 0 0 35px rgba(139, 44, 255, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .tap-button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .tap-img-bg {
+            display: none;
+        }
+
+        .tap-button::before {
+            display: none;
+        }
+
+        .tap-button strong,
+        .tap-button small,
+        .tap-button .tap-glow {
+            position: relative;
+            z-index: 3;
+        }
+
+        .tap-button strong {
+            font-size: 46px;
+            font-weight: 1000;
+            letter-spacing: 2px;
+            color: #ffffff;
+            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 204, 0, 0.6);
+        }
+
+        .tap-button small {
+            margin-top: 2px;
+            font-size: 18px;
+            font-weight: 900;
+            color: #ffcc00;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+        }
+
+        .tap-button:active:not(:disabled) {
+            transform: scale(.92);
+        }
+
+        .tap-button.tap-active {
+            transform: scale(.94);
+        }
+
+        /* CHAT */
+
+        .chat-section {
+            position: relative;
+            z-index: 20;
+            margin-bottom: 20px;
+            width: 100%;
+            pointer-events: auto;
+            isolation: isolate;
+        }
+
+        .chat-messages {
+            height: 170px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: rgba(0,0,0,.20);
+            border: 1px solid rgba(255,255,255,.06);
+            box-sizing: border-box;
+        }
+
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 7px 8px;
+            border-radius: 8px;
+            background: rgba(255,255,255,.035);
+            font-size: 13px;
+            color: #ddd;
+            word-break: break-word;
+            line-height: 1.35;
+        }
+
+        .chat-message strong {
+            color: #ffcc00;
+        }
+
+        .chat-input-box {
+            position: relative;
+            z-index: 30;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+            box-sizing: border-box;
+        }
+
+        .chat-input-box input {
+            flex: 1;
+            min-width: 0;
+            height: 44px;
+            padding: 0 12px;
+            border: 1px solid rgba(193,60,255,.30);
+            border-radius: 12px;
+            outline: none;
+            background: rgba(0,0,0,.35);
+            color: #fff;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        .chat-input-box button {
+            width: 46px;
+            height: 44px;
+            min-width: 46px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg,#ffcc00,#ff8a00);
+            color: #16051f;
+            font-size: 20px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #a84c00;
+            touch-action: manipulation;
+        }
+
+        /* MOBILE */
+
+        @media(max-width:430px) {
+
+            .tap-button {
+                width: 170px;
+                height: 170px;
+                min-width: 170px;
+                min-height: 170px;
+            }
+
+            .tap-zone {
+                min-height: 220px;
+            }
+        }
+
+        @media(max-width:360px) {
+
+            .tap-button {
+                width: 165px;
+                height: 165px;
+                min-width: 165px;
+                min-height: 165px;
+            }
+
+            .chat-input-box input {
+                font-size: 12px;
+            }
+
+            .chat-input-box button {
+                width: 42px;
+                min-width: 42px;
+            }
+        }
+
+        @media(min-width:600px) {
+
+            body {
+                padding: 20px 0 40px;
+            }
+
+            .app {
+                border-radius: 30px;
+                border: 1px solid rgba(255,255,255,.06);
+                box-shadow: 0 0 80px rgba(91,20,150,.18);
+            }
+
+            .top-header {
+                position: sticky;
+                top: 0;
+                z-index: 500;
+            }
+        }
+
+    </style>
+
 </head>
+
 <body>
-    <div class="app">
-        <header class="top-header">
-            <button class="menu-button">☰</button>
-            <div class="online">
-                <div class="online-dot"></div>
-                <span>En ligne : <strong id="online-count">1</strong></span>
-            </div>
-            <div class="wallet-box">
-                <small>WALLET</small>
-                <strong id="user-wallet">0.00</strong>
-            </div>
-            <button class="wallet-button">💎</button>
-        </header>
 
-        <section class="rules">
-            <div class="rule">
-                <div class="rule-icon">⏱️</div>
-                <strong>10 MINUTES</strong>
-                <small>PAR PARTIE</small>
-            </div>
-            <div class="rule">
-                <div class="rule-icon">🏆</div>
-                <strong>TOP 5</strong>
-                <small>SEULEMENT</small>
-            </div>
-            <div class="rule">
-                <div class="rule-icon">🪙</div>
-                <strong>USDT</strong>
-                <small>TRC20</small>
-            </div>
-        </section>
+    <!-- INSTALLATION -->
 
-        <div class="timer-card">
-            <small>PROCHAINE SESSION</small>
-            <div class="timer" id="session-timer">10:00</div>
-            <span>TEMPS RESTANT</span>
-        </div>
+    <button
+        id="installPwaButton"
+        class="install-pwa-button"
+        type="button"
+    >
+        📲 INSTALLER MILTAPE
+    </button>
 
-        <section class="stats">
-            <div class="stat-box">
-                <small>TOTAL TAPS</small>
-                <strong id="total-taps">0</strong>
-            </div>
-            <div class="stat-box">
-                <small>CLASSEMENT</small>
-                <strong id="user-rank">-</strong>
-            </div>
-            <div class="stat-box">
-                <small>GAIN POT.</small>
-                <strong id="potential-reward">0</strong>
-            </div>
-            <div class="stat-box">
-                <small>MISES</small>
-                <strong id="total-pool">0</strong>
-            </div>
-        </section>
 
-        <button class="main-play-button" id="join-btn">
-            <b>⚡</b> CHOISIS TA MISE ET CONNECTE TON WALLET
+    <!-- MENU -->
+
+    <aside
+        id="sideMenu"
+        class="side-menu"
+    >
+
+        <button
+            id="closeMenu"
+            class="close-menu"
+            type="button"
+        >
+            ×
         </button>
 
-        <div class="tap-message" id="tap-message"></div>
+        <div class="side-menu-content">
 
-        <div class="tap-zone">
-            <button class="tap-button" id="tap-btn" disabled>
-                <div class="tap-glow"></div>
-            </button>
+            <h3>🧭 Menu Miltape</h3>
+
+            <div class="menu-block">
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuGamesBtn"
+                    type="button"
+                >
+                    🎮 Mes parties
+                </button>
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuRankingsBtn"
+                    type="button"
+                >
+                    🏆 Mes classements
+                </button>
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuGainsBtn"
+                    type="button"
+                >
+                    💰 Mes gains
+                </button>
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuWithdrawalsBtn"
+                    type="button"
+                >
+                    💸 Mes retraits
+                </button>
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuReferralBtn"
+                    type="button"
+                >
+                    👥 Parrainage
+                </button>
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuChatBtn"
+                    type="button"
+                >
+                    💬 Chat
+                </button>
+
+                <button
+                    class="menu-nav-btn"
+                    id="menuRulesBtn"
+                    type="button"
+                >
+                    📜 Règles
+                </button>
+
+                <a
+                    href="./conditions.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="menu-nav-btn"
+                >
+                    📄 Conditions d'utilisation
+                </a>
+
+            </div>
+
+            <div class="menu-block">
+
+                <label for="languageSelect">
+                    🌐 Langue
+                </label>
+
+                <select id="languageSelect">
+
+                    <option value="fr">
+                        Français
+                    </option>
+
+                    <option value="en">
+                        English
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="menu-block trust-contact-box">
+
+                <h4>🛡️ Support & Confiance</h4>
+
+                <p style="font-size:12px;color:#b8b8b8;">
+                    Une question ? Un problème ?
+                </p>
+
+                <a
+                    href="https://t.me/ton_canal_telegram"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="support-link"
+                >
+                    📢 Telegram officiel
+                </a>
+
+                <div style="margin-top:8px;font-size:12px;">
+
+                    <a
+                        href="mailto:miltapesupport@gmail.com"
+                        style="color:#ffcc00;text-decoration:none;"
+                    >
+                        📧 miltapesupport@gmail.com
+                    </a>
+
+                </div>
+
+            </div>
+
         </div>
 
-        <section class="leaderboard">
-            <div class="leaderboard-list" id="leaderboard-list">
-                <div class="empty-ranking">Aucun joueur pour le moment</div>
+    </aside>
+
+
+    <div
+        id="menuOverlay"
+        class="menu-overlay"
+    ></div>
+
+
+    <!-- MODAL -->
+
+    <div
+        id="dynamicModal"
+        class="legal-modal"
+        role="dialog"
+        aria-modal="true"
+    >
+
+        <div class="legal-content">
+
+            <button
+                id="closeDynamicModal"
+                class="legal-close"
+                type="button"
+            >
+                ×
+            </button>
+
+            <h3 id="dynamicModalTitle">
+                Miltape
+            </h3>
+
+            <div id="dynamicModalBody"></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- APP -->
+
+    <main class="app">
+
+        <!-- HEADER -->
+
+        <header class="top-header">
+
+            <button
+                class="menu-button"
+                id="menuButton"
+                type="button"
+            >
+                ☰
+            </button>
+
+            <div class="online">
+
+                <strong id="onlineCount">
+
+                    <span
+                        style="
+                            display:inline-block;
+                            width:8px;
+                            height:8px;
+                            background:#2ecc71;
+                            border-radius:50%;
+                            margin-right:5px;
+                        "
+                    ></span>
+
+                    <span>
+                        1 EN LIGNE
+                    </span>
+
+                </strong>
+
+            </div>
+
+            <div class="wallet-box">
+
+                <small>
+                    MISE USDT
+                </small>
+
+                <strong id="displayBet">
+                    $0
+                </strong>
+
+            </div>
+
+            <button
+                class="wallet-button"
+                id="walletButton"
+                type="button"
+            >
+                💰
+
+                <span id="globalTotalStakes">
+                    $0
+                </span>
+
+            </button>
+
+        </header>
+
+
+        <!-- HERO INTERACTIVE -->
+
+        <section class="hero-banner-container">
+            <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
+
+            <div class="hero-header-overlay">
+                <!-- Profil joueur -->
+                <div class="player-profile-badge">
+                    <div class="avatar-icon">👤</div>
+                    <div class="profile-text">
+                        <span class="p-name">MILTAPER</span>
+                        <span class="p-level">Level 12</span>
+                    </div>
+                </div>
+
+                <!-- Chrono dynamique -->
+                <div class="timer-badge-top" id="topTimerBox">
+                    <span class="tb-label">TEMPS RESTANT</span>
+                    <span class="tb-value" id="timer">10:00</span>
+                    <small class="tb-sub">EN DIRECT</small>
+                </div>
+
+                <!-- Solde / Mise USDT dynamique interactif -->
+                <div class="wallet-badge-top" id="enterChallenge" title="Modifier ta mise">
+                    <div>
+                        <span class="wb-label">MISE USDT</span>
+                        <span class="wb-value" id="displayBetTop">$0</span>
+                    </div>
+                    <div class="wallet-icon">👛</div>
+                </div>
             </div>
         </section>
 
-        <section class="chat-section">
-            <div class="chat-messages" id="chat-messages">
-                <div class="chat-message"><strong>Système :</strong> Bienvenue dans le jeu !</div>
+
+        <!-- RÈGLES -->
+
+        <section class="rules">
+
+            <div class="rule">
+
+                <span class="rule-icon">
+                    ⏱️
+                </span>
+
+                <strong>
+                    10 MINUTES
+                </strong>
+
+                <small>
+                    PAR PARTIE
+                </small>
+
             </div>
+
+            <div class="rule">
+
+                <span class="rule-icon">
+                    🏆
+                </span>
+
+                <strong>
+                    TOP 5
+                </strong>
+
+                <small>
+                    SEULEMENT
+                </small>
+
+            </div>
+
+            <div class="rule">
+
+                <span class="rule-icon">
+                    🪙
+                </span>
+
+                <strong>
+                    USDT
+                </strong>
+
+                <small>
+                    TRC20
+                </small>
+
+            </div>
+
         </section>
-    </div>
-    <script src="script.js"></script>
+
+
+        <!-- STATS -->
+
+        <section
+            class="stats"
+            style="display:flex;justify-content:center;"
+        >
+
+            <div
+                class="stat-box"
+                style="width:100%;max-width:300px;"
+            >
+
+                <small>
+                    TES TAPS
+                </small>
+
+                <strong
+                    id="tapCount"
+                    style="
+                        font-size:28px;
+                        color:#ffcc00;
+                    "
+                >
+                    0
+                </strong>
+
+            </div>
+
+        </section>
+
+
+        <!-- JOUER -->
+
+        <button
+            id="enterChallenge"
+            class="main-play-button"
+            type="button"
+        >
+
+            <span>
+                JOUER MAINTENANT
+            </span>
+
+            <b>
+                ➜
+            </b>
+
+        </button>
+
+
+        <!-- MESSAGE -->
+
+        <div
+            id="tapMessage"
+            class="tap-message"
+            role="status"
+            aria-live="polite"
+        >
+            ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
+        </div>
+
+
+        <!-- TAP -->
+
+        <section
+            class="tap-zone"
+            aria-label="Zone de tap"
+        >
+
+            <button
+                id="tapButton"
+                class="tap-button"
+                type="button"
+                disabled
+            >
+
+                <span class="tap-glow"></span>
+
+                <strong>
+                    TAP
+                </strong>
+
+                <small>
+
+                    <span id="tapButtonCount">
+                        0
+                    </span>
+
+                </small>
+
+            </button>
+
+        </section>
+
+
+        <!-- CLASSEMENT -->
+
+        <section class="leaderboard">
+
+            <div class="section-title">
+
+                <span>
+                    🏆 CLASSEMENT
+                </span>
+
+                <strong>
+                    TOP 5
+                </strong>
+
+            </div>
+
+            <div
+                id="leaderboardList"
+                class="leaderboard-list"
+            >
+
+                <div class="empty-ranking">
+                    Aucun joueur pour le moment
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- CHAT -->
+
+        <section
+            class="chat-section"
+            id="globalChat"
+        >
+
+            <div class="section-title">
+
+                <span>
+                    💬 CHAT GLOBAL
+                </span>
+
+                <strong>
+                    LIVE
+                </strong>
+
+            </div>
+
+            <div
+                id="chatMessages"
+                class="chat-messages"
+            >
+
+                <div class="chat-message">
+
+                    <strong>
+                        Système :
+                    </strong>
+
+                    Bienvenue sur Miltape !
+
+                </div>
+
+            </div>
+
+            <div
+                class="chat-input-box"
+                id="chatInputBox"
+            >
+
+                <input
+                    type="text"
+                    id="chatInput"
+                    placeholder="Écris ton message..."
+                    maxlength="200"
+                    autocomplete="off"
+                    enterkeyhint="send"
+                    inputmode="text"
+                >
+
+                <button
+                    id="chatSend"
+                    type="button"
+                    aria-label="Envoyer le message"
+                >
+                    ➤
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <div
+            style="
+                width:100%;
+                height:40px;
+            "
+        ></div>
+
+    </main>
+
+
+    <!-- SCRIPT PRINCIPAL -->
+
+    <script src="./script.js" defer></script>
+
 </body>
+
 </html>
