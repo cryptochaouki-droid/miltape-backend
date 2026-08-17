@@ -240,13 +240,14 @@ dynamicModal?.addEventListener(
 
 
 /* =========================================================
-   VALIDATION TRON
+   VALIDATION TRON (INDÉPENDANTE DE TRONWEB)
 ========================================================= */
 
 function isValidTronAddress(address) {
-
-    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/
-        .test(address);
+    if (!address || typeof address !== "string") {
+        return false;
+    }
+    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
 }
 
 
@@ -1233,7 +1234,7 @@ function openChallengeForm() {
 
 
 /* =========================================================
-   TRONLINK DETECTION (CORRIGÉ POUR ÉVITER LES ERREURS D'OBJET)
+   TRONLINK DETECTION (CORRIGÉ ET SANS TRONWEB.ISADDRESS)
 ========================================================= */
 
 async function getTronLinkAddress() {
@@ -1651,7 +1652,6 @@ function connectSocket() {
     );
 
 
-    // Écoute de l'état global du jeu (reçu à la connexion et à chaque broadcast)
     socket.on(
         "game:state",
         state => {
@@ -1673,7 +1673,6 @@ function connectSocket() {
     );
 
 
-    // Chrono en direct envoyé par le serveur
     socket.on(
         "timer:update",
         data => {
@@ -1689,7 +1688,6 @@ function connectSocket() {
     );
 
 
-    // Nombre de joueurs en ligne
     socket.on(
         "online:count",
         count => {
@@ -1698,7 +1696,6 @@ function connectSocket() {
     );
 
 
-    // Mise à jour du classement
     socket.on(
         "leaderboard:update",
         leaderboard => {
@@ -1707,7 +1704,6 @@ function connectSocket() {
     );
 
 
-    // Score personnel
     socket.on(
         "player:score",
         data => {
@@ -1719,7 +1715,6 @@ function connectSocket() {
     );
 
 
-    // Fin de partie
     socket.on(
         "game:finished",
         data => {
@@ -1737,7 +1732,6 @@ function connectSocket() {
     );
 
 
-    // Réception des messages du chat en direct
     socket.on(
         "chat:message",
         messageData => {
