@@ -333,6 +333,7 @@ body {
             transparent 67%
         );
     filter: blur(5px);
+    z-index: 0;
 }
 
 /* ============================================================
@@ -341,6 +342,8 @@ body {
 
 .tap-button {
     position: relative;
+    z-index: 2;
+
     width: 190px;
     height: 190px;
     min-width: 190px;
@@ -371,9 +374,10 @@ body {
     -webkit-tap-highlight-color: transparent;
     user-select: none;
 
-    transform: none;
+    transform: translateY(0) scale(1);
 
     transition:
+        transform .12s cubic-bezier(.2,.8,.2,1),
         filter .12s ease,
         box-shadow .12s ease;
 
@@ -405,6 +409,7 @@ body {
 
     border-radius: 50%;
 
+    /* IMAGE PLUS CLAIRE ET ÉCLATANTE */
     filter:
         brightness(1.35)
         contrast(1.12)
@@ -489,18 +494,19 @@ body {
     animation: tapGlow3D 1.8s ease-in-out infinite;
 }
 
-/* APPUI / CLIC — AUCUN MOUVEMENT */
+/* APPUI / CLIC
+   IMPORTANT : le bouton NE RÉTRÉCIT PAS */
 .tap-button:not(:disabled):active,
 .tap-button.tap-active {
-    transform: none !important;
+    transform: translateY(8px) !important;
 
     filter:
         brightness(1.35)
         saturate(1.45) !important;
 
     box-shadow:
-        0 10px 0 #4b126f,
-        0 14px 18px rgba(0,0,0,.65),
+        0 2px 0 #4b126f,
+        0 5px 8px rgba(0,0,0,.75),
         0 0 25px rgba(193,60,255,1),
         0 0 55px rgba(255,216,77,.85),
         0 0 85px rgba(255,91,32,.60),
@@ -510,7 +516,7 @@ body {
 
 .tap-button:not(:disabled):active .tap-img-bg,
 .tap-button.tap-active .tap-img-bg {
-    transform: none;
+    transform: scale(1.03);
 
     filter:
         brightness(1.55)
@@ -581,3 +587,212 @@ body {
     filter: blur(10px);
 
     z-index: 3;
+
+    pointer-events: none;
+}
+
+/* ANIMATION 3D LUMINEUSE */
+@keyframes tapGlow3D {
+
+    0% {
+        transform: translateY(0) scale(1);
+
+        box-shadow:
+            0 10px 0 #4b126f,
+            0 14px 18px rgba(0,0,0,.65),
+            0 0 22px rgba(139,44,255,.90),
+            0 0 45px rgba(193,60,255,.65),
+            0 0 65px rgba(255,216,77,.30),
+            inset 0 0 18px rgba(255,255,255,.25);
+    }
+
+    50% {
+        transform: translateY(-2px) scale(1.025);
+
+        box-shadow:
+            0 12px 0 #54177c,
+            0 17px 22px rgba(0,0,0,.70),
+            0 0 32px rgba(139,44,255,1),
+            0 0 60px rgba(193,60,255,.85),
+            0 0 90px rgba(255,216,77,.55),
+            0 0 115px rgba(255,91,32,.25),
+            inset 0 0 24px rgba(255,255,255,.35);
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+
+        box-shadow:
+            0 10px 0 #4b126f,
+            0 14px 18px rgba(0,0,0,.65),
+            0 0 22px rgba(139,44,255,.90),
+            0 0 45px rgba(193,60,255,.65),
+            0 0 65px rgba(255,216,77,.30),
+            inset 0 0 18px rgba(255,255,255,.25);
+    }
+}
+
+.leaderboard {
+    margin: 0 12px 13px;
+    padding: 15px;
+    border-radius: 19px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(37, 10, 58, .95),
+            rgba(14, 3, 25, .95)
+        );
+    border: 1px solid rgba(255, 216, 77, .18);
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.leaderboard-item {
+    display: grid;
+    grid-template-columns: 35px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 50px;
+    padding: 7px 9px;
+    border-radius: 13px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.06);
+}
+
+.rank {
+    width: 31px;
+    height: 31px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255,216,77,.1);
+    color: var(--gold);
+    font-weight: 1000;
+}
+
+.player-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.player-score {
+    color: var(--gold);
+    font-size: 14px;
+    font-weight: 1000;
+}
+
+.empty-ranking {
+    text-align: center;
+    padding: 15px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.chat-section {
+    margin: 0 12px 13px;
+    padding: 15px;
+    border-radius: 19px;
+    background: rgba(20, 5, 33, .94);
+    border: 1px solid rgba(193, 60, 255, .2);
+}
+
+.chat-messages {
+    height: 170px;
+    overflow-y: auto;
+    padding: 8px;
+    margin-bottom: 9px;
+    border-radius: 12px;
+    background: rgba(0,0,0,.2);
+}
+
+.chat-message {
+    padding: 7px 8px;
+    margin-bottom: 5px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.035);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.chat-message strong {
+    color: var(--gold);
+}
+
+@keyframes onlinePulse {
+    0% {
+        opacity: .5;
+        transform: scale(.85);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: .5;
+        transform: scale(.85);
+    }
+}
+
+.online-dot {
+    animation: onlinePulse 1.5s infinite;
+}
+
+@media (max-width: 360px) {
+
+    .tap-button {
+        width: 165px;
+        height: 165px;
+        min-width: 165px;
+        min-height: 165px;
+    }
+
+    .tap-zone {
+        min-height: 220px;
+    }
+
+    .timer {
+        font-size: 36px;
+    }
+}
+
+@media (max-width: 430px) {
+
+    .tap-button {
+        width: 170px;
+        height: 170px;
+        min-width: 170px;
+        min-height: 170px;
+    }
+
+    .tap-zone {
+        min-height: 220px;
+    }
+}
+
+@media (min-width: 600px) {
+
+    body {
+        padding: 20px 0;
+    }
+
+    .app {
+        border-radius: 30px;
+        border: 1px solid rgba(255,255,255,.06);
+        box-shadow: 0 0 80px rgba(91,20,150,.18);
+        overflow: hidden;
+    }
+
+    .top-header {
+        position: relative;
+    }
+}
