@@ -1258,6 +1258,65 @@ app.post(
 
 
 // ============================================================
+// API PLAYER STATUS (Restauration de session)
+// ============================================================
+
+app.get(
+    "/api/player/status",
+    async (req, res) => {
+
+        try {
+            const playerId = String(req.query?.playerId || "").trim();
+            const wallet = normalizeWallet(req.query?.wallet);
+
+            if (!playerId && !wallet) {
+                return res.status(400).json({
+                    success: false,
+                    message: "playerId ou wallet requis."
+                });
+            }
+
+            // Recherche par ID ou par Wallet sur la partie en cours
+            const query = { gameId: game.id };
+            if (playerId) {
+                query._id = playerId;
+            } else {
+                query.wallet = wallet;
+            }
+
+            const player = await Player.findOne(query);
+
+            if (!player) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Aucun joueur trouvé pour cette partie."
+                });
+            }
+
+            res.json({
+                success: true,
+                player: {
+                    id: player._id,
+                    name: player.name,
+                    wallet: player.wallet,
+                    taps: player.taps,
+                    bet: player.bet,
+                    paid: player.paid
+                }
+            });
+
+        } catch (error) {
+            console.error("/api/player/status:", error.message);
+            res.status(500).json({
+                success: false,
+                message: "Erreur serveur."
+            });
+        }
+    }
+);
+
+
+// ============================================================
 // API TAP
 // ============================================================
 
