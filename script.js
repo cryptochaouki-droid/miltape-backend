@@ -1382,7 +1382,7 @@ async function connectTronLink() {
 
 
 /* =========================================================
-   PAIEMENT USDT TRC20
+   PAIEMENT USDT TRC20 (CORRIGÉ AVEC CONVERSION HEX)
 ========================================================= */
 
 async function sendUsdtPayment(
@@ -1448,23 +1448,23 @@ async function sendUsdtPayment(
     }
 
 
-    const contract =
-        await tron
-            .contract()
-            .at(
-                USDT_CONTRACT
-            );
-
-
     let txid;
 
 
     try {
+        // Conversion sécurisée en Hex pour éviter toute erreur "Invalid address provided"
+        const recipientHex = tron.address.toHex(MILTAPE_WALLET);
+        const contractAddressHex = tron.address.toHex(USDT_CONTRACT);
+
+        const contract =
+            await tron
+                .contract()
+                .at(contractAddressHex);
 
         txid =
             await contract
                 .transfer(
-                    MILTAPE_WALLET,
+                    recipientHex,
                     units
                 )
                 .send({
