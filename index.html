@@ -1,6 +1,93 @@
-<div class="tap-zone">
-    <button class="tap-button">
-        <!-- Contenu vidé pour ne plus avoir de texte "TAP" ou "0" -->
-        <div class="tap-glow"></div>
-    </button>
-</div>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tap Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="top-header">
+            <button class="menu-button">☰</button>
+            <div class="online">
+                <div class="online-dot"></div>
+                <span>En ligne : <strong id="online-count">1</strong></span>
+            </div>
+            <div class="wallet-box">
+                <small>WALLET</small>
+                <strong id="user-wallet">0.00</strong>
+            </div>
+            <button class="wallet-button">💎</button>
+        </header>
+
+        <section class="rules">
+            <div class="rule">
+                <div class="rule-icon">⏱️</div>
+                <strong>10 MINUTES</strong>
+                <small>PAR PARTIE</small>
+            </div>
+            <div class="rule">
+                <div class="rule-icon">🏆</div>
+                <strong>TOP 5</strong>
+                <small>SEULEMENT</small>
+            </div>
+            <div class="rule">
+                <div class="rule-icon">🪙</div>
+                <strong>USDT</strong>
+                <small>TRC20</small>
+            </div>
+        </section>
+
+        <div class="timer-card">
+            <small>PROCHAINE SESSION</small>
+            <div class="timer" id="session-timer">10:00</div>
+            <span>TEMPS RESTANT</span>
+        </div>
+
+        <section class="stats">
+            <div class="stat-box">
+                <small>TOTAL TAPS</small>
+                <strong id="total-taps">0</strong>
+            </div>
+            <div class="stat-box">
+                <small>CLASSEMENT</small>
+                <strong id="user-rank">-</strong>
+            </div>
+            <div class="stat-box">
+                <small>GAIN POT.</small>
+                <strong id="potential-reward">0</strong>
+            </div>
+            <div class="stat-box">
+                <small>MISES</small>
+                <strong id="total-pool">0</strong>
+            </div>
+        </section>
+
+        <button class="main-play-button" id="join-btn">
+            <b>⚡</b> CHOISIS TA MISE ET CONNECTE TON WALLET
+        </button>
+
+        <div class="tap-message" id="tap-message"></div>
+
+        <div class="tap-zone">
+            <button class="tap-button" id="tap-btn" disabled>
+                <div class="tap-glow"></div>
+            </button>
+        </div>
+
+        <section class="leaderboard">
+            <div class="leaderboard-list" id="leaderboard-list">
+                <div class="empty-ranking">Aucun joueur pour le moment</div>
+            </div>
+        </section>
+
+        <section class="chat-section">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message"><strong>Système :</strong> Bienvenue dans le jeu !</div>
+            </div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
