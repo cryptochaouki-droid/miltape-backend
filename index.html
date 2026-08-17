@@ -432,16 +432,18 @@
             padding-bottom: 10px;
         }
 
+        /* BOUTON TAP = IMAGE DORÉE */
+
         .tap-button {
             position: relative;
             width: 190px;
             height: 190px;
             min-width: 190px;
             min-height: 190px;
-            border-radius: 50%;
-            border: 4px solid #ffcc00;
+            border: none;
+            border-radius: 0;
             background: transparent;
-            overflow: hidden;
+            overflow: visible;
             cursor: pointer;
             outline: none;
             transition: transform .08s ease-in-out;
@@ -454,10 +456,10 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
+            box-shadow: none;
         }
 
         .tap-button:disabled {
-            opacity: .5;
             cursor: not-allowed;
         }
 
@@ -466,9 +468,10 @@
             inset: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             pointer-events: none;
             z-index: 0;
+            display: block;
         }
 
         /* IMAGE TAP NOW SANS FILTRE */
