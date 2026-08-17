@@ -362,11 +362,11 @@ body {
 
 /* Masqué pour éviter que l'image ne se superpose au texte central */
 .tap-img-bg {
-    display: none;
+    display: none !important;
 }
 
 .tap-button::before {
-    display: none;
+    display: none !important;
 }
 
 .tap-button:not(:disabled):active,
