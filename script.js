@@ -1382,7 +1382,7 @@ async function connectTronLink() {
 
 
 /* =========================================================
-   PAIEMENT USDT TRC20 (CORRIGÉ AVEC CONVERSION HEX)
+   PAIEMENT USDT TRC20 (VERSION ULTRA-SIMPLE & UNIVERSELLE)
 ========================================================= */
 
 async function sendUsdtPayment(
@@ -1396,22 +1396,15 @@ async function sendUsdtPayment(
 
 
     if (!tron) {
-
-        throw new Error(
-            "TRONLINK_NOT_DETECTED"
-        );
+        throw new Error("TRONLINK_NOT_DETECTED");
     }
 
 
-    const from =
-        await getTronLinkAddress();
+    const from = await getTronLinkAddress();
 
 
     if (!from) {
-
-        throw new Error(
-            "WALLET_NOT_CONNECTED"
-        );
+        throw new Error("WALLET_NOT_CONNECTED");
     }
 
 
@@ -1420,20 +1413,14 @@ async function sendUsdtPayment(
         from.toLowerCase() !==
         expectedWallet.toLowerCase()
     ) {
-
-        throw new Error(
-            "WALLET_ADDRESS_CHANGED"
-        );
+        throw new Error("WALLET_ADDRESS_CHANGED");
     }
 
 
     const units =
         Math.round(
             Number(amount) *
-            Math.pow(
-                10,
-                USDT_DECIMALS
-            )
+            Math.pow(10, USDT_DECIMALS)
         );
 
 
@@ -1441,10 +1428,7 @@ async function sendUsdtPayment(
         !Number.isSafeInteger(units) ||
         units <= 0
     ) {
-
-        throw new Error(
-            "MONTANT_INVALIDE"
-        );
+        throw new Error("MONTANT_INVALIDE");
     }
 
 
@@ -1452,77 +1436,44 @@ async function sendUsdtPayment(
 
 
     try {
-        // Conversion sécurisée en Hex pour éviter toute erreur "Invalid address provided"
-        const recipientHex = tron.address.toHex(MILTAPE_WALLET);
-        const contractAddressHex = tron.address.toHex(USDT_CONTRACT);
+        // On récupère le contrat USDT directement avec son adresse de base
+        const contract = await tron.contract().at(USDT_CONTRACT);
 
-        const contract =
-            await tron
-                .contract()
-                .at(contractAddressHex);
-
-        txid =
-            await contract
-                .transfer(
-                    recipientHex,
-                    units
-                )
-                .send({
-                    feeLimit:
-                        100000000,
-                    shouldPollResponse:
-                        true
-                });
+        // On appelle le transfert en passant l'adresse du destinataire en texte brut (Base58)
+        txid = await contract.transfer(
+            MILTAPE_WALLET,
+            units
+        ).send({
+            feeLimit: 100000000,
+            shouldPollResponse: true
+        });
 
     } catch (error) {
 
-        console.error(
-            "USDT transfer:",
-            error
-        );
-
+        console.error("USDT transfer error:", error);
 
         if (
             error?.code === 4001 ||
-            error?.message
-                ?.toLowerCase()
-                ?.includes("reject")
+            error?.message?.toLowerCase()?.includes("reject")
         ) {
-
-            throw new Error(
-                "USER_REJECTED"
-            );
+            throw new Error("USER_REJECTED");
         }
 
-
-        throw error;
+        throw new Error(error?.message || "Erreur lors du transfert USDT");
     }
 
 
-    if (
-        typeof txid === "object" &&
-        txid?.txid
-    ) {
-
-        txid =
-            txid.txid;
+    if (typeof txid === "object" && txid?.txid) {
+        txid = txid.txid;
     }
 
 
     if (!txid) {
-
-        throw new Error(
-            "TRANSACTION_NON_CONFIRMEE"
-        );
+        throw new Error("TRANSACTION_NON_CONFIRMEE");
     }
 
 
-    console.log(
-        "USDT TXID:",
-        txid
-    );
-
-
+    console.log("USDT TXID:", txid);
     return txid;
 }
 
