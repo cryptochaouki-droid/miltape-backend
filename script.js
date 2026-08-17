@@ -1241,19 +1241,16 @@ async function getTronLinkAddress() {
     try {
         let address = "";
 
-        // Vérification de window.tronWeb standard
         if (window.tronWeb) {
             if (typeof window.tronWeb.defaultAddress?.base58 === "string") {
                 address = window.tronWeb.defaultAddress.base58;
             } else if (typeof window.tronWeb.defaultAddress?.hex === "string") {
-                // Conversion du format hex en base58 si nécessaire
                 try {
                     address = window.tronWeb.address.fromHex(window.tronWeb.defaultAddress.hex);
                 } catch (e) {}
             }
         }
 
-        // Si non trouvé, vérification de window.tronLink.tronWeb
         if (!address && window.tronLink && window.tronLink.tronWeb) {
             if (typeof window.tronLink.tronWeb.defaultAddress?.base58 === "string") {
                 address = window.tronLink.tronWeb.defaultAddress.base58;
