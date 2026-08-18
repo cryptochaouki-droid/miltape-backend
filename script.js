@@ -272,7 +272,7 @@ function isValidTronAddress(address) {
 
 function openChallengeForm() {
 
-    connectedWallet = "";
+    connectedWallet = playerAddress || "";
     selectedPaymentMethod = "tron";
 
     dynamicModalTitle.textContent =
@@ -440,25 +440,42 @@ function openChallengeForm() {
                     🔗 TON WALLET TRON (Pour recevoir les gains)
                 </label>
 
+                <input
+                    id="walletInputManual"
+                    type="text"
+                    placeholder="Colle ton adresse Tron (commençant par T...)"
+                    value="${escapeHtml(playerAddress)}"
+                    style="
+                        width:100%;
+                        box-sizing:border-box;
+                        height:52px;
+                        padding:0 14px;
+                        border-radius:12px;
+                        border:1px solid rgba(193,60,255,.35);
+                        background:#090014;
+                        color:#fff;
+                        font-size:14px;
+                        outline:none;
+                        margin-bottom:10px;
+                    "
+                >
+
                 <div
                     id="walletBox"
                     style="
                         width:100%;
                         box-sizing:border-box;
-                        min-height:54px;
-                        padding:12px;
-                        border-radius:12px;
-                        border:1px solid rgba(193,60,255,.35);
-                        background:#090014;
+                        min-height:40px;
+                        padding:8px 12px;
+                        border-radius:10px;
+                        background:rgba(255,255,255,0.03);
                         color:#aaa;
                         font-size:12px;
                         line-height:1.4;
                         word-break:break-all;
                         margin-bottom: 10px;
                     "
-                >
-                    Wallet non connecté
-                </div>
+                >${playerAddress ? 'Adresse actuelle : ' + escapeHtml(playerAddress) : 'Ou connecte ton wallet automatiquement ci-dessous'}</div>
 
 
                 <button
@@ -481,7 +498,7 @@ function openChallengeForm() {
                         box-shadow:0 4px 0 #43137d;
                     "
                 >
-                    🔗 CONNECTER TRONLINK
+                    🔗 DÉTECTER / CONNECTER TRONLINK
                 </button>
             </div>
 
@@ -579,6 +596,9 @@ function openChallengeForm() {
     const nameInput =
         $("playerNameInput");
 
+    const walletInputManual =
+        $("walletInputManual");
+
     const terms =
         $("termsCheckbox");
 
@@ -637,6 +657,11 @@ function openChallengeForm() {
 
         const name =
             nameInput.value.trim();
+
+        const currentManualWallet = walletInputManual.value.trim();
+        if (isValidTronAddress(currentManualWallet)) {
+            connectedWallet = currentManualWallet;
+        }
 
         const validAmount =
             Number.isFinite(amount) &&
@@ -700,6 +725,20 @@ function openChallengeForm() {
         }
     );
 
+    walletInputManual.addEventListener(
+        "input",
+        () => {
+            const val = walletInputManual.value.trim();
+            if (isValidTronAddress(val)) {
+                connectedWallet = val;
+                walletBox.innerHTML = `<span style="color:#2ecc71">Adresse valide saisie</span>`;
+            } else {
+                walletBox.innerHTML = `<span style="color:#ff6b6b">Adresse Tron invalide (doit commencer par T et faire 34 caractères)</span>`;
+            }
+            updateButton();
+        }
+    );
+
 
     terms.addEventListener(
         "change",
@@ -738,57 +777,14 @@ function openChallengeForm() {
                     walletBox.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ TronLink n'est pas détecté.
-                            <br><br>
-                            Ouvre Miltape directement
-                            dans le navigateur DApp
-                            de TronLink.
+                            ❌ TronLink non détecté automatiquement. 
+                            <br>
+                            Tu peux coller ton adresse directement dans le champ ci-dessus.
                         </span>
                         `;
 
-                    return;
-                }
-
-
-                if (
-                    playerAddress &&
-                    playerAddress.toLowerCase() !==
-                    wallet.toLowerCase()
-                ) {
-
-                    connectedWallet = "";
-
-                    walletBox.innerHTML =
-                        `
-                        <span style="
-                            color:#ff6b6b;
-                            font-weight:900;
-                        ">
-
-                            ⚠️ ADRESSE WALLET MODIFIÉE
-
-                        </span>
-
-                        <br><br>
-
-                        <span style="color:#aaa;">
-
-                            Cette adresse est différente
-                            de ton adresse enregistrée.
-
-                        </span>
-
-                        <br><br>
-
-                        <span style="color:#ffcc00;">
-
-                            🔒 Paiement bloqué.
-
-                        </span>
-                        `;
-
-                    updateButton();
-
+                    connectButton.disabled = false;
+                    connectButton.textContent = "🔗 DÉTECTER / CONNECTER TRONLINK";
                     return;
                 }
 
@@ -797,6 +793,9 @@ function openChallengeForm() {
                     wallet;
 
                 playerAddress =
+                    wallet;
+
+                walletInputManual.value =
                     wallet;
 
                 localStorage.setItem(
@@ -841,7 +840,7 @@ function openChallengeForm() {
                 walletBox.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        ❌ Connexion annulée.
+                        ❌ Connexion annulée ou impossible. Colle ton adresse manuellement si besoin.
                     </span>
                     `;
 
@@ -858,7 +857,7 @@ function openChallengeForm() {
                 } else {
 
                     connectButton.textContent =
-                        "🔗 CONNECTER TRONLINK";
+                        "🔗 DÉTECTER / CONNECTER TRONLINK";
                 }
 
                 updateButton();
@@ -882,6 +881,11 @@ function openChallengeForm() {
 
             const name =
                 nameInput.value.trim();
+
+            const manualVal = walletInputManual.value.trim();
+            if (isValidTronAddress(manualVal)) {
+                connectedWallet = manualVal;
+            }
 
 
             if (
@@ -926,7 +930,7 @@ function openChallengeForm() {
                 paymentStatus.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        ❌ Connecte d'abord ton Wallet Tron pour les gains.
+                        ❌ Entre ou connecte une adresse Wallet Tron valide pour les gains.
                     </span>
                     `;
 
@@ -990,28 +994,7 @@ function openChallengeForm() {
             try {
 
                 if (selectedPaymentMethod === "tron") {
-                    const wallet =
-                        await connectTronLink();
-
-                    if (!wallet) {
-                        throw new Error(
-                            "TRONLINK_NOT_DETECTED"
-                        );
-                    }
-
-
-                    if (
-                        wallet.toLowerCase() !==
-                        walletBeforePayment.toLowerCase()
-                    ) {
-                        throw new Error(
-                            "WALLET_ADDRESS_CHANGED"
-                        );
-                    }
-
-                    connectedWallet = wallet;
-
-
+                    
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ffcc00">
@@ -1025,7 +1008,7 @@ function openChallengeForm() {
                     const txid =
                         await sendUsdtPayment(
                             amount,
-                            wallet
+                            walletBeforePayment
                         );
 
 
@@ -1050,7 +1033,7 @@ function openChallengeForm() {
                         await verifyPayment(
                             amount,
                             txid,
-                            wallet,
+                            walletBeforePayment,
                             name
                         );
 
@@ -1164,7 +1147,7 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ TronLink n'est pas détecté.
+                            ❌ TronLink n'est pas détecté. Utilise le remplissage manuel.
                         </span>
                         `;
 
@@ -1177,23 +1160,6 @@ function openChallengeForm() {
                         `
                         <span style="color:#ff6b6b">
                             ❌ Transaction annulée.
-                        </span>
-                        `;
-
-                } else if (
-                    error.message ===
-                    "WALLET_ADDRESS_CHANGED"
-                ) {
-
-                    paymentStatus.innerHTML =
-                        `
-                        <span style="
-                            color:#ff6b6b;
-                            font-weight:900;
-                        ">
-                            ⚠️ ADRESSE WALLET MODIFIÉE
-                            <br><br>
-                            🔒 Paiement bloqué par sécurité.
                         </span>
                         `;
 
@@ -1238,40 +1204,14 @@ function openChallengeForm() {
                     return;
                 }
 
-
-                if (
-                    playerAddress &&
-                    playerAddress.toLowerCase() !==
-                    wallet.toLowerCase()
-                ) {
-
-                    walletBox.innerHTML =
-                        `
-                        <span style="
-                            color:#ff6b6b;
-                            font-weight:900;
-                        ">
-                            ⚠️ ADRESSE DIFFÉRENTE
-                        </span>
-
-                        <br><br>
-
-                        <span style="color:#aaa;">
-                            L'adresse TronLink actuelle
-                            ne correspond pas à ton wallet
-                            enregistré.
-                        </span>
-                        `;
-
-                    return;
-                }
-
-
                 connectedWallet =
                     wallet;
 
-                playerAddress =
-                    wallet;
+                if (!playerAddress) {
+                    playerAddress = wallet;
+                }
+
+                walletInputManual.value = wallet;
 
 
                 localStorage.setItem(
@@ -1437,7 +1377,7 @@ async function connectTronLink() {
 
     for (
         let i = 0;
-        i < 20;
+        i < 10;
         i++
     ) {
 
@@ -1493,20 +1433,11 @@ async function sendUsdtPayment(
     }
 
 
-    const from = await getTronLinkAddress();
+    const from = await getTronLinkAddress() || expectedWallet;
 
 
     if (!from) {
         throw new Error("WALLET_NOT_CONNECTED");
-    }
-
-
-    if (
-        expectedWallet &&
-        from.toLowerCase() !==
-        expectedWallet.toLowerCase()
-    ) {
-        throw new Error("WALLET_ADDRESS_CHANGED");
     }
 
 
