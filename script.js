@@ -2411,6 +2411,29 @@ $("menuRankingsBtn")?.addEventListener(
 
 
 /* =========================================================
+   MODE DÉMO (INTÉGRATION)
+========================================================= */
+
+$("demomodebtn")?.addEventListener("click", () => {
+    closeSideMenu();
+    
+    joinedGame = true;
+    selectedBet = 10;
+    playerName = playerName || "ModeDémo";
+    
+    if (displayBet) {
+        displayBet.textContent = "$" + formatUsdt(selectedBet);
+    }
+    
+    if (tapButton) {
+        tapButton.disabled = false;
+    }
+    
+    showMessage("🎮 MODE DÉMO ACTIVÉ — TU PEUX TESTER LES CLICS !");
+});
+
+
+/* =========================================================
    STATUS BACKEND
 ========================================================= */
 
