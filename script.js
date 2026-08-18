@@ -1,6 +1,6 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
-   SCRIPT FRONTEND COMPLET - CORRIGÉ
+   SCRIPT FRONTEND COMPLET - INTÉGRATION TELEGRAM & TRON
 ========================================================= */
 
 "use strict";
@@ -30,6 +30,20 @@ const GAME_DURATION = 600;
 
 
 /* =========================================================
+   INTEGRATION TELEGRAM WEBAPP
+========================================================= */
+
+const tg = window.Telegram?.WebApp;
+if (tg) {
+    tg.ready();
+    tg.expand();
+}
+
+const tgUser = tg?.initDataUnsafe?.user;
+const telegramId = tgUser ? tgUser.id : null;
+
+
+/* =========================================================
    ETAT
 ========================================================= */
 
@@ -41,8 +55,7 @@ let playerId =
 if (!playerId) {
 
     playerId =
-        "player_" +
-        Date.now() +
+        (telegramId ? "tg_" + telegramId : "player_" + Date.now()) +
         "_" +
         Math.random()
             .toString(36)
@@ -57,7 +70,7 @@ if (!playerId) {
 let playerName =
     localStorage.getItem(
         "miltape_player_name"
-    ) || "";
+    ) || (tgUser ? (tgUser.first_name || tgUser.username) : "");
 
 let playerAddress =
     localStorage.getItem(
@@ -77,6 +90,8 @@ let joinedGame = false;
 let paymentInProgress = false;
 
 let connectedWallet = "";
+
+let selectedPaymentMethod = "tron"; // "tron" ou "stars"
 
 
 /* =========================================================
@@ -258,6 +273,7 @@ function isValidTronAddress(address) {
 function openChallengeForm() {
 
     connectedWallet = "";
+    selectedPaymentMethod = "tron";
 
     dynamicModalTitle.textContent =
         "🎮 Rejoindre la partie";
@@ -294,7 +310,7 @@ function openChallengeForm() {
 
                 Minimum :
                 <strong style="color:#ffcc00;">
-                    ${MINIMUM_BET} USDT
+                    ${MINIMUM_BET} USDT / Stars
                 </strong>
 
                 <br>
@@ -312,7 +328,53 @@ function openChallengeForm() {
                 font-size:13px;
                 font-weight:900;
             ">
-                🪙 TA MISE USDT
+                🪙 MODE DE PAIEMENT
+            </label>
+
+            <div style="display:flex; gap:10px;">
+                <button
+                    type="button"
+                    id="payMethodTron"
+                    style="
+                        flex:1;
+                        min-height:44px;
+                        border-radius:10px;
+                        border:2px solid #ffcc00;
+                        background:#ffcc00;
+                        color:#16051f;
+                        font-weight:900;
+                        cursor:pointer;
+                        font-size:13px;
+                    "
+                >
+                    🔗 TronLink (USDT)
+                </button>
+                <button
+                    type="button"
+                    id="payMethodStars"
+                    style="
+                        flex:1;
+                        min-height:44px;
+                        border-radius:10px;
+                        border:2px solid rgba(255,204,0,.4);
+                        background:#090014;
+                        color:#fff;
+                        font-weight:900;
+                        cursor:pointer;
+                        font-size:13px;
+                    "
+                >
+                    ⭐ Telegram Stars
+                </button>
+            </div>
+
+
+            <label style="
+                color:#ffcc00;
+                font-size:13px;
+                font-weight:900;
+            ">
+                🪙 TA MISE
             </label>
 
             <input
@@ -320,9 +382,9 @@ function openChallengeForm() {
                 type="number"
                 min="${MINIMUM_BET}"
                 max="${MAXIMUM_BET}"
-                step="0.000001"
+                step="1"
                 inputmode="decimal"
-                placeholder="Exemple : 1, 2.50, 10..."
+                placeholder="Exemple : 1, 10, 50..."
                 value=""
                 style="
                     width:100%;
@@ -369,56 +431,59 @@ function openChallengeForm() {
             >
 
 
-            <label style="
-                color:#ffcc00;
-                font-size:13px;
-                font-weight:900;
-            ">
-                🔗 TON WALLET TRON
-            </label>
-
-            <div
-                id="walletBox"
-                style="
-                    width:100%;
-                    box-sizing:border-box;
-                    min-height:54px;
-                    padding:12px;
-                    border-radius:12px;
-                    border:1px solid rgba(193,60,255,.35);
-                    background:#090014;
-                    color:#aaa;
-                    font-size:12px;
-                    line-height:1.4;
-                    word-break:break-all;
-                "
-            >
-                Wallet non connecté
-            </div>
-
-
-            <button
-                id="connectWalletBtn"
-                type="button"
-                style="
-                    width:100%;
-                    min-height:50px;
-                    border:none;
-                    border-radius:12px;
-                    background:linear-gradient(
-                        135deg,
-                        #7b2cff,
-                        #c13cff
-                    );
-                    color:#fff;
+            <div id="tronSection">
+                <label style="
+                    color:#ffcc00;
+                    font-size:13px;
                     font-weight:900;
-                    font-size:14px;
-                    cursor:pointer;
-                    box-shadow:0 4px 0 #43137d;
-                "
-            >
-                🔗 CONNECTER TRONLINK
-            </button>
+                ">
+                    🔗 TON WALLET TRON (Pour recevoir les gains)
+                </label>
+
+                <div
+                    id="walletBox"
+                    style="
+                        width:100%;
+                        box-sizing:border-box;
+                        min-height:54px;
+                        padding:12px;
+                        border-radius:12px;
+                        border:1px solid rgba(193,60,255,.35);
+                        background:#090014;
+                        color:#aaa;
+                        font-size:12px;
+                        line-height:1.4;
+                        word-break:break-all;
+                        margin-bottom: 10px;
+                    "
+                >
+                    Wallet non connecté
+                </div>
+
+
+                <button
+                    id="connectWalletBtn"
+                    type="button"
+                    style="
+                        width:100%;
+                        min-height:50px;
+                        border:none;
+                        border-radius:12px;
+                        background:linear-gradient(
+                            135deg,
+                            #7b2cff,
+                            #c13cff
+                        );
+                        color:#fff;
+                        font-weight:900;
+                        font-size:14px;
+                        cursor:pointer;
+                        box-shadow:0 4px 0 #43137d;
+                    "
+                >
+                    🔗 CONNECTER TRONLINK
+                </button>
+            </div>
 
 
             <label style="
@@ -529,6 +594,35 @@ function openChallengeForm() {
     const paymentStatus =
         $("paymentStatus");
 
+    const btnTron = $("payMethodTron");
+    const btnStars = $("payMethodStars");
+    const tronSection = $("tronSection");
+
+
+    btnTron.addEventListener("click", () => {
+        selectedPaymentMethod = "tron";
+        btnTron.style.background = "#ffcc00";
+        btnTron.style.color = "#16051f";
+        btnTron.style.borderColor = "#ffcc00";
+        btnStars.style.background = "#090014";
+        btnStars.style.color = "#fff";
+        btnStars.style.borderColor = "rgba(255,204,0,.4)";
+        tronSection.style.display = "block";
+        updateButton();
+    });
+
+    btnStars.addEventListener("click", () => {
+        selectedPaymentMethod = "stars";
+        btnStars.style.background = "#ffcc00";
+        btnStars.style.color = "#16051f";
+        btnStars.style.borderColor = "#ffcc00";
+        btnTron.style.background = "#090014";
+        btnTron.style.color = "#fff";
+        btnTron.style.borderColor = "rgba(255,204,0,.4)";
+        tronSection.style.display = "block"; // On garde le champ wallet visible pour y verser les gains éventuels
+        updateButton();
+    });
+
 
     /* =====================================================
        BOUTON
@@ -579,12 +673,10 @@ function openChallengeForm() {
                 : "not-allowed";
 
         if (validAmount) {
-
+            const unitLabel = selectedPaymentMethod === "stars" ? "STARS" : "USDT";
             payButton.textContent =
-                `🪙 PAYER ${formatUsdt(amount)} USDT ET JOUER`;
-
+                `🪙 PAYER ${formatUsdt(amount)} ${unitLabel} ET JOUER`;
         } else {
-
             payButton.textContent =
                 "🪙 PAYER ET JOUER";
         }
@@ -804,8 +896,7 @@ function openChallengeForm() {
                         ❌ Mise entre
                         ${MINIMUM_BET}
                         et
-                        ${formatNumber(MAXIMUM_BET)}
-                        USDT.
+                        ${formatNumber(MAXIMUM_BET)}.
                     </span>
                     `;
 
@@ -835,7 +926,7 @@ function openChallengeForm() {
                 paymentStatus.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        ❌ Connecte d'abord TronLink.
+                        ❌ Connecte d'abord ton Wallet Tron pour les gains.
                     </span>
                     `;
 
@@ -898,96 +989,113 @@ function openChallengeForm() {
 
             try {
 
-                const wallet =
-                    await connectTronLink();
+                if (selectedPaymentMethod === "tron") {
+                    const wallet =
+                        await connectTronLink();
 
-                if (!wallet) {
-
-                    throw new Error(
-                        "TRONLINK_NOT_DETECTED"
-                    );
-                }
-
-
-                if (
-                    wallet.toLowerCase() !==
-                    walletBeforePayment.toLowerCase()
-                ) {
-
-                    throw new Error(
-                        "WALLET_ADDRESS_CHANGED"
-                    );
-                }
+                    if (!wallet) {
+                        throw new Error(
+                            "TRONLINK_NOT_DETECTED"
+                        );
+                    }
 
 
-                if (
-                    playerAddress.toLowerCase() !==
-                    wallet.toLowerCase()
-                ) {
+                    if (
+                        wallet.toLowerCase() !==
+                        walletBeforePayment.toLowerCase()
+                    ) {
+                        throw new Error(
+                            "WALLET_ADDRESS_CHANGED"
+                        );
+                    }
 
-                    throw new Error(
-                        "WALLET_ADDRESS_CHANGED"
-                    );
-                }
-
-
-                connectedWallet =
-                    wallet;
+                    connectedWallet = wallet;
 
 
-                paymentStatus.innerHTML =
-                    `
-                    <span style="color:#ffcc00">
-                        ⏳ Ouverture de TronLink...
-                        <br>
-                        Confirme ${formatUsdt(amount)} USDT
-                    </span>
-                    `;
+                    paymentStatus.innerHTML =
+                        `
+                        <span style="color:#ffcc00">
+                            ⏳ Ouverture de TronLink...
+                            <br>
+                            Confirme ${formatUsdt(amount)} USDT
+                        </span>
+                        `;
 
 
-                const txid =
-                    await sendUsdtPayment(
-                        amount,
-                        wallet
-                    );
+                    const txid =
+                        await sendUsdtPayment(
+                            amount,
+                            wallet
+                        );
 
 
-                if (!txid) {
-
-                    throw new Error(
-                        "TXID_NOT_FOUND"
-                    );
-                }
-
-
-                paymentStatus.innerHTML =
-                    `
-                    <span style="color:#ffcc00">
-                        ⏳ Paiement envoyé.
-                        <br>
-                        Vérification blockchain...
-                    </span>
-                    `;
+                    if (!txid) {
+                        throw new Error(
+                            "TXID_NOT_FOUND"
+                        );
+                    }
 
 
-                const result =
-                    await verifyPayment(
-                        amount,
-                        txid,
-                        wallet,
-                        name
-                    );
+                    paymentStatus.innerHTML =
+                        `
+                        <span style="color:#ffcc00">
+                            ⏳ Paiement envoyé.
+                            <br>
+                            Vérification blockchain...
+                        </span>
+                        `;
 
 
-                if (
-                    !result ||
-                    !result.success
-                ) {
+                    const result =
+                        await verifyPayment(
+                            amount,
+                            txid,
+                            wallet,
+                            name
+                        );
 
-                    throw new Error(
-                        result?.message ||
-                        "PAYMENT_VERIFICATION_FAILED"
-                    );
+
+                    if (
+                        !result ||
+                        !result.success
+                    ) {
+                        throw new Error(
+                            result?.message ||
+                            "PAYMENT_VERIFICATION_FAILED"
+                        );
+                    }
+                } else {
+                    // PAIEMENT TELEGRAM STARS
+                    if (!tg || !telegramId) {
+                        throw new Error("Ouvre le jeu dans Telegram pour utiliser les Stars.");
+                    }
+
+                    paymentStatus.innerHTML =
+                        `<span style="color:#ffcc00">⏳ Création de la facture Telegram Stars...</span>`;
+
+                    const invoiceRes = await fetch(API_URL + "/api/telegram/create-invoice", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ telegramId, amount, name, wallet: connectedWallet })
+                    });
+                    const invoiceData = await invoiceRes.json();
+
+                    if (!invoiceData.success || !invoiceData.invoiceLink) {
+                        throw new Error(invoiceData.message || "Erreur création facture Stars");
+                    }
+
+                    paymentStatus.innerHTML =
+                        `<span style="color:#ffcc00">⏳ Validation du paiement Telegram...</span>`;
+
+                    await new Promise((resolve, reject) => {
+                        tg.openInvoice(invoiceData.invoiceLink, (status) => {
+                            if (status === "paid") {
+                                resolve(true);
+                            } else {
+                                reject(new Error("USER_REJECTED"));
+                            }
+                        });
+                    });
                 }
 
 
@@ -1086,21 +1194,6 @@ function openChallengeForm() {
                             ⚠️ ADRESSE WALLET MODIFIÉE
                             <br><br>
                             🔒 Paiement bloqué par sécurité.
-                            <br><br>
-                            L'adresse utilisée doit rester
-                            identique pendant toute la procédure.
-                        </span>
-                        `;
-
-                } else if (
-                    error.message ===
-                    "PAYMENT_ALREADY_USED"
-                ) {
-
-                    paymentStatus.innerHTML =
-                        `
-                        <span style="color:#ff6b6b">
-                            ❌ Cette transaction a déjà été utilisée.
                         </span>
                         `;
 
@@ -1504,7 +1597,7 @@ async function verifyPayment(
                 body:
                     JSON.stringify({
                         playerId,
-
+                        telegramId,
                         name:
                             name,
 
@@ -1553,7 +1646,7 @@ async function restorePlayerSession() {
         if (!savedPlayerId && !savedWallet) return;
 
         const response = await fetch(
-            `${API_URL}/api/player/status?playerId=${encodeURIComponent(savedPlayerId || "")}&wallet=${encodeURIComponent(savedWallet || "")}`
+            `${API_URL}/api/player/status?playerId=${encodeURIComponent(savedPlayerId || "")}&wallet=${encodeURIComponent(savedWallet || "")}&telegramId=${encodeURIComponent(telegramId || "")}`
         );
 
         const data = await response.json();
@@ -1763,6 +1856,8 @@ function joinSocketGame() {
     socket.emit(
         "player:join",
         {
+            playerId,
+            telegramId,
             name: playerName,
             wallet: playerAddress,
             bet: selectedBet
@@ -2329,7 +2424,7 @@ $("menuRulesBtn")?.addEventListener(
             <p>
                 🪙 Les participations sont en
                 <strong>
-                    USDT TRC20
+                    USDT TRC20 / Telegram Stars
                 </strong>.
             </p>
 
