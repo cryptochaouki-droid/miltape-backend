@@ -910,6 +910,70 @@
         </section>
 
 
+        <!-- JOUER -->
+        <button
+            id="enterChallenge"
+            class="main-play-button"
+            type="button"
+        >
+
+            <span>
+                JOUER MAINTENANT
+            </span>
+
+            <b>
+                ➜
+            </b>
+
+        </button>
+
+
+        <!-- MESSAGE -->
+        <div
+            id="tapMessage"
+            class="tap-message"
+            role="status"
+            aria-live="polite"
+        >
+            ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
+        </div>
+
+
+        <!-- TAP (REMONTÉ JUSTE EN DESSOUS DE JOUER MAINTENANT) -->
+        <section
+            class="tap-zone"
+            aria-label="Zone de tap"
+        >
+
+            <button
+                id="tapButton"
+                class="tap-button"
+                type="button"
+                disabled
+            >
+
+                <img
+                    src="./icon-192~2.jpg"
+                    alt="TAP NOW"
+                    class="tap-img-bg"
+                    draggable="false"
+                >
+
+                <span class="tap-glow"></span>
+
+                <small>
+
+                    <span id="tapButtonCount">
+                        0
+                    </span>
+
+                </small>
+
+            </button>
+
+        </section>
+
+
         <!-- RÈGLES -->
         <section class="rules">
 
@@ -987,70 +1051,6 @@
                 </strong>
 
             </div>
-
-        </section>
-
-
-        <!-- JOUER -->
-        <button
-            id="enterChallenge"
-            class="main-play-button"
-            type="button"
-        >
-
-            <span>
-                JOUER MAINTENANT
-            </span>
-
-            <b>
-                ➜
-            </b>
-
-        </button>
-
-
-        <!-- MESSAGE -->
-        <div
-            id="tapMessage"
-            class="tap-message"
-            role="status"
-            aria-live="polite"
-        >
-            ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
-        </div>
-
-
-        <!-- TAP -->
-        <section
-            class="tap-zone"
-            aria-label="Zone de tap"
-        >
-
-            <button
-                id="tapButton"
-                class="tap-button"
-                type="button"
-                disabled
-            >
-
-                <img
-                    src="./icon-192~2.jpg"
-                    alt="TAP NOW"
-                    class="tap-img-bg"
-                    draggable="false"
-                >
-
-                <span class="tap-glow"></span>
-
-                <small>
-
-                    <span id="tapButtonCount">
-                        0
-                    </span>
-
-                </small>
-
-            </button>
 
         </section>
 
