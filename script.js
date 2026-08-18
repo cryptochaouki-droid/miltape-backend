@@ -639,7 +639,7 @@ function openChallengeForm() {
         btnTron.style.background = "#090014";
         btnTron.style.color = "#fff";
         btnTron.style.borderColor = "rgba(255,204,0,.4)";
-        tronSection.style.display = "block"; // On garde le champ wallet visible pour y verser les gains éventuels
+        tronSection.style.display = "block";
         updateButton();
     });
 
@@ -1048,7 +1048,6 @@ function openChallengeForm() {
                         );
                     }
                 } else {
-                    // PAIEMENT TELEGRAM STARS
                     if (!tg || !telegramId) {
                         throw new Error("Ouvre le jeu dans Telegram pour utiliser les Stars.");
                     }
