@@ -372,22 +372,11 @@ body {
     align-items: center;
     justify-content: center;
     position: relative;
+    margin-top: -20px; /* REPOSITIONNEMENT : Remonté juste en bas du bloc précédent */
 }
 
 .tap-zone::before {
-    content: "";
-    position: absolute;
-    width: 205px;
-    height: 205px;
-    border-radius: 50%;
-    background:
-        radial-gradient(
-            circle,
-            rgba(186, 39, 255, .24),
-            transparent 67%
-        );
-    filter: blur(5px);
-    z-index: 0;
+    display: none; /* SUPPRESSION DU CADRE VIOLET : Désactivé entièrement ici */
 }
 
 /* ============================================================
@@ -431,7 +420,7 @@ body {
     transform: translateY(0) scale(1);
 
     transition:
-        transform .12s cubic-bezier(.2,.8,.2,1),
+        transform .05s ease-in-out,
         filter .12s ease,
         box-shadow .12s ease;
 
@@ -543,16 +532,15 @@ body {
         inset 0 -10px 18px rgba(0,0,0,.30);
 }
 
-/* ÉCLAT LORSQUE LE BOUTON EST ACTIF */
+/* IMMOBILE AU REPOS : Animation de pulsation supprimée */
 .tap-button:not(:disabled) {
-    animation: tapGlow3D 1.8s ease-in-out infinite;
+    animation: none !important;
 }
 
-/* APPUI / CLIC
-   IMPORTANT : le bouton NE RÉTRÉCIT PAS */
+/* APPUI / CLIC UNIQUE UNIQUEMENT QUAND TU TAPES */
 .tap-button:not(:disabled):active,
 .tap-button.tap-active {
-    transform: translateY(8px);
+    transform: translateY(8px) scale(1) !important;
 
     filter:
         brightness(1.35)
@@ -643,47 +631,6 @@ body {
     z-index: 3;
 
     pointer-events: none;
-}
-
-/* ANIMATION 3D LUMINEUSE */
-@keyframes tapGlow3D {
-
-    0% {
-        transform: translateY(0) scale(1);
-
-        box-shadow:
-            0 10px 0 #4b126f,
-            0 14px 18px rgba(0,0,0,.65),
-            0 0 22px rgba(139,44,255,.90),
-            0 0 45px rgba(193,60,255,.65),
-            0 0 65px rgba(255,216,77,.30),
-            inset 0 0 18px rgba(255,255,255,.25);
-    }
-
-    50% {
-        transform: translateY(-2px) scale(1.025);
-
-        box-shadow:
-            0 12px 0 #54177c,
-            0 17px 22px rgba(0,0,0,.70),
-            0 0 32px rgba(139,44,255,1),
-            0 0 60px rgba(193,60,255,.85),
-            0 0 90px rgba(255,216,77,.55),
-            0 0 115px rgba(255,91,32,.25),
-            inset 0 0 24px rgba(255,255,255,.35);
-    }
-
-    100% {
-        transform: translateY(0) scale(1);
-
-        box-shadow:
-            0 10px 0 #4b126f,
-            0 14px 18px rgba(0,0,0,.65),
-            0 0 22px rgba(139,44,255,.90),
-            0 0 45px rgba(193,60,255,.65),
-            0 0 65px rgba(255,216,77,.30),
-            inset 0 0 18px rgba(255,255,255,.25);
-    }
 }
 
 .leaderboard {
