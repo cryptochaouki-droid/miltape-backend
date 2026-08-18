@@ -67,7 +67,7 @@ body {
 
 .app::before {
     content: "";
-    position: fixed;
+    position: absolute;
     width: 320px;
     height: 320px;
     top: 80px;
@@ -392,7 +392,7 @@ body {
 
 /* IMAGE DU BOUTON */
 .tap-img-bg {
-    display: block !important;
+    display: block;
 
     position: absolute;
     inset: 0;
@@ -498,11 +498,11 @@ body {
    IMPORTANT : le bouton NE RÉTRÉCIT PAS */
 .tap-button:not(:disabled):active,
 .tap-button.tap-active {
-    transform: translateY(8px) !important;
+    transform: translateY(8px);
 
     filter:
         brightness(1.35)
-        saturate(1.45) !important;
+        saturate(1.45);
 
     box-shadow:
         0 2px 0 #4b126f,
@@ -511,7 +511,7 @@ body {
         0 0 55px rgba(255,216,77,.85),
         0 0 85px rgba(255,91,32,.60),
         0 0 110px rgba(255,47,210,.35),
-        inset 0 0 25px rgba(255,255,255,.40) !important;
+        inset 0 0 25px rgba(255,255,255,.40);
 }
 
 .tap-button:not(:disabled):active .tap-img-bg,
