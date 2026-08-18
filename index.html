@@ -599,190 +599,569 @@
     <!-- MENU -->
     <aside id="sideMenu" class="side-menu">
         <button id="closeMenu" class="close-menu" type="button">×</button>
+
         <div class="side-menu-content">
+
             <h3>🧭 Menu Miltape</h3>
-            <div class="menu-block">
-                <button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button>
-                <button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button>
-                <button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button>
-                <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button>
-                <button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button>
-                <button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button>
-                <button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button>
-                <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
-            </div>
-            
-            <!-- BOUTON MODE DÉMO INTÉGRÉ RAPIDEMENT -->
-            <div class="menu-block" style="text-align: center;">
-                <button id="demoModeBtn" class="menu-nav-btn" type="button" style="background: rgba(255,204,0,0.2); color: #ffcc00; font-weight: bold; text-align: center;">
-                    🎮 ACTIVER MODE DÉMO
-                </button>
-            </div>
 
             <div class="menu-block">
-                <label for="languageSelect">🌐 Langue</label>
+
+                <button class="menu-nav-btn" id="menuGamesBtn" type="button">
+                    🎮 Mes parties
+                </button>
+
+                <button class="menu-nav-btn" id="menuRankingsBtn" type="button">
+                    🏆 Mes classements
+                </button>
+
+                <button class="menu-nav-btn" id="menuGainsBtn" type="button">
+                    💰 Mes gains
+                </button>
+
+                <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">
+                    💸 Mes retraits
+                </button>
+
+                <button class="menu-nav-btn" id="menuReferralBtn" type="button">
+                    👥 Parrainage
+                </button>
+
+                <button class="menu-nav-btn" id="menuChatBtn" type="button">
+                    💬 Chat
+                </button>
+
+                <button class="menu-nav-btn" id="menuRulesBtn" type="button">
+                    📜 Règles
+                </button>
+
+                <a
+                    href="./conditions.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="menu-nav-btn"
+                >
+                    📄 Conditions d'utilisation
+                </a>
+
+            </div>
+
+
+            <!-- MODE DEMO -->
+            <div class="menu-block" style="text-align:center;">
+
+                <button
+                    id="demomodebtn"
+                    class="menu-nav-btn"
+                    type="button"
+                    style="
+                        background:rgba(255,204,0,0.2);
+                        color:#ffcc00;
+                        font-weight:bold;
+                        text-align:center;
+                        border:1px solid rgba(255,204,0,.35);
+                    "
+                >
+                    🎮 ACTIVER MODE DÉMO
+                </button>
+
+            </div>
+
+
+            <div class="menu-block">
+
+                <label for="languageSelect">
+                    🌐 Langue
+                </label>
+
                 <select id="languageSelect">
-                    <option value="fr">Français</option>
-                    <option value="en">English</option>
+
+                    <option value="fr">
+                        Français
+                    </option>
+
+                    <option value="en">
+                        English
+                    </option>
+
                 </select>
+
             </div>
+
+
             <div class="menu-block trust-contact-box">
-                <h4>🛡️ Support & Confiance</h4>
-                <p style="font-size:12px;color:#b8b8b8;">Une question ? Un problème ?</p>
-                <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
+
+                <h4>
+                    🛡️ Support & Confiance
+                </h4>
+
+                <p style="font-size:12px;color:#b8b8b8;">
+                    Une question ? Un problème ?
+                </p>
+
+                <a
+                    href="https://t.me/ton_canal_telegram"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="support-link"
+                >
+                    📢 Telegram officiel
+                </a>
+
                 <div style="margin-top:8px;font-size:12px;">
-                    <a href="mailto:miltapesupport@gmail.com" style="color:#ffcc00;text-decoration:none;">📧 miltapesupport@gmail.com</a>
+
+                    <a
+                        href="mailto:miltapesupport@gmail.com"
+                        style="color:#ffcc00;text-decoration:none;"
+                    >
+                        📧 miltapesupport@gmail.com
+                    </a>
+
                 </div>
+
             </div>
+
         </div>
+
     </aside>
+
 
     <div id="menuOverlay" class="menu-overlay"></div>
 
+
     <!-- MODAL -->
-    <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
+    <div
+        id="dynamicModal"
+        class="legal-modal"
+        role="dialog"
+        aria-modal="true"
+    >
+
         <div class="legal-content">
-            <button id="closeDynamicModal" class="legal-close" type="button">×</button>
-            <h3 id="dynamicModalTitle">Miltape</h3>
+
+            <button
+                id="closeDynamicModal"
+                class="legal-close"
+                type="button"
+            >
+                ×
+            </button>
+
+            <h3 id="dynamicModalTitle">
+                Miltape
+            </h3>
+
             <div id="dynamicModalBody"></div>
+
         </div>
+
     </div>
+
 
     <!-- APP -->
     <main class="app">
 
         <!-- HEADER -->
         <header class="top-header">
-            <button class="menu-button" id="menuButton" type="button">☰</button>
-            <div class="online">
-                <strong id="onlineCount">
-                    <span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span>
-                    <span>1 EN LIGNE</span>
-                </strong>
-            </div>
-            <div class="wallet-box">
-                <small>MISE USDT</small>
-                <strong id="displayBet">$0</strong>
-            </div>
-            <button class="wallet-button" id="walletButton" type="button">
-                💰 <span id="globalTotalStakes">$0</span>
+
+            <button
+                class="menu-button"
+                id="menuButton"
+                type="button"
+            >
+                ☰
             </button>
+
+            <div class="online">
+
+                <strong id="onlineCount">
+
+                    <span
+                        style="
+                            display:inline-block;
+                            width:8px;
+                            height:8px;
+                            background:#2ecc71;
+                            border-radius:50%;
+                            margin-right:5px;
+                        "
+                    ></span>
+
+                    <span>
+                        1 EN LIGNE
+                    </span>
+
+                </strong>
+
+            </div>
+
+            <div class="wallet-box">
+
+                <small>
+                    MISE USDT
+                </small>
+
+                <strong id="displayBet">
+                    $0
+                </strong>
+
+            </div>
+
+            <button
+                class="wallet-button"
+                id="walletButton"
+                type="button"
+            >
+                💰
+                <span id="globalTotalStakes">
+                    $0
+                </span>
+            </button>
+
         </header>
+
 
         <!-- HERO INTERACTIVE -->
         <section class="hero-banner-container">
-            <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
+
+            <img
+                src="./tap-art.jpg"
+                alt="Miltape World Challenge"
+                class="hero-bg-image"
+            >
+
             <div class="hero-header-overlay">
+
                 <!-- Profil joueur -->
                 <div class="player-profile-badge">
-                    <div class="avatar-icon">👤</div>
-                    <div class="profile-text">
-                        <span class="p-name">MILTAPER</span>
-                        <span class="p-level">Level 12</span>
+
+                    <div class="avatar-icon">
+                        👤
                     </div>
+
+                    <div class="profile-text">
+
+                        <span class="p-name">
+                            MILTAPER
+                        </span>
+
+                        <span class="p-level">
+                            Level 12
+                        </span>
+
+                    </div>
+
                 </div>
+
 
                 <!-- Chrono dynamique -->
-                <div class="timer-badge-top" id="topTimerBox">
-                    <span class="tb-label">TEMPS RESTANT</span>
-                    <span class="tb-value" id="timer">10:00</span>
-                    <small class="tb-sub">EN DIRECT</small>
+                <div
+                    class="timer-badge-top"
+                    id="topTimerBox"
+                >
+
+                    <span class="tb-label">
+                        TEMPS RESTANT
+                    </span>
+
+                    <span
+                        class="tb-value"
+                        id="timer"
+                    >
+                        10:00
+                    </span>
+
+                    <small class="tb-sub">
+                        EN DIRECT
+                    </small>
+
                 </div>
 
+
                 <!-- Solde / Mise USDT dynamique interactif -->
-                <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
+                <div
+                    class="wallet-badge-top"
+                    id="enterChallengeTop"
+                    title="Modifier ta mise"
+                >
+
                     <div>
-                        <span class="wb-label">MISE USDT</span>
-                        <span class="wb-value" id="displayBetTop">$0</span>
+
+                        <span class="wb-label">
+                            MISE USDT
+                        </span>
+
+                        <span
+                            class="wb-value"
+                            id="displayBetTop"
+                        >
+                            $0
+                        </span>
+
                     </div>
-                    <div class="wallet-icon">👛</div>
+
+                    <div class="wallet-icon">
+                        👛
+                    </div>
+
                 </div>
+
             </div>
+
         </section>
+
 
         <!-- RÈGLES -->
         <section class="rules">
+
             <div class="rule">
-                <span class="rule-icon">⏱️</span>
-                <strong>10 MINUTES</strong>
-                <small>PAR PARTIE</small>
+
+                <span class="rule-icon">
+                    ⏱️
+                </span>
+
+                <strong>
+                    10 MINUTES
+                </strong>
+
+                <small>
+                    PAR PARTIE
+                </small>
+
             </div>
+
             <div class="rule">
-                <span class="rule-icon">🏆</span>
-                <strong>TOP 5</strong>
-                <small>SEULEMENT</small>
+
+                <span class="rule-icon">
+                    🏆
+                </span>
+
+                <strong>
+                    TOP 5
+                </strong>
+
+                <small>
+                    SEULEMENT
+                </small>
+
             </div>
+
             <div class="rule">
-                <span class="rule-icon">🪙</span>
-                <strong>USDT</strong>
-                <small>TRC20</small>
+
+                <span class="rule-icon">
+                    🪙
+                </span>
+
+                <strong>
+                    USDT
+                </strong>
+
+                <small>
+                    TRC20
+                </small>
+
             </div>
+
         </section>
+
 
         <!-- STATS -->
-        <section class="stats" style="display:flex;justify-content:center;">
-            <div class="stat-box" style="width:100%;max-width:300px;">
-                <small>TES TAPS</small>
-                <strong id="tapCount" style="font-size:28px;color:#ffcc00;">0</strong>
+        <section
+            class="stats"
+            style="display:flex;justify-content:center;"
+        >
+
+            <div
+                class="stat-box"
+                style="width:100%;max-width:300px;"
+            >
+
+                <small>
+                    TES TAPS
+                </small>
+
+                <strong
+                    id="tapCount"
+                    style="font-size:28px;color:#ffcc00;"
+                >
+                    0
+                </strong>
+
             </div>
+
         </section>
 
+
         <!-- JOUER -->
-        <button id="enterChallenge" class="main-play-button" type="button">
-            <span>JOUER MAINTENANT</span>
-            <b>➜</b>
+        <button
+            id="enterChallenge"
+            class="main-play-button"
+            type="button"
+        >
+
+            <span>
+                JOUER MAINTENANT
+            </span>
+
+            <b>
+                ➜
+            </b>
+
         </button>
 
+
         <!-- MESSAGE -->
-        <div id="tapMessage" class="tap-message" role="status" aria-live="polite">
+        <div
+            id="tapMessage"
+            class="tap-message"
+            role="status"
+            aria-live="polite"
+        >
             ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
         </div>
 
+
         <!-- TAP -->
-        <section class="tap-zone" aria-label="Zone de tap">
-            <button id="tapButton" class="tap-button" type="button" disabled>
-                <img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false">
+        <section
+            class="tap-zone"
+            aria-label="Zone de tap"
+        >
+
+            <button
+                id="tapButton"
+                class="tap-button"
+                type="button"
+                disabled
+            >
+
+                <img
+                    src="./icon-192~2.jpg"
+                    alt="TAP NOW"
+                    class="tap-img-bg"
+                    draggable="false"
+                >
+
                 <span class="tap-glow"></span>
+
                 <small>
-                    <span id="tapButtonCount">0</span>
+
+                    <span id="tapButtonCount">
+                        0
+                    </span>
+
                 </small>
+
             </button>
+
         </section>
+
 
         <!-- CLASSEMENT -->
         <section class="leaderboard">
+
             <div class="section-title">
-                <span>🏆 CLASSEMENT</span>
-                <strong>TOP 5</strong>
+
+                <span>
+                    🏆 CLASSEMENT
+                </span>
+
+                <strong>
+                    TOP 5
+                </strong>
+
             </div>
-            <div id="leaderboardList" class="leaderboard-list">
-                <div class="empty-ranking">Aucun joueur pour le moment</div>
+
+            <div
+                id="leaderboardList"
+                class="leaderboard-list"
+            >
+
+                <div class="empty-ranking">
+                    Aucun joueur pour le moment
+                </div>
+
             </div>
+
         </section>
+
 
         <!-- CHAT -->
-        <section class="chat-section" id="globalChat">
+        <section
+            class="chat-section"
+            id="globalChat"
+        >
+
             <div class="section-title">
-                <span>💬 CHAT GLOBAL</span>
-                <strong>LIVE</strong>
+
+                <span>
+                    💬 CHAT GLOBAL
+                </span>
+
+                <strong>
+                    LIVE
+                </strong>
+
             </div>
-            <div id="chatMessages" class="chat-messages">
+
+            <div
+                id="chatMessages"
+                class="chat-messages"
+            >
+
                 <div class="chat-message">
-                    <strong>Système :</strong> Bienvenue sur Miltape !
+
+                    <strong>
+                        Système :
+                    </strong>
+
+                    Bienvenue sur Miltape !
+
                 </div>
+
             </div>
-            <div class="chat-input-box" id="chatInputBox">
-                <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="200" autocomplete="off" enterkeyhint="send" inputmode="text">
-                <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
+
+            <div
+                class="chat-input-box"
+                id="chatInputBox"
+            >
+
+                <input
+                    type="text"
+                    id="chatInput"
+                    placeholder="Écris ton message..."
+                    maxlength="200"
+                    autocomplete="off"
+                    enterkeyhint="send"
+                    inputmode="text"
+                >
+
+                <button
+                    id="chatSend"
+                    type="button"
+                    aria-label="Envoyer le message"
+                >
+                    ➤
+                </button>
+
             </div>
+
         </section>
 
-        <div style="width:100%;height:40px;"></div>
+
+        <div
+            style="
+                width:100%;
+                height:40px;
+            "
+        ></div>
 
     </main>
 
+
     <!-- SCRIPT PRINCIPAL -->
-    <script src="./script.js" defer></script>
+    <script
+        src="./script.js"
+        defer
+    ></script>
 
 </body>
 
