@@ -34,6 +34,7 @@ const GAME_DURATION = 600;
 ========================================================= */
 
 const tg = window.Telegram?.WebApp;
+
 if (tg) {
     tg.ready();
     tg.expand();
@@ -91,7 +92,7 @@ let paymentInProgress = false;
 
 let connectedWallet = "";
 
-let selectedPaymentMethod = "tron"; // "tron" ou "stars"
+let selectedPaymentMethod = "tron";
 
 
 /* =========================================================
@@ -255,13 +256,15 @@ dynamicModal?.addEventListener(
 
 
 /* =========================================================
-   VALIDATION TRON (INDÉPENDANTE DE TRONWEB)
+   VALIDATION TRON
 ========================================================= */
 
 function isValidTronAddress(address) {
+
     if (!address || typeof address !== "string") {
         return false;
     }
+
     return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
 }
 
@@ -332,6 +335,7 @@ function openChallengeForm() {
             </label>
 
             <div style="display:flex; gap:10px;">
+
                 <button
                     type="button"
                     id="payMethodTron"
@@ -349,6 +353,7 @@ function openChallengeForm() {
                 >
                     🔗 TronLink (USDT)
                 </button>
+
                 <button
                     type="button"
                     id="payMethodStars"
@@ -366,6 +371,7 @@ function openChallengeForm() {
                 >
                     ⭐ Telegram Stars
                 </button>
+
             </div>
 
 
@@ -432,6 +438,7 @@ function openChallengeForm() {
 
 
             <div id="tronSection">
+
                 <label style="
                     color:#ffcc00;
                     font-size:13px;
@@ -473,9 +480,16 @@ function openChallengeForm() {
                         font-size:12px;
                         line-height:1.4;
                         word-break:break-all;
-                        margin-bottom: 10px;
+                        margin-bottom:10px;
                     "
-                >${playerAddress ? 'Adresse actuelle : ' + escapeHtml(playerAddress) : 'Ou connecte ton wallet automatiquement ci-dessous'}</div>
+                >
+                    ${
+                        playerAddress
+                            ? "Adresse actuelle : " +
+                              escapeHtml(playerAddress)
+                            : "Ou connecte ton wallet automatiquement ci-dessous"
+                    }
+                </div>
 
 
                 <button
@@ -500,6 +514,7 @@ function openChallengeForm() {
                 >
                     🔗 DÉTECTER / CONNECTER TRONLINK
                 </button>
+
             </div>
 
 
@@ -614,34 +629,78 @@ function openChallengeForm() {
     const paymentStatus =
         $("paymentStatus");
 
-    const btnTron = $("payMethodTron");
-    const btnStars = $("payMethodStars");
-    const tronSection = $("tronSection");
+    const btnTron =
+        $("payMethodTron");
+
+    const btnStars =
+        $("payMethodStars");
+
+    const tronSection =
+        $("tronSection");
 
 
-    btnTron.addEventListener("click", () => {
-        selectedPaymentMethod = "tron";
-        btnTron.style.background = "#ffcc00";
-        btnTron.style.color = "#16051f";
-        btnTron.style.borderColor = "#ffcc00";
-        btnStars.style.background = "#090014";
-        btnStars.style.color = "#fff";
-        btnStars.style.borderColor = "rgba(255,204,0,.4)";
-        tronSection.style.display = "block";
-        updateButton();
-    });
+    btnTron.addEventListener(
+        "click",
+        () => {
 
-    btnStars.addEventListener("click", () => {
-        selectedPaymentMethod = "stars";
-        btnStars.style.background = "#ffcc00";
-        btnStars.style.color = "#16051f";
-        btnStars.style.borderColor = "#ffcc00";
-        btnTron.style.background = "#090014";
-        btnTron.style.color = "#fff";
-        btnTron.style.borderColor = "rgba(255,204,0,.4)";
-        tronSection.style.display = "block";
-        updateButton();
-    });
+            selectedPaymentMethod = "tron";
+
+            btnTron.style.background =
+                "#ffcc00";
+
+            btnTron.style.color =
+                "#16051f";
+
+            btnTron.style.borderColor =
+                "#ffcc00";
+
+            btnStars.style.background =
+                "#090014";
+
+            btnStars.style.color =
+                "#fff";
+
+            btnStars.style.borderColor =
+                "rgba(255,204,0,.4)";
+
+            tronSection.style.display =
+                "block";
+
+            updateButton();
+        }
+    );
+
+
+    btnStars.addEventListener(
+        "click",
+        () => {
+
+            selectedPaymentMethod = "stars";
+
+            btnStars.style.background =
+                "#ffcc00";
+
+            btnStars.style.color =
+                "#16051f";
+
+            btnStars.style.borderColor =
+                "#ffcc00";
+
+            btnTron.style.background =
+                "#090014";
+
+            btnTron.style.color =
+                "#fff";
+
+            btnTron.style.borderColor =
+                "rgba(255,204,0,.4)";
+
+            tronSection.style.display =
+                "block";
+
+            updateButton();
+        }
+    );
 
 
     /* =====================================================
@@ -658,9 +717,16 @@ function openChallengeForm() {
         const name =
             nameInput.value.trim();
 
-        const currentManualWallet = walletInputManual.value.trim();
-        if (isValidTronAddress(currentManualWallet)) {
-            connectedWallet = currentManualWallet;
+        const currentManualWallet =
+            walletInputManual.value.trim();
+
+        if (
+            isValidTronAddress(
+                currentManualWallet
+            )
+        ) {
+            connectedWallet =
+                currentManualWallet;
         }
 
         const validAmount =
@@ -698,10 +764,17 @@ function openChallengeForm() {
                 : "not-allowed";
 
         if (validAmount) {
-            const unitLabel = selectedPaymentMethod === "stars" ? "STARS" : "USDT";
+
+            const unitLabel =
+                selectedPaymentMethod === "stars"
+                    ? "STARS"
+                    : "USDT";
+
             payButton.textContent =
                 `🪙 PAYER ${formatUsdt(amount)} ${unitLabel} ET JOUER`;
+
         } else {
+
             payButton.textContent =
                 "🪙 PAYER ET JOUER";
         }
@@ -725,16 +798,39 @@ function openChallengeForm() {
         }
     );
 
+
     walletInputManual.addEventListener(
         "input",
         () => {
-            const val = walletInputManual.value.trim();
-            if (isValidTronAddress(val)) {
-                connectedWallet = val;
-                walletBox.innerHTML = `<span style="color:#2ecc71">Adresse valide saisie</span>`;
+
+            const val =
+                walletInputManual.value.trim();
+
+            if (
+                isValidTronAddress(val)
+            ) {
+
+                connectedWallet =
+                    val;
+
+                walletBox.innerHTML =
+                    `
+                    <span style="color:#2ecc71">
+                        Adresse valide saisie
+                    </span>
+                    `;
+
             } else {
-                walletBox.innerHTML = `<span style="color:#ff6b6b">Adresse Tron invalide (doit commencer par T et faire 34 caractères)</span>`;
+
+                walletBox.innerHTML =
+                    `
+                    <span style="color:#ff6b6b">
+                        Adresse Tron invalide
+                        (doit commencer par T et faire 34 caractères)
+                    </span>
+                    `;
             }
+
             updateButton();
         }
     );
@@ -777,14 +873,19 @@ function openChallengeForm() {
                     walletBox.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ TronLink non détecté automatiquement. 
+                            ❌ TronLink non détecté automatiquement.
                             <br>
-                            Tu peux coller ton adresse directement dans le champ ci-dessus.
+                            Tu peux coller ton adresse directement
+                            dans le champ ci-dessus.
                         </span>
                         `;
 
-                    connectButton.disabled = false;
-                    connectButton.textContent = "🔗 DÉTECTER / CONNECTER TRONLINK";
+                    connectButton.disabled =
+                        false;
+
+                    connectButton.textContent =
+                        "🔗 DÉTECTER / CONNECTER TRONLINK";
+
                     return;
                 }
 
@@ -840,7 +941,8 @@ function openChallengeForm() {
                 walletBox.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        ❌ Connexion annulée ou impossible. Colle ton adresse manuellement si besoin.
+                        ❌ Connexion annulée ou impossible.
+                        Colle ton adresse manuellement si besoin.
                     </span>
                     `;
 
@@ -882,9 +984,16 @@ function openChallengeForm() {
             const name =
                 nameInput.value.trim();
 
-            const manualVal = walletInputManual.value.trim();
-            if (isValidTronAddress(manualVal)) {
-                connectedWallet = manualVal;
+            const manualVal =
+                walletInputManual.value.trim();
+
+            if (
+                isValidTronAddress(
+                    manualVal
+                )
+            ) {
+                connectedWallet =
+                    manualVal;
             }
 
 
@@ -930,7 +1039,8 @@ function openChallengeForm() {
                 paymentStatus.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        ❌ Entre ou connecte une adresse Wallet Tron valide pour les gains.
+                        ❌ Entre ou connecte une adresse
+                        Wallet Tron valide pour les gains.
                     </span>
                     `;
 
@@ -993,8 +1103,11 @@ function openChallengeForm() {
 
             try {
 
-                if (selectedPaymentMethod === "tron") {
-                    
+                if (
+                    selectedPaymentMethod ===
+                    "tron"
+                ) {
+
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ffcc00">
@@ -1013,6 +1126,7 @@ function openChallengeForm() {
 
 
                     if (!txid) {
+
                         throw new Error(
                             "TXID_NOT_FOUND"
                         );
@@ -1042,42 +1156,108 @@ function openChallengeForm() {
                         !result ||
                         !result.success
                     ) {
+
                         throw new Error(
                             result?.message ||
                             "PAYMENT_VERIFICATION_FAILED"
                         );
                     }
+
                 } else {
-                    if (!tg || !telegramId) {
-                        throw new Error("Ouvre le jeu dans Telegram pour utiliser les Stars.");
+
+                    if (
+                        !tg ||
+                        !telegramId
+                    ) {
+
+                        throw new Error(
+                            "Ouvre le jeu dans Telegram pour utiliser les Stars."
+                        );
                     }
 
-                    paymentStatus.innerHTML =
-                        `<span style="color:#ffcc00">⏳ Création de la facture Telegram Stars...</span>`;
-
-                    const invoiceRes = await fetch(API_URL + "/api/telegram/create-invoice", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ telegramId, amount, name, wallet: connectedWallet })
-                    });
-                    const invoiceData = await invoiceRes.json();
-
-                    if (!invoiceData.success || !invoiceData.invoiceLink) {
-                        throw new Error(invoiceData.message || "Erreur création facture Stars");
-                    }
 
                     paymentStatus.innerHTML =
-                        `<span style="color:#ffcc00">⏳ Validation du paiement Telegram...</span>`;
+                        `
+                        <span style="color:#ffcc00">
+                            ⏳ Création de la facture Telegram Stars...
+                        </span>
+                        `;
 
-                    await new Promise((resolve, reject) => {
-                        tg.openInvoice(invoiceData.invoiceLink, (status) => {
-                            if (status === "paid") {
-                                resolve(true);
-                            } else {
-                                reject(new Error("USER_REJECTED"));
+
+                    const invoiceRes =
+                        await fetch(
+                            API_URL +
+                            "/api/telegram/create-invoice",
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        telegramId,
+                                        amount,
+                                        name,
+                                        wallet:
+                                            connectedWallet
+                                    })
                             }
-                        });
-                    });
+                        );
+
+
+                    const invoiceData =
+                        await invoiceRes.json();
+
+
+                    if (
+                        !invoiceData.success ||
+                        !invoiceData.invoiceLink
+                    ) {
+
+                        throw new Error(
+                            invoiceData.message ||
+                            "Erreur création facture Stars"
+                        );
+                    }
+
+
+                    paymentStatus.innerHTML =
+                        `
+                        <span style="color:#ffcc00">
+                            ⏳ Validation du paiement Telegram...
+                        </span>
+                        `;
+
+
+                    await new Promise(
+                        (resolve, reject) => {
+
+                            tg.openInvoice(
+                                invoiceData.invoiceLink,
+                                status => {
+
+                                    if (
+                                        status ===
+                                        "paid"
+                                    ) {
+
+                                        resolve(true);
+
+                                    } else {
+
+                                        reject(
+                                            new Error(
+                                                "USER_REJECTED"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
                 }
 
 
@@ -1146,7 +1326,8 @@ function openChallengeForm() {
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ TronLink n'est pas détecté. Utilise le remplissage manuel.
+                            ❌ TronLink n'est pas détecté.
+                            Utilise le remplissage manuel.
                         </span>
                         `;
 
@@ -1207,10 +1388,12 @@ function openChallengeForm() {
                     wallet;
 
                 if (!playerAddress) {
-                    playerAddress = wallet;
+                    playerAddress =
+                        wallet;
                 }
 
-                walletInputManual.value = wallet;
+                walletInputManual.value =
+                    wallet;
 
 
                 localStorage.setItem(
@@ -1266,37 +1449,101 @@ function openChallengeForm() {
 
 
 /* =========================================================
-   TRONLINK DETECTION (CORRIGÉ ET SANS TRONWEB.ISADDRESS)
+   TRONLINK DETECTION
 ========================================================= */
 
 async function getTronLinkAddress() {
 
     try {
+
         let address = "";
 
         if (window.tronWeb) {
-            if (typeof window.tronWeb.defaultAddress?.base58 === "string") {
-                address = window.tronWeb.defaultAddress.base58;
-            } else if (typeof window.tronWeb.defaultAddress?.hex === "string") {
+
+            if (
+                typeof window.tronWeb
+                    .defaultAddress
+                    ?.base58 === "string"
+            ) {
+
+                address =
+                    window.tronWeb
+                        .defaultAddress
+                        .base58;
+
+            } else if (
+                typeof window.tronWeb
+                    .defaultAddress
+                    ?.hex === "string"
+            ) {
+
                 try {
-                    address = window.tronWeb.address.fromHex(window.tronWeb.defaultAddress.hex);
+
+                    address =
+                        window.tronWeb.address
+                            .fromHex(
+                                window.tronWeb
+                                    .defaultAddress
+                                    .hex
+                            );
+
                 } catch (e) {}
             }
         }
 
-        if (!address && window.tronLink && window.tronLink.tronWeb) {
-            if (typeof window.tronLink.tronWeb.defaultAddress?.base58 === "string") {
-                address = window.tronLink.tronWeb.defaultAddress.base58;
-            } else if (typeof window.tronLink.tronWeb.defaultAddress?.hex === "string") {
+
+        if (
+            !address &&
+            window.tronLink &&
+            window.tronLink.tronWeb
+        ) {
+
+            if (
+                typeof window.tronLink
+                    .tronWeb
+                    .defaultAddress
+                    ?.base58 === "string"
+            ) {
+
+                address =
+                    window.tronLink
+                        .tronWeb
+                        .defaultAddress
+                        .base58;
+
+            } else if (
+                typeof window.tronLink
+                    .tronWeb
+                    .defaultAddress
+                    ?.hex === "string"
+            ) {
+
                 try {
-                    address = window.tronLink.tronWeb.address.fromHex(window.tronLink.tronWeb.defaultAddress.hex);
+
+                    address =
+                        window.tronLink
+                            .tronWeb
+                            .address
+                            .fromHex(
+                                window.tronLink
+                                    .tronWeb
+                                    .defaultAddress
+                                    .hex
+                            );
+
                 } catch (e) {}
             }
         }
 
-        if (address && isValidTronAddress(address)) {
+
+        if (
+            address &&
+            isValidTronAddress(address)
+        ) {
+
             return address;
         }
+
 
         return "";
 
@@ -1414,7 +1661,7 @@ async function connectTronLink() {
 
 
 /* =========================================================
-   PAIEMENT USDT TRC20 (VERSION ULTRA-SIMPLE & UNIVERSELLE)
+   PAIEMENT USDT TRC20
 ========================================================= */
 
 async function sendUsdtPayment(
@@ -1428,22 +1675,31 @@ async function sendUsdtPayment(
 
 
     if (!tron) {
-        throw new Error("TRONLINK_NOT_DETECTED");
+        throw new Error(
+            "TRONLINK_NOT_DETECTED"
+        );
     }
 
 
-    const from = await getTronLinkAddress() || expectedWallet;
+    const from =
+        await getTronLinkAddress() ||
+        expectedWallet;
 
 
     if (!from) {
-        throw new Error("WALLET_NOT_CONNECTED");
+        throw new Error(
+            "WALLET_NOT_CONNECTED"
+        );
     }
 
 
     const units =
         Math.round(
             Number(amount) *
-            Math.pow(10, USDT_DECIMALS)
+            Math.pow(
+                10,
+                USDT_DECIMALS
+            )
         );
 
 
@@ -1451,7 +1707,10 @@ async function sendUsdtPayment(
         !Number.isSafeInteger(units) ||
         units <= 0
     ) {
-        throw new Error("MONTANT_INVALIDE");
+
+        throw new Error(
+            "MONTANT_INVALIDE"
+        );
     }
 
 
@@ -1459,42 +1718,75 @@ async function sendUsdtPayment(
 
 
     try {
-        const contract = await tron.contract().at(USDT_CONTRACT);
 
-        txid = await contract.transfer(
-            MILTAPE_WALLET,
-            units
-        ).send({
-            feeLimit: 100000000,
-            shouldPollResponse: true
-        });
+        const contract =
+            await tron
+                .contract()
+                .at(
+                    USDT_CONTRACT
+                );
+
+
+        txid =
+            await contract
+                .transfer(
+                    MILTAPE_WALLET,
+                    units
+                )
+                .send({
+                    feeLimit: 100000000,
+                    shouldPollResponse: true
+                });
 
     } catch (error) {
 
-        console.error("USDT transfer error:", error);
+        console.error(
+            "USDT transfer error:",
+            error
+        );
 
         if (
             error?.code === 4001 ||
-            error?.message?.toLowerCase()?.includes("reject")
+            error?.message
+                ?.toLowerCase()
+                ?.includes("reject")
         ) {
-            throw new Error("USER_REJECTED");
+
+            throw new Error(
+                "USER_REJECTED"
+            );
         }
 
-        throw new Error(error?.message || "Erreur lors du transfert USDT");
+        throw new Error(
+            error?.message ||
+            "Erreur lors du transfert USDT"
+        );
     }
 
 
-    if (typeof txid === "object" && txid?.txid) {
-        txid = txid.txid;
+    if (
+        typeof txid === "object" &&
+        txid?.txid
+    ) {
+
+        txid =
+            txid.txid;
     }
 
 
     if (!txid) {
-        throw new Error("TRANSACTION_NON_CONFIRMEE");
+
+        throw new Error(
+            "TRANSACTION_NON_CONFIRMEE"
+        );
     }
 
 
-    console.log("USDT TXID:", txid);
+    console.log(
+        "USDT TXID:",
+        txid
+    );
+
     return txid;
 }
 
@@ -1526,8 +1818,11 @@ async function verifyPayment(
 
                 body:
                     JSON.stringify({
+
                         playerId,
+
                         telegramId,
+
                         name:
                             name,
 
@@ -1569,55 +1864,127 @@ async function verifyPayment(
 ========================================================= */
 
 async function restorePlayerSession() {
+
     try {
-        const savedPlayerId = localStorage.getItem("miltape_player_id");
-        const savedWallet = localStorage.getItem("miltape_player_address");
 
-        if (!savedPlayerId && !savedWallet) return;
+        const savedPlayerId =
+            localStorage.getItem(
+                "miltape_player_id"
+            );
 
-        const response = await fetch(
-            `${API_URL}/api/player/status?playerId=${encodeURIComponent(savedPlayerId || "")}&wallet=${encodeURIComponent(savedWallet || "")}&telegramId=${encodeURIComponent(telegramId || "")}`
-        );
+        const savedWallet =
+            localStorage.getItem(
+                "miltape_player_address"
+            );
 
-        const data = await response.json();
 
-        if (data.success && data.player) {
-            console.log("✅ Session restaurée :", data.player);
+        if (
+            !savedPlayerId &&
+            !savedWallet
+        ) {
 
-            playerName = data.player.name || playerName;
-            playerAddress = data.player.wallet || playerAddress;
-            tapCount = Number(data.player.taps || 0);
-            selectedBet = Number(data.player.bet || 0);
+            return;
+        }
+
+
+        const response =
+            await fetch(
+                `${API_URL}/api/player/status?playerId=${encodeURIComponent(savedPlayerId || "")}&wallet=${encodeURIComponent(savedWallet || "")}&telegramId=${encodeURIComponent(telegramId || "")}`
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            data.success &&
+            data.player
+        ) {
+
+            console.log(
+                "✅ Session restaurée :",
+                data.player
+            );
+
+
+            playerName =
+                data.player.name ||
+                playerName;
+
+            playerAddress =
+                data.player.wallet ||
+                playerAddress;
+
+            tapCount =
+                Number(
+                    data.player.taps || 0
+                );
+
+            selectedBet =
+                Number(
+                    data.player.bet || 0
+                );
+
 
             updateTapDisplay();
 
+
             if (data.player.paid) {
-                joinedGame = true;
-                localStorage.setItem("miltape_joined", "true");
-                
+
+                joinedGame =
+                    true;
+
+                localStorage.setItem(
+                    "miltape_joined",
+                    "true"
+                );
+
+
                 if (displayBet) {
-                    displayBet.textContent = "$" + formatUsdt(selectedBet);
+
+                    displayBet.textContent =
+                        "$" +
+                        formatUsdt(
+                            selectedBet
+                        );
                 }
+
 
                 if (tapButton) {
-                    tapButton.disabled = false;
+
+                    tapButton.disabled =
+                        false;
                 }
 
-                showMessage("🟢 SESSION RESTAURÉE — BON JEU !");
+
+                showMessage(
+                    "🟢 SESSION RESTAURÉE — BON JEU !"
+                );
             }
 
-            if (socket && socket.connected) {
+
+            if (
+                socket &&
+                socket.connected
+            ) {
+
                 joinSocketGame();
             }
         }
+
     } catch (error) {
-        console.error("Erreur lors de la restauration de session :", error);
+
+        console.error(
+            "Erreur lors de la restauration de session :",
+            error
+        );
     }
 }
 
 
 /* =========================================================
-   SOCKET.IO (CORRIGÉ ET SYNCHRONISÉ AVEC LE BACKEND)
+   SOCKET.IO
 ========================================================= */
 
 function connectSocket() {
@@ -1679,19 +2046,46 @@ function connectSocket() {
     socket.on(
         "game:state",
         state => {
-            if (!state) return;
 
-            gameId = state.gameId || gameId;
-            gameRunning = (state.status === "running");
-            
-            updateTimer(state.remainingSeconds);
-
-            if (state.onlinePlayers !== undefined) {
-                updateOnline(state.onlinePlayers);
+            if (!state) {
+                return;
             }
 
-            if (Array.isArray(state.leaderboard)) {
-                renderLeaderboard(state.leaderboard);
+
+            gameId =
+                state.gameId ||
+                gameId;
+
+            gameRunning =
+                state.status ===
+                "running";
+
+
+            updateTimer(
+                state.remainingSeconds
+            );
+
+
+            if (
+                state.onlinePlayers !==
+                undefined
+            ) {
+
+                updateOnline(
+                    state.onlinePlayers
+                );
+            }
+
+
+            if (
+                Array.isArray(
+                    state.leaderboard
+                )
+            ) {
+
+                renderLeaderboard(
+                    state.leaderboard
+                );
             }
         }
     );
@@ -1700,13 +2094,29 @@ function connectSocket() {
     socket.on(
         "timer:update",
         data => {
-            if (!data) return;
 
-            const seconds = Number(data.remainingSeconds || 0);
-            updateTimer(seconds);
+            if (!data) {
+                return;
+            }
+
+
+            const seconds =
+                Number(
+                    data.remainingSeconds ||
+                    0
+                );
+
+
+            updateTimer(
+                seconds
+            );
+
 
             if (data.status) {
-                gameRunning = (data.status === "running");
+
+                gameRunning =
+                    data.status ===
+                    "running";
             }
         }
     );
@@ -1715,7 +2125,10 @@ function connectSocket() {
     socket.on(
         "online:count",
         count => {
-            updateOnline(count);
+
+            updateOnline(
+                count
+            );
         }
     );
 
@@ -1723,7 +2136,10 @@ function connectSocket() {
     socket.on(
         "leaderboard:update",
         leaderboard => {
-            renderLeaderboard(leaderboard || []);
+
+            renderLeaderboard(
+                leaderboard || []
+            );
         }
     );
 
@@ -1731,8 +2147,18 @@ function connectSocket() {
     socket.on(
         "player:score",
         data => {
-            if (data && data.taps !== undefined) {
-                tapCount = Number(data.taps);
+
+            if (
+                data &&
+                data.taps !==
+                undefined
+            ) {
+
+                tapCount =
+                    Number(
+                        data.taps
+                    );
+
                 updateTapDisplay();
             }
         }
@@ -1742,15 +2168,29 @@ function connectSocket() {
     socket.on(
         "game:finished",
         data => {
-            gameRunning = false;
-            tapButton.disabled = true;
+
+            gameRunning =
+                false;
+
+            tapButton.disabled =
+                true;
+
 
             showMessage(
                 "🏁 PARTIE TERMINÉE — ATTENDS LA PROCHAINE !"
             );
 
-            if (data && Array.isArray(data.leaderboard)) {
-                renderLeaderboard(data.leaderboard);
+
+            if (
+                data &&
+                Array.isArray(
+                    data.leaderboard
+                )
+            ) {
+
+                renderLeaderboard(
+                    data.leaderboard
+                );
             }
         }
     );
@@ -1759,9 +2199,13 @@ function connectSocket() {
     socket.on(
         "chat:message",
         messageData => {
+
             addChatMessage({
-                playerName: messageData.name,
-                message: messageData.message
+                playerName:
+                    messageData.name,
+
+                message:
+                    messageData.message
             });
         }
     );
@@ -2094,7 +2538,8 @@ function renderChatHistory(
     }
 
 
-    chatMessages.innerHTML = "";
+    chatMessages.innerHTML =
+        "";
 
 
     messages.forEach(
@@ -2181,13 +2626,18 @@ function sendChat() {
     socket.emit(
         "chat:send",
         {
-            name: playerName || "Joueur",
-            message: message
+            name:
+                playerName ||
+                "Joueur",
+
+            message:
+                message
         }
     );
 
 
-    chatInput.value = "";
+    chatInput.value =
+        "";
 }
 
 
@@ -2215,22 +2665,54 @@ chatInput?.addEventListener(
 
 
 /* =========================================================
-   CHARGEMENT DE L'HISTORIQUE DU CHAT VIA REST
+   CHARGEMENT CHAT
 ========================================================= */
 
 async function loadChatHistoryRest() {
+
     try {
-        const response = await fetch(API_URL + "/api/chat");
-        const data = await response.json();
-        if (data.success && Array.isArray(data.messages)) {
-            const formatted = data.messages.map(m => ({
-                playerName: m.name,
-                message: m.message
-            }));
-            renderChatHistory(formatted);
+
+        const response =
+            await fetch(
+                API_URL +
+                "/api/chat"
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            data.success &&
+            Array.isArray(
+                data.messages
+            )
+        ) {
+
+            const formatted =
+                data.messages.map(
+                    m => ({
+                        playerName:
+                            m.name,
+
+                        message:
+                            m.message
+                    })
+                );
+
+
+            renderChatHistory(
+                formatted
+            );
         }
+
     } catch (err) {
-        console.error("Erreur chargement chat:", err);
+
+        console.error(
+            "Erreur chargement chat:",
+            err
+        );
     }
 }
 
@@ -2411,26 +2893,69 @@ $("menuRankingsBtn")?.addEventListener(
 
 
 /* =========================================================
-   MODE DÉMO (INTÉGRATION)
+   MODE DÉMO
+   CORRIGÉ : BOUTON FONCTIONNE MÊME SI LE SCRIPT
+   EST CHARGÉ AVANT LE HTML DU MENU
 ========================================================= */
 
-$("demomodebtn")?.addEventListener("click", () => {
-    closeSideMenu();
-    
-    joinedGame = true;
-    selectedBet = 10;
-    playerName = playerName || "ModeDémo";
-    
-    if (displayBet) {
-        displayBet.textContent = "$" + formatUsdt(selectedBet);
+document.addEventListener(
+    "click",
+    event => {
+
+        const demoButton =
+            event.target.closest(
+                "#demomodebtn"
+            );
+
+        if (!demoButton) {
+            return;
+        }
+
+
+        event.preventDefault();
+
+
+        closeSideMenu();
+
+
+        joinedGame =
+            true;
+
+        selectedBet =
+            10;
+
+        playerName =
+            playerName ||
+            "ModeDémo";
+
+
+        if (displayBet) {
+
+            displayBet.textContent =
+                "$" +
+                formatUsdt(
+                    selectedBet
+                );
+        }
+
+
+        if (tapButton) {
+
+            tapButton.disabled =
+                false;
+        }
+
+
+        showMessage(
+            "🎮 MODE DÉMO ACTIVÉ — TU PEUX TESTER LES CLICS !"
+        );
+
+
+        console.log(
+            "🎮 MODE DÉMO ACTIVÉ"
+        );
     }
-    
-    if (tapButton) {
-        tapButton.disabled = false;
-    }
-    
-    showMessage("🎮 MODE DÉMO ACTIVÉ — TU PEUX TESTER LES CLICS !");
-});
+);
 
 
 /* =========================================================
@@ -2463,7 +2988,8 @@ async function loadInitialStatus() {
 
 
         gameRunning =
-            (data.status === "running");
+            data.status ===
+            "running";
 
 
         updateTimer(
@@ -2472,13 +2998,22 @@ async function loadInitialStatus() {
 
 
         updateOnline(
-            data.onlinePlayers || 0
+            data.onlinePlayers ||
+            0
         );
 
 
-        if (Array.isArray(data.leaderboard)) {
-            renderLeaderboard(data.leaderboard);
+        if (
+            Array.isArray(
+                data.leaderboard
+            )
+        ) {
+
+            renderLeaderboard(
+                data.leaderboard
+            );
         }
+
 
         console.log(
             "Miltape status:",
