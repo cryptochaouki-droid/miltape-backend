@@ -26,6 +26,9 @@
     <!-- Socket.IO (Chargé avant le script principal) -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
+    <!-- TON Connect UI SDK -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+
     <style>
         html {
             width: 100%;
@@ -806,6 +809,9 @@
 
             </div>
 
+            <!-- Bouton de connexion TON Connect intégré dans le header -->
+            <div id="ton-connect-button" style="display:inline-block; margin-left: auto;"></div>
+
             <button
                 class="wallet-button"
                 id="walletButton"
@@ -1156,6 +1162,20 @@
 
     </main>
 
+
+    <!-- Script d'initialisation de TON Connect UI -->
+    <script>
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
+
+        tonConnectUI.onStatusChange(walletInfo => {
+            if (walletInfo) {
+                console.log("Wallet connecté :", walletInfo.account.address);
+            }
+        });
+    </script>
 
     <!-- SCRIPT PRINCIPAL -->
     <script
