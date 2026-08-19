@@ -802,13 +802,25 @@ body {
 .rules {
     display: none !important;
 }
+
+/* --- AJOUT POUR LE CONTENEUR CÔTE À CÔTE (Classement & Chat) --- */
+.leaderboard-chat-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    padding: 0 8px;
+    box-sizing: border-box;
+}
+
 /* Met le classement et le chat l'un à côté de l'autre */
 .leaderboard,
 .chat-section {
     display: inline-block;
-    width: calc(50% - 16px);
+    width: calc(50% - 4px);
     vertical-align: top;
-    margin: 0 6px 13px;
+    margin: 0 !important;
     box-sizing: border-box;
 }
 
