@@ -1,6 +1,6 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
-   SCRIPT FRONTEND COMPLET - INTÉGRATION TELEGRAM & TRON
+   SCRIPT FRONTEND COMPLET - INTÉGRATION TELEGRAM & TON
 ========================================================= */
 
 "use strict";
@@ -15,12 +15,9 @@ const API_URL =
 const SOCKET_URL = API_URL;
 
 const MILTAPE_WALLET =
-    "TBZZ3nakc3w5SnJ1EZpvVWYWY3q1NffNPM";
+    "UQC_VPcOqTi87b6jpbkaymIiXQon8Jue4J6z4cKd85AxIJz5";
 
-const USDT_CONTRACT =
-    "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-
-const USDT_DECIMALS = 6;
+const TON_DECIMALS = 9;
 
 const MINIMUM_BET = 1;
 
@@ -92,7 +89,9 @@ let paymentInProgress = false;
 
 let connectedWallet = "";
 
-let selectedPaymentMethod = "tron";
+let selectedPaymentMethod = "ton";
+
+let tonConnectUI = null;
 
 
 /* =========================================================
@@ -184,7 +183,7 @@ function formatNumber(value) {
 }
 
 
-function formatUsdt(value) {
+function formatTon(value) {
 
     return Number(value || 0)
         .toLocaleString(
@@ -256,16 +255,16 @@ dynamicModal?.addEventListener(
 
 
 /* =========================================================
-   VALIDATION TRON
+   VALIDATION TON
 ========================================================= */
 
-function isValidTronAddress(address) {
+function isValidTonAddress(address) {
 
     if (!address || typeof address !== "string") {
         return false;
     }
 
-    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
+    return address.length >= 40 && (address.startsWith("UQ") || address.startsWith("EQ") || address.startsWith("0:")) || /^[0-9a-fA-F]{64}$/.test(address);
 }
 
 
@@ -276,7 +275,7 @@ function isValidTronAddress(address) {
 function openChallengeForm() {
 
     connectedWallet = playerAddress || "";
-    selectedPaymentMethod = "tron";
+    selectedPaymentMethod = "ton";
 
     dynamicModalTitle.textContent =
         "🎮 Rejoindre la partie";
@@ -313,14 +312,14 @@ function openChallengeForm() {
 
                 Minimum :
                 <strong style="color:#ffcc00;">
-                    ${MINIMUM_BET} USDT / Stars
+                    ${MINIMUM_BET} TON / Stars
                 </strong>
 
                 <br>
 
                 Maximum :
                 <strong style="color:#ffcc00;">
-                    ${formatNumber(MAXIMUM_BET)} USDT
+                    ${formatNumber(MAXIMUM_BET)} TON
                 </strong>
 
             </div>
@@ -338,7 +337,7 @@ function openChallengeForm() {
 
                 <button
                     type="button"
-                    id="payMethodTron"
+                    id="payMethodTon"
                     style="
                         flex:1;
                         min-height:44px;
@@ -351,7 +350,7 @@ function openChallengeForm() {
                         font-size:13px;
                     "
                 >
-                    🔗 TronLink (USDT)
+                    🔗 TON Connect (Wallet)
                 </button>
 
                 <button
@@ -437,20 +436,20 @@ function openChallengeForm() {
             >
 
 
-            <div id="tronSection">
+            <div id="tonSection">
 
                 <label style="
                     color:#ffcc00;
                     font-size:13px;
                     font-weight:900;
                 ">
-                    🔗 TON WALLET TRON (Pour recevoir les gains)
+                    🔗 TON WALLET (Pour recevoir les gains)
                 </label>
 
                 <input
                     id="walletInputManual"
                     type="text"
-                    placeholder="Colle ton adresse Tron (commençant par T...)"
+                    placeholder="Colle ton adresse TON (commençant par UQ...)"
                     value="${escapeHtml(playerAddress)}"
                     style="
                         width:100%;
@@ -512,7 +511,7 @@ function openChallengeForm() {
                         box-shadow:0 4px 0 #43137d;
                     "
                 >
-                    🔗 DÉTECTER / CONNECTER TRONLINK
+                    🔗 CONNECTER TON WALLET
                 </button>
 
             </div>
@@ -629,29 +628,29 @@ function openChallengeForm() {
     const paymentStatus =
         $("paymentStatus");
 
-    const btnTron =
-        $("payMethodTron");
+    const btnTon =
+        $("payMethodTon");
 
     const btnStars =
         $("payMethodStars");
 
-    const tronSection =
-        $("tronSection");
+    const tonSection =
+        $("tonSection");
 
 
-    btnTron.addEventListener(
+    btnTon.addEventListener(
         "click",
         () => {
 
-            selectedPaymentMethod = "tron";
+            selectedPaymentMethod = "ton";
 
-            btnTron.style.background =
+            btnTon.style.background =
                 "#ffcc00";
 
-            btnTron.style.color =
+            btnTon.style.color =
                 "#16051f";
 
-            btnTron.style.borderColor =
+            btnTon.style.borderColor =
                 "#ffcc00";
 
             btnStars.style.background =
@@ -663,7 +662,7 @@ function openChallengeForm() {
             btnStars.style.borderColor =
                 "rgba(255,204,0,.4)";
 
-            tronSection.style.display =
+            tonSection.style.display =
                 "block";
 
             updateButton();
@@ -686,16 +685,16 @@ function openChallengeForm() {
             btnStars.style.borderColor =
                 "#ffcc00";
 
-            btnTron.style.background =
+            btnTon.style.background =
                 "#090014";
 
-            btnTron.style.color =
+            btnTon.style.color =
                 "#fff";
 
-            btnTron.style.borderColor =
+            btnTon.style.borderColor =
                 "rgba(255,204,0,.4)";
 
-            tronSection.style.display =
+            tonSection.style.display =
                 "block";
 
             updateButton();
@@ -721,7 +720,7 @@ function openChallengeForm() {
             walletInputManual.value.trim();
 
         if (
-            isValidTronAddress(
+            isValidTonAddress(
                 currentManualWallet
             )
         ) {
@@ -738,7 +737,7 @@ function openChallengeForm() {
             name.length >= 2;
 
         const validWallet =
-            isValidTronAddress(
+            isValidTonAddress(
                 connectedWallet
             );
 
@@ -768,10 +767,10 @@ function openChallengeForm() {
             const unitLabel =
                 selectedPaymentMethod === "stars"
                     ? "STARS"
-                    : "USDT";
+                    : "TON";
 
             payButton.textContent =
-                `🪙 PAYER ${formatUsdt(amount)} ${unitLabel} ET JOUER`;
+                `🪙 PAYER ${formatTon(amount)} ${unitLabel} ET JOUER`;
 
         } else {
 
@@ -807,7 +806,7 @@ function openChallengeForm() {
                 walletInputManual.value.trim();
 
             if (
-                isValidTronAddress(val)
+                isValidTonAddress(val)
             ) {
 
                 connectedWallet =
@@ -825,8 +824,8 @@ function openChallengeForm() {
                 walletBox.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        Adresse Tron invalide
-                        (doit commencer par T et faire 34 caractères)
+                        Adresse TON invalide
+                        (doit commencer par UQ ou EQ)
                     </span>
                     `;
             }
@@ -843,7 +842,7 @@ function openChallengeForm() {
 
 
     /* =====================================================
-       CONNECT TRONLINK
+       CONNECT TON CONNECT
     ===================================================== */
 
     connectButton.addEventListener(
@@ -859,21 +858,21 @@ function openChallengeForm() {
             walletBox.innerHTML =
                 `
                 <span style="color:#ffcc00">
-                    Recherche de TronLink...
+                    Ouverture de TonConnect...
                 </span>
                 `;
 
             try {
 
                 const wallet =
-                    await connectTronLink();
+                    await connectTonWallet();
 
                 if (!wallet) {
 
                     walletBox.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ TronLink non détecté automatiquement.
+                            ❌ Wallet non connecté.
                             <br>
                             Tu peux coller ton adresse directement
                             dans le champ ci-dessus.
@@ -884,7 +883,7 @@ function openChallengeForm() {
                         false;
 
                     connectButton.textContent =
-                        "🔗 DÉTECTER / CONNECTER TRONLINK";
+                        "🔗 CONNECTER TON WALLET";
 
                     return;
                 }
@@ -923,7 +922,7 @@ function openChallengeForm() {
 
 
                 connectButton.textContent =
-                    "🟢 TRONLINK CONNECTÉ";
+                    "🟢 WALLET CONNECTÉ";
 
                 connectButton.style.background =
                     "linear-gradient(135deg,#159957,#2ecc71)";
@@ -934,7 +933,7 @@ function openChallengeForm() {
             } catch (error) {
 
                 console.error(
-                    "Connexion TronLink:",
+                    "Connexion Wallet:",
                     error
                 );
 
@@ -954,12 +953,12 @@ function openChallengeForm() {
                 if (connectedWallet) {
 
                     connectButton.textContent =
-                        "🟢 TRONLINK CONNECTÉ";
+                        "🟢 WALLET CONNECTÉ";
 
                 } else {
 
                     connectButton.textContent =
-                        "🔗 DÉTECTER / CONNECTER TRONLINK";
+                        "🔗 CONNECTER TON WALLET";
                 }
 
                 updateButton();
@@ -988,7 +987,7 @@ function openChallengeForm() {
                 walletInputManual.value.trim();
 
             if (
-                isValidTronAddress(
+                isValidTonAddress(
                     manualVal
                 )
             ) {
@@ -1031,7 +1030,7 @@ function openChallengeForm() {
 
 
             if (
-                !isValidTronAddress(
+                !isValidTonAddress(
                     connectedWallet
                 )
             ) {
@@ -1040,7 +1039,7 @@ function openChallengeForm() {
                     `
                     <span style="color:#ff6b6b">
                         ❌ Entre ou connecte une adresse
-                        Wallet Tron valide pour les gains.
+                        Wallet TON valide pour les gains.
                     </span>
                     `;
 
@@ -1105,30 +1104,30 @@ function openChallengeForm() {
 
                 if (
                     selectedPaymentMethod ===
-                    "tron"
+                    "ton"
                 ) {
 
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ffcc00">
-                            ⏳ Ouverture de TronLink...
+                            ⏳ Ouverture du Wallet TON...
                             <br>
-                            Confirme ${formatUsdt(amount)} USDT
+                            Confirme ${formatTon(amount)} TON
                         </span>
                         `;
 
 
-                    const txid =
-                        await sendUsdtPayment(
+                    const txresult =
+                        await sendTonPayment(
                             amount,
                             walletBeforePayment
                         );
 
 
-                    if (!txid) {
+                    if (!txresult) {
 
                         throw new Error(
-                            "TXID_NOT_FOUND"
+                            "TRANSACTION_FAILED"
                         );
                     }
 
@@ -1146,7 +1145,7 @@ function openChallengeForm() {
                     const result =
                         await verifyPayment(
                             amount,
-                            txid,
+                            txresult,
                             walletBeforePayment,
                             name
                         );
@@ -1276,7 +1275,7 @@ function openChallengeForm() {
 
                 displayBet.textContent =
                     "$" +
-                    formatUsdt(amount);
+                    formatTon(amount);
 
 
                 tapButton.disabled =
@@ -1320,13 +1319,13 @@ function openChallengeForm() {
 
                 if (
                     error.message ===
-                    "TRONLINK_NOT_DETECTED"
+                    "WALLET_NOT_CONNECTED"
                 ) {
 
                     paymentStatus.innerHTML =
                         `
                         <span style="color:#ff6b6b">
-                            ❌ TronLink n'est pas détecté.
+                            ❌ Wallet non connecté.
                             Utilise le remplissage manuel.
                         </span>
                         `;
@@ -1378,7 +1377,7 @@ function openChallengeForm() {
             try {
 
                 const wallet =
-                    await getTronLinkAddress();
+                    await getTonWalletAddress();
 
                 if (!wallet) {
                     return;
@@ -1408,7 +1407,7 @@ function openChallengeForm() {
                         color:#2ecc71;
                         font-weight:900;
                     ">
-                        🟢 TRONLINK DÉTECTÉ
+                        🟢 WALLET DÉTECTÉ
                     </span>
 
                     <br>
@@ -1422,7 +1421,7 @@ function openChallengeForm() {
 
 
                 connectButton.textContent =
-                    "🟢 TRONLINK CONNECTÉ";
+                    "🟢 WALLET CONNECTÉ";
 
 
                 connectButton.style.background =
@@ -1434,7 +1433,7 @@ function openChallengeForm() {
             } catch (error) {
 
                 console.log(
-                    "TronLink automatique:",
+                    "Wallet automatique:",
                     error
                 );
             }
@@ -1449,345 +1448,109 @@ function openChallengeForm() {
 
 
 /* =========================================================
-   TRONLINK DETECTION
+   TON CONNECT INITIALISATION & HELPERS
 ========================================================= */
 
-async function getTronLinkAddress() {
-
-    try {
-
-        let address = "";
-
-        if (window.tronWeb) {
-
-            if (
-                typeof window.tronWeb
-                    .defaultAddress
-                    ?.base58 === "string"
-            ) {
-
-                address =
-                    window.tronWeb
-                        .defaultAddress
-                        .base58;
-
-            } else if (
-                typeof window.tronWeb
-                    .defaultAddress
-                    ?.hex === "string"
-            ) {
-
-                try {
-
-                    address =
-                        window.tronWeb.address
-                            .fromHex(
-                                window.tronWeb
-                                    .defaultAddress
-                                    .hex
-                            );
-
-                } catch (e) {}
-            }
+function initTonConnect() {
+    if (!tonConnectUI && window.TON_CONNECT_UI) {
+        try {
+            tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+                manifestUrl: 'https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json'
+            });
+        } catch (e) {
+            console.error("Init TonConnect error:", e);
         }
-
-
-        if (
-            !address &&
-            window.tronLink &&
-            window.tronLink.tronWeb
-        ) {
-
-            if (
-                typeof window.tronLink
-                    .tronWeb
-                    .defaultAddress
-                    ?.base58 === "string"
-            ) {
-
-                address =
-                    window.tronLink
-                        .tronWeb
-                        .defaultAddress
-                        .base58;
-
-            } else if (
-                typeof window.tronLink
-                    .tronWeb
-                    .defaultAddress
-                    ?.hex === "string"
-            ) {
-
-                try {
-
-                    address =
-                        window.tronLink
-                            .tronWeb
-                            .address
-                            .fromHex(
-                                window.tronLink
-                                    .tronWeb
-                                    .defaultAddress
-                                    .hex
-                            );
-
-                } catch (e) {}
-            }
-        }
-
-
-        if (
-            address &&
-            isValidTronAddress(address)
-        ) {
-
-            return address;
-        }
-
-
-        return "";
-
-    } catch (error) {
-
-        console.error(
-            "TronLink detection:",
-            error
-        );
-
-        return "";
     }
+    return tonConnectUI;
 }
 
-
-/* =========================================================
-   TRONLINK CONNEXION
-========================================================= */
-
-async function connectTronLink() {
-
-    let address =
-        await getTronLinkAddress();
-
-
-    if (address) {
-
-        if (
-            !isValidTronAddress(address)
-        ) {
-
-            throw new Error(
-                "INVALID_TRON_ADDRESS"
-            );
+async function getTonWalletAddress() {
+    const tc = initTonConnect();
+    if (!tc) return "";
+    
+    if (tc.wallet && tc.wallet.account && tc.wallet.account.address) {
+        const rawAddress = tc.wallet.account.address;
+        if (window.TON_CONNECT_UI && typeof window.TON_CONNECT_UI.toUserFriendlyAddress === "function") {
+            return window.TON_CONNECT_UI.toUserFriendlyAddress(rawAddress);
         }
-
-        return address;
+        return rawAddress;
     }
-
-
-    if (
-        window.tronLink &&
-        typeof window.tronLink.request ===
-        "function"
-    ) {
-
-        try {
-
-            await window.tronLink.request({
-                method:
-                    "tron_requestAccounts"
-            });
-
-        } catch (error) {
-
-            console.error(
-                "TronLink request:",
-                error
-            );
-
-            if (
-                error?.code === 4001 ||
-                error?.message
-                    ?.toLowerCase()
-                    ?.includes("reject")
-            ) {
-
-                throw new Error(
-                    "USER_REJECTED"
-                );
-            }
-
-            return "";
-        }
-    }
-
-
-    for (
-        let i = 0;
-        i < 10;
-        i++
-    ) {
-
-        await new Promise(
-            resolve =>
-                setTimeout(
-                    resolve,
-                    300
-                )
-        );
-
-
-        address =
-            await getTronLinkAddress();
-
-
-        if (address) {
-
-            if (
-                !isValidTronAddress(address)
-            ) {
-
-                throw new Error(
-                    "INVALID_TRON_ADDRESS"
-                );
-            }
-
-            return address;
-        }
-    }
-
-
     return "";
 }
 
+async function connectTonWallet() {
+    const tc = initTonConnect();
+    if (!tc) {
+        throw new Error("TON_CONNECT_NOT_LOADED");
+    }
+
+    if (tc.connected && tc.wallet) {
+        return await getTonWalletAddress();
+    }
+
+    await tc.openModal();
+
+    return new Promise((resolve) => {
+        const unsubscribe = tc.onStatusChange(walletInfo => {
+            if (walletInfo) {
+                unsubscribe();
+                const rawAddress = walletInfo.account.address;
+                let address = rawAddress;
+                if (window.TON_CONNECT_UI && typeof window.TON_CONNECT_UI.toUserFriendlyAddress === "function") {
+                    address = window.TON_CONNECT_UI.toUserFriendlyAddress(rawAddress);
+                }
+                resolve(address);
+            }
+        });
+
+        setTimeout(() => {
+            if (!tc.connected) {
+                resolve("");
+            }
+        }, 60000);
+    });
+}
+
 
 /* =========================================================
-   PAIEMENT USDT TRC20
+   PAIEMENT TON
 ========================================================= */
 
-async function sendUsdtPayment(
+async function sendTonPayment(
     amount,
     expectedWallet
 ) {
-
-    const tron =
-        window.tronWeb ||
-        window.tronLink?.tronWeb;
-
-
-    if (!tron) {
-        throw new Error(
-            "TRONLINK_NOT_DETECTED"
-        );
+    const tc = initTonConnect();
+    if (!tc || !tc.connected) {
+        throw new Error("WALLET_NOT_CONNECTED");
     }
 
+    const nanotons = Math.round(Number(amount) * Math.pow(10, TON_DECIMALS));
 
-    const from =
-        await getTronLinkAddress() ||
-        expectedWallet;
-
-
-    if (!from) {
-        throw new Error(
-            "WALLET_NOT_CONNECTED"
-        );
+    if (!Number.isSafeInteger(nanotons) || nanotons <= 0) {
+        throw new Error("MONTANT_INVALIDE");
     }
 
-
-    const units =
-        Math.round(
-            Number(amount) *
-            Math.pow(
-                10,
-                USDT_DECIMALS
-            )
-        );
-
-
-    if (
-        !Number.isSafeInteger(units) ||
-        units <= 0
-    ) {
-
-        throw new Error(
-            "MONTANT_INVALIDE"
-        );
-    }
-
-
-    let txid;
-
+    const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+            {
+                address: MILTAPE_WALLET,
+                amount: nanotons.toString()
+            }
+        ]
+    };
 
     try {
-
-        const contract =
-            await tron
-                .contract()
-                .at(
-                    USDT_CONTRACT
-                );
-
-
-        txid =
-            await contract
-                .transfer(
-                    MILTAPE_WALLET,
-                    units
-                )
-                .send({
-                    feeLimit: 100000000,
-                    shouldPollResponse: true
-                });
-
+        const result = await tc.sendTransaction(transaction);
+        return result?.boc || result || "SUCCESS";
     } catch (error) {
-
-        console.error(
-            "USDT transfer error:",
-            error
-        );
-
-        if (
-            error?.code === 4001 ||
-            error?.message
-                ?.toLowerCase()
-                ?.includes("reject")
-        ) {
-
-            throw new Error(
-                "USER_REJECTED"
-            );
+        console.error("TON transfer error:", error);
+        if (error?.message?.toLowerCase()?.includes("reject") || error?.code === 300) {
+            throw new Error("USER_REJECTED");
         }
-
-        throw new Error(
-            error?.message ||
-            "Erreur lors du transfert USDT"
-        );
+        throw new Error(error?.message || "Erreur lors du transfert TON");
     }
-
-
-    if (
-        typeof txid === "object" &&
-        txid?.txid
-    ) {
-
-        txid =
-            txid.txid;
-    }
-
-
-    if (!txid) {
-
-        throw new Error(
-            "TRANSACTION_NON_CONFIRMEE"
-        );
-    }
-
-
-    console.log(
-        "USDT TXID:",
-        txid
-    );
-
-    return txid;
 }
 
 
@@ -1945,7 +1708,7 @@ async function restorePlayerSession() {
 
                     displayBet.textContent =
                         "$" +
-                        formatUsdt(
+                        formatTon(
                             selectedBet
                         );
                 }
@@ -2398,7 +2161,7 @@ function updateTotalStakes(
 
     globalTotalStakes.textContent =
         "$" +
-        formatUsdt(total);
+        formatTon(total);
 }
 
 
@@ -2498,10 +2261,10 @@ function renderLeaderboard(
                                     "
                                 >
                                     Mise :
-                                    ${formatUsdt(
+                                    ${formatTon(
                                         player.bet
                                     )}
-                                    USDT
+                                    TON
                                 </small>
 
                             </div>
@@ -2836,7 +2599,7 @@ $("menuRulesBtn")?.addEventListener(
             <p>
                 🪙 Les participations sont en
                 <strong>
-                    USDT TRC20 / Telegram Stars
+                    TON / Telegram Stars
                 </strong>.
             </p>
 
@@ -2933,7 +2696,7 @@ document.addEventListener(
 
             displayBet.textContent =
                 "$" +
-                formatUsdt(
+                formatTon(
                     selectedBet
                 );
         }
@@ -3038,6 +2801,8 @@ document.addEventListener(
     "DOMContentLoaded",
     async () => {
 
+        initTonConnect();
+
         updateTapDisplay();
 
         updateTimer(
@@ -3053,7 +2818,7 @@ document.addEventListener(
         connectSocket();
 
         console.log(
-            "🔥 MILTAPE FRONTEND CHARGÉ ET CORRIGÉ"
+            "🔥 MILTAPE FRONTEND CHARGÉ ET CORRIGÉ POUR TON"
         );
     }
 );
