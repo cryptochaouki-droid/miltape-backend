@@ -797,34 +797,71 @@ body {
         position: relative;
     }
 }
-
-/* Cache les trois blocs (10 MINUTES, TOP 5, USDT) */
+/* --- Cache les trois blocs (10 MINUTES, TOP 5, USDT) --- */
 .rules {
     display: none !important;
 }
 
-/* --- AJOUT POUR LE CONTENEUR CÔTE À CÔTE (Classement & Chat) --- */
+/* --- Conteneur côte à côte pour Classement et Chat --- */
 .leaderboard-chat-wrapper {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
-    padding: 0 8px;
+    padding: 0 12px;
     box-sizing: border-box;
+    margin-bottom: 13px;
 }
 
-/* Met le classement et le chat l'un à côté de l'autre */
+/* --- Style commun strict pour que les deux blocs aient exactement la même forme --- */
 .leaderboard,
 .chat-section {
-    display: inline-block;
-    width: calc(50% - 4px);
-    vertical-align: top;
+    width: calc(50% - 4px) !important;
     margin: 0 !important;
+    padding: 15px !important;
+    border-radius: 19px !important;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
-/* Ajuste la taille du chat pour qu'il s'adapte bien à la colonne */
+/* Harmonisation du fond et de la bordure du chat */
+.chat-section {
+    background: linear-gradient(
+        145deg,
+        rgba(37, 10, 58, .95),
+        rgba(14, 3, 25, .95)
+    ) !important;
+    border: 1px solid rgba(255, 216, 77, .18) !important;
+}
+
+/* --- Même hauteur exacte pour les listes intérieures --- */
+.leaderboard-list,
 .chat-messages {
-    height: 120px; /* Réduit légèrement la hauteur pour que ça rentre bien sur mobile */
+    height: 140px !important;
+    max-height: 140px !important;
+    overflow-y: auto !important;
+    margin-bottom: 0 !important;
+}
+
+/* --- Ajustement de la zone de saisie du chat --- */
+.chat-input-box {
+    margin-top: 8px;
+    display: flex;
+    gap: 5px;
+}
+
+.chat-input-box input {
+    height: 38px !important;
+    font-size: 11px !important;
+    flex: 1;
+}
+
+.chat-input-box button {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    font-size: 16px !important;
 }
