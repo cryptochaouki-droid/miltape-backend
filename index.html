@@ -26,9 +26,6 @@
     <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    <!-- TON Connect UI SDK -->
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-
     <style>
         html {
             width: 100%;
@@ -811,12 +808,7 @@
 
             </div>
 
-            <!-- TON CONNECT -->
-            <div
-                id="ton-connect-button"
-                style="display:inline-block;margin-left:auto;"
-            ></div>
-
+            <!-- UN SEUL SYSTÈME WALLET : TRON / TRONLINK -->
             <button
                 class="wallet-button"
                 id="walletButton"
@@ -1157,95 +1149,7 @@
 
     </main>
 
-    <!-- =========================================================
-         TON CONNECT
-         PROTÉGÉ POUR NE PAS BLOQUER MILTAPE
-         ========================================================= -->
-
-    <script>
-        window.tonConnectUI = null;
-
-        function initTonConnect() {
-
-            try {
-
-                if (
-                    typeof TON_CONNECT_UI === "undefined" ||
-                    !TON_CONNECT_UI.TonConnectUI
-                ) {
-                    console.warn("TON Connect UI indisponible.");
-                    return;
-                }
-
-                window.tonConnectUI =
-                    new TON_CONNECT_UI.TonConnectUI({
-
-                        manifestUrl:
-                            "https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json",
-
-                        buttonRootId:
-                            "ton-connect-button"
-                    });
-
-                if (
-                    window.tonConnectUI &&
-                    typeof window.tonConnectUI.onStatusChange === "function"
-                ) {
-
-                    window.tonConnectUI.onStatusChange(
-                        function(walletInfo) {
-
-                            if (
-                                walletInfo &&
-                                walletInfo.account
-                            ) {
-
-                                console.log(
-                                    "Wallet TON connecté :",
-                                    walletInfo.account.address
-                                );
-
-                            }
-
-                        }
-                    );
-
-                }
-
-            } catch (error) {
-
-                console.error(
-                    "Erreur TON Connect :",
-                    error
-                );
-
-                window.tonConnectUI = null;
-            }
-        }
-
-        /*
-         * TON Connect est initialisé après le chargement de la page.
-         * Une erreur TON ne doit jamais empêcher script.js de fonctionner.
-         */
-        if (document.readyState === "loading") {
-
-            document.addEventListener(
-                "DOMContentLoaded",
-                initTonConnect,
-                { once: true }
-            );
-
-        } else {
-
-            initTonConnect();
-
-        }
-    </script>
-
-    <!-- =========================================================
-         SCRIPT PRINCIPAL MILTAPE
-         ========================================================= -->
-
+    <!-- SCRIPT PRINCIPAL MILTAPE -->
     <script
         src="./script.js"
         defer
