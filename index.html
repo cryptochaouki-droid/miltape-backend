@@ -30,8 +30,11 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
-        /* CORRECTION : Masquer le widget automatique TonConnect pour éviter la superposition des boutons bleus */
-        #ton-connect-button {
+        /* CORRECTION RADICALE : Masquer les widgets flottants injectés par TonConnect */
+        #ton-connect-button,
+        div[id^="tc-widget"], 
+        iframe[id^="tc-widget"],
+        .tc-connect-button {
             display: none !important;
         }
 
@@ -819,7 +822,7 @@
             <!-- TON CONNECT -->
             <div
                 id="ton-connect-button"
-                style="display:inline-block;margin-left:auto;"
+                style="display:none;"
             ></div>
 
             <button
@@ -1228,10 +1231,6 @@
             }
         }
 
-        /*
-         * TON Connect est initialisé après le chargement de la page.
-         * Une erreur TON ne doit jamais empêcher script.js de fonctionner.
-         */
         if (document.readyState === "loading") {
 
             document.addEventListener(
