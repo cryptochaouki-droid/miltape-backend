@@ -1747,7 +1747,7 @@ async function restorePlayerSession() {
 
 
 /* =========================================================
-   SOCKET.IO
+   SOCKET.IO (CORRIGÉ POUR MOBILE)
 ========================================================= */
 
 function connectSocket() {
@@ -1769,10 +1769,12 @@ function connectSocket() {
         io(
             SOCKET_URL,
             {
-                transports: [
-                    "polling",
-                    "websocket"
-                ]
+                transports: ["polling", "websocket"],
+                secure: true,
+                rejectUnauthorized: false,
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000
             }
         );
 
