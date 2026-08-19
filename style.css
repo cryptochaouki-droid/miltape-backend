@@ -802,3 +802,17 @@ body {
 .rules {
     display: none !important;
 }
+/* Met le classement et le chat l'un à côté de l'autre */
+.leaderboard,
+.chat-section {
+    display: inline-block;
+    width: calc(50% - 16px);
+    vertical-align: top;
+    margin: 0 6px 13px;
+    box-sizing: border-box;
+}
+
+/* Ajuste la taille du chat pour qu'il s'adapte bien à la colonne */
+.chat-messages {
+    height: 120px; /* Réduit légèrement la hauteur pour que ça rentre bien sur mobile */
+}
