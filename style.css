@@ -611,6 +611,9 @@ body {
     background: rgba(255,255,255,.035);
     font-size: 10px;
     line-height: 1.35;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .chat-message strong {
@@ -749,4 +752,27 @@ body {
     height: 36px !important;
     min-width: 36px !important;
     font-size: 14px !important;
+}
+
+/* --- STLES POUR LES AVATARS AUTOMATIQUES (CLASSEMENT & CHAT) --- */
+.player-row-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.user-avatar-badge {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: bold;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
