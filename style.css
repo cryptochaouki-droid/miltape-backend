@@ -687,7 +687,7 @@ body {
     display: none !important;
 }
 
-/* --- CORRECTION SYMÉTRIE CLASSEMENT & CHAT CÔTE À CÔTE --- */
+/* --- CORRECTION SYMÉTRIE PARFAITE CLASSEMENT & CHAT --- */
 .leaderboard-chat-wrapper {
     display: flex;
     flex-direction: row;
@@ -701,14 +701,16 @@ body {
 
 .leaderboard,
 .chat-section {
+    flex: 1 !important;
     width: calc(50% - 4px) !important;
+    max-width: calc(50% - 4px) !important;
     margin: 0 !important;
-    padding: 15px !important;
+    padding: 12px !important;
     border-radius: 19px !important;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     background: linear-gradient(
         145deg,
         rgba(37, 10, 58, .95),
@@ -719,9 +721,10 @@ body {
 
 .leaderboard-list,
 .chat-messages {
-    height: 140px !important;
-    max-height: 140px !important;
+    height: 130px !important;
+    max-height: 130px !important;
     overflow-y: auto !important;
+    margin-top: 8px !important;
     margin-bottom: 0 !important;
     background: rgba(0, 0, 0, .2) !important;
     border-radius: 12px !important;
@@ -736,14 +739,14 @@ body {
 }
 
 .chat-input-box input {
-    height: 38px !important;
+    height: 36px !important;
     font-size: 11px !important;
-    flex: 1;
+    flex: 1 !important;
 }
 
 .chat-input-box button {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    font-size: 16px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    font-size: 14px !important;
 }
