@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne.">
-    
+
     <title>Miltape World Challenge</title>
 
     <link rel="manifest" href="./manifest.json">
@@ -20,10 +20,10 @@
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <!-- TronWeb (Chargé en premier) -->
+    <!-- TronWeb -->
     <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
 
-    <!-- Socket.IO (Chargé avant le script principal) -->
+    <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
     <!-- TON Connect UI SDK -->
@@ -86,7 +86,7 @@
             display: block;
         }
 
-        /* HERO BANNER INTERACTIVE */
+        /* HERO BANNER */
         .hero-banner-container {
             position: relative;
             width: calc(100% - 24px);
@@ -545,7 +545,7 @@
             touch-action: manipulation;
         }
 
-        /* MOBILE RESPONSIVE */
+        /* MOBILE */
         @media(max-width:430px) {
             .tap-button {
                 width: 170px;
@@ -553,6 +553,7 @@
                 min-width: 170px;
                 min-height: 170px;
             }
+
             .tap-zone {
                 min-height: 220px;
             }
@@ -565,9 +566,11 @@
                 min-width: 165px;
                 min-height: 165px;
             }
+
             .chat-input-box input {
                 font-size: 12px;
             }
+
             .chat-input-box button {
                 width: 42px;
                 min-width: 42px;
@@ -578,11 +581,13 @@
             body {
                 padding: 20px 0 40px;
             }
+
             .app {
                 border-radius: 30px;
                 border: 1px solid rgba(255,255,255,.06);
                 box-shadow: 0 0 80px rgba(91,20,150,.18);
             }
+
             .top-header {
                 position: sticky;
                 top: 0;
@@ -601,7 +606,10 @@
 
     <!-- MENU -->
     <aside id="sideMenu" class="side-menu">
-        <button id="closeMenu" class="close-menu" type="button">×</button>
+
+        <button id="closeMenu" class="close-menu" type="button">
+            ×
+        </button>
 
         <div class="side-menu-content">
 
@@ -648,7 +656,6 @@
 
             </div>
 
-
             <!-- MODE DEMO -->
             <div class="menu-block" style="text-align:center;">
 
@@ -669,7 +676,6 @@
 
             </div>
 
-
             <div class="menu-block">
 
                 <label for="languageSelect">
@@ -689,7 +695,6 @@
                 </select>
 
             </div>
-
 
             <div class="menu-block trust-contact-box">
 
@@ -727,9 +732,7 @@
 
     </aside>
 
-
     <div id="menuOverlay" class="menu-overlay"></div>
-
 
     <!-- MODAL -->
     <div
@@ -758,7 +761,6 @@
         </div>
 
     </div>
-
 
     <!-- APP -->
     <main class="app">
@@ -809,8 +811,11 @@
 
             </div>
 
-            <!-- Bouton de connexion TON Connect intégré dans le header -->
-            <div id="ton-connect-button" style="display:inline-block; margin-left: auto;"></div>
+            <!-- TON CONNECT -->
+            <div
+                id="ton-connect-button"
+                style="display:inline-block;margin-left:auto;"
+            ></div>
 
             <button
                 class="wallet-button"
@@ -818,15 +823,16 @@
                 type="button"
             >
                 💰
+
                 <span id="globalTotalStakes">
                     $0
                 </span>
+
             </button>
 
         </header>
 
-
-        <!-- HERO INTERACTIVE -->
+        <!-- HERO -->
         <section class="hero-banner-container">
 
             <img
@@ -837,7 +843,6 @@
 
             <div class="hero-header-overlay">
 
-                <!-- Profil joueur -->
                 <div class="player-profile-badge">
 
                     <div class="avatar-icon">
@@ -858,8 +863,7 @@
 
                 </div>
 
-
-                <!-- Chrono dynamique -->
+                <!-- CHRONO -->
                 <div
                     class="timer-badge-top"
                     id="topTimerBox"
@@ -882,8 +886,7 @@
 
                 </div>
 
-
-                <!-- Solde / Mise USDT dynamique interactif -->
+                <!-- WALLET / MISE -->
                 <div
                     class="wallet-badge-top"
                     id="enterChallengeTop"
@@ -915,7 +918,6 @@
 
         </section>
 
-
         <!-- JOUER -->
         <button
             id="enterChallenge"
@@ -933,7 +935,6 @@
 
         </button>
 
-
         <!-- MESSAGE -->
         <div
             id="tapMessage"
@@ -944,8 +945,7 @@
             ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
         </div>
 
-
-        <!-- TAP (REMONTÉ JUSTE EN DESSOUS DE JOUER MAINTENANT) -->
+        <!-- TAP -->
         <section
             class="tap-zone"
             aria-label="Zone de tap"
@@ -978,7 +978,6 @@
             </button>
 
         </section>
-
 
         <!-- RÈGLES -->
         <section class="rules">
@@ -1033,7 +1032,6 @@
 
         </section>
 
-
         <!-- STATS -->
         <section
             class="stats"
@@ -1059,7 +1057,6 @@
             </div>
 
         </section>
-
 
         <!-- CLASSEMENT -->
         <section class="leaderboard">
@@ -1088,7 +1085,6 @@
             </div>
 
         </section>
-
 
         <!-- CHAT -->
         <section
@@ -1152,7 +1148,6 @@
 
         </section>
 
-
         <div
             style="
                 width:100%;
@@ -1162,22 +1157,95 @@
 
     </main>
 
+    <!-- =========================================================
+         TON CONNECT
+         PROTÉGÉ POUR NE PAS BLOQUER MILTAPE
+         ========================================================= -->
 
-    <!-- Script d'initialisation de TON Connect UI -->
     <script>
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-button'
-        });
+        window.tonConnectUI = null;
 
-        tonConnectUI.onStatusChange(walletInfo => {
-            if (walletInfo) {
-                console.log("Wallet connecté :", walletInfo.account.address);
+        function initTonConnect() {
+
+            try {
+
+                if (
+                    typeof TON_CONNECT_UI === "undefined" ||
+                    !TON_CONNECT_UI.TonConnectUI
+                ) {
+                    console.warn("TON Connect UI indisponible.");
+                    return;
+                }
+
+                window.tonConnectUI =
+                    new TON_CONNECT_UI.TonConnectUI({
+
+                        manifestUrl:
+                            "https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json",
+
+                        buttonRootId:
+                            "ton-connect-button"
+                    });
+
+                if (
+                    window.tonConnectUI &&
+                    typeof window.tonConnectUI.onStatusChange === "function"
+                ) {
+
+                    window.tonConnectUI.onStatusChange(
+                        function(walletInfo) {
+
+                            if (
+                                walletInfo &&
+                                walletInfo.account
+                            ) {
+
+                                console.log(
+                                    "Wallet TON connecté :",
+                                    walletInfo.account.address
+                                );
+
+                            }
+
+                        }
+                    );
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Erreur TON Connect :",
+                    error
+                );
+
+                window.tonConnectUI = null;
             }
-        });
+        }
+
+        /*
+         * TON Connect est initialisé après le chargement de la page.
+         * Une erreur TON ne doit jamais empêcher script.js de fonctionner.
+         */
+        if (document.readyState === "loading") {
+
+            document.addEventListener(
+                "DOMContentLoaded",
+                initTonConnect,
+                { once: true }
+            );
+
+        } else {
+
+            initTonConnect();
+
+        }
     </script>
 
-    <!-- SCRIPT PRINCIPAL -->
+    <!-- =========================================================
+         SCRIPT PRINCIPAL MILTAPE
+         ========================================================= -->
+
     <script
         src="./script.js"
         defer
