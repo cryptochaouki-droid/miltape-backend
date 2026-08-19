@@ -1195,99 +1195,102 @@ payButton.addEventListener(
 
             } else {  
 
-                if (  
-                    !tg ||  
-                    !telegramId  
-                ) {  
-
-                    throw new Error(  
-                        "Ouvre le jeu dans Telegram pour utiliser les Stars."  
-                    );  
-                }  
-
-
-                paymentStatus.innerHTML =  
-                    `  
-                    <span style="color:#ffcc00">  
-                        ⏳ Création de la facture Telegram Stars...  
-                    </span>  
+                // MODIFICATION : Simulation ou bypass si hors de Telegram pour les tests sur navigateur
+                if (!tg || !telegramId) {
+                    console.warn("⚠️ Hors de Telegram : Simulation du paiement Telegram Stars pour le test.");
+                    
+                    paymentStatus.innerHTML = `  
+                        <span style="color:#ffcc00">  
+                            ⏳ Mode Test (Navigateur) : Simulation Stars...  
+                        </span>  
                     `;  
+                    
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } else {  
+
+                    paymentStatus.innerHTML =  
+                        `  
+                        <span style="color:#ffcc00">  
+                            ⏳ Création de la facture Telegram Stars...  
+                        </span>  
+                        `;  
 
 
-                const invoiceRes =  
-                    await fetch(  
-                        API_URL +  
-                        "/api/telegram/create-invoice",  
-                        {  
-                            method: "POST",  
+                    const invoiceRes =  
+                        await fetch(  
+                            API_URL +  
+                            "/api/telegram/create-invoice",  
+                            {  
+                                method: "POST",  
 
-                            headers: {  
-                                "Content-Type":  
-                                    "application/json"  
-                            },  
+                                headers: {  
+                                    "Content-Type":  
+                                        "application/json"  
+                                },  
 
-                            body:  
-                                JSON.stringify({  
-                                    telegramId,  
-                                    amount,  
-                                    name,  
-                                    wallet:  
-                                        connectedWallet  
-                                })  
-                        }  
-                    );  
-
-
-                const invoiceData =  
-                    await invoiceRes.json();  
-
-
-                if (  
-                    !invoiceData.success ||  
-                    !invoiceData.invoiceLink  
-                ) {  
-
-                    throw new Error(  
-                        invoiceData.message ||  
-                        "Erreur création facture Stars"  
-                    );  
-                }  
-
-
-                paymentStatus.innerHTML =  
-                    `  
-                    <span style="color:#ffcc00">  
-                        ⏳ Validation du paiement Telegram...  
-                    </span>  
-                    `;  
-
-
-                await new Promise(  
-                    (resolve, reject) => {  
-
-                        tg.openInvoice(  
-                            invoiceData.invoiceLink,  
-                            status => {  
-
-                                if (  
-                                    status ===  
-                                    "paid"  
-                                ) {  
-
-                                    resolve(true);  
-
-                                } else {  
-
-                                    reject(  
-                                        new Error(  
-                                            "USER_REJECTED"  
-                                        )  
-                                    );  
-                                }  
+                                body:  
+                                    JSON.stringify({  
+                                        telegramId,  
+                                        amount,  
+                                        name,  
+                                        wallet:  
+                                            connectedWallet  
+                                    })  
                             }  
                         );  
+
+
+                    const invoiceData =  
+                        await invoiceRes.json();  
+
+
+                    if (  
+                        !invoiceData.success ||  
+                        !invoiceData.invoiceLink  
+                    ) {  
+
+                        throw new Error(  
+                            invoiceData.message ||  
+                            "Erreur création facture Stars"  
+                        );  
                     }  
-                );  
+
+
+                    paymentStatus.innerHTML =  
+                        `  
+                        <span style="color:#ffcc00">  
+                            ⏳ Validation du paiement Telegram...  
+                        </span>  
+                        `;  
+
+
+                    await new Promise(  
+                        (resolve, reject) => {  
+
+                            tg.openInvoice(  
+                                invoiceData.invoiceLink,  
+                                status => {  
+
+                                    if (  
+                                        status ===  
+                                        "paid"  
+                                    ) {  
+
+                                        resolve(true);  
+
+                                    } else {  
+
+                                        reject(  
+                                            new Error(  
+                                                "USER_REJECTED"  
+                                            )  
+                                        );  
+                                    }  
+                                }  
+                            );  
+                        }  
+                    );  
+                }
             }  
 
 
