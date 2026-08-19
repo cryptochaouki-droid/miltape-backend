@@ -151,7 +151,7 @@ const tapMessage =
 $("tapMessage");
 
 /* =========================================================
-UTILITAIRES
+UTILITAIRES & AVATARS
 ========================================================= */
 
 function escapeHtml(value) {
@@ -163,6 +163,41 @@ return String(value ?? "")
     .replace(/"/g, "&quot;")  
     .replace(/'/g, "&#039;");
 
+}
+
+// Générateur d'avatar automatique basé sur la première lettre du nom
+function getAvatar(name) {
+    const cleanName = (name || "Anonyme").trim();
+    const initial = cleanName.charAt(0).toUpperCase();
+    
+    // Petite astuce pour générer une couleur stable basée sur le nom
+    let hash = 0;
+    for (let i = 0; i < cleanName.length; i++) {
+        hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    const bgColor = `hsl(${hue}, 70%, 25%)`;
+    const borderColor = `hsl(${hue}, 80%, 50%)`;
+
+    return `
+        <div style="
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 50%;
+            background: ${bgColor};
+            border: 1px solid ${borderColor};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 900;
+            font-size: 13px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        ">
+            ${escapeHtml(initial)}
+        </div>
+    `;
 }
 
 function showMessage(message) {
@@ -1744,7 +1779,7 @@ try {
 }
 
 /* =========================================================
-SOCKET.IO (CORRIGÉ POUR MOBILE)
+SOCKET.IO
 ========================================================= */
 
 function connectSocket() {
@@ -2166,7 +2201,7 @@ globalTotalStakes.textContent =
 }
 
 /* =========================================================
-LEADERBOARD
+LEADERBOARD (MIS À JOUR AVEC AVATARS)
 ========================================================= */
 
 function renderLeaderboard(
@@ -2208,9 +2243,9 @@ leaderboardList.innerHTML =
                     "🏅"  
                 ];  
 
+                const pName = player.name || "Anonyme";
 
                 return `  
-
                     <div  
                         class="ranking-row"  
                         style="  
@@ -2223,15 +2258,17 @@ leaderboardList.innerHTML =
                             background:rgba(255,255,255,.035);  
                         "  
                     >  
-
                         <strong  
                             style="  
-                                width:30px;  
-                                font-size:20px;  
+                                width:26px;  
+                                font-size:16px;  
+                                text-align:center;  
                             "  
                         >  
                             ${medals[index]}  
                         </strong>  
+
+                        ${getAvatar(pName)}
 
                         <div  
                             style="  
@@ -2239,7 +2276,6 @@ leaderboardList.innerHTML =
                                 min-width:0;  
                             "  
                         >  
-
                             <strong  
                                 style="  
                                     display:block;  
@@ -2249,10 +2285,7 @@ leaderboardList.innerHTML =
                                     white-space:nowrap;  
                                 "  
                             >  
-                                ${escapeHtml(  
-                                    player.name ||  
-                                    "Anonyme"  
-                                )}  
+                                ${escapeHtml(pName)}  
                             </strong>  
 
                             <small  
@@ -2261,25 +2294,19 @@ leaderboardList.innerHTML =
                                 "  
                             >  
                                 Mise :  
-                                ${formatTon(  
-                                    player.bet  
-                                )}  
+                                ${formatTon(player.bet)}  
                                 TON  
                             </small>  
-
                         </div>  
 
                         <strong  
                             style="  
                                 color:#ffcc00;  
-                                font-size:18px;  
+                                font-size:16px;  
                             "  
                         >  
-                            ${formatNumber(  
-                                player.taps  
-                            )}  
+                            ${formatNumber(player.taps)}  
                         </strong>  
-
                     </div>  
                 `;  
             }  
@@ -2289,7 +2316,7 @@ leaderboardList.innerHTML =
 }
 
 /* =========================================================
-CHAT
+CHAT (MIS À JOUR AVEC AVATARS)
 ========================================================= */
 
 function renderChatHistory(
@@ -2323,6 +2350,7 @@ if (
     return;  
 }  
 
+const pName = data.playerName || "Anonyme";
 
 const div =  
     document.createElement(  
@@ -2333,19 +2361,22 @@ const div =
 div.className =  
     "chat-message";  
 
+// Style flex pour aligner l'avatar et le texte proprement
+div.style.display = "flex";
+div.style.alignItems = "flex-start";
+div.style.gap = "10px";
+div.style.marginBottom = "8px";
 
 div.innerHTML = `  
-    <strong>  
-        ${escapeHtml(  
-            data.playerName ||  
-            "Anonyme"  
-        )} :  
-    </strong>  
-
-    ${escapeHtml(  
-        data.message ||  
-        ""  
-    )}  
+    ${getAvatar(pName)}
+    <div style="flex: 1; word-break: break-word; line-height: 1.4;">  
+        <strong style="color: #ffcc00; margin-right: 5px;">  
+            ${escapeHtml(pName)} :  
+        </strong>  
+        <span style="color: #fff;">  
+            ${escapeHtml(data.message || "")}  
+        </span>  
+    </div>  
 `;  
 
 
@@ -2651,8 +2682,6 @@ closeSideMenu();
 
 /* =========================================================
 MODE DÉMO
-CORRIGÉ : BOUTON FONCTIONNE MÊME SI LE SCRIPT
-EST CHARGÉ AVANT LE HTML DU MENU
 ========================================================= */
 
 document.addEventListener(
@@ -2812,7 +2841,7 @@ initTonConnect();
     connectSocket();  
 
     console.log(  
-        "🔥 MILTAPE FRONTEND CHARGÉ ET CORRIGÉ POUR TON"  
+        "🔥 MILTAPE FRONTEND CHARGÉ AVEC AVATARS AUTOMATIQUES"  
     );  
 }
 
