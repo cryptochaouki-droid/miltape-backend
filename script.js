@@ -1,6 +1,8 @@
 /* =========================================================
    MILTAPE WORLD CHALLENGE
-   SCRIPT FRONTEND COMPLET - INTÉGRATION TELEGRAM & TON
+   SCRIPT FRONTEND COMPLET
+   TON CONNECT + TELEGRAM STARS
+   CHRONO + CHAT CONSERVÉS
 ========================================================= */
 
 "use strict";
@@ -27,18 +29,22 @@ const GAME_DURATION = 600;
 
 
 /* =========================================================
-   INTEGRATION TELEGRAM WEBAPP
+   TELEGRAM WEBAPP
 ========================================================= */
 
-const tg = window.Telegram?.WebApp;
+const tg =
+    window.Telegram?.WebApp || null;
 
 if (tg) {
     tg.ready();
     tg.expand();
 }
 
-const tgUser = tg?.initDataUnsafe?.user;
-const telegramId = tgUser ? tgUser.id : null;
+const tgUser =
+    tg?.initDataUnsafe?.user || null;
+
+const telegramId =
+    tgUser ? tgUser.id : null;
 
 
 /* =========================================================
@@ -48,12 +54,18 @@ const telegramId = tgUser ? tgUser.id : null;
 let socket = null;
 
 let playerId =
-    localStorage.getItem("miltape_player_id");
+    localStorage.getItem(
+        "miltape_player_id"
+    );
 
 if (!playerId) {
 
     playerId =
-        (telegramId ? "tg_" + telegramId : "player_" + Date.now()) +
+        (
+            telegramId
+                ? "tg_" + telegramId
+                : "player_" + Date.now()
+        ) +
         "_" +
         Math.random()
             .toString(36)
@@ -65,15 +77,27 @@ if (!playerId) {
     );
 }
 
+
 let playerName =
     localStorage.getItem(
         "miltape_player_name"
-    ) || (tgUser ? (tgUser.first_name || tgUser.username) : "");
+    ) ||
+    (
+        tgUser
+            ? (
+                tgUser.first_name ||
+                tgUser.username ||
+                ""
+            )
+            : ""
+    );
+
 
 let playerAddress =
     localStorage.getItem(
         "miltape_player_address"
     ) || "";
+
 
 let selectedBet = 0;
 
@@ -93,6 +117,8 @@ let selectedPaymentMethod = "ton";
 
 let tonConnectUI = null;
 
+let tonConnectInitializing = false;
+
 
 /* =========================================================
    DOM
@@ -100,6 +126,7 @@ let tonConnectUI = null;
 
 const $ = id =>
     document.getElementById(id);
+
 
 const enterChallenge =
     $("enterChallenge");
@@ -171,7 +198,8 @@ function escapeHtml(value) {
 function showMessage(message) {
 
     if (tapMessage) {
-        tapMessage.textContent = message;
+        tapMessage.textContent =
+            message;
     }
 }
 
@@ -218,7 +246,9 @@ function shortAddress(address) {
 
 function openModal() {
 
-    dynamicModal?.classList.add("show");
+    dynamicModal?.classList.add(
+        "show"
+    );
 
     document.body.style.overflow =
         "hidden";
@@ -227,7 +257,9 @@ function openModal() {
 
 function closeModal() {
 
-    dynamicModal?.classList.remove("show");
+    dynamicModal?.classList.remove(
+        "show"
+    );
 
     document.body.style.overflow =
         "";
@@ -260,11 +292,34 @@ dynamicModal?.addEventListener(
 
 function isValidTonAddress(address) {
 
-    if (!address || typeof address !== "string") {
+    if (
+        !address ||
+        typeof address !== "string"
+    ) {
         return false;
     }
 
-    return address.length >= 40 && (address.startsWith("UQ") || address.startsWith("EQ") || address.startsWith("0:")) || /^[0-9a-fA-F]{64}$/.test(address);
+    const value =
+        address.trim();
+
+    if (value.length < 40) {
+        return false;
+    }
+
+    const userFriendly =
+        /^(UQ|EQ)[A-Za-z0-9_-]{46}$/;
+
+    const rawAddress =
+        /^-?\d:[0-9a-fA-F]{64}$/;
+
+    const hexAddress =
+        /^[0-9a-fA-F]{64}$/;
+
+    return (
+        userFriendly.test(value) ||
+        rawAddress.test(value) ||
+        hexAddress.test(value)
+    );
 }
 
 
@@ -274,11 +329,16 @@ function isValidTonAddress(address) {
 
 function openChallengeForm() {
 
-    connectedWallet = playerAddress || "";
-    selectedPaymentMethod = "ton";
+    connectedWallet =
+        playerAddress || "";
+
+    selectedPaymentMethod =
+        "ton";
+
 
     dynamicModalTitle.textContent =
         "🎮 Rejoindre la partie";
+
 
     dynamicModalBody.innerHTML = `
 
@@ -333,7 +393,11 @@ function openChallengeForm() {
                 🪙 MODE DE PAIEMENT
             </label>
 
-            <div style="display:flex; gap:10px;">
+
+            <div style="
+                display:flex;
+                gap:10px;
+            ">
 
                 <button
                     type="button"
@@ -350,8 +414,9 @@ function openChallengeForm() {
                         font-size:13px;
                     "
                 >
-                    🔗 TON Connect (Wallet)
+                    🔗 TON Connect
                 </button>
+
 
                 <button
                     type="button"
@@ -381,6 +446,7 @@ function openChallengeForm() {
             ">
                 🪙 TA MISE
             </label>
+
 
             <input
                 id="betInput"
@@ -414,6 +480,7 @@ function openChallengeForm() {
                 👤 TON NOM
             </label>
 
+
             <input
                 id="playerNameInput"
                 type="text"
@@ -443,13 +510,21 @@ function openChallengeForm() {
                     font-size:13px;
                     font-weight:900;
                 ">
-                    🔗 TON WALLET (Pour recevoir les gains)
+                    🔗 TON WALLET
+                    <br>
+                    <small style="
+                        color:#999;
+                        font-weight:400;
+                    ">
+                        Pour recevoir les gains
+                    </small>
                 </label>
+
 
                 <input
                     id="walletInputManual"
                     type="text"
-                    placeholder="Colle ton adresse TON (commençant par UQ...)"
+                    placeholder="Colle ton adresse TON (UQ... / EQ...)"
                     value="${escapeHtml(playerAddress)}"
                     style="
                         width:100%;
@@ -466,6 +541,7 @@ function openChallengeForm() {
                     "
                 >
 
+
                 <div
                     id="walletBox"
                     style="
@@ -474,7 +550,7 @@ function openChallengeForm() {
                         min-height:40px;
                         padding:8px 12px;
                         border-radius:10px;
-                        background:rgba(255,255,255,0.03);
+                        background:rgba(255,255,255,.03);
                         color:#aaa;
                         font-size:12px;
                         line-height:1.4;
@@ -485,8 +561,12 @@ function openChallengeForm() {
                     ${
                         playerAddress
                             ? "Adresse actuelle : " +
-                              escapeHtml(playerAddress)
-                            : "Ou connecte ton wallet automatiquement ci-dessous"
+                              escapeHtml(
+                                  shortAddress(
+                                      playerAddress
+                                  )
+                              )
+                            : "Connecte ton wallet TON ci-dessous"
                     }
                 </div>
 
@@ -601,6 +681,7 @@ function openChallengeForm() {
         </div>
     `;
 
+
     openModal();
 
 
@@ -638,11 +719,16 @@ function openChallengeForm() {
         $("tonSection");
 
 
+    /* =====================================================
+       MODE TON
+    ===================================================== */
+
     btnTon.addEventListener(
         "click",
         () => {
 
-            selectedPaymentMethod = "ton";
+            selectedPaymentMethod =
+                "ton";
 
             btnTon.style.background =
                 "#ffcc00";
@@ -653,6 +739,7 @@ function openChallengeForm() {
             btnTon.style.borderColor =
                 "#ffcc00";
 
+
             btnStars.style.background =
                 "#090014";
 
@@ -662,40 +749,10 @@ function openChallengeForm() {
             btnStars.style.borderColor =
                 "rgba(255,204,0,.4)";
 
-            tonSection.style.display =
-                "block";
-
-            updateButton();
-        }
-    );
-
-
-    btnStars.addEventListener(
-        "click",
-        () => {
-
-            selectedPaymentMethod = "stars";
-
-            btnStars.style.background =
-                "#ffcc00";
-
-            btnStars.style.color =
-                "#16051f";
-
-            btnStars.style.borderColor =
-                "#ffcc00";
-
-            btnTon.style.background =
-                "#090014";
-
-            btnTon.style.color =
-                "#fff";
-
-            btnTon.style.borderColor =
-                "rgba(255,204,0,.4)";
 
             tonSection.style.display =
                 "block";
+
 
             updateButton();
         }
@@ -703,7 +760,53 @@ function openChallengeForm() {
 
 
     /* =====================================================
-       BOUTON
+       MODE STARS
+    ===================================================== */
+
+    btnStars.addEventListener(
+        "click",
+        () => {
+
+            selectedPaymentMethod =
+                "stars";
+
+
+            btnStars.style.background =
+                "#ffcc00";
+
+            btnStars.style.color =
+                "#16051f";
+
+            btnStars.style.borderColor =
+                "#ffcc00";
+
+
+            btnTon.style.background =
+                "#090014";
+
+            btnTon.style.color =
+                "#fff";
+
+            btnTon.style.borderColor =
+                "rgba(255,204,0,.4)";
+
+
+            /*
+             * On cache uniquement la connexion TON.
+             * Le wallet reste enregistré pour recevoir les gains.
+             */
+
+            tonSection.style.display =
+                "none";
+
+
+            updateButton();
+        }
+    );
+
+
+    /* =====================================================
+       VALIDATION BOUTON
     ===================================================== */
 
     function updateButton() {
@@ -719,30 +822,47 @@ function openChallengeForm() {
         const currentManualWallet =
             walletInputManual.value.trim();
 
+
         if (
             isValidTonAddress(
                 currentManualWallet
             )
         ) {
+
             connectedWallet =
                 currentManualWallet;
         }
+
 
         const validAmount =
             Number.isFinite(amount) &&
             amount >= MINIMUM_BET &&
             amount <= MAXIMUM_BET;
 
+
         const validName =
             name.length >= 2;
 
+
+        /*
+         * TON : wallet obligatoire.
+         *
+         * STARS :
+         * le wallet TON n'est pas obligatoire
+         * pour effectuer le paiement.
+         */
+
         const validWallet =
-            isValidTonAddress(
-                connectedWallet
-            );
+            selectedPaymentMethod === "stars"
+                ? true
+                : isValidTonAddress(
+                    connectedWallet
+                );
+
 
         const validTerms =
             terms.checked;
+
 
         const enabled =
             validAmount &&
@@ -751,16 +871,22 @@ function openChallengeForm() {
             validTerms &&
             !paymentInProgress;
 
+
         payButton.disabled =
             !enabled;
 
+
         payButton.style.opacity =
-            enabled ? "1" : ".45";
+            enabled
+                ? "1"
+                : ".45";
+
 
         payButton.style.cursor =
             enabled
                 ? "pointer"
                 : "not-allowed";
+
 
         if (validAmount) {
 
@@ -768,6 +894,7 @@ function openChallengeForm() {
                 selectedPaymentMethod === "stars"
                     ? "STARS"
                     : "TON";
+
 
             payButton.textContent =
                 `🪙 PAYER ${formatTon(amount)} ${unitLabel} ET JOUER`;
@@ -805,6 +932,7 @@ function openChallengeForm() {
             const val =
                 walletInputManual.value.trim();
 
+
             if (
                 isValidTonAddress(val)
             ) {
@@ -812,23 +940,30 @@ function openChallengeForm() {
                 connectedWallet =
                     val;
 
+
                 walletBox.innerHTML =
                     `
                     <span style="color:#2ecc71">
-                        Adresse valide saisie
+                        🟢 Adresse TON valide
                     </span>
                     `;
 
             } else {
 
+                connectedWallet =
+                    "";
+
+
                 walletBox.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        Adresse TON invalide
-                        (doit commencer par UQ ou EQ)
+                        ❌ Adresse TON invalide
+                        <br>
+                        Elle doit commencer par UQ ou EQ.
                     </span>
                     `;
             }
+
 
             updateButton();
         }
@@ -842,12 +977,17 @@ function openChallengeForm() {
 
 
     /* =====================================================
-       CONNECT TON CONNECT
+       CONNECT TON WALLET
     ===================================================== */
 
     connectButton.addEventListener(
         "click",
         async () => {
+
+            if (paymentInProgress) {
+                return;
+            }
+
 
             connectButton.disabled =
                 true;
@@ -855,17 +995,20 @@ function openChallengeForm() {
             connectButton.textContent =
                 "⏳ CONNEXION...";
 
+
             walletBox.innerHTML =
                 `
                 <span style="color:#ffcc00">
-                    Ouverture de TonConnect...
+                    ⏳ Ouverture de TON Connect...
                 </span>
                 `;
+
 
             try {
 
                 const wallet =
                     await connectTonWallet();
+
 
                 if (!wallet) {
 
@@ -874,16 +1017,9 @@ function openChallengeForm() {
                         <span style="color:#ff6b6b">
                             ❌ Wallet non connecté.
                             <br>
-                            Tu peux coller ton adresse directement
-                            dans le champ ci-dessus.
+                            Tu peux coller ton adresse manuellement.
                         </span>
                         `;
-
-                    connectButton.disabled =
-                        false;
-
-                    connectButton.textContent =
-                        "🔗 CONNECTER TON WALLET";
 
                     return;
                 }
@@ -895,8 +1031,10 @@ function openChallengeForm() {
                 playerAddress =
                     wallet;
 
+
                 walletInputManual.value =
                     wallet;
+
 
                 localStorage.setItem(
                     "miltape_player_address",
@@ -916,7 +1054,9 @@ function openChallengeForm() {
                     <br>
 
                     <span style="color:#aaa;">
-                        ${escapeHtml(wallet)}
+                        ${escapeHtml(
+                            shortAddress(wallet)
+                        )}
                     </span>
                     `;
 
@@ -924,8 +1064,13 @@ function openChallengeForm() {
                 connectButton.textContent =
                     "🟢 WALLET CONNECTÉ";
 
+
                 connectButton.style.background =
-                    "linear-gradient(135deg,#159957,#2ecc71)";
+                    "linear-gradient(
+                        135deg,
+                        #159957,
+                        #2ecc71
+                    )";
 
 
                 updateButton();
@@ -933,15 +1078,17 @@ function openChallengeForm() {
             } catch (error) {
 
                 console.error(
-                    "Connexion Wallet:",
+                    "Connexion TON :",
                     error
                 );
+
 
                 walletBox.innerHTML =
                     `
                     <span style="color:#ff6b6b">
                         ❌ Connexion annulée ou impossible.
-                        Colle ton adresse manuellement si besoin.
+                        <br>
+                        Tu peux coller ton adresse manuellement.
                     </span>
                     `;
 
@@ -949,6 +1096,7 @@ function openChallengeForm() {
 
                 connectButton.disabled =
                     false;
+
 
                 if (connectedWallet) {
 
@@ -960,6 +1108,7 @@ function openChallengeForm() {
                     connectButton.textContent =
                         "🔗 CONNECTER TON WALLET";
                 }
+
 
                 updateButton();
             }
@@ -983,14 +1132,17 @@ function openChallengeForm() {
             const name =
                 nameInput.value.trim();
 
+
             const manualVal =
                 walletInputManual.value.trim();
+
 
             if (
                 isValidTonAddress(
                     manualVal
                 )
             ) {
+
                 connectedWallet =
                     manualVal;
             }
@@ -1008,7 +1160,9 @@ function openChallengeForm() {
                         ❌ Mise entre
                         ${MINIMUM_BET}
                         et
-                        ${formatNumber(MAXIMUM_BET)}.
+                        ${formatNumber(
+                            MAXIMUM_BET
+                        )}.
                     </span>
                     `;
 
@@ -1029,7 +1183,13 @@ function openChallengeForm() {
             }
 
 
+            /*
+             * Pour TON, le wallet est obligatoire.
+             * Pour Stars, le wallet peut être absent.
+             */
+
             if (
+                selectedPaymentMethod === "ton" &&
                 !isValidTonAddress(
                     connectedWallet
                 )
@@ -1038,8 +1198,8 @@ function openChallengeForm() {
                 paymentStatus.innerHTML =
                     `
                     <span style="color:#ff6b6b">
-                        ❌ Entre ou connecte une adresse
-                        Wallet TON valide pour les gains.
+                        ❌ Connecte ton wallet TON
+                        ou colle ton adresse.
                     </span>
                     `;
 
@@ -1061,11 +1221,12 @@ function openChallengeForm() {
 
 
             const walletBeforePayment =
-                connectedWallet;
+                connectedWallet || "";
 
 
             playerName =
                 name;
+
 
             playerAddress =
                 walletBeforePayment;
@@ -1076,17 +1237,23 @@ function openChallengeForm() {
                 playerName
             );
 
-            localStorage.setItem(
-                "miltape_player_address",
-                playerAddress
-            );
+
+            if (walletBeforePayment) {
+
+                localStorage.setItem(
+                    "miltape_player_address",
+                    walletBeforePayment
+                );
+            }
 
 
             paymentInProgress =
                 true;
 
+
             payButton.disabled =
                 true;
+
 
             payButton.style.opacity =
                 ".5";
@@ -1101,6 +1268,10 @@ function openChallengeForm() {
 
 
             try {
+
+                /* =================================================
+                   PAIEMENT TON
+                ================================================= */
 
                 if (
                     selectedPaymentMethod ===
@@ -1162,6 +1333,11 @@ function openChallengeForm() {
                         );
                     }
 
+
+                /* =================================================
+                   PAIEMENT TELEGRAM STARS
+                ================================================= */
+
                 } else {
 
                     if (
@@ -1188,7 +1364,8 @@ function openChallengeForm() {
                             API_URL +
                             "/api/telegram/create-invoice",
                             {
-                                method: "POST",
+                                method:
+                                    "POST",
 
                                 headers: {
                                     "Content-Type":
@@ -1201,17 +1378,22 @@ function openChallengeForm() {
                                         amount,
                                         name,
                                         wallet:
-                                            connectedWallet
+                                            walletBeforePayment
                                     })
                             }
                         );
 
 
                     const invoiceData =
-                        await invoiceRes.json();
+                        await invoiceRes
+                            .json()
+                            .catch(
+                                () => ({})
+                            );
 
 
                     if (
+                        !invoiceRes.ok ||
                         !invoiceData.success ||
                         !invoiceData.invoiceLink
                     ) {
@@ -1232,7 +1414,10 @@ function openChallengeForm() {
 
 
                     await new Promise(
-                        (resolve, reject) => {
+                        (
+                            resolve,
+                            reject
+                        ) => {
 
                             tg.openInvoice(
                                 invoiceData.invoiceLink,
@@ -1243,7 +1428,9 @@ function openChallengeForm() {
                                         "paid"
                                     ) {
 
-                                        resolve(true);
+                                        resolve(
+                                            true
+                                        );
 
                                     } else {
 
@@ -1260,8 +1447,13 @@ function openChallengeForm() {
                 }
 
 
+                /* =================================================
+                   PAIEMENT VALIDÉ
+                ================================================= */
+
                 selectedBet =
                     amount;
+
 
                 joinedGame =
                     true;
@@ -1273,13 +1465,21 @@ function openChallengeForm() {
                 );
 
 
-                displayBet.textContent =
-                    "$" +
-                    formatTon(amount);
+                if (displayBet) {
+
+                    displayBet.textContent =
+                        "$" +
+                        formatTon(
+                            amount
+                        );
+                }
 
 
-                tapButton.disabled =
-                    false;
+                if (tapButton) {
+
+                    tapButton.disabled =
+                        false;
+                }
 
 
                 showMessage(
@@ -1326,7 +1526,6 @@ function openChallengeForm() {
                         `
                         <span style="color:#ff6b6b">
                             ❌ Wallet non connecté.
-                            Utilise le remplissage manuel.
                         </span>
                         `;
 
@@ -1368,7 +1567,7 @@ function openChallengeForm() {
 
 
     /* =====================================================
-       DETECTION AUTOMATIQUE
+       DÉTECTION WALLET
     ===================================================== */
 
     setTimeout(
@@ -1379,17 +1578,19 @@ function openChallengeForm() {
                 const wallet =
                     await getTonWalletAddress();
 
+
                 if (!wallet) {
                     return;
                 }
 
+
                 connectedWallet =
                     wallet;
 
-                if (!playerAddress) {
-                    playerAddress =
-                        wallet;
-                }
+
+                playerAddress =
+                    wallet;
+
 
                 walletInputManual.value =
                     wallet;
@@ -1433,7 +1634,7 @@ function openChallengeForm() {
             } catch (error) {
 
                 console.log(
-                    "Wallet automatique:",
+                    "Wallet automatique :",
                     error
                 );
             }
@@ -1448,67 +1649,265 @@ function openChallengeForm() {
 
 
 /* =========================================================
-   TON CONNECT INITIALISATION & HELPERS
+   TON CONNECT
+   UNE SEULE INSTANCE
 ========================================================= */
 
 function initTonConnect() {
-    if (!tonConnectUI && window.TON_CONNECT_UI) {
-        try {
-            tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
-                manifestUrl: 'https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json'
-            });
-        } catch (e) {
-            console.error("Init TonConnect error:", e);
-        }
+
+    if (tonConnectUI) {
+        return tonConnectUI;
     }
+
+
+    if (
+        !window.TON_CONNECT_UI ||
+        !window.TON_CONNECT_UI.TonConnectUI
+    ) {
+
+        console.error(
+            "❌ TON Connect UI non chargé."
+        );
+
+        return null;
+    }
+
+
+    if (tonConnectInitializing) {
+        return tonConnectUI;
+    }
+
+
+    tonConnectInitializing =
+        true;
+
+
+    try {
+
+        tonConnectUI =
+            new window.TON_CONNECT_UI.TonConnectUI({
+                manifestUrl:
+                    "https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json"
+            });
+
+
+        console.log(
+            "🟢 TON Connect initialisé"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "❌ Init TON Connect :",
+            error
+        );
+
+        tonConnectUI =
+            null;
+
+    } finally {
+
+        tonConnectInitializing =
+            false;
+    }
+
+
     return tonConnectUI;
 }
 
+
+/* =========================================================
+   RÉCUPÉRER WALLET
+========================================================= */
+
 async function getTonWalletAddress() {
-    const tc = initTonConnect();
-    if (!tc) return "";
-    
-    if (tc.wallet && tc.wallet.account && tc.wallet.account.address) {
-        const rawAddress = tc.wallet.account.address;
-        if (window.TON_CONNECT_UI && typeof window.TON_CONNECT_UI.toUserFriendlyAddress === "function") {
-            return window.TON_CONNECT_UI.toUserFriendlyAddress(rawAddress);
-        }
-        return rawAddress;
+
+    const tc =
+        initTonConnect();
+
+
+    if (!tc) {
+        return "";
     }
+
+
+    try {
+
+        if (
+            tc.wallet &&
+            tc.wallet.account &&
+            tc.wallet.account.address
+        ) {
+
+            const rawAddress =
+                tc.wallet.account.address;
+
+
+            if (
+                window.TON_CONNECT_UI &&
+                typeof
+                    window.TON_CONNECT_UI
+                        .toUserFriendlyAddress ===
+                    "function"
+            ) {
+
+                return
+                    window.TON_CONNECT_UI
+                        .toUserFriendlyAddress(
+                            rawAddress
+                        );
+            }
+
+
+            return rawAddress;
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Erreur lecture wallet :",
+            error
+        );
+    }
+
+
     return "";
 }
 
+
+/* =========================================================
+   CONNECTER WALLET
+========================================================= */
+
 async function connectTonWallet() {
-    const tc = initTonConnect();
+
+    const tc =
+        initTonConnect();
+
+
     if (!tc) {
-        throw new Error("TON_CONNECT_NOT_LOADED");
+
+        throw new Error(
+            "TON_CONNECT_NOT_LOADED"
+        );
     }
 
-    if (tc.connected && tc.wallet) {
-        return await getTonWalletAddress();
+
+    try {
+
+        if (
+            tc.connected &&
+            tc.wallet
+        ) {
+
+            return await
+                getTonWalletAddress();
+        }
+
+
+        await tc.openModal();
+
+
+        return await new Promise(
+            resolve => {
+
+                let finished =
+                    false;
+
+
+                const finish =
+                    wallet => {
+
+                        if (finished) {
+                            return;
+                        }
+
+                        finished =
+                            true;
+
+
+                        if (
+                            typeof unsubscribe ===
+                            "function"
+                        ) {
+
+                            try {
+                                unsubscribe();
+                            } catch (_) {}
+                        }
+
+
+                        resolve(
+                            wallet || ""
+                        );
+                    };
+
+
+                const unsubscribe =
+                    tc.onStatusChange(
+                        walletInfo => {
+
+                            if (
+                                walletInfo &&
+                                walletInfo.account &&
+                                walletInfo.account.address
+                            ) {
+
+                                const rawAddress =
+                                    walletInfo
+                                        .account
+                                        .address;
+
+
+                                let address =
+                                    rawAddress;
+
+
+                                if (
+                                    window.TON_CONNECT_UI &&
+                                    typeof
+                                        window.TON_CONNECT_UI
+                                            .toUserFriendlyAddress ===
+                                        "function"
+                                ) {
+
+                                    address =
+                                        window.TON_CONNECT_UI
+                                            .toUserFriendlyAddress(
+                                                rawAddress
+                                            );
+                                }
+
+
+                                finish(
+                                    address
+                                );
+                            }
+                        }
+                    );
+
+
+                setTimeout(
+                    () => {
+
+                        finish("");
+
+                    },
+                    60000
+                );
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "TON Connect error:",
+            error
+        );
+
+        throw error;
     }
-
-    await tc.openModal();
-
-    return new Promise((resolve) => {
-        const unsubscribe = tc.onStatusChange(walletInfo => {
-            if (walletInfo) {
-                unsubscribe();
-                const rawAddress = walletInfo.account.address;
-                let address = rawAddress;
-                if (window.TON_CONNECT_UI && typeof window.TON_CONNECT_UI.toUserFriendlyAddress === "function") {
-                    address = window.TON_CONNECT_UI.toUserFriendlyAddress(rawAddress);
-                }
-                resolve(address);
-            }
-        });
-
-        setTimeout(() => {
-            if (!tc.connected) {
-                resolve("");
-            }
-        }, 60000);
-    });
 }
 
 
@@ -1520,42 +1919,137 @@ async function sendTonPayment(
     amount,
     expectedWallet
 ) {
-    const tc = initTonConnect();
-    if (!tc || !tc.connected) {
-        throw new Error("WALLET_NOT_CONNECTED");
+
+    const tc =
+        initTonConnect();
+
+
+    if (
+        !tc ||
+        !tc.connected
+    ) {
+
+        throw new Error(
+            "WALLET_NOT_CONNECTED"
+        );
     }
 
-    const nanotons = Math.round(Number(amount) * Math.pow(10, TON_DECIMALS));
 
-    if (!Number.isSafeInteger(nanotons) || nanotons <= 0) {
-        throw new Error("MONTANT_INVALIDE");
+    const currentWallet =
+        await getTonWalletAddress();
+
+
+    if (
+        expectedWallet &&
+        currentWallet &&
+        expectedWallet !== currentWallet
+    ) {
+
+        throw new Error(
+            "WALLET_ADDRESS_CHANGED"
+        );
     }
+
+
+    const nanotons =
+        Math.round(
+            Number(amount) *
+            Math.pow(
+                10,
+                TON_DECIMALS
+            )
+        );
+
+
+    if (
+        !Number.isSafeInteger(
+            nanotons
+        ) ||
+        nanotons <= 0
+    ) {
+
+        throw new Error(
+            "MONTANT_INVALIDE"
+        );
+    }
+
 
     const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600,
+
+        validUntil:
+            Math.floor(
+                Date.now() / 1000
+            ) + 600,
+
         messages: [
+
             {
-                address: MILTAPE_WALLET,
-                amount: nanotons.toString()
+                address:
+                    MILTAPE_WALLET,
+
+                amount:
+                    nanotons.toString()
             }
+
         ]
     };
 
+
     try {
-        const result = await tc.sendTransaction(transaction);
-        return result?.boc || result || "SUCCESS";
+
+        const result =
+            await tc.sendTransaction(
+                transaction
+            );
+
+
+        return (
+            result?.boc ||
+            result ||
+            "SUCCESS"
+        );
+
+
     } catch (error) {
-        console.error("TON transfer error:", error);
-        if (error?.message?.toLowerCase()?.includes("reject") || error?.code === 300) {
-            throw new Error("USER_REJECTED");
+
+        console.error(
+            "TON transfer error:",
+            error
+        );
+
+
+        const message =
+            String(
+                error?.message || ""
+            ).toLowerCase();
+
+
+        if (
+            message.includes(
+                "reject"
+            ) ||
+            message.includes(
+                "cancel"
+            ) ||
+            error?.code === 300
+        ) {
+
+            throw new Error(
+                "USER_REJECTED"
+            );
         }
-        throw new Error(error?.message || "Erreur lors du transfert TON");
+
+
+        throw new Error(
+            error?.message ||
+            "Erreur lors du transfert TON"
+        );
     }
 }
 
 
 /* =========================================================
-   VERIFICATION BACKEND
+   VÉRIFICATION BACKEND
 ========================================================= */
 
 async function verifyPayment(
@@ -1586,8 +2080,7 @@ async function verifyPayment(
 
                         telegramId,
 
-                        name:
-                            name,
+                        name,
 
                         txId:
                             txid,
@@ -1623,7 +2116,7 @@ async function verifyPayment(
 
 
 /* =========================================================
-   RESTAURATION DE SESSION JOUEUR
+   RESTAURATION SESSION
 ========================================================= */
 
 async function restorePlayerSession() {
@@ -1634,6 +2127,7 @@ async function restorePlayerSession() {
             localStorage.getItem(
                 "miltape_player_id"
             );
+
 
         const savedWallet =
             localStorage.getItem(
@@ -1675,14 +2169,17 @@ async function restorePlayerSession() {
                 data.player.name ||
                 playerName;
 
+
             playerAddress =
                 data.player.wallet ||
                 playerAddress;
+
 
             tapCount =
                 Number(
                     data.player.taps || 0
                 );
+
 
             selectedBet =
                 Number(
@@ -1697,6 +2194,7 @@ async function restorePlayerSession() {
 
                 joinedGame =
                     true;
+
 
                 localStorage.setItem(
                     "miltape_joined",
@@ -1739,7 +2237,7 @@ async function restorePlayerSession() {
     } catch (error) {
 
         console.error(
-            "Erreur lors de la restauration de session :",
+            "Erreur restauration session :",
             error
         );
     }
@@ -1747,7 +2245,8 @@ async function restorePlayerSession() {
 
 
 /* =========================================================
-   SOCKET.IO (CORRIGÉ POUR MOBILE)
+   SOCKET.IO
+   CHRONO + CHAT CONSERVÉS
 ========================================================= */
 
 function connectSocket() {
@@ -1765,16 +2264,37 @@ function connectSocket() {
     }
 
 
+    if (
+        socket &&
+        socket.connected
+    ) {
+
+        return;
+    }
+
+
     socket =
         io(
             SOCKET_URL,
             {
-                transports: ["polling", "websocket"],
+                transports: [
+                    "polling",
+                    "websocket"
+                ],
+
                 secure: true,
-                rejectUnauthorized: false,
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000
+
+                rejectUnauthorized:
+                    false,
+
+                reconnection:
+                    true,
+
+                reconnectionAttempts:
+                    Infinity,
+
+                reconnectionDelay:
+                    1000
             }
         );
 
@@ -1784,7 +2304,7 @@ function connectSocket() {
         () => {
 
             console.log(
-                "🟢 Socket connecté. ID:",
+                "🟢 Socket connecté :",
                 socket.id
             );
 
@@ -1802,12 +2322,16 @@ function connectSocket() {
         error => {
 
             console.error(
-                "❌ Erreur de connexion Socket.io :",
+                "❌ Socket.io :",
                 error.message
             );
         }
     );
 
+
+    /* =====================================================
+       GAME STATE
+    ===================================================== */
 
     socket.on(
         "game:state",
@@ -1822,14 +2346,21 @@ function connectSocket() {
                 state.gameId ||
                 gameId;
 
+
             gameRunning =
                 state.status ===
                 "running";
 
 
-            updateTimer(
-                state.remainingSeconds
-            );
+            if (
+                state.remainingSeconds !==
+                undefined
+            ) {
+
+                updateTimer(
+                    state.remainingSeconds
+                );
+            }
 
 
             if (
@@ -1857,6 +2388,10 @@ function connectSocket() {
     );
 
 
+    /* =====================================================
+       TIMER
+    ===================================================== */
+
     socket.on(
         "timer:update",
         data => {
@@ -1868,7 +2403,7 @@ function connectSocket() {
 
             const seconds =
                 Number(
-                    data.remainingSeconds ||
+                    data.remainingSeconds ??
                     0
                 );
 
@@ -1878,7 +2413,10 @@ function connectSocket() {
             );
 
 
-            if (data.status) {
+            if (
+                data.status !==
+                undefined
+            ) {
 
                 gameRunning =
                     data.status ===
@@ -1887,6 +2425,10 @@ function connectSocket() {
         }
     );
 
+
+    /* =====================================================
+       ONLINE
+    ===================================================== */
 
     socket.on(
         "online:count",
@@ -1899,6 +2441,10 @@ function connectSocket() {
     );
 
 
+    /* =====================================================
+       LEADERBOARD
+    ===================================================== */
+
     socket.on(
         "leaderboard:update",
         leaderboard => {
@@ -1909,6 +2455,10 @@ function connectSocket() {
         }
     );
 
+
+    /* =====================================================
+       SCORE
+    ===================================================== */
 
     socket.on(
         "player:score",
@@ -1925,11 +2475,16 @@ function connectSocket() {
                         data.taps
                     );
 
+
                 updateTapDisplay();
             }
         }
     );
 
+
+    /* =====================================================
+       FIN DE PARTIE
+    ===================================================== */
 
     socket.on(
         "game:finished",
@@ -1938,8 +2493,12 @@ function connectSocket() {
             gameRunning =
                 false;
 
-            tapButton.disabled =
-                true;
+
+            if (tapButton) {
+
+                tapButton.disabled =
+                    true;
+            }
 
 
             showMessage(
@@ -1962,11 +2521,21 @@ function connectSocket() {
     );
 
 
+    /* =====================================================
+       CHAT
+    ===================================================== */
+
     socket.on(
         "chat:message",
         messageData => {
 
+            if (!messageData) {
+                return;
+            }
+
+
             addChatMessage({
+
                 playerName:
                     messageData.name,
 
@@ -1997,10 +2566,17 @@ function joinSocketGame() {
         "player:join",
         {
             playerId,
+
             telegramId,
-            name: playerName,
-            wallet: playerAddress,
-            bet: selectedBet
+
+            name:
+                playerName,
+
+            wallet:
+                playerAddress,
+
+            bet:
+                selectedBet
         }
     );
 }
@@ -2081,9 +2657,7 @@ function updateTapDisplay() {
    TIMER
 ========================================================= */
 
-function updateTimer(
-    seconds
-) {
+function updateTimer(seconds) {
 
     const value =
         Math.max(
@@ -2118,9 +2692,7 @@ function updateTimer(
    ONLINE
 ========================================================= */
 
-function updateOnline(
-    count
-) {
+function updateOnline(count) {
 
     if (!onlineCount) {
         return;
@@ -2153,9 +2725,7 @@ function updateOnline(
    TOTAL STAKES
 ========================================================= */
 
-function updateTotalStakes(
-    total
-) {
+function updateTotalStakes(total) {
 
     if (!globalTotalStakes) {
         return;
@@ -2172,9 +2742,7 @@ function updateTotalStakes(
    LEADERBOARD
 ========================================================= */
 
-function renderLeaderboard(
-    players
-) {
+function renderLeaderboard(players) {
 
     if (!leaderboardList) {
         return;
@@ -2197,20 +2765,20 @@ function renderLeaderboard(
     }
 
 
+    const medals = [
+        "🥇",
+        "🥈",
+        "🥉",
+        "🏅",
+        "🏅"
+    ];
+
+
     leaderboardList.innerHTML =
         players
             .slice(0, 5)
             .map(
                 (player, index) => {
-
-                    const medals = [
-                        "🥇",
-                        "🥈",
-                        "🥉",
-                        "🏅",
-                        "🏅"
-                    ];
-
 
                     return `
 
@@ -2236,6 +2804,7 @@ function renderLeaderboard(
                                 ${medals[index]}
                             </strong>
 
+
                             <div
                                 style="
                                     flex:1;
@@ -2258,6 +2827,7 @@ function renderLeaderboard(
                                     )}
                                 </strong>
 
+
                                 <small
                                     style="
                                         color:#999;
@@ -2272,6 +2842,7 @@ function renderLeaderboard(
 
                             </div>
 
+
                             <strong
                                 style="
                                     color:#ffcc00;
@@ -2284,6 +2855,7 @@ function renderLeaderboard(
                             </strong>
 
                         </div>
+
                     `;
                 }
             )
@@ -2295,9 +2867,7 @@ function renderLeaderboard(
    CHAT
 ========================================================= */
 
-function renderChatHistory(
-    messages
-) {
+function renderChatHistory(messages) {
 
     if (!chatMessages) {
         return;
@@ -2308,15 +2878,20 @@ function renderChatHistory(
         "";
 
 
+    if (
+        !Array.isArray(messages)
+    ) {
+        return;
+    }
+
+
     messages.forEach(
         addChatMessage
     );
 }
 
 
-function addChatMessage(
-    data
-) {
+function addChatMessage(data) {
 
     if (
         !chatMessages ||
@@ -2338,6 +2913,7 @@ function addChatMessage(
 
 
     div.innerHTML = `
+
         <strong>
             ${escapeHtml(
                 data.playerName ||
@@ -2349,6 +2925,7 @@ function addChatMessage(
             data.message ||
             ""
         )}
+
     `;
 
 
@@ -2396,8 +2973,7 @@ function sendChat() {
                 playerName ||
                 "Joueur",
 
-            message:
-                message
+            message
         }
     );
 
@@ -2459,6 +3035,7 @@ async function loadChatHistoryRest() {
             const formatted =
                 data.messages.map(
                     m => ({
+
                         playerName:
                             m.name,
 
@@ -2473,11 +3050,11 @@ async function loadChatHistoryRest() {
             );
         }
 
-    } catch (err) {
+    } catch (error) {
 
         console.error(
-            "Erreur chargement chat:",
-            err
+            "Erreur chargement chat :",
+            error
         );
     }
 }
@@ -2562,6 +3139,7 @@ $("menuChatBtn")?.addEventListener(
 
         closeSideMenu();
 
+
         $("globalChat")?.scrollIntoView({
             behavior:
                 "smooth"
@@ -2579,6 +3157,7 @@ $("menuRulesBtn")?.addEventListener(
     () => {
 
         closeSideMenu();
+
 
         dynamicModalTitle.textContent =
             "📜 Règles Miltape";
@@ -2628,6 +3207,7 @@ $("menuGamesBtn")?.addEventListener(
 
         closeSideMenu();
 
+
         showMessage(
             "🎮 Ta partie actuelle : #" +
             gameId
@@ -2646,6 +3226,7 @@ $("menuRankingsBtn")?.addEventListener(
 
         closeSideMenu();
 
+
         document
             .querySelector(
                 ".leaderboard"
@@ -2660,8 +3241,6 @@ $("menuRankingsBtn")?.addEventListener(
 
 /* =========================================================
    MODE DÉMO
-   CORRIGÉ : BOUTON FONCTIONNE MÊME SI LE SCRIPT
-   EST CHARGÉ AVANT LE HTML DU MENU
 ========================================================= */
 
 document.addEventListener(
@@ -2672,6 +3251,7 @@ document.addEventListener(
             event.target.closest(
                 "#demomodebtn"
             );
+
 
         if (!demoButton) {
             return;
@@ -2687,8 +3267,10 @@ document.addEventListener(
         joinedGame =
             true;
 
+
         selectedBet =
             10;
+
 
         playerName =
             playerName ||
@@ -2782,14 +3364,14 @@ async function loadInitialStatus() {
 
 
         console.log(
-            "Miltape status:",
+            "Miltape status :",
             data
         );
 
     } catch (error) {
 
         console.error(
-            "Backend status:",
+            "Backend status :",
             error
         );
     }
@@ -2804,24 +3386,40 @@ document.addEventListener(
     "DOMContentLoaded",
     async () => {
 
+        /*
+         * TON Connect est initialisé UNE SEULE FOIS.
+         */
+
         initTonConnect();
 
+
         updateTapDisplay();
+
+
+        /*
+         * Affichage initial :
+         * 10:00 en attendant le serveur.
+         */
 
         updateTimer(
             GAME_DURATION
         );
 
+
         await loadInitialStatus();
+
 
         await loadChatHistoryRest();
 
+
         await restorePlayerSession();
+
 
         connectSocket();
 
+
         console.log(
-            "🔥 MILTAPE FRONTEND CHARGÉ ET CORRIGÉ POUR TON"
+            "🔥 MILTAPE FRONTEND CHARGÉ"
         );
     }
 );
