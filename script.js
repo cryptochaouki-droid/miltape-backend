@@ -1770,8 +1770,8 @@ function connectSocket() {
             SOCKET_URL,
             {
                 transports: [
-                    "websocket",
-                    "polling"
+                    "polling",
+                    "websocket"
                 ]
             }
         );
@@ -1782,7 +1782,8 @@ function connectSocket() {
         () => {
 
             console.log(
-                "🟢 Socket connecté"
+                "🟢 Socket connecté. ID:",
+                socket.id
             );
 
 
@@ -1799,7 +1800,7 @@ function connectSocket() {
         error => {
 
             console.error(
-                "Socket error:",
+                "❌ Erreur de connexion Socket.io :",
                 error.message
             );
         }
