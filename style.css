@@ -797,3 +797,8 @@ body {
         position: relative;
     }
 }
+
+/* Cache les trois blocs (10 MINUTES, TOP 5, USDT) */
+.rules {
+    display: none !important;
+}
