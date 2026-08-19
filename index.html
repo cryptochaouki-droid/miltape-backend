@@ -30,8 +30,7 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
-        /* CORRECTION RADICALE : Masquer les widgets flottants injectés par TonConnect */
-        #ton-connect-button,
+        /* CORRECTION : On masque uniquement les popups parasites, mais on LESSE VISIBLE #ton-connect-button */
         div[id^="tc-widget"], 
         iframe[id^="tc-widget"],
         .tc-connect-button {
@@ -819,16 +818,14 @@
 
             </div>
 
-            <!-- TON CONNECT -->
-            <div
-                id="ton-connect-button"
-                style="display:none;"
-            ></div>
+            <!-- TON CONNECT BUTTON (VISIBLE MAINTENANT) -->
+            <div id="ton-connect-button"></div>
 
             <button
                 class="wallet-button"
                 id="walletButton"
                 type="button"
+                style="display:none;"
             >
                 💰
 
@@ -1165,95 +1162,44 @@
 
     </main>
 
-    <!-- =========================================================
-         TON CONNECT
-         PROTÉGÉ POUR NE PAS BLOQUER MILTAPE
-         ========================================================= -->
-
+    <!-- TON CONNECT INITIALIZATION -->
     <script>
         window.tonConnectUI = null;
 
         function initTonConnect() {
-
             try {
-
-                if (
-                    typeof TON_CONNECT_UI === "undefined" ||
-                    !TON_CONNECT_UI.TonConnectUI
-                ) {
+                if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {
                     console.warn("TON Connect UI indisponible.");
                     return;
                 }
 
-                window.tonConnectUI =
-                    new TON_CONNECT_UI.TonConnectUI({
+                window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: "https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json",
+                    buttonRootId: "ton-connect-button"
+                });
 
-                        manifestUrl:
-                            "https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json",
-
-                        buttonRootId:
-                            "ton-connect-button"
-                    });
-
-                if (
-                    window.tonConnectUI &&
-                    typeof window.tonConnectUI.onStatusChange === "function"
-                ) {
-
-                    window.tonConnectUI.onStatusChange(
-                        function(walletInfo) {
-
-                            if (
-                                walletInfo &&
-                                walletInfo.account
-                            ) {
-
-                                console.log(
-                                    "Wallet TON connecté :",
-                                    walletInfo.account.address
-                                );
-
-                            }
-
+                if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {
+                    window.tonConnectUI.onStatusChange(function(walletInfo) {
+                        if (walletInfo && walletInfo.account) {
+                            console.log("Wallet TON connecté :", walletInfo.account.address);
                         }
-                    );
-
+                    });
                 }
-
             } catch (error) {
-
-                console.error(
-                    "Erreur TON Connect :",
-                    error
-                );
-
+                console.error("Erreur TON Connect :", error);
                 window.tonConnectUI = null;
             }
         }
 
         if (document.readyState === "loading") {
-
-            document.addEventListener(
-                "DOMContentLoaded",
-                initTonConnect,
-                { once: true }
-            );
-
+            document.addEventListener("DOMContentLoaded", initTonConnect, { once: true });
         } else {
-
             initTonConnect();
-
         }
     </script>
 
-    <!-- =========================================================
-         SCRIPT PRINCIPAL MILTAPE
-         ========================================================= -->
-
-    <script
-        src="./script.js"
-        defer
-    ></script>
+    <!-- SCRIPT PRINCIPAL -->
+    <script src="./script.js" defer></script>
 
 </body>
 
