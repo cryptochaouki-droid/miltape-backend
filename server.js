@@ -6,7 +6,6 @@ const { Server } = require("socket.io");
 const { TronWeb } = require("tronweb");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-
 const PORT = Number(process.env.PORT) || 3000;
 
 const GAME_DURATION_SECONDS = 10 * 60;
