@@ -170,7 +170,6 @@ function getAvatar(name) {
     const cleanName = (name || "Anonyme").trim();
     const initial = cleanName.charAt(0).toUpperCase();
     
-    // Petite astuce pour générer une couleur stable basée sur le nom
     let hash = 0;
     for (let i = 0; i < cleanName.length; i++) {
         hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
@@ -1195,102 +1194,88 @@ payButton.addEventListener(
 
             } else {  
 
-                // MODIFICATION : Simulation ou bypass si hors de Telegram pour les tests sur navigateur
-                if (!tg || !telegramId) {
-                    console.warn("⚠️ Hors de Telegram : Simulation du paiement Telegram Stars pour le test.");
-                    
-                    paymentStatus.innerHTML = `  
-                        <span style="color:#ffcc00">  
-                            ⏳ Mode Test (Navigateur) : Simulation Stars...  
-                        </span>  
+                paymentStatus.innerHTML =  
+                    `  
+                    <span style="color:#ffcc00">  
+                        ⏳ Création de la facture Telegram Stars...  
+                    </span>  
                     `;  
-                    
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                } else {  
-
-                    paymentStatus.innerHTML =  
-                        `  
-                        <span style="color:#ffcc00">  
-                            ⏳ Création de la facture Telegram Stars...  
-                        </span>  
-                        `;  
 
 
-                    const invoiceRes =  
-                        await fetch(  
-                            API_URL +  
-                            "/api/telegram/create-invoice",  
-                            {  
-                                method: "POST",  
+                const invoiceRes =  
+                    await fetch(  
+                        API_URL +  
+                        "/api/telegram/create-invoice",  
+                        {  
+                            method: "POST",  
 
-                                headers: {  
-                                    "Content-Type":  
-                                        "application/json"  
-                                },  
+                            headers: {  
+                                "Content-Type":  
+                                    "application/json"  
+                            },  
 
-                                body:  
-                                    JSON.stringify({  
-                                        telegramId,  
-                                        amount,  
-                                        name,  
-                                        wallet:  
-                                            connectedWallet  
-                                    })  
-                            }  
-                        );  
-
-
-                    const invoiceData =  
-                        await invoiceRes.json();  
-
-
-                    if (  
-                        !invoiceData.success ||  
-                        !invoiceData.invoiceLink  
-                    ) {  
-
-                        throw new Error(  
-                            invoiceData.message ||  
-                            "Erreur création facture Stars"  
-                        );  
-                    }  
-
-
-                    paymentStatus.innerHTML =  
-                        `  
-                        <span style="color:#ffcc00">  
-                            ⏳ Validation du paiement Telegram...  
-                        </span>  
-                        `;  
-
-
-                    await new Promise(  
-                        (resolve, reject) => {  
-
-                            tg.openInvoice(  
-                                invoiceData.invoiceLink,  
-                                status => {  
-
-                                    if (  
-                                        status ===  
-                                        "paid"  
-                                    ) {  
-
-                                        resolve(true);  
-
-                                    } else {  
-
-                                        reject(  
-                                            new Error(  
-                                                "USER_REJECTED"  
-                                            )  
-                                        );  
-                                    }  
-                                }  
-                            );  
+                            body:  
+                                JSON.stringify({  
+                                    telegramId,  
+                                    amount,  
+                                    name,  
+                                    wallet:  
+                                        connectedWallet  
+                                })  
                         }  
                     );  
-                }
+
+
+                const invoiceData =  
+                    await invoiceRes.json();  
+
+
+                if (  
+                    !invoiceData.success ||  
+                    !invoiceData.invoiceLink  
+                ) {  
+
+                    throw new Error(  
+                        invoiceData.message ||  
+                        "Erreur création facture Stars"  
+                    );  
+                }  
+
+
+                paymentStatus.innerHTML =  
+                    `  
+                    <span style="color:#ffcc00">  
+                        ⏳ Validation du paiement Telegram...  
+                    </span>  
+                    `;  
+
+
+                await new Promise(  
+                    (resolve, reject) => {  
+
+                        tg.openInvoice(  
+                            invoiceData.invoiceLink,  
+                            status => {  
+
+                                if (  
+                                    status ===  
+                                    "paid"  
+                                ) {  
+
+                                    resolve(true);  
+
+                                } else {  
+
+                                    reject(  
+                                        new Error(  
+                                            "USER_REJECTED"  
+                                        )  
+                                    );  
+                                }  
+                            }  
+                        );  
+                    }  
+                );  
             }  
 
 
@@ -2364,7 +2349,6 @@ const div =
 div.className =  
     "chat-message";  
 
-// Style flex pour aligner l'avatar et le texte proprement
 div.style.display = "flex";
 div.style.alignItems = "flex-start";
 div.style.gap = "10px";
@@ -2612,7 +2596,7 @@ closeSideMenu();
     dynamicModalBody.innerHTML = `  
 
         <p>  
-            ⏱️ Chaque partie dure  
+            ⏱️ Chaque partie durée  
             <strong>10 minutes</strong>.  
         </p>  
 
