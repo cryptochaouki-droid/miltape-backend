@@ -494,6 +494,47 @@
 
 
         /* =====================================================
+           COMPTEUR AU-DESSUS DE JOUER
+        ====================================================== */
+
+        .tap-counter-top {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2px 0 8px;
+            padding: 0;
+        }
+
+
+        .tap-counter-top .stat-box {
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+
+        .tap-counter-top .stat-box small {
+            display: block;
+            font-size: 11px;
+            color: #aaa;
+            font-weight: 900;
+            letter-spacing: .8px;
+            margin-bottom: 2px;
+        }
+
+
+        .tap-counter-top .stat-box strong {
+            display: block;
+            font-size: 28px;
+            color: #ffcc00;
+            font-weight: 900;
+            line-height: 1.1;
+            text-shadow: 0 0 12px rgba(255,204,0,.25);
+        }
+
+
+        /* =====================================================
            TAP
         ====================================================== */
 
@@ -698,6 +739,11 @@
 
             .tap-zone {
                 min-height: 220px;
+            }
+
+
+            .tap-counter-top .stat-box strong {
+                font-size: 26px;
             }
 
         }
@@ -1201,6 +1247,32 @@
 
 
         <!-- =================================================
+             COMPTEUR DES TAPS
+             REMONTÉ AU-DESSUS DU BOUTON JOUER
+        ================================================== -->
+
+        <section
+            class="tap-counter-top"
+            aria-label="Compteur de taps"
+        >
+
+            <div class="stat-box">
+
+                <small>
+                    TES TAPS
+                </small>
+
+
+                <strong id="tapCount">
+                    0
+                </strong>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
              JOUER
         ================================================== -->
 
@@ -1335,46 +1407,6 @@
                 <small>
                     TELEGRAM STARS
                 </small>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             STATS
-        ================================================== -->
-
-        <section
-            class="stats"
-            style="
-                display:flex;
-                justify-content:center;
-            "
-        >
-
-            <div
-                class="stat-box"
-                style="
-                    width:100%;
-                    max-width:300px;
-                "
-            >
-
-                <small>
-                    TES TAPS
-                </small>
-
-
-                <strong
-                    id="tapCount"
-                    style="
-                        font-size:28px;
-                        color:#ffcc00;
-                    "
-                >
-                    0
-                </strong>
 
             </div>
 
