@@ -3,7 +3,8 @@
 ========================================================= */
 
 // 1. Initialisation de la connexion Socket.IO avec le serveur
-const socket = io();
+const socket = io("https://miltape-server.onrender.com");
+
 
 // 2. Récupération des éléments HTML (DOM)
 const tapButton = document.getElementById('tapButton');
