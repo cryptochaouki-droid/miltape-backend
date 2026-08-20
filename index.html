@@ -2,96 +2,34 @@
 <html lang="fr">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#090014">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne.">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
+    <title>Miltape World Challenge</title>
 
-    <meta
-        name="theme-color"
-        content="#090014"
-    >
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192~2.jpg">
+    <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="./style.css">
 
-    <meta
-        name="mobile-web-app-capable"
-        content="yes"
-    >
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <meta
-        name="apple-mobile-web-app-capable"
-        content="yes"
-    >
+    <!-- TronWeb -->
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
 
-    <meta
-        name="apple-mobile-web-app-status-bar-style"
-        content="black-translucent"
-    >
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    <meta
-        name="description"
-        content="Miltape World Challenge — Tape, classe-toi, gagne."
-    >
-
-    <title>
-        Miltape World Challenge
-    </title>
-
-
-    <link
-        rel="manifest"
-        href="./manifest.json"
-    >
-
-    <link
-        rel="apple-touch-icon"
-        href="./icon-192~2.jpg"
-    >
-
-    <link
-        rel="icon"
-        href="./icon-192~2.jpg"
-        type="image/jpeg"
-    >
-
-    <link
-        rel="stylesheet"
-        href="./style.css"
-    >
-
-
-    <!-- =====================================================
-         TELEGRAM WEB APP
-    ====================================================== -->
-
-    <script
-        src="https://telegram.org/js/telegram-web-app.js"
-    ></script>
-
-
-    <!-- =====================================================
-         TON CONNECT UI
-         IMPORTANT : doit être chargé AVANT script.js
-    ====================================================== -->
-
-    <script
-        src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"
-    ></script>
-
-
-    <!-- =====================================================
-         SOCKET.IO
-    ====================================================== -->
-
-    <script
-        src="https://cdn.socket.io/4.7.5/socket.io.min.js"
-    ></script>
-
+    <!-- TON Connect UI SDK -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
-
         html {
             width: 100%;
             min-height: 100%;
@@ -99,7 +37,6 @@
             overflow-y: scroll;
             scroll-behavior: smooth;
         }
-
 
         body {
             width: 100%;
@@ -113,7 +50,6 @@
             overscroll-behavior-y: auto;
         }
 
-
         .app {
             width: 100%;
             max-width: 480px;
@@ -125,11 +61,7 @@
             overflow: visible !important;
         }
 
-
-        /* =====================================================
-           PWA
-        ====================================================== */
-
+        /* PWA */
         .install-pwa-button {
             position: fixed;
             bottom: 18px;
@@ -150,16 +82,11 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-
         .install-pwa-button.show {
             display: block;
         }
 
-
-        /* =====================================================
-           HERO
-        ====================================================== */
-
+        /* HERO BANNER */
         .hero-banner-container {
             position: relative;
             width: calc(100% - 24px);
@@ -170,13 +97,11 @@
             background: #090014;
         }
 
-
         .hero-bg-image {
             width: 100%;
             display: block;
             height: auto;
         }
-
 
         .hero-header-overlay {
             position: absolute;
@@ -189,7 +114,6 @@
             z-index: 10;
         }
 
-
         .player-profile-badge {
             display: flex;
             align-items: center;
@@ -200,11 +124,9 @@
             border: 1px solid rgba(255, 204, 0, 0.3);
         }
 
-
         .avatar-icon {
             font-size: 16px;
         }
-
 
         .profile-text .p-name {
             display: block;
@@ -212,7 +134,6 @@
             font-weight: 900;
             color: #fff;
         }
-
 
         .profile-text .p-level {
             display: block;
@@ -224,7 +145,6 @@
             width: fit-content;
         }
 
-
         .timer-badge-top {
             background: rgba(0, 0, 0, 0.75);
             border: 1px solid rgba(255, 204, 0, 0.5);
@@ -233,14 +153,12 @@
             text-align: center;
         }
 
-
         .timer-badge-top .tb-label {
             display: block;
             font-size: 7px;
             color: #bbb;
             font-weight: bold;
         }
-
 
         .timer-badge-top .tb-value {
             display: block;
@@ -249,12 +167,10 @@
             color: #ffcc00;
         }
 
-
         .timer-badge-top .tb-sub {
             font-size: 6px;
             color: #888;
         }
-
 
         .wallet-badge-top {
             background: rgba(0, 0, 0, 0.7);
@@ -268,13 +184,11 @@
             cursor: pointer;
         }
 
-
         .wallet-badge-top .wb-label {
             display: block;
             font-size: 7px;
             color: #bbb;
         }
-
 
         .wallet-badge-top .wb-value {
             display: block;
@@ -283,7 +197,6 @@
             color: #ffcc00;
         }
 
-
         .wallet-badge-top .wallet-icon {
             font-size: 16px;
             background: #240046;
@@ -291,11 +204,7 @@
             border-radius: 6px;
         }
 
-
-        /* =====================================================
-           MENU
-        ====================================================== */
-
+        /* MENU */
         .side-menu {
             position: fixed;
             top: 0;
@@ -313,11 +222,9 @@
             -webkit-overflow-scrolling: touch;
         }
 
-
         .side-menu.show {
             left: 0;
         }
-
 
         .close-menu {
             background: none;
@@ -327,18 +234,15 @@
             cursor: pointer;
         }
 
-
         .side-menu-content {
             margin-top: 40px;
             padding-bottom: 30px;
         }
 
-
         .side-menu-content h3 {
             color: #ffcc00;
             margin-bottom: 20px;
         }
-
 
         .menu-block {
             margin-bottom: 15px;
@@ -346,7 +250,6 @@
             padding: 12px;
             border-radius: 10px;
         }
-
 
         .menu-block label,
         .menu-block h4 {
@@ -357,7 +260,6 @@
             font-weight: bold;
         }
 
-
         .menu-block select {
             width: 100%;
             padding: 8px;
@@ -367,7 +269,6 @@
             border: 1px solid #444;
             box-sizing: border-box;
         }
-
 
         .menu-nav-btn {
             display: block;
@@ -385,18 +286,15 @@
             box-sizing: border-box;
         }
 
-
         .menu-nav-btn:hover,
         .menu-nav-btn:active {
             background: rgba(255,204,0,.15);
             color: #ffcc00;
         }
 
-
         .trust-contact-box {
             border-left: 3px solid #2ecc71;
         }
-
 
         .support-link {
             display: inline-block;
@@ -409,7 +307,6 @@
             font-weight: bold;
         }
 
-
         .menu-overlay {
             position: fixed;
             inset: 0;
@@ -418,16 +315,11 @@
             z-index: 999;
         }
 
-
         .menu-overlay.show {
             display: block;
         }
 
-
-        /* =====================================================
-           MODAL
-        ====================================================== */
-
+        /* MODAL */
         .legal-modal,
         .modal {
             position: fixed;
@@ -441,12 +333,10 @@
             box-sizing: border-box;
         }
 
-
         .legal-modal.show,
         .modal.show {
             display: flex;
         }
-
 
         .legal-content,
         .modal-content {
@@ -464,13 +354,11 @@
             position: relative;
         }
 
-
         .legal-content h3,
         .modal-content h2 {
             color: #ffcc00;
             margin-top: 0;
         }
-
 
         .legal-content p,
         .legal-content li {
@@ -478,7 +366,6 @@
             color: #b8b8b8;
             line-height: 1.5;
         }
-
 
         .legal-close,
         .modal-close {
@@ -492,11 +379,7 @@
             cursor: pointer;
         }
 
-
-        /* =====================================================
-           TAP
-        ====================================================== */
-
+        /* TAP */
         .tap-zone {
             width: 100%;
             min-height: 245px;
@@ -506,7 +389,6 @@
             position: relative;
             padding-bottom: 10px;
         }
-
 
         .tap-button {
             position: relative;
@@ -533,11 +415,9 @@
             box-shadow: none;
         }
 
-
         .tap-button:disabled {
             cursor: not-allowed;
         }
-
 
         .tap-img-bg {
             position: absolute;
@@ -550,11 +430,9 @@
             display: block;
         }
 
-
         .tap-button::before {
             display: none;
         }
-
 
         .tap-button strong,
         .tap-button small,
@@ -563,11 +441,9 @@
             z-index: 2;
         }
 
-
         .tap-button strong {
             display: none;
         }
-
 
         .tap-button small {
             position: absolute;
@@ -584,21 +460,15 @@
             pointer-events: none;
         }
 
-
         .tap-button:active:not(:disabled) {
             transform: scale(.92);
         }
-
 
         .tap-button.tap-active {
             transform: scale(.94);
         }
 
-
-        /* =====================================================
-           CHAT
-        ====================================================== */
-
+        /* CHAT */
         .chat-section {
             position: relative;
             z-index: 20;
@@ -607,7 +477,6 @@
             pointer-events: auto;
             isolation: isolate;
         }
-
 
         .chat-messages {
             height: 170px;
@@ -621,7 +490,6 @@
             box-sizing: border-box;
         }
 
-
         .chat-message {
             margin-bottom: 8px;
             padding: 7px 8px;
@@ -633,11 +501,9 @@
             line-height: 1.35;
         }
 
-
         .chat-message strong {
             color: #ffcc00;
         }
-
 
         .chat-input-box {
             position: relative;
@@ -649,7 +515,6 @@
             pointer-events: auto;
             box-sizing: border-box;
         }
-
 
         .chat-input-box input {
             flex: 1;
@@ -664,7 +529,6 @@
             font-size: 13px;
             box-sizing: border-box;
         }
-
 
         .chat-input-box button {
             width: 46px;
@@ -681,13 +545,8 @@
             touch-action: manipulation;
         }
 
-
-        /* =====================================================
-           MOBILE
-        ====================================================== */
-
+        /* MOBILE */
         @media(max-width:430px) {
-
             .tap-button {
                 width: 170px;
                 height: 170px;
@@ -695,16 +554,12 @@
                 min-height: 170px;
             }
 
-
             .tap-zone {
                 min-height: 220px;
             }
-
         }
 
-
         @media(max-width:360px) {
-
             .tap-button {
                 width: 165px;
                 height: 165px;
@@ -712,26 +567,20 @@
                 min-height: 165px;
             }
 
-
             .chat-input-box input {
                 font-size: 12px;
             }
-
 
             .chat-input-box button {
                 width: 42px;
                 min-width: 42px;
             }
-
         }
 
-
         @media(min-width:600px) {
-
             body {
                 padding: 20px 0 40px;
             }
-
 
             .app {
                 border-radius: 30px;
@@ -739,125 +588,62 @@
                 box-shadow: 0 0 80px rgba(91,20,150,.18);
             }
 
-
             .top-header {
                 position: sticky;
                 top: 0;
                 z-index: 500;
             }
-
         }
-
     </style>
-
 </head>
-
 
 <body>
 
-
-    <!-- =====================================================
-         INSTALLATION
-    ====================================================== -->
-
-    <button
-        id="installPwaButton"
-        class="install-pwa-button"
-        type="button"
-    >
+    <!-- INSTALLATION -->
+    <button id="installPwaButton" class="install-pwa-button" type="button">
         📲 INSTALLER MILTAPE
     </button>
 
+    <!-- MENU -->
+    <aside id="sideMenu" class="side-menu">
 
-    <!-- =====================================================
-         MENU
-    ====================================================== -->
-
-    <aside
-        id="sideMenu"
-        class="side-menu"
-    >
-
-        <button
-            id="closeMenu"
-            class="close-menu"
-            type="button"
-        >
+        <button id="closeMenu" class="close-menu" type="button">
             ×
         </button>
 
-
         <div class="side-menu-content">
 
-            <h3>
-                🧭 Menu Miltape
-            </h3>
-
+            <h3>🧭 Menu Miltape</h3>
 
             <div class="menu-block">
 
-                <button
-                    class="menu-nav-btn"
-                    id="menuGamesBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuGamesBtn" type="button">
                     🎮 Mes parties
                 </button>
 
-
-                <button
-                    class="menu-nav-btn"
-                    id="menuRankingsBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuRankingsBtn" type="button">
                     🏆 Mes classements
                 </button>
 
-
-                <button
-                    class="menu-nav-btn"
-                    id="menuGainsBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuGainsBtn" type="button">
                     💰 Mes gains
                 </button>
 
-
-                <button
-                    class="menu-nav-btn"
-                    id="menuWithdrawalsBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">
                     💸 Mes retraits
                 </button>
 
-
-                <button
-                    class="menu-nav-btn"
-                    id="menuReferralBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuReferralBtn" type="button">
                     👥 Parrainage
                 </button>
 
-
-                <button
-                    class="menu-nav-btn"
-                    id="menuChatBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuChatBtn" type="button">
                     💬 Chat
                 </button>
 
-
-                <button
-                    class="menu-nav-btn"
-                    id="menuRulesBtn"
-                    type="button"
-                >
+                <button class="menu-nav-btn" id="menuRulesBtn" type="button">
                     📜 Règles
                 </button>
-
 
                 <a
                     href="./conditions.html"
@@ -870,13 +656,8 @@
 
             </div>
 
-
             <!-- MODE DEMO -->
-
-            <div
-                class="menu-block"
-                style="text-align:center;"
-            >
+            <div class="menu-block" style="text-align:center;">
 
                 <button
                     id="demomodebtn"
@@ -895,13 +676,11 @@
 
             </div>
 
-
             <div class="menu-block">
 
                 <label for="languageSelect">
                     🌐 Langue
                 </label>
-
 
                 <select id="languageSelect">
 
@@ -917,25 +696,15 @@
 
             </div>
 
-
-            <div
-                class="menu-block trust-contact-box"
-            >
+            <div class="menu-block trust-contact-box">
 
                 <h4>
                     🛡️ Support & Confiance
                 </h4>
 
-
-                <p
-                    style="
-                        font-size:12px;
-                        color:#b8b8b8;
-                    "
-                >
+                <p style="font-size:12px;color:#b8b8b8;">
                     Une question ? Un problème ?
                 </p>
-
 
                 <a
                     href="https://t.me/ton_canal_telegram"
@@ -946,20 +715,11 @@
                     📢 Telegram officiel
                 </a>
 
-
-                <div
-                    style="
-                        margin-top:8px;
-                        font-size:12px;
-                    "
-                >
+                <div style="margin-top:8px;font-size:12px;">
 
                     <a
                         href="mailto:miltapesupport@gmail.com"
-                        style="
-                            color:#ffcc00;
-                            text-decoration:none;
-                        "
+                        style="color:#ffcc00;text-decoration:none;"
                     >
                         📧 miltapesupport@gmail.com
                     </a>
@@ -972,17 +732,9 @@
 
     </aside>
 
+    <div id="menuOverlay" class="menu-overlay"></div>
 
-    <div
-        id="menuOverlay"
-        class="menu-overlay"
-    ></div>
-
-
-    <!-- =====================================================
-         MODAL
-    ====================================================== -->
-
+    <!-- MODAL -->
     <div
         id="dynamicModal"
         class="legal-modal"
@@ -1000,11 +752,9 @@
                 ×
             </button>
 
-
             <h3 id="dynamicModalTitle">
                 Miltape
             </h3>
-
 
             <div id="dynamicModalBody"></div>
 
@@ -1012,18 +762,10 @@
 
     </div>
 
-
-    <!-- =====================================================
-         APP
-    ====================================================== -->
-
+    <!-- APP -->
     <main class="app">
 
-
-        <!-- =================================================
-             HEADER
-        ================================================== -->
-
+        <!-- HEADER -->
         <header class="top-header">
 
             <button
@@ -1033,7 +775,6 @@
             >
                 ☰
             </button>
-
 
             <div class="online">
 
@@ -1050,7 +791,6 @@
                         "
                     ></span>
 
-
                     <span>
                         1 EN LIGNE
                     </span>
@@ -1059,13 +799,11 @@
 
             </div>
 
-
             <div class="wallet-box">
 
                 <small>
-                    MISE TON
+                    MISE USDT
                 </small>
-
 
                 <strong id="displayBet">
                     $0
@@ -1073,15 +811,18 @@
 
             </div>
 
+            <!-- TON CONNECT -->
+            <div
+                id="ton-connect-button"
+                style="display:inline-block;margin-left:auto;"
+            ></div>
 
             <button
                 class="wallet-button"
                 id="walletButton"
                 type="button"
             >
-
                 💰
-
 
                 <span id="globalTotalStakes">
                     $0
@@ -1091,14 +832,8 @@
 
         </header>
 
-
-        <!-- =================================================
-             HERO
-        ================================================== -->
-
-        <section
-            class="hero-banner-container"
-        >
+        <!-- HERO -->
+        <section class="hero-banner-container">
 
             <img
                 src="./tap-art.jpg"
@@ -1106,27 +841,19 @@
                 class="hero-bg-image"
             >
 
+            <div class="hero-header-overlay">
 
-            <div
-                class="hero-header-overlay"
-            >
-
-
-                <div
-                    class="player-profile-badge"
-                >
+                <div class="player-profile-badge">
 
                     <div class="avatar-icon">
                         👤
                     </div>
-
 
                     <div class="profile-text">
 
                         <span class="p-name">
                             MILTAPER
                         </span>
-
 
                         <span class="p-level">
                             Level 12
@@ -1136,9 +863,7 @@
 
                 </div>
 
-
                 <!-- CHRONO -->
-
                 <div
                     class="timer-badge-top"
                     id="topTimerBox"
@@ -1148,7 +873,6 @@
                         TEMPS RESTANT
                     </span>
 
-
                     <span
                         class="tb-value"
                         id="timer"
@@ -1156,16 +880,13 @@
                         10:00
                     </span>
 
-
                     <small class="tb-sub">
                         EN DIRECT
                     </small>
 
                 </div>
 
-
-                <!-- MISE -->
-
+                <!-- WALLET / MISE -->
                 <div
                     class="wallet-badge-top"
                     id="enterChallengeTop"
@@ -1175,9 +896,8 @@
                     <div>
 
                         <span class="wb-label">
-                            MISE TON
+                            MISE USDT
                         </span>
-
 
                         <span
                             class="wb-value"
@@ -1187,7 +907,6 @@
                         </span>
 
                     </div>
-
 
                     <div class="wallet-icon">
                         👛
@@ -1199,11 +918,7 @@
 
         </section>
 
-
-        <!-- =================================================
-             JOUER
-        ================================================== -->
-
+        <!-- JOUER -->
         <button
             id="enterChallenge"
             class="main-play-button"
@@ -1214,18 +929,13 @@
                 JOUER MAINTENANT
             </span>
 
-
             <b>
                 ➜
             </b>
 
         </button>
 
-
-        <!-- =================================================
-             MESSAGE
-        ================================================== -->
-
+        <!-- MESSAGE -->
         <div
             id="tapMessage"
             class="tap-message"
@@ -1235,11 +945,7 @@
             ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
         </div>
 
-
-        <!-- =================================================
-             TAP
-        ================================================== -->
-
+        <!-- TAP -->
         <section
             class="tap-zone"
             aria-label="Zone de tap"
@@ -1259,9 +965,7 @@
                     draggable="false"
                 >
 
-
                 <span class="tap-glow"></span>
-
 
                 <small>
 
@@ -1275,11 +979,7 @@
 
         </section>
 
-
-        <!-- =================================================
-             RÈGLES
-        ================================================== -->
-
+        <!-- RÈGLES -->
         <section class="rules">
 
             <div class="rule">
@@ -1288,11 +988,9 @@
                     ⏱️
                 </span>
 
-
                 <strong>
                     10 MINUTES
                 </strong>
-
 
                 <small>
                     PAR PARTIE
@@ -1300,18 +998,15 @@
 
             </div>
 
-
             <div class="rule">
 
                 <span class="rule-icon">
                     🏆
                 </span>
 
-
                 <strong>
                     TOP 5
                 </strong>
-
 
                 <small>
                     SEULEMENT
@@ -1319,59 +1014,42 @@
 
             </div>
 
-
             <div class="rule">
 
                 <span class="rule-icon">
                     🪙
                 </span>
 
-
                 <strong>
-                    TON
+                    USDT
                 </strong>
 
-
                 <small>
-                    TELEGRAM STARS
+                    TRC20
                 </small>
 
             </div>
 
         </section>
 
-
-        <!-- =================================================
-             STATS
-        ================================================== -->
-
+        <!-- STATS -->
         <section
             class="stats"
-            style="
-                display:flex;
-                justify-content:center;
-            "
+            style="display:flex;justify-content:center;"
         >
 
             <div
                 class="stat-box"
-                style="
-                    width:100%;
-                    max-width:300px;
-                "
+                style="width:100%;max-width:300px;"
             >
 
                 <small>
                     TES TAPS
                 </small>
 
-
                 <strong
                     id="tapCount"
-                    style="
-                        font-size:28px;
-                        color:#ffcc00;
-                    "
+                    style="font-size:28px;color:#ffcc00;"
                 >
                     0
                 </strong>
@@ -1380,11 +1058,7 @@
 
         </section>
 
-
-        <!-- =================================================
-             CLASSEMENT
-        ================================================== -->
-
+        <!-- CLASSEMENT -->
         <section class="leaderboard">
 
             <div class="section-title">
@@ -1393,13 +1067,11 @@
                     🏆 CLASSEMENT
                 </span>
 
-
                 <strong>
                     TOP 5
                 </strong>
 
             </div>
-
 
             <div
                 id="leaderboardList"
@@ -1414,11 +1086,7 @@
 
         </section>
 
-
-        <!-- =================================================
-             CHAT
-        ================================================== -->
-
+        <!-- CHAT -->
         <section
             class="chat-section"
             id="globalChat"
@@ -1430,13 +1098,11 @@
                     💬 CHAT GLOBAL
                 </span>
 
-
                 <strong>
                     LIVE
                 </strong>
 
             </div>
-
 
             <div
                 id="chatMessages"
@@ -1455,7 +1121,6 @@
 
             </div>
 
-
             <div
                 class="chat-input-box"
                 id="chatInputBox"
@@ -1471,7 +1136,6 @@
                     inputmode="text"
                 >
 
-
                 <button
                     id="chatSend"
                     type="button"
@@ -1484,7 +1148,6 @@
 
         </section>
 
-
         <div
             style="
                 width:100%;
@@ -1494,11 +1157,94 @@
 
     </main>
 
+    <!-- =========================================================
+         TON CONNECT
+         PROTÉGÉ POUR NE PAS BLOQUER MILTAPE
+         ========================================================= -->
 
-    <!-- =====================================================
-         SCRIPT PRINCIPAL
-         DOIT RESTER APRÈS TON CONNECT UI
-    ====================================================== -->
+    <script>
+        window.tonConnectUI = null;
+
+        function initTonConnect() {
+
+            try {
+
+                if (
+                    typeof TON_CONNECT_UI === "undefined" ||
+                    !TON_CONNECT_UI.TonConnectUI
+                ) {
+                    console.warn("TON Connect UI indisponible.");
+                    return;
+                }
+
+                window.tonConnectUI =
+                    new TON_CONNECT_UI.TonConnectUI({
+
+                        manifestUrl:
+                            "https://cryptochaouki-droid.github.io/miltape-backend/tonconnect-manifest.json",
+
+                        buttonRootId:
+                            "ton-connect-button"
+                    });
+
+                if (
+                    window.tonConnectUI &&
+                    typeof window.tonConnectUI.onStatusChange === "function"
+                ) {
+
+                    window.tonConnectUI.onStatusChange(
+                        function(walletInfo) {
+
+                            if (
+                                walletInfo &&
+                                walletInfo.account
+                            ) {
+
+                                console.log(
+                                    "Wallet TON connecté :",
+                                    walletInfo.account.address
+                                );
+
+                            }
+
+                        }
+                    );
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Erreur TON Connect :",
+                    error
+                );
+
+                window.tonConnectUI = null;
+            }
+        }
+
+        /*
+         * TON Connect est initialisé après le chargement de la page.
+         * Une erreur TON ne doit jamais empêcher script.js de fonctionner.
+         */
+        if (document.readyState === "loading") {
+
+            document.addEventListener(
+                "DOMContentLoaded",
+                initTonConnect,
+                { once: true }
+            );
+
+        } else {
+
+            initTonConnect();
+
+        }
+    </script>
+
+    <!-- =========================================================
+         SCRIPT PRINCIPAL MILTAPE
+         ========================================================= -->
 
     <script
         src="./script.js"
