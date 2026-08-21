@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (notifications + tableau de bord + Telegram + ticker)
+   SCRIPT CLIENT MILTAPE – Version finale (multi-crypto + notifications + tableau de bord + Telegram + ticker)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -26,6 +26,7 @@ const chatMessages = document.getElementById('chatMessages');
 // Éléments pour la mise et le paiement
 const betInput = document.getElementById('betInput');
 const payButton = document.getElementById('payButton');
+const tokenSelect = document.getElementById('tokenSelect');
 
 // Éléments du mode démo
 const demoBtn = document.getElementById('demomodebtn');
@@ -38,6 +39,7 @@ let isSpectator = false;
 let myPlayerId = null;
 let myBet = 10;
 let myWallet = null;
+let myToken = 'USDT';
 
 const API_URL = "https://miltape-backend-production.up.railway.app";
 
@@ -321,12 +323,15 @@ socket.on('disconnect', (reason) => {
 });
 
 // ==========================================
-// 8. REJOINDRE LA PARTIE (joueur)
+// 8. REJOINDRE LA PARTIE (joueur) – AVEC CRYPTO
 // ==========================================
 function joinGame() {
     const telegramName = getTelegramUser();
     let name = telegramName || prompt("Entre ton pseudo pour le classement :");
     const wallet = prompt("Entre ton adresse TRON (ex: T...) :");
+
+    // Récupérer la crypto choisie
+    const token = tokenSelect ? tokenSelect.value : 'USDT';
 
     let bet = 10;
     if (betInput) {
@@ -343,8 +348,9 @@ function joinGame() {
         isSpectator = false;
         myBet = bet;
         myWallet = wallet;
+        myToken = token;
         tapMessage.innerText = "Connexion au serveur en cours...";
-        socket.emit("player:join", { name, wallet, bet });
+        socket.emit("player:join", { name, wallet, bet, token });
         localStorage.removeItem("miltape_spectator");
         hapticMedium();
     }
@@ -362,6 +368,7 @@ socket.on("player:joined", (data) => {
         isPaid = false;
         isSpectator = false;
         myPlayerId = data.player.id;
+        myToken = data.player.token || 'USDT';
         tapButton.disabled = true;
         tapMessage.innerText = `💰 ${data.player.name}, paie ta mise pour taper !`;
         enterChallenge.style.display = "none";
@@ -372,6 +379,7 @@ socket.on("player:joined", (data) => {
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
+        localStorage.setItem("miltape_player_token", myToken);
         localStorage.removeItem("miltape_spectator");
 
         if (demoMode) {
@@ -387,7 +395,8 @@ socket.on("player:joined", (data) => {
                     txId: "DEMO_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8),
                     wallet: data.player.wallet,
                     amount: data.player.bet,
-                    playerId: data.player.id
+                    playerId: data.player.id,
+                    token: myToken
                 })
             })
             .then(res => res.json())
@@ -437,6 +446,7 @@ socket.on("player:restored", (data) => {
         myPlayerId = data.player.id;
         myWallet = data.player.wallet;
         myBet = data.player.bet || 10;
+        myToken = data.player.token || 'USDT';
         localStorage.removeItem("miltape_spectator");
 
         if (demoMode) {
@@ -461,6 +471,7 @@ socket.on("player:restored", (data) => {
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
+        localStorage.setItem("miltape_player_token", myToken);
 
         console.log("✅ Session restaurée avec succès !");
         hapticMedium();
@@ -470,6 +481,7 @@ socket.on("player:restored", (data) => {
         localStorage.removeItem("miltape_player_wallet");
         localStorage.removeItem("miltape_player_name");
         localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
         localStorage.removeItem("miltape_spectator");
         enterChallenge.style.display = 'block';
         tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
@@ -566,6 +578,7 @@ socket.on("game:finished", (data) => {
     localStorage.removeItem("miltape_player_wallet");
     localStorage.removeItem("miltape_player_name");
     localStorage.removeItem("miltape_player_bet");
+    localStorage.removeItem("miltape_player_token");
     localStorage.removeItem("miltape_spectator");
 });
 
@@ -775,18 +788,21 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 20. PAYEMENT – INITIATION (via Telegram Wallet)
+// 20. PAYEMENT – INITIATION (via Telegram Wallet) – AVEC CRYPTO
 // ==========================================
 function initiatePayment(wallet, amount) {
+    // Récupérer le token choisi
+    const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
+
     fetch(API_URL + "/api/wallet")
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 const serverWallet = data.wallet;
-                const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
+                const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=${token}`;
                 window.open(paymentUrl, '_blank');
                 hapticMedium();
-                alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\n✅ Le paiement sera détecté automatiquement !`);
+                alert(`💰 Envoie ${amount} ${token} (TRC20) vers :\n${serverWallet}\n\n✅ Le paiement sera détecté automatiquement !`);
             } else {
                 hapticError();
                 alert("❌ Impossible de récupérer le wallet du serveur.");
@@ -810,6 +826,7 @@ socket.on("error", (err) => {
         localStorage.removeItem("miltape_player_wallet");
         localStorage.removeItem("miltape_player_name");
         localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
         localStorage.removeItem("miltape_spectator");
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (tapMessage) tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
@@ -901,7 +918,7 @@ socket.on("notification:new", (data) => {
 });
 
 // ==========================================
-// 23. BANDEAU DES GAGNANTS (TICKER) – NOUVEAU
+// 23. BANDEAU DES GAGNANTS (TICKER)
 // ==========================================
 
 const winnerTicker = document.getElementById('winnerTicker');
