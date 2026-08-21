@@ -285,7 +285,7 @@ socket.on("player:restored", (data) => {
 });
 
 // ==========================================
-// 9. FIN DE PARTIE – RÉINITIALISATION
+// 9. FIN DE PARTIE – AFFICHAGE DES RÉSULTATS
 // ==========================================
 socket.on("game:finished", (data) => {
     console.log("🏁 Partie terminée !", data);
@@ -293,22 +293,48 @@ socket.on("game:finished", (data) => {
     // Réinitialiser les compteurs
     if (tapCount) tapCount.innerText = "0";
     if (tapButtonCount) tapButtonCount.innerText = "0";
-
-    // Désactiver le tap
     isPlaying = false;
     tapButton.disabled = true;
 
-    // Message pour le joueur
-    tapMessage.innerText = "⏰ Partie terminée ! Nouvelle partie dans 5 secondes...";
+    // === CONSTRUCTION DU MESSAGE ===
+    let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n";
+    message += "═".repeat(30) + "\n\n";
 
-    // Réafficher le bouton "JOUER MAINTENANT"
+    if (data.winners && data.winners.length > 0) {
+        message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";
+        data.winners.forEach((w, index) => {
+            const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
+            message += `${emoji} #${w.rank} ${w.name}\n`;
+            message += `   Mise : ${w.bet} USDT → Gain : ${w.gain} USDT\n\n`;
+        });
+    } else {
+        message += "❌ Aucun gagnant cette fois-ci.\n\n";
+    }
+
+    message += "═".repeat(30) + "\n";
+    message += `💰 Total des mises : ${data.totalStakes} USDT\n`;
+    message += `💸 Total redistribué : ${data.totalPayout} USDT\n`;
+
+    if (data.deficit > 0) {
+        message += `📉 Déficit (serveur) : ${data.deficit} USDT\n`;
+        message += `ℹ️ Le wallet du serveur a comblé la différence.\n`;
+    } else {
+        message += `✅ Bénéfice serveur : ${Math.abs(data.deficit)} USDT\n`;
+    }
+
+    message += "═".repeat(30) + "\n";
+    message += "🔥 Prochaine partie dans 5 secondes...";
+
+    // === AFFICHAGE ===
+    tapMessage.innerText = `🏆 Partie terminée ! ${data.winners ? data.winners.length : 0} gagnant(s) !`;
+    alert(message);
+    console.log(message);
+
+    // === RÉINITIALISATION ===
     enterChallenge.style.display = 'block';
-
-    // Cacher les boutons de paiement
     if (payButton) payButton.style.display = 'none';
     if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
 
-    // Supprimer la session (pour éviter de rejouer avec la même partie)
     localStorage.removeItem("miltape_player_id");
     localStorage.removeItem("miltape_player_wallet");
     localStorage.removeItem("miltape_player_name");
