@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement + mode démo + effets tap)
+   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement + mode démo + effets tap + reprise session)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -108,11 +108,72 @@ if (demoBtn) {
 }
 
 // ==========================================
-// 4. LOGS DE CONNEXION
+// 4. RESTAURER LA SESSION (après rechargement)
 // ==========================================
-socket.on('connect', () => {
+async function restoreSession() {
+    const playerId = localStorage.getItem("miltape_player_id");
+    const wallet = localStorage.getItem("miltape_player_wallet");
+    const name = localStorage.getItem("miltape_player_name");
+
+    if (!playerId || !wallet) {
+        console.log("🔍 Aucune session trouvée.");
+        return false;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/api/player/status?playerId=${playerId}&wallet=${wallet}`);
+        const data = await res.json();
+
+        if (data.success) {
+            const player = data.player;
+
+            // Vérifier si la partie est encore en cours
+            if (player.gameId && player.gameId !== socket.data?.gameId) {
+                console.log("⚠️ La partie a changé, session invalide.");
+                localStorage.removeItem("miltape_player_id");
+                localStorage.removeItem("miltape_player_wallet");
+                localStorage.removeItem("miltape_player_name");
+                return false;
+            }
+
+            // Restaurer l'état du joueur
+            isPlaying = true;
+            myPlayerId = player.id;
+            myWallet = player.wallet;
+            myBet = player.bet || 10;
+
+            tapButton.disabled = false;
+            tapMessage.innerText = `👋 Bon retour ${player.name} ! Continue à taper !`;
+
+            if (tapCount) tapCount.innerText = player.taps;
+            if (tapButtonCount) tapButtonCount.innerText = player.taps;
+
+            enterChallenge.style.display = "none";
+
+            console.log("✅ Session restaurée :", player.name, player.taps, "taps");
+            return true;
+        } else {
+            console.warn("⚠️ Session expirée ou invalide.");
+            localStorage.removeItem("miltape_player_id");
+            localStorage.removeItem("miltape_player_wallet");
+            localStorage.removeItem("miltape_player_name");
+            return false;
+        }
+    } catch (error) {
+        console.error("❌ Erreur restauration session :", error);
+        return false;
+    }
+}
+
+// ==========================================
+// 5. LOGS DE CONNEXION + RESTAURATION AUTO
+// ==========================================
+socket.on('connect', async () => {
     console.log('✅ Socket connecté avec ID :', socket.id);
     if (!demoMode) tapMessage.innerText = "✅ Connecté au serveur !";
+
+    // 🔥 Tentative de restauration de session
+    await restoreSession();
 });
 
 socket.on('connect_error', (err) => {
@@ -126,12 +187,12 @@ socket.on('disconnect', (reason) => {
 });
 
 // ==========================================
-// 5. REJOINDRE LA PARTIE (avec mise flexible)
+// 6. REJOINDRE LA PARTIE (avec mise flexible)
 // ==========================================
 function joinGame() {
     const name = prompt("Entre ton pseudo pour le classement :");
     const wallet = prompt("Entre ton adresse TRON (ex: T...) :");
-    
+
     let bet = 10;
     if (betInput) {
         const rawBet = parseFloat(betInput.value);
@@ -141,7 +202,7 @@ function joinGame() {
             alert("⚠️ Mise invalide. Utilisation de 10 USDT par défaut.");
         }
     }
-    
+
     if (name && wallet) {
         myBet = bet;
         myWallet = wallet;
@@ -154,7 +215,7 @@ if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
 if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
 
 // ==========================================
-// 6. CONFIRMATION D'ENTRÉE
+// 7. CONFIRMATION D'ENTRÉE
 // ==========================================
 socket.on("player:joined", (data) => {
     if (data.success) {
@@ -165,6 +226,11 @@ socket.on("player:joined", (data) => {
         enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
+
+        // Stocker pour reprise de session
+        localStorage.setItem("miltape_player_id", data.player.id);
+        localStorage.setItem("miltape_player_wallet", data.player.wallet);
+        localStorage.setItem("miltape_player_name", data.player.name);
 
         if (demoMode) {
             if (payButton) payButton.style.display = 'none';
@@ -205,14 +271,44 @@ socket.on("player:joined", (data) => {
 });
 
 // ==========================================
-// 7. GESTION DES CLICS (TAPS) – AVEC EFFETS VISUELS
+// 8. FIN DE PARTIE – RÉINITIALISATION
+// ==========================================
+socket.on("game:finished", (data) => {
+    console.log("🏁 Partie terminée !", data);
+
+    // Réinitialiser les compteurs
+    if (tapCount) tapCount.innerText = "0";
+    if (tapButtonCount) tapButtonCount.innerText = "0";
+
+    // Désactiver le tap
+    isPlaying = false;
+    tapButton.disabled = true;
+
+    // Message pour le joueur
+    tapMessage.innerText = "⏰ Partie terminée ! Nouvelle partie dans 5 secondes...";
+
+    // Réafficher le bouton "JOUER MAINTENANT"
+    enterChallenge.style.display = 'block';
+
+    // Cacher les boutons de paiement
+    if (payButton) payButton.style.display = 'none';
+    if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
+
+    // Supprimer la session (pour éviter de rejouer avec la même partie)
+    localStorage.removeItem("miltape_player_id");
+    localStorage.removeItem("miltape_player_wallet");
+    localStorage.removeItem("miltape_player_name");
+});
+
+// ==========================================
+// 9. GESTION DES CLICS (TAPS) – AVEC EFFETS VISUELS
 // ==========================================
 
 // Fonction d'effets visuels
 function tapEffects(event) {
     const btn = tapButton;
     const rect = btn.getBoundingClientRect();
-    
+
     let x, y;
     if (event.touches) {
         x = event.touches[0].clientX - rect.left;
@@ -221,7 +317,7 @@ function tapEffects(event) {
         x = event.clientX - rect.left;
         y = event.clientY - rect.top;
     }
-    
+
     // Compteur flottant +1
     const floatText = document.createElement('div');
     floatText.className = 'tap-float-text';
@@ -230,7 +326,7 @@ function tapEffects(event) {
     floatText.style.top = (y - 10) + 'px';
     btn.parentElement.appendChild(floatText);
     setTimeout(() => floatText.remove(), 1000);
-    
+
     // Particules (étincelles)
     const colors = ['#ffd84d', '#ff9f1a', '#ff5b20', '#ff2fd2', '#8b2cff', '#3dff9a'];
     for (let i = 0; i < 8; i++) {
@@ -249,7 +345,7 @@ function tapEffects(event) {
         btn.parentElement.appendChild(particle);
         setTimeout(() => particle.remove(), 900);
     }
-    
+
     // Onde (ripple)
     const ripple = document.createElement('div');
     ripple.className = 'tap-ripple';
@@ -257,7 +353,7 @@ function tapEffects(event) {
     ripple.style.top = y + 'px';
     btn.parentElement.appendChild(ripple);
     setTimeout(() => ripple.remove(), 800);
-    
+
     // Vibration haptique (mobile)
     if (navigator.vibrate) {
         navigator.vibrate(10);
@@ -268,15 +364,15 @@ function tapEffects(event) {
 if (tapButton) {
     tapButton.addEventListener('click', function(event) {
         if (!isPlaying || tapButton.disabled) return;
-        
+
         tapEffects(event);
-        
+
         tapButton.classList.add('tap-active');
         setTimeout(() => tapButton.classList.remove('tap-active'), 100);
-        
+
         socket.emit("player:tap");
     });
-    
+
     // Pour mobile (touch)
     tapButton.addEventListener('touchstart', function(event) {
         if (!isPlaying || tapButton.disabled) return;
@@ -290,7 +386,7 @@ socket.on("player:score", (data) => {
 });
 
 // ==========================================
-// 8. CHRONOMÈTRE EN DIRECT
+// 10. CHRONOMÈTRE EN DIRECT
 // ==========================================
 socket.on("timer:update", (data) => {
     console.log("⏱️ Timer update reçu :", data.remainingSeconds);
@@ -302,7 +398,7 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 9. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
+// 11. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
 // ==========================================
 socket.on("online:count", (count) => {
     if (onlineCount) {
@@ -331,7 +427,7 @@ socket.on("leaderboard:update", (leaderboard) => {
 });
 
 // ==========================================
-// 10. CHAT GLOBAL
+// 12. CHAT GLOBAL
 // ==========================================
 function sendMessage() {
     const text = chatInput.value.trim();
@@ -359,7 +455,7 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 11. PAYEMENT – INITIATION (via Telegram Wallet)
+// 13. PAYEMENT – INITIATION (via Telegram Wallet)
 // ==========================================
 function initiatePayment(wallet, amount) {
     fetch(API_URL + "/api/wallet")
@@ -381,7 +477,7 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 12. PAYEMENT – VÉRIFICATION
+// 14. PAYEMENT – VÉRIFICATION
 // ==========================================
 function verifyPayment(playerId, wallet, amount) {
     const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
@@ -410,14 +506,14 @@ function verifyPayment(playerId, wallet, amount) {
 }
 
 // ==========================================
-// 13. GESTION DES ERREURS SOCKET
+// 15. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 14. MENU LATÉRAL
+// 16. MENU LATÉRAL
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
