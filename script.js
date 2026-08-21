@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur)
+   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur + menu)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -35,7 +35,7 @@ const demoStatus = document.getElementById('demoStatus');
 // Variables d'état
 let isPlaying = false;
 let isPaid = false;
-let isSpectator = false;      // ← NOUVEAU : mode spectateur
+let isSpectator = false;
 let myPlayerId = null;
 let myBet = 10;
 let myWallet = null;
@@ -71,7 +71,7 @@ function applyTelegramTheme() {
         if (window.Telegram && window.Telegram.WebApp) {
             const colorScheme = window.Telegram.WebApp.colorScheme;
             document.body.setAttribute('data-telegram-theme', colorScheme);
-            
+
             if (colorScheme === "dark") {
                 document.documentElement.style.setProperty('--bg', '#0a0a0a');
                 document.documentElement.style.setProperty('--text', '#ffffff');
@@ -83,12 +83,11 @@ function applyTelegramTheme() {
                 document.documentElement.style.setProperty('--muted', '#666666');
                 document.body.style.background = '#f5f5f5';
             }
-            
-            // Appliquer la couleur primaire Telegram
+
             if (themeParams && themeParams.button_color) {
                 document.documentElement.style.setProperty('--gold', themeParams.button_color);
             }
-            
+
             console.log("🎨 Thème Telegram appliqué :", colorScheme);
         }
     } catch (e) {
@@ -180,10 +179,10 @@ if (demoBtn) {
 function joinSpectator() {
     const name = getTelegramUser() || prompt("Entre ton pseudo (spectateur) :");
     if (!name) return;
-    
+
     isSpectator = true;
     isPlaying = true;
-    isPaid = true; // Spectateur n'a pas besoin de payer
+    isPaid = true;
     tapButton.disabled = true;
     tapMessage.innerText = `👁️ Mode spectateur : ${name} regarde la partie !`;
     enterChallenge.style.display = 'none';
@@ -191,12 +190,11 @@ function joinSpectator() {
         spectatorBtn.classList.add('active');
         spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF';
     }
-    
+
     if (payButton) payButton.style.display = 'none';
     if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
     if (betInput) betInput.disabled = true;
-    
-    // Rejoindre en tant que spectateur
+
     socket.emit("spectator:join", { name });
 }
 
@@ -213,7 +211,6 @@ async function restoreSession() {
     const name = localStorage.getItem("miltape_player_name");
     const spectator = localStorage.getItem("miltape_spectator") === "true";
 
-    // Si spectateur, restaurer sans paiement
     if (spectator && name) {
         isSpectator = true;
         isPlaying = true;
@@ -236,7 +233,6 @@ async function restoreSession() {
         return false;
     }
 
-    // Vérifier que la partie est encore en cours
     try {
         const res = await fetch(`${API_URL}/api/status`);
         const data = await res.json();
@@ -254,7 +250,6 @@ async function restoreSession() {
         return false;
     }
 
-    // Envoyer l'événement de restauration
     socket.emit("player:restore", { playerId, wallet });
     console.log("🔄 Demande de restauration envoyée...");
     return true;
@@ -267,7 +262,6 @@ socket.on('connect', async () => {
     console.log('✅ Socket connecté avec ID :', socket.id);
     if (!demoMode) tapMessage.innerText = "✅ Connecté au serveur !";
 
-    // Restaurer la session
     await restoreSession();
 });
 
@@ -402,7 +396,7 @@ socket.on("player:restored", (data) => {
         myWallet = data.player.wallet;
         myBet = data.player.bet || 10;
         localStorage.removeItem("miltape_spectator");
-        
+
         if (demoMode) {
             isPaid = true;
             tapButton.disabled = false;
@@ -420,7 +414,7 @@ socket.on("player:restored", (data) => {
                 verifyPaymentBtn.onclick = () => verifyPayment(data.player.id, data.player.wallet, data.player.bet);
             }
         }
-        
+
         enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
@@ -462,16 +456,13 @@ socket.on("payment:verified", (data) => {
 socket.on("game:finished", (data) => {
     console.log("🏁 Partie terminée !", data);
 
-    // Réinitialiser les compteurs
     if (tapCount) tapCount.innerText = "0";
     if (tapButtonCount) tapButtonCount.innerText = "0";
     isPlaying = false;
     isPaid = false;
     tapButton.disabled = true;
 
-    // Si spectateur, ne pas réafficher les boutons de paiement
     if (!isSpectator) {
-        // === CONSTRUCTION DU MESSAGE ===
         let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n";
         message += "═".repeat(30) + "\n\n";
 
@@ -500,7 +491,6 @@ socket.on("game:finished", (data) => {
         message += "═".repeat(30) + "\n";
         message += "🔥 Prochaine partie dans 5 secondes...";
 
-        // === AFFICHAGE ===
         tapMessage.innerText = `🏆 Partie terminée ! ${data.winners ? data.winners.length : 0} gagnant(s) !`;
         alert(message);
         console.log(message);
@@ -508,7 +498,6 @@ socket.on("game:finished", (data) => {
         tapMessage.innerText = `👁️ Partie terminée ! Prochaine partie dans 5 secondes...`;
     }
 
-    // === RÉINITIALISATION ===
     enterChallenge.style.display = 'block';
     if (payButton) payButton.style.display = 'none';
     if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
@@ -527,10 +516,9 @@ socket.on("game:finished", (data) => {
 });
 
 // ==========================================
-// 14. GESTION DES CLICS (TAPS) – VÉRIFICATION PAIEMENT + SPECTATEUR
+// 14. GESTION DES CLICS (TAPS)
 // ==========================================
 
-// Fonction d'effets visuels
 function tapEffects(event) {
     const btn = tapButton;
     const rect = btn.getBoundingClientRect();
@@ -544,7 +532,6 @@ function tapEffects(event) {
         y = event.clientY - rect.top;
     }
 
-    // Compteur flottant +1
     const floatText = document.createElement('div');
     floatText.className = 'tap-float-text';
     floatText.textContent = '+1';
@@ -553,7 +540,6 @@ function tapEffects(event) {
     btn.parentElement.appendChild(floatText);
     setTimeout(() => floatText.remove(), 1000);
 
-    // Particules (étincelles)
     const colors = ['#ffd84d', '#ff9f1a', '#ff5b20', '#ff2fd2', '#8b2cff', '#3dff9a'];
     for (let i = 0; i < 8; i++) {
         const particle = document.createElement('div');
@@ -572,7 +558,6 @@ function tapEffects(event) {
         setTimeout(() => particle.remove(), 900);
     }
 
-    // Onde (ripple)
     const ripple = document.createElement('div');
     ripple.className = 'tap-ripple';
     ripple.style.left = x + 'px';
@@ -580,16 +565,13 @@ function tapEffects(event) {
     btn.parentElement.appendChild(ripple);
     setTimeout(() => ripple.remove(), 800);
 
-    // Vibration haptique (mobile)
     if (navigator.vibrate) {
         navigator.vibrate(10);
     }
 }
 
-// Écouteur du tap AVEC vérification paiement + spectateur
 if (tapButton) {
     tapButton.addEventListener('click', function(event) {
-        // Vérifier que le joueur a payé et n'est pas spectateur
         if (!isPlaying || tapButton.disabled || !isPaid || isSpectator) {
             if (!isPaid && !isSpectator) {
                 tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
@@ -616,7 +598,6 @@ socket.on("player:score", (data) => {
 // 15. CHRONOMÈTRE EN DIRECT
 // ==========================================
 socket.on("timer:update", (data) => {
-    console.log("⏱️ Timer update reçu :", data.remainingSeconds);
     if (timerDisplay) {
         const minutes = Math.floor(data.remainingSeconds / 60);
         const seconds = data.remainingSeconds % 60;
@@ -743,7 +724,120 @@ socket.on("error", (err) => {
 });
 
 // ==========================================
-// 21. MENU LATÉRAL
+// 21. MENU LATÉRAL + FONCTIONS DE MODALE
+// ==========================================
+
+// ---- Fonction pour afficher une modale ----
+function showMenuMessage(title, content) {
+    const modal = document.getElementById('dynamicModal');
+    const modalTitle = document.getElementById('dynamicModalTitle');
+    const modalBody = document.getElementById('dynamicModalBody');
+
+    if (modal && modalTitle && modalBody) {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = content;
+        modal.classList.add('show');
+    }
+}
+
+// ---- Fermeture de la modale ----
+const closeModalBtn = document.getElementById('closeDynamicModal');
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', function() {
+        document.getElementById('dynamicModal').classList.remove('show');
+    });
+}
+// Fermer en cliquant à l'extérieur
+const modalOverlay = document.getElementById('dynamicModal');
+if (modalOverlay) {
+    modalOverlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+        }
+    });
+}
+
+// ---- Boutons du menu ----
+const menuGamesBtn = document.getElementById('menuGamesBtn');
+if (menuGamesBtn) {
+    menuGamesBtn.addEventListener('click', function() {
+        showMenuMessage('🎮 Mes parties',
+            `<p>Tu n'as pas encore de parties enregistrées.</p>
+             <p style="color:#888;font-size:12px;">Rejoins une partie pour commencer !</p>`
+        );
+    });
+}
+
+const menuRankingsBtn = document.getElementById('menuRankingsBtn');
+if (menuRankingsBtn) {
+    menuRankingsBtn.addEventListener('click', function() {
+        const score = tapCount ? tapCount.textContent : '0';
+        showMenuMessage('🏆 Mes classements',
+            `<p>Ton meilleur score : <strong style="color:#ffcc00;">${score}</strong> taps</p>
+             <p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>`
+        );
+    });
+}
+
+const menuGainsBtn = document.getElementById('menuGainsBtn');
+if (menuGainsBtn) {
+    menuGainsBtn.addEventListener('click', function() {
+        showMenuMessage('💰 Mes gains',
+            `<p>Total gagné : <strong style="color:#ffcc00;">0 USDT</strong></p>
+             <p style="color:#888;font-size:12px;">Les gains sont versés en fin de partie.</p>`
+        );
+    });
+}
+
+const menuWithdrawalsBtn = document.getElementById('menuWithdrawalsBtn');
+if (menuWithdrawalsBtn) {
+    menuWithdrawalsBtn.addEventListener('click', function() {
+        showMenuMessage('💸 Mes retraits',
+            `<p>Tu n'as pas encore effectué de retrait.</p>
+             <p style="color:#888;font-size:12px;">Les retraits sont disponibles après chaque partie.</p>`
+        );
+    });
+}
+
+const menuReferralBtn = document.getElementById('menuReferralBtn');
+if (menuReferralBtn) {
+    menuReferralBtn.addEventListener('click', function() {
+        showMenuMessage('👥 Parrainage',
+            `<p>Parraine tes amis et gagne des bonus !</p>
+             <p style="color:#888;font-size:12px;">Lien de parrainage :<br>
+             <span style="color:#ffcc00;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>`
+        );
+    });
+}
+
+const menuChatBtn = document.getElementById('menuChatBtn');
+if (menuChatBtn) {
+    menuChatBtn.addEventListener('click', function() {
+        const chatSection = document.getElementById('globalChat');
+        if (chatSection) {
+            chatSection.scrollIntoView({ behavior: 'smooth' });
+            // Fermer le menu
+            if (sideMenu) sideMenu.classList.remove('show');
+            if (menuOverlay) menuOverlay.classList.remove('show');
+        }
+    });
+}
+
+const menuRulesBtn = document.getElementById('menuRulesBtn');
+if (menuRulesBtn) {
+    menuRulesBtn.addEventListener('click', function() {
+        showMenuMessage('📜 Règles du jeu',
+            `<p><strong>⏱️ 10 minutes</strong> pour taper le plus possible.</p>
+             <p><strong>🏆 Top 5</strong> seulement.</p>
+             <p><strong>🪙 USDT (TRC20)</strong> – mise de 0.50 à 1 000 000 USDT.</p>
+             <p><strong>💰 Gains :</strong> les 5 premiers gagnent 2x leur mise.</p>
+             <p style="color:#888;font-size:12px;">Bonne chance ! 🔥</p>`
+        );
+    });
+}
+
+// ==========================================
+// 22. MENU LATÉRAL (ouverture/fermeture)
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
