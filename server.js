@@ -10,12 +10,19 @@ const PORT = Number(process.env.PORT) || 3000;
 
 const GAME_DURATION_SECONDS = 10 * 60;
 
-const USDT_CONTRACT = (
-    process.env.USDT_CONTRACT ||
-    "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
-).trim();
+// ============================================================
+// TOKENS SUPPORTÉS (TRC20 + TRX natif)
+// ============================================================
+const SUPPORTED_TOKENS = {
+    USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
+    USDC: { contract: "TEkxiTehnzSmSe2XqrBj4w32RUN441q1LZ", decimals: 6, symbol: "USDC" },
+    TUSD: { contract: "TUpMhRZL4Ciao6eb6yA3xHPPzLtNQvXsHq", decimals: 6, symbol: "TUSD" },
+    TRX:  { contract: null, decimals: 6, symbol: "TRX" } // Pas de contrat, c'est du TRX natif
+};
 
-const USDT_DECIMALS = 6;
+// Variables d'environnement (inchangées)
+const USDT_CONTRACT = SUPPORTED_TOKENS.USDT.contract; // gardé pour compatibilité
+const USDT_DECIMALS = SUPPORTED_TOKENS.USDT.decimals;
 
 const MONGODB_URI = (
     process.env.MONGO_URI ||
@@ -121,10 +128,8 @@ console.log("");
 const app = express();
 const server = http.createServer(app);
 
-// 1. Sécurité des en-têtes HTTP avec Helmet
 app.use(helmet());
 
-// 2. CORS
 const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
 app.use(
     cors({
@@ -133,7 +138,6 @@ app.use(
     })
 );
 
-// 3. Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -166,7 +170,7 @@ const io = new Server(server, {
 mongoose.set("strictQuery", true);
 
 // ============================================================
-// SCHEMAS
+// SCHEMAS – AJOUT DU CHAMP `token`
 // ============================================================
 
 const playerSchema = new mongoose.Schema(
@@ -177,7 +181,8 @@ const playerSchema = new mongoose.Schema(
         taps: { type: Number, default: 0, min: 0 },
         bet: { type: Number, default: 0, min: 0 },
         paid: { type: Boolean, default: false },
-        paymentTxId: { type: String, default: null }
+        paymentTxId: { type: String, default: null },
+        token: { type: String, default: 'USDT' } // ← NOUVEAU
     },
     { timestamps: true }
 );
@@ -198,14 +203,12 @@ const paymentSchema = new mongoose.Schema(
         to: { type: String, required: true },
         amount: { type: Number, required: true },
         verified: { type: Boolean, default: false },
-        gameId: { type: String, default: null }
+        gameId: { type: String, default: null },
+        token: { type: String, default: 'USDT' } // ← NOUVEAU
     },
     { timestamps: true }
 );
 
-// ============================================================
-// SCHEMA HISTORIQUE
-// ============================================================
 const historySchema = new mongoose.Schema(
     {
         playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true },
@@ -216,6 +219,7 @@ const historySchema = new mongoose.Schema(
         bet: { type: Number, required: true },
         gain: { type: Number, required: true },
         taps: { type: Number, required: true },
+        token: { type: String, default: 'USDT' }, // ← NOUVEAU
         createdAt: { type: Date, default: Date.now }
     },
     { timestamps: true }
@@ -279,12 +283,12 @@ function getRemainingSeconds() {
 }
 
 // ============================================================
-// NOTIFICATIONS (NOUVEAU)
+// NOTIFICATIONS
 // ============================================================
 
 function sendNotification(type, message, data = {}) {
     io.emit("notification:new", {
-        type: type, // 'info', 'success', 'warning', 'alert', 'champion'
+        type: type,
         message: message,
         data: data,
         timestamp: Date.now()
@@ -311,7 +315,8 @@ async function getLeaderboard() {
         taps: player.taps,
         bet: player.bet,
         paid: player.paid,
-        id: player._id
+        id: player._id,
+        token: player.token || 'USDT'
     }));
 }
 
@@ -362,7 +367,7 @@ async function broadcastGameState() {
 }
 
 // ============================================================
-// TRANSFERT USDT VERS LES GAGNANTS
+// TRANSFERT USDT VERS LES GAGNANTS (inchangé)
 // ============================================================
 
 async function sendUsdtToWinners(winners) {
@@ -371,6 +376,7 @@ async function sendUsdtToWinners(winners) {
         return;
     }
 
+    // On suppose que le gain est toujours en USDT (ou on pourrait adapter selon le token du gagnant, mais ici on garde USDT)
     const contract = await tronWeb.contract().at(USDT_CONTRACT);
 
     for (const winner of winners) {
@@ -389,15 +395,90 @@ async function sendUsdtToWinners(winners) {
 }
 
 // ============================================================
-// VÉRIFICATION AUTOMATIQUE DES PAIEMENTS (POLLING)
+// VÉRIFICATION DE TRANSACTION (MULTI-TOKENS) – NOUVELLE FONCTION
+// ============================================================
+
+async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token = 'USDT') {
+    const tokenInfo = SUPPORTED_TOKENS[token];
+    if (!tokenInfo) throw new Error(`Token non supporté : ${token}`);
+
+    const cleanTxId = String(txId || "").trim();
+    const cleanFrom = normalizeWallet(expectedFrom);
+    const requiredAmount = Number(expectedAmount);
+
+    if (!cleanTxId) throw new Error("Transaction ID manquant.");
+    if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
+    if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
+
+    // --- CAS DU TRX (pas de contrat) ---
+    if (token === 'TRX') {
+        const transaction = await tronWeb.trx.getTransaction(cleanTxId);
+        if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
+        const contract = transaction.raw_data?.contract[0];
+        if (!contract || contract.type !== 'TransferContract') {
+            throw new Error("Ce n'est pas un transfert TRX.");
+        }
+        const owner = tronWeb.address.fromHex(contract.parameter.value.owner_address);
+        if (!sameWallet(owner, cleanFrom)) throw new Error("L'expéditeur ne correspond pas.");
+        const recipient = tronWeb.address.fromHex(contract.parameter.value.to_address);
+        if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le destinataire n'est pas le wallet serveur.");
+        const amount = contract.parameter.value.amount / 1e6; // TRX a 6 décimales
+        if (amount < requiredAmount) throw new Error(`Montant TRX insuffisant : ${amount} reçu, ${requiredAmount} requis.`);
+        const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
+        if (!info || !info.receipt || info.receipt.result !== 'SUCCESS') {
+            throw new Error("La transaction TRX n'est pas confirmée.");
+        }
+        return { txId: cleanTxId, from: owner, to: recipient, amount, confirmed: true };
+    }
+
+    // --- CAS DES TOKENS TRC20 (USDT, USDC, TUSD) ---
+    const contractAddress = tokenInfo.contract;
+    const decimals = tokenInfo.decimals;
+
+    const transaction = await tronWeb.trx.getTransaction(cleanTxId);
+    if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
+    const contracts = transaction.raw_data?.contract;
+    if (!Array.isArray(contracts) || contracts.length !== 1) throw new Error("Transaction TRON invalide.");
+    const contract = contracts[0];
+    if (contract.type !== "TriggerSmartContract") throw new Error("Ce n'est pas une transaction TRC20.");
+
+    const value = contract.parameter?.value;
+    if (!value) throw new Error("Données de transaction manquantes.");
+
+    const calledContract = tronWeb.address.fromHex(value.contract_address);
+    if (!sameWallet(calledContract, contractAddress)) {
+        throw new Error(`Ce n'est pas le contrat ${token}.`);
+    }
+    const ownerAddress = tronWeb.address.fromHex(value.owner_address);
+    if (!sameWallet(ownerAddress, cleanFrom)) throw new Error("L'expéditeur ne correspond pas.");
+
+    const data = String(value.data || "").toLowerCase();
+    if (!data.startsWith("a9059cbb")) throw new Error("Ce n'est pas un transfer TRC20.");
+    if (data.length < 136) throw new Error("Données invalides.");
+    const recipientHex = "41" + data.substring(32, 72);
+    const recipient = tronWeb.address.fromHex(recipientHex);
+    if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le destinataire n'est pas le wallet serveur.");
+
+    const amountHex = data.substring(72, 136);
+    const rawAmount = BigInt("0x" + amountHex);
+    const amount = Number(rawAmount) / Math.pow(10, decimals);
+    if (amount < requiredAmount) throw new Error(`Montant insuffisant : ${amount} ${token} reçu, ${requiredAmount} requis.`);
+
+    const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
+    if (!info || !info.receipt || info.receipt.result !== "SUCCESS") {
+        throw new Error(`La transaction ${token} n'est pas confirmée.`);
+    }
+    return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
+}
+
+// ============================================================
+// VÉRIFICATION AUTOMATIQUE DES PAIEMENTS (POLLING) – ADAPTÉ MULTI-TOKENS
 // ============================================================
 
 async function checkPendingPayments() {
-    // Ne pas lancer si la partie n'est pas en cours
     if (game.status !== "running") return;
 
     try {
-        // Récupérer les joueurs non payés de la partie en cours
         const unpaidPlayers = await Player.find({
             gameId: game.id,
             paid: false,
@@ -406,7 +487,6 @@ async function checkPendingPayments() {
 
         if (unpaidPlayers.length === 0) return;
 
-        // Récupérer les transactions récentes du wallet serveur
         const transactions = await tronWeb.trx.getAccountTransactions(
             MILTAPE_WALLET,
             { limit: 30, onlyConfirmed: true }
@@ -416,15 +496,14 @@ async function checkPendingPayments() {
 
         for (const tx of transactions) {
             const txId = tx.txID;
-
-            // Ignorer les transactions déjà traitées
             if (processedTxIds.has(txId)) continue;
 
-            // Récupérer les infos de la transaction
             const txInfo = await tronWeb.trx.getTransactionInfo(txId);
             if (!txInfo || txInfo.receipt.result !== 'SUCCESS') continue;
 
-            // Vérifier que c'est un transfert USDT
+            // On va essayer de déterminer le token en analysant le contrat
+            // Pour simplifier, on essaie de matcher avec chaque token supporté
+            // On récupère les données brutes
             const transaction = await tronWeb.trx.getTransaction(txId);
             if (!transaction) continue;
 
@@ -432,82 +511,99 @@ async function checkPendingPayments() {
             if (!Array.isArray(contracts) || contracts.length !== 1) continue;
 
             const contract = contracts[0];
-            if (contract.type !== "TriggerSmartContract") continue;
+            let token = null;
+            let ownerAddress = null;
+            let amount = 0;
+            let decimals = 6;
 
-            const value = contract.parameter?.value;
-            if (!value) continue;
+            // Détection du token
+            if (contract.type === "TransferContract") {
+                // TRX
+                token = 'TRX';
+                const value = contract.parameter.value;
+                ownerAddress = tronWeb.address.fromHex(value.owner_address);
+                amount = value.amount / 1e6;
+                // Vérifier le destinataire
+                const recipient = tronWeb.address.fromHex(value.to_address);
+                if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
+            } else if (contract.type === "TriggerSmartContract") {
+                const value = contract.parameter?.value;
+                if (!value) continue;
+                const contractAddress = tronWeb.address.fromHex(value.contract_address);
+                // Trouver le token correspondant
+                let foundToken = null;
+                for (const [sym, info] of Object.entries(SUPPORTED_TOKENS)) {
+                    if (info.contract && sameWallet(contractAddress, info.contract)) {
+                        foundToken = sym;
+                        decimals = info.decimals;
+                        break;
+                    }
+                }
+                if (!foundToken) continue; // token non supporté
+                token = foundToken;
+                ownerAddress = tronWeb.address.fromHex(value.owner_address);
+                const data = String(value.data || "").toLowerCase();
+                if (!data.startsWith("a9059cbb")) continue;
+                if (data.length < 136) continue;
+                const recipientHex = "41" + data.substring(32, 72);
+                const recipient = tronWeb.address.fromHex(recipientHex);
+                if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
+                const amountHex = data.substring(72, 136);
+                const rawAmount = BigInt("0x" + amountHex);
+                amount = Number(rawAmount) / Math.pow(10, decimals);
+            } else {
+                continue;
+            }
 
-            const contractAddress = tronWeb.address.fromHex(value.contract_address);
-            if (!sameWallet(contractAddress, USDT_CONTRACT)) continue;
-
-            const ownerAddress = tronWeb.address.fromHex(value.owner_address);
-            if (!ownerAddress) continue;
-
-            // Vérifier si ce wallet correspond à un joueur en attente
+            // Chercher un joueur correspondant
             const matchingPlayer = unpaidPlayers.find(p =>
-                sameWallet(p.wallet, ownerAddress) && p.bet > 0
+                sameWallet(p.wallet, ownerAddress) &&
+                p.bet > 0 &&
+                p.token === token &&
+                amount >= p.bet
             );
 
             if (!matchingPlayer) continue;
 
-            // Extraire le montant
-            const data = String(value.data || "").toLowerCase();
-            if (!data.startsWith("a9059cbb")) continue;
-            if (data.length < 136) continue;
-
-            const amountHex = data.substring(72, 136);
-            const rawAmount = BigInt("0x" + amountHex);
-            const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
-
-            // Vérifier que le montant correspond
-            if (amount < matchingPlayer.bet) continue;
-
-            // Vérifier que le destinataire est bien le wallet serveur
-            const recipientHex = "41" + data.substring(32, 72);
-            const recipient = tronWeb.address.fromHex(recipientHex);
-            if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
-
-            // ✅ C'est bon ! On marque le joueur comme payé
+            // ✅ Paiement valide
             matchingPlayer.paid = true;
             matchingPlayer.paymentTxId = txId;
             await matchingPlayer.save();
 
-            // Ajouter le TXID aux traités
             processedTxIds.add(txId);
 
-            // Enregistrer dans Payment
             await Payment.create({
                 txId: txId,
                 from: ownerAddress,
                 to: MILTAPE_WALLET,
                 amount: amount,
                 verified: true,
-                gameId: game.id
+                gameId: game.id,
+                token: token
             });
 
-            // Notification en temps réel
             io.emit("payment:verified", {
                 verified: true,
                 wallet: matchingPlayer.wallet,
                 amount: matchingPlayer.bet,
                 playerName: matchingPlayer.name,
-                automatic: true
+                automatic: true,
+                token: token
             });
 
-            // Message dans le chat
             io.emit("chat:message", {
                 name: "🟢 Système",
-                message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} USDT (auto-détecté)`,
+                message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} (auto-détecté)`,
                 createdAt: new Date()
             });
 
-            // Notification push
-            sendNotification('success', `💰 ${matchingPlayer.name} a payé ${matchingPlayer.bet} USDT !`, {
+            sendNotification('success', `💰 ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} !`, {
                 playerName: matchingPlayer.name,
-                amount: matchingPlayer.bet
+                amount: matchingPlayer.bet,
+                token: token
             });
 
-            console.log(`💰 Paiement automatique détecté : ${matchingPlayer.name} (${matchingPlayer.bet} USDT) - TX: ${txId}`);
+            console.log(`💰 Paiement automatique détecté : ${matchingPlayer.name} (${matchingPlayer.bet} ${token}) - TX: ${txId}`);
         }
     } catch (error) {
         console.error("❌ Erreur vérification auto paiements :", error.message);
@@ -554,7 +650,6 @@ async function startGame() {
                 status: game.status
             });
 
-            // Notification dernière minute
             if (remaining === 60) {
                 sendNotification('warning', `⏱️ DERNIÈRE MINUTE ! Tapez plus vite !`);
             }
@@ -582,20 +677,15 @@ async function finishGame() {
         gameTimer = null;
     }
 
-    // 1. Récupérer tous les joueurs de la partie
     const allPlayers = await Player.find({ gameId: game.id }).lean();
-
-    // 2. Récupérer le Top 5
     const top5 = await Player
         .find({ gameId: game.id })
         .sort({ taps: -1 })
         .limit(5)
         .lean();
 
-    // 3. Calcul du total des mises
     const totalStakes = allPlayers.reduce((sum, p) => sum + p.bet, 0);
 
-    // 4. Calcul des gains (double mise pour les 5 premiers)
     const winners = top5.map((player, index) => {
         const gain = player.bet * 2;
         return {
@@ -605,14 +695,12 @@ async function finishGame() {
             bet: player.bet,
             gain: gain,
             taps: player.taps,
-            _id: player._id
+            _id: player._id,
+            token: player.token || 'USDT'
         };
     });
 
-    // 5. Calcul du total des gains à redistribuer
     const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
-
-    // 6. Déficit = ce qui manque (si les gains dépassent le total des mises)
     const deficit = totalPayout - totalStakes;
 
     console.log("");
@@ -626,11 +714,9 @@ async function finishGame() {
         console.log(`✅ BÉNÉFICE SERVEUR : ${Math.abs(deficit)} USDT`);
     }
 
-    // 7. Marquer les gagnants comme "payés" et enregistrer l'historique
     for (const winner of winners) {
         await Player.findByIdAndUpdate(winner._id, { paid: true });
 
-        // Enregistrer dans l'historique
         await History.create({
             playerId: winner._id,
             playerName: winner.name,
@@ -639,11 +725,11 @@ async function finishGame() {
             rank: winner.rank,
             bet: winner.bet,
             gain: winner.gain,
-            taps: winner.taps
+            taps: winner.taps,
+            token: winner.token
         });
     }
 
-    // 8. Émettre les résultats aux clients
     io.emit("game:finished", {
         gameId: game.id,
         winners: winners,
@@ -654,14 +740,12 @@ async function finishGame() {
         spectators: spectatorSockets.size
     });
 
-    // 9. Notifications des gagnants
     winners.forEach((w, index) => {
         const emoji = index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
         sendNotification('champion', `${emoji} #${w.rank} ${w.name} → ${w.gain} USDT !`, { winner: w });
     });
     sendNotification('alert', `⏰ Partie terminée ! Prochaine partie dans 5 secondes...`);
 
-    // 10. Transfert réel des USDT (uniquement si des vrais paiements ont été faits)
     const realPayments = await Payment.find({ gameId: game.id, verified: true });
     if (realPayments.length > 0) {
         console.log("💸 Envoi des USDT aux gagnants...");
@@ -689,7 +773,6 @@ io.on("connection", async (socket) => {
     console.log("🟢 Socket connecté :", socket.id);
     await broadcastGameState();
 
-    // Envoyer le total des mises au nouveau client
     const totalStakes = await getTotalStakes();
     socket.emit("totalStakes:update", { totalStakes });
 
@@ -699,10 +782,12 @@ io.on("connection", async (socket) => {
             const name = String(data?.name || "").trim().substring(0, 30);
             const wallet = normalizeWallet(data?.wallet);
             const bet = Number(data?.bet);
+            const token = String(data?.token || "USDT").trim();
 
             if (!name) return socket.emit("error", { message: "Nom invalide." });
             if (!isValidTronAddress(wallet)) return socket.emit("error", { message: "Adresse TRON invalide." });
             if (!Number.isFinite(bet) || bet <= 0) return socket.emit("error", { message: "Montant invalide." });
+            if (!SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Token non supporté." });
             if (game.status !== "running") return socket.emit("error", { message: "La partie n'est pas ouverte." });
 
             let player = await Player.findOne({ gameId: game.id, wallet });
@@ -714,11 +799,13 @@ io.on("connection", async (socket) => {
                     wallet,
                     taps: 0,
                     bet,
-                    paid: false
+                    paid: false,
+                    token
                 });
             } else {
                 player.name = name;
                 player.bet = bet;
+                player.token = token;
                 await player.save();
             }
 
@@ -736,16 +823,15 @@ io.on("connection", async (socket) => {
                     wallet: player.wallet,
                     taps: player.taps,
                     bet: player.bet,
-                    paid: player.paid
+                    paid: player.paid,
+                    token: player.token
                 }
             });
 
-            // Notification nouveau joueur
             sendNotification('info', `🎮 ${player.name} a rejoint la partie !`, { playerName: player.name });
 
             await broadcastGameState();
 
-            // Mettre à jour le total des mises
             const newTotalStakes = await getTotalStakes();
             io.emit("totalStakes:update", { totalStakes: newTotalStakes });
         } catch (error) {
@@ -819,14 +905,14 @@ io.on("connection", async (socket) => {
                     wallet: player.wallet,
                     taps: player.taps,
                     bet: player.bet,
-                    paid: player.paid
+                    paid: player.paid,
+                    token: player.token || 'USDT'
                 }
             });
 
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
 
-            // Mettre à jour le total des mises
             const totalStakesRestore = await getTotalStakes();
             io.emit("totalStakes:update", { totalStakes: totalStakesRestore });
 
@@ -855,7 +941,6 @@ io.on("connection", async (socket) => {
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
 
-            // Vérifier si le joueur entre dans le Top 5
             const playerRank = leaderboard.findIndex(p => p.id === player._id);
             if (playerRank !== -1 && playerRank < 5 && oldTaps < 5) {
                 sendNotification('info', `🔥 ${player.name} est dans le Top 5 ! (${player.taps} taps)`, {
@@ -917,14 +1002,15 @@ app.get("/api/admin/stats", async (req, res) => {
             .find({ gameId: game.id })
             .sort({ updatedAt: -1 })
             .limit(20)
-            .select('name wallet taps');
+            .select('name wallet taps token');
         res.json({
             success: true,
             recentPlayers: recentPlayers.map(p => ({
                 playerName: p.name,
                 playerId: p._id,
                 score: p.taps,
-                wallet: p.wallet
+                wallet: p.wallet,
+                token: p.token || 'USDT'
             }))
         });
     } catch (error) {
@@ -939,7 +1025,7 @@ app.get("/api/admin/payouts", async (req, res) => {
             .find({ gameId: game.id })
             .sort({ taps: -1 })
             .limit(5)
-            .select('name wallet taps bet');
+            .select('name wallet taps bet token');
         res.json({
             success: true,
             winners: winners.map((p, index) => ({
@@ -947,7 +1033,8 @@ app.get("/api/admin/payouts", async (req, res) => {
                 playerName: p.name,
                 wallet: p.wallet,
                 score: p.taps,
-                amount: p.bet || 0
+                amount: p.bet || 0,
+                token: p.token || 'USDT'
             }))
         });
     } catch (error) {
@@ -971,7 +1058,7 @@ app.get("/api/total-stakes", async (req, res) => {
 });
 
 // ============================================================
-// API HISTORIQUE DES GAINS
+// API HISTORIQUE DES GAINS – AJOUT DU CHAMP TOKEN
 // ============================================================
 
 app.get("/api/player/history", async (req, res) => {
@@ -1008,9 +1095,13 @@ app.get("/api/player/history", async (req, res) => {
                 totalGain,
                 totalBets,
                 gamesPlayed,
-                bestScore
+                bestScore,
+                token: player.token || 'USDT'
             },
-            history
+            history: history.map(h => ({
+                ...h.toObject(),
+                token: h.token || 'USDT'
+            }))
         });
     } catch (error) {
         console.error("/api/player/history:", error.message);
@@ -1019,7 +1110,7 @@ app.get("/api/player/history", async (req, res) => {
 });
 
 // ============================================================
-// API EXISTANTES
+// API EXISTANTES (adaptées pour le token)
 // ============================================================
 
 app.get("/api/game", async (req, res) => {
@@ -1044,7 +1135,12 @@ app.get("/api/game", async (req, res) => {
 });
 
 app.get("/api/wallet", (req, res) => {
-    res.json({ success: true, wallet: MILTAPE_WALLET, usdtContract: USDT_CONTRACT });
+    res.json({
+        success: true,
+        wallet: MILTAPE_WALLET,
+        usdtContract: USDT_CONTRACT,
+        supportedTokens: Object.keys(SUPPORTED_TOKENS)
+    });
 });
 
 app.post("/api/join", async (req, res) => {
@@ -1052,19 +1148,22 @@ app.post("/api/join", async (req, res) => {
         const name = String(req.body?.name || "").trim().substring(0, 30);
         const wallet = normalizeWallet(req.body?.wallet);
         const bet = Number(req.body?.bet);
+        const token = String(req.body?.token || "USDT").trim();
 
         if (!name) return res.status(400).json({ success: false, message: "Nom invalide." });
         if (!isValidTronAddress(wallet)) return res.status(400).json({ success: false, message: "Adresse TRON invalide." });
         if (!Number.isFinite(bet) || bet <= 0) return res.status(400).json({ success: false, message: "Montant invalide." });
+        if (!SUPPORTED_TOKENS[token]) return res.status(400).json({ success: false, message: "Token non supporté." });
         if (game.status !== "running") return res.status(400).json({ success: false, message: "La partie n'est pas ouverte." });
 
         let player = await Player.findOne({ gameId: game.id, wallet });
 
         if (!player) {
-            player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false });
+            player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false, token });
         } else {
             player.name = name;
             player.bet = bet;
+            player.token = token;
             await player.save();
         }
 
@@ -1076,7 +1175,8 @@ app.post("/api/join", async (req, res) => {
                 wallet: player.wallet,
                 taps: player.taps,
                 bet: player.bet,
-                paid: player.paid
+                paid: player.paid,
+                token: player.token
             }
         });
     } catch (error) {
@@ -1111,7 +1211,8 @@ app.get("/api/player/status", async (req, res) => {
                 wallet: player.wallet,
                 taps: player.taps,
                 bet: player.bet,
-                paid: player.paid
+                paid: player.paid,
+                token: player.token || 'USDT'
             }
         });
     } catch (error) {
@@ -1169,12 +1270,17 @@ app.get("/api/chat", async (req, res) => {
     }
 });
 
+// ============================================================
+// API PAYMENT VERIFY – AVEC TOKEN
+// ============================================================
+
 app.post("/api/payment/verify", async (req, res) => {
     try {
         const txId = String(req.body?.txId || "").trim();
         const wallet = normalizeWallet(req.body?.wallet);
         const amount = Number(req.body?.amount);
         const playerId = String(req.body?.playerId || "").trim();
+        const token = String(req.body?.token || "USDT").trim();
 
         if (!txId) return res.status(400).json({ success: false, verified: false, message: "txId manquant." });
 
@@ -1183,14 +1289,15 @@ app.post("/api/payment/verify", async (req, res) => {
             return res.json({ success: true, verified: existing.verified, alreadyVerified: true, payment: existing });
         }
 
-        const result = await verifyUsdtTransaction(txId, wallet, amount);
+        const result = await verifyTokenTransaction(txId, wallet, amount, token);
         const payment = await Payment.create({
             txId: result.txId,
             from: result.from,
             to: result.to,
             amount: result.amount,
             verified: true,
-            gameId: game.id
+            gameId: game.id,
+            token: token
         });
 
         if (playerId) {
@@ -1198,15 +1305,28 @@ app.post("/api/payment/verify", async (req, res) => {
             if (player && player.gameId === game.id) {
                 player.paid = true;
                 player.paymentTxId = txId;
+                player.token = token;
                 await player.save();
             }
         }
 
-        io.emit("payment:verified", { txId, wallet: result.from, amount: result.amount });
+        io.emit("payment:verified", {
+            txId,
+            wallet: result.from,
+            amount: result.amount,
+            verified: true,
+            token: token
+        });
         res.json({
             success: true,
             verified: true,
-            payment: { txId: result.txId, from: result.from, to: result.to, amount: result.amount }
+            payment: {
+                txId: result.txId,
+                from: result.from,
+                to: result.to,
+                amount: result.amount,
+                token: token
+            }
         });
     } catch (error) {
         console.error("❌ Payment verification:", error.message);
@@ -1230,63 +1350,15 @@ app.get("/api/status", (req, res) => {
         status: game.status,
         timerLeft: getRemainingSeconds(),
         onlinePlayers: onlineSockets.size,
-        spectators: spectatorSockets.size
+        spectators: spectatorSockets.size,
+        supportedTokens: Object.keys(SUPPORTED_TOKENS)
     });
 });
 
 // ============================================================
-// VERIFICATION USDT
-// ============================================================
-async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
-    const cleanTxId = String(txId || "").trim();
-    const cleanFrom = normalizeWallet(expectedFrom);
-    const requiredAmount = Number(expectedAmount);
-
-    if (!cleanTxId) throw new Error("Transaction ID manquant.");
-    if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
-    if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
-
-    const transaction = await tronWeb.trx.getTransaction(cleanTxId);
-    if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
-
-    const contracts = transaction.raw_data?.contract;
-    if (!Array.isArray(contracts) || contracts.length !== 1) throw new Error("Transaction TRON invalide.");
-
-    const contract = contracts[0];
-    if (contract.type !== "TriggerSmartContract") throw new Error("Ce n'est pas une transaction USDT TRC20.");
-
-    const value = contract.parameter?.value;
-    if (!value) throw new Error("Données de transaction manquantes.");
-
-    const contractAddress = tronWeb.address.fromHex(value.contract_address);
-    if (!sameWallet(contractAddress, USDT_CONTRACT)) throw new Error("Ce n'est pas le contrat USDT TRON.");
-
-    const ownerAddress = tronWeb.address.fromHex(value.owner_address);
-    if (!sameWallet(ownerAddress, cleanFrom)) throw new Error("Le portefeuille ne correspond pas.");
-
-    const data = String(value.data || "").toLowerCase();
-    if (!data.startsWith("a9059cbb")) throw new Error("Ce n'est pas un transfer USDT.");
-    if (data.length < 136) throw new Error("Données USDT invalides.");
-
-    const recipientHex = "41" + data.substring(32, 72);
-    const recipient = tronWeb.address.fromHex(recipientHex);
-    if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le paiement n'est pas destiné au wallet du serveur.");
-
-    const amountHex = data.substring(72, 136);
-    const rawAmount = BigInt("0x" + amountHex);
-    const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
-
-    if (amount < requiredAmount) throw new Error(`Montant insuffisant : ${amount} USDT reçu, ${requiredAmount} USDT requis.`);
-
-    const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
-    if (!info || !info.receipt || info.receipt.result !== "SUCCESS") throw new Error("La transaction USDT n'est pas confirmée.");
-
-    return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
-}
-
-// ============================================================
 // 404 & GESTION D'ERREUR
 // ============================================================
+
 app.use((req, res) => {
     res.status(404).json({ success: false, message: "Route introuvable." });
 });
@@ -1299,6 +1371,7 @@ app.use((error, req, res, next) => {
 // ============================================================
 // START
 // ============================================================
+
 server.listen(PORT, async () => {
     console.log("");
     console.log("==============================================");
@@ -1306,7 +1379,7 @@ server.listen(PORT, async () => {
     console.log("==============================================");
     console.log("🌐 Port :", PORT);
     console.log("💰 Wallet :", MILTAPE_WALLET);
-    console.log("💵 USDT :", USDT_CONTRACT);
+    console.log("💵 Tokens supportés :", Object.keys(SUPPORTED_TOKENS).join(", "));
     console.log("🎮 Jeu : 10 minutes");
     console.log("🏆 Top 5");
     console.log("💬 Chat actif");
@@ -1324,13 +1397,13 @@ server.listen(PORT, async () => {
         console.error("❌ Impossible de démarrer le jeu :", error.message);
     }
 
-    // Démarrer la vérification automatique des paiements
-    setInterval(checkPendingPayments, 15000); // Toutes les 15 secondes
+    setInterval(checkPendingPayments, 15000);
 });
 
 // ============================================================
 // ARRÊT PROPRE
 // ============================================================
+
 async function gracefulShutdown(signal) {
     console.log(`${signal} reçu...`);
     if (gameTimer) {
