@@ -17,11 +17,11 @@ const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
     USDC: { contract: "TEkxiTehnzSmSe2XqrBj4w32RUN441q1LZ", decimals: 6, symbol: "USDC" },
     TUSD: { contract: "TUpMhRZL4Ciao6eb6yA3xHPPzLtNQvXsHq", decimals: 6, symbol: "TUSD" },
-    TRX:  { contract: null, decimals: 6, symbol: "TRX" } // Pas de contrat, c'est du TRX natif
+    TRX:  { contract: null, decimals: 6, symbol: "TRX" }
 };
 
-// Variables d'environnement (inchangées)
-const USDT_CONTRACT = SUPPORTED_TOKENS.USDT.contract; // gardé pour compatibilité
+// Variables d'environnement
+const USDT_CONTRACT = SUPPORTED_TOKENS.USDT.contract;
 const USDT_DECIMALS = SUPPORTED_TOKENS.USDT.decimals;
 
 const MONGODB_URI = (
@@ -42,6 +42,10 @@ const TRONGRID_API_KEY = (
 
 // ---------- ADMIN PASSWORD ----------
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "MiltapeAdmin2026!";
+
+// ---------- JACKPOT CONFIG ----------
+const JACKPOT_PERCENT = Number(process.env.JACKPOT_PERCENT) || 20; // 20% du bénéfice
+const JACKPOT_HOUR = 20; // 20h (heure du tirage le samedi)
 
 let tronWeb = null;
 let MILTAPE_WALLET = "";
@@ -170,7 +174,7 @@ const io = new Server(server, {
 mongoose.set("strictQuery", true);
 
 // ============================================================
-// SCHEMAS – AJOUT DU CHAMP `token`
+// SCHEMAS
 // ============================================================
 
 const playerSchema = new mongoose.Schema(
@@ -182,7 +186,7 @@ const playerSchema = new mongoose.Schema(
         bet: { type: Number, default: 0, min: 0 },
         paid: { type: Boolean, default: false },
         paymentTxId: { type: String, default: null },
-        token: { type: String, default: 'USDT' } // ← NOUVEAU
+        token: { type: String, default: 'USDT' }
     },
     { timestamps: true }
 );
@@ -204,7 +208,7 @@ const paymentSchema = new mongoose.Schema(
         amount: { type: Number, required: true },
         verified: { type: Boolean, default: false },
         gameId: { type: String, default: null },
-        token: { type: String, default: 'USDT' } // ← NOUVEAU
+        token: { type: String, default: 'USDT' }
     },
     { timestamps: true }
 );
@@ -219,8 +223,24 @@ const historySchema = new mongoose.Schema(
         bet: { type: Number, required: true },
         gain: { type: Number, required: true },
         taps: { type: Number, required: true },
-        token: { type: String, default: 'USDT' }, // ← NOUVEAU
+        token: { type: String, default: 'USDT' },
         createdAt: { type: Date, default: Date.now }
+    },
+    { timestamps: true }
+);
+
+// ============================================================
+// JACKPOT SCHEMA (NOUVEAU)
+// ============================================================
+const jackpotSchema = new mongoose.Schema(
+    {
+        weekStart: { type: Date, required: true },
+        weekEnd: { type: Date, required: true },
+        prize: { type: Number, default: 0 }, // Montant affiché (accumulé)
+        accumulatedFund: { type: Number, default: 0 },
+        winner: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', default: null },
+        drawn: { type: Boolean, default: false },
+        participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }]
     },
     { timestamps: true }
 );
@@ -229,6 +249,7 @@ const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
 const Payment = mongoose.model("Payment", paymentSchema);
 const History = mongoose.model("History", historySchema);
+const Jackpot = mongoose.model("Jackpot", jackpotSchema);
 
 // ============================================================
 // MONGODB
@@ -367,7 +388,7 @@ async function broadcastGameState() {
 }
 
 // ============================================================
-// TRANSFERT USDT VERS LES GAGNANTS (inchangé)
+// TRANSFERT USDT VERS LES GAGNANTS
 // ============================================================
 
 async function sendUsdtToWinners(winners) {
@@ -376,7 +397,6 @@ async function sendUsdtToWinners(winners) {
         return;
     }
 
-    // On suppose que le gain est toujours en USDT (ou on pourrait adapter selon le token du gagnant, mais ici on garde USDT)
     const contract = await tronWeb.contract().at(USDT_CONTRACT);
 
     for (const winner of winners) {
@@ -395,7 +415,178 @@ async function sendUsdtToWinners(winners) {
 }
 
 // ============================================================
-// VÉRIFICATION DE TRANSACTION (MULTI-TOKENS) – NOUVELLE FONCTION
+// TRANSFERT USDT VERS LE GAGNANT DE LA CAGNOTTE
+// ============================================================
+
+async function sendUsdtToWinner(wallet, amount) {
+    if (!tronWeb || amount <= 0) return;
+
+    try {
+        const contract = await tronWeb.contract().at(USDT_CONTRACT);
+        const amountInSun = tronWeb.toBigNumber(amount * Math.pow(10, USDT_DECIMALS));
+        const tx = await contract.transfer(wallet, amountInSun);
+        console.log(`✅ ${amount} USDT envoyé au gagnant du jackpot (${wallet})`);
+        console.log(`   TXID : ${tx}`);
+    } catch (error) {
+        console.error(`❌ Erreur transfert jackpot vers ${wallet} :`, error.message);
+    }
+}
+
+// ============================================================
+// CAGNOTTE DU SAMEDI
+// ============================================================
+
+/**
+ * Retourne la cagnotte de la semaine en cours (ou en crée une nouvelle)
+ */
+async function getCurrentJackpot() {
+    const now = new Date();
+    // Début de semaine : dimanche 00:00
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    start.setHours(0, 0, 0, 0);
+
+    // Fin de semaine : samedi 23:59:59
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+
+    let jackpot = await Jackpot.findOne({
+        weekStart: { $gte: start, $lte: now },
+        weekEnd: { $gte: now, $lte: end }
+    });
+
+    if (!jackpot) {
+        // Créer une nouvelle cagnotte pour la semaine en cours
+        const prize = Number(process.env.JACKPOT_AMOUNT) || 0; // départ à 0, s'alimente via bénéfices
+        jackpot = await Jackpot.create({
+            weekStart: start,
+            weekEnd: end,
+            prize: 0,
+            accumulatedFund: 0,
+            drawn: false,
+            participants: []
+        });
+        console.log("🎁 Nouvelle cagnotte créée pour la semaine.");
+    }
+
+    return jackpot;
+}
+
+/**
+ * Ajoute un prélèvement à la cagnotte (20% du bénéfice serveur)
+ */
+async function addToJackpotFund(serverProfit) {
+    if (serverProfit <= 0) return;
+
+    const jackpot = await getCurrentJackpot();
+    if (!jackpot || jackpot.drawn) return;
+
+    const contribution = Math.round(serverProfit * (JACKPOT_PERCENT / 100) * 100) / 100;
+    if (contribution <= 0) return;
+
+    jackpot.accumulatedFund += contribution;
+    jackpot.prize = jackpot.accumulatedFund;
+    await jackpot.save();
+
+    // Notifications
+    io.emit("chat:message", {
+        name: "💰 Cagnotte",
+        message: `🎯 ${contribution} USDT ajoutés à la cagnotte du samedi ! (Total : ${jackpot.accumulatedFund} USDT)`,
+        createdAt: new Date()
+    });
+
+    // Mettre à jour les clients
+    await emitJackpotUpdate();
+
+    console.log(`💰 Cagnotte : +${contribution} USDT (total : ${jackpot.accumulatedFund} USDT)`);
+}
+
+/**
+ * Calcule le timestamp du prochain samedi à 20h
+ */
+function getNextSaturday() {
+    const now = new Date();
+    const nextSat = new Date(now);
+    nextSat.setDate(now.getDate() + (6 - now.getDay())); // samedi
+    nextSat.setHours(JACKPOT_HOUR, 0, 0, 0);
+    if (nextSat < now) nextSat.setDate(nextSat.getDate() + 7);
+    return nextSat.getTime();
+}
+
+/**
+ * Émet l'état de la cagnotte à tous les clients
+ */
+async function emitJackpotUpdate() {
+    const jackpot = await getCurrentJackpot();
+    if (!jackpot) return;
+
+    const nextDraw = getNextSaturday();
+
+    io.emit("jackpot:update", {
+        prize: jackpot.prize,
+        participants: jackpot.participants.length,
+        nextDraw: nextDraw,
+        drawn: jackpot.drawn,
+        winner: jackpot.winner ? await Player.findById(jackpot.winner).select('name') : null
+    });
+}
+
+/**
+ * Tirage de la cagnotte (le samedi à 20h)
+ */
+async function drawJackpot() {
+    const jackpot = await getCurrentJackpot();
+    if (!jackpot || jackpot.drawn) return;
+
+    if (jackpot.participants.length === 0) {
+        console.log("🎁 Pas de participants pour la cagnotte cette semaine.");
+        jackpot.drawn = true;
+        jackpot.prize = 0;
+        jackpot.accumulatedFund = 0;
+        await jackpot.save();
+        await emitJackpotUpdate();
+        return;
+    }
+
+    // Tirer un gagnant aléatoire
+    const randomIndex = Math.floor(Math.random() * jackpot.participants.length);
+    const winnerId = jackpot.participants[randomIndex];
+    const winner = await Player.findById(winnerId);
+
+    const prizeAmount = jackpot.accumulatedFund;
+
+    jackpot.winner = winnerId;
+    jackpot.drawn = true;
+    jackpot.prize = 0;
+    jackpot.accumulatedFund = 0;
+    await jackpot.save();
+
+    // Notifications
+    io.emit("notification:new", {
+        type: 'jackpot',
+        message: `🎁 CAGNOTTE DU SAMEDI ! ${winner.name} remporte ${prizeAmount} USDT !`,
+        data: { winner: winner.name, prize: prizeAmount }
+    });
+
+    io.emit("chat:message", {
+        name: "🎁 Cagnotte",
+        message: `🏆 ${winner.name} gagne la cagnotte du samedi : ${prizeAmount} USDT ! Félicitations ! 🎉`,
+        createdAt: new Date()
+    });
+
+    // Transfert des USDT
+    if (winner && prizeAmount > 0) {
+        await sendUsdtToWinner(winner.wallet, prizeAmount);
+    }
+
+    console.log(`🎁 Cagnotte du samedi : ${winner.name} remporte ${prizeAmount} USDT !`);
+
+    await emitJackpotUpdate();
+}
+
+// ============================================================
+// VÉRIFICATION DE TRANSACTION (MULTI-TOKENS)
 // ============================================================
 
 async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token = 'USDT') {
@@ -410,7 +601,7 @@ async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token 
     if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
     if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
 
-    // --- CAS DU TRX (pas de contrat) ---
+    // --- CAS DU TRX ---
     if (token === 'TRX') {
         const transaction = await tronWeb.trx.getTransaction(cleanTxId);
         if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
@@ -422,7 +613,7 @@ async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token 
         if (!sameWallet(owner, cleanFrom)) throw new Error("L'expéditeur ne correspond pas.");
         const recipient = tronWeb.address.fromHex(contract.parameter.value.to_address);
         if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le destinataire n'est pas le wallet serveur.");
-        const amount = contract.parameter.value.amount / 1e6; // TRX a 6 décimales
+        const amount = contract.parameter.value.amount / 1e6;
         if (amount < requiredAmount) throw new Error(`Montant TRX insuffisant : ${amount} reçu, ${requiredAmount} requis.`);
         const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
         if (!info || !info.receipt || info.receipt.result !== 'SUCCESS') {
@@ -431,7 +622,7 @@ async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token 
         return { txId: cleanTxId, from: owner, to: recipient, amount, confirmed: true };
     }
 
-    // --- CAS DES TOKENS TRC20 (USDT, USDC, TUSD) ---
+    // --- CAS DES TOKENS TRC20 ---
     const contractAddress = tokenInfo.contract;
     const decimals = tokenInfo.decimals;
 
@@ -472,7 +663,7 @@ async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token 
 }
 
 // ============================================================
-// VÉRIFICATION AUTOMATIQUE DES PAIEMENTS (POLLING) – ADAPTÉ MULTI-TOKENS
+// VÉRIFICATION AUTOMATIQUE DES PAIEMENTS (POLLING)
 // ============================================================
 
 async function checkPendingPayments() {
@@ -501,9 +692,6 @@ async function checkPendingPayments() {
             const txInfo = await tronWeb.trx.getTransactionInfo(txId);
             if (!txInfo || txInfo.receipt.result !== 'SUCCESS') continue;
 
-            // On va essayer de déterminer le token en analysant le contrat
-            // Pour simplifier, on essaie de matcher avec chaque token supporté
-            // On récupère les données brutes
             const transaction = await tronWeb.trx.getTransaction(txId);
             if (!transaction) continue;
 
@@ -516,21 +704,18 @@ async function checkPendingPayments() {
             let amount = 0;
             let decimals = 6;
 
-            // Détection du token
             if (contract.type === "TransferContract") {
                 // TRX
                 token = 'TRX';
                 const value = contract.parameter.value;
                 ownerAddress = tronWeb.address.fromHex(value.owner_address);
                 amount = value.amount / 1e6;
-                // Vérifier le destinataire
                 const recipient = tronWeb.address.fromHex(value.to_address);
                 if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
             } else if (contract.type === "TriggerSmartContract") {
                 const value = contract.parameter?.value;
                 if (!value) continue;
                 const contractAddress = tronWeb.address.fromHex(value.contract_address);
-                // Trouver le token correspondant
                 let foundToken = null;
                 for (const [sym, info] of Object.entries(SUPPORTED_TOKENS)) {
                     if (info.contract && sameWallet(contractAddress, info.contract)) {
@@ -539,7 +724,7 @@ async function checkPendingPayments() {
                         break;
                     }
                 }
-                if (!foundToken) continue; // token non supporté
+                if (!foundToken) continue;
                 token = foundToken;
                 ownerAddress = tronWeb.address.fromHex(value.owner_address);
                 const data = String(value.data || "").toLowerCase();
@@ -555,7 +740,6 @@ async function checkPendingPayments() {
                 continue;
             }
 
-            // Chercher un joueur correspondant
             const matchingPlayer = unpaidPlayers.find(p =>
                 sameWallet(p.wallet, ownerAddress) &&
                 p.bet > 0 &&
@@ -565,7 +749,6 @@ async function checkPendingPayments() {
 
             if (!matchingPlayer) continue;
 
-            // ✅ Paiement valide
             matchingPlayer.paid = true;
             matchingPlayer.paymentTxId = txId;
             await matchingPlayer.save();
@@ -664,7 +847,7 @@ async function startGame() {
 }
 
 // ============================================================
-// FIN GAME – AVEC REDISTRIBUTION DOUBLE MISE ET HISTORIQUE
+// FIN GAME – AVEC REDISTRIBUTION DOUBLE MISE, HISTORIQUE ET CAGNOTTE
 // ============================================================
 
 async function finishGame() {
@@ -701,19 +884,27 @@ async function finishGame() {
     });
 
     const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
-    const deficit = totalPayout - totalStakes;
+    const deficit = totalPayout - totalStakes; // >0 = perte, <0 = bénéfice
 
     console.log("");
     console.log("🏁 PARTIE TERMINÉE :", game.id);
     console.log("💰 Total des mises :", totalStakes, "USDT");
     console.log("💸 Gains à redistribuer :", totalPayout, "USDT");
 
+    const serverProfit = deficit > 0 ? 0 : Math.abs(deficit); // bénéfice réel
+
     if (deficit > 0) {
         console.log(`📉 DÉFICIT : ${deficit} USDT (pris depuis le wallet serveur)`);
     } else {
-        console.log(`✅ BÉNÉFICE SERVEUR : ${Math.abs(deficit)} USDT`);
+        console.log(`✅ BÉNÉFICE SERVEUR : ${serverProfit} USDT`);
     }
 
+    // ---- Prélèvement pour la cagnotte (20% du bénéfice) ----
+    if (serverProfit > 0) {
+        await addToJackpotFund(serverProfit);
+    }
+
+    // ---- Enregistrement des gagnants et historique ----
     for (const winner of winners) {
         await Player.findByIdAndUpdate(winner._id, { paid: true });
 
@@ -730,6 +921,7 @@ async function finishGame() {
         });
     }
 
+    // ---- Émettre les résultats ----
     io.emit("game:finished", {
         gameId: game.id,
         winners: winners,
@@ -746,6 +938,7 @@ async function finishGame() {
     });
     sendNotification('alert', `⏰ Partie terminée ! Prochaine partie dans 5 secondes...`);
 
+    // ---- Transfert réel des gains ----
     const realPayments = await Payment.find({ gameId: game.id, verified: true });
     if (realPayments.length > 0) {
         console.log("💸 Envoi des USDT aux gagnants...");
@@ -755,6 +948,7 @@ async function finishGame() {
     }
 
     await broadcastGameState();
+    await emitJackpotUpdate();
 
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
 
@@ -772,9 +966,15 @@ io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log("🟢 Socket connecté :", socket.id);
     await broadcastGameState();
+    await emitJackpotUpdate();
 
     const totalStakes = await getTotalStakes();
     socket.emit("totalStakes:update", { totalStakes });
+
+    // ---- Demande de la cagnotte ----
+    socket.on("jackpot:get", async () => {
+        await emitJackpotUpdate();
+    });
 
     // --- JOIN (joueur) ---
     socket.on("player:join", async (data) => {
@@ -814,6 +1014,16 @@ io.on("connection", async (socket) => {
             socket.data.wallet = wallet;
             socket.data.name = name;
             socket.data.isSpectator = false;
+
+            // ---- Ajouter le joueur à la cagnotte ----
+            const jackpot = await getCurrentJackpot();
+            if (jackpot && !jackpot.drawn) {
+                if (!jackpot.participants.includes(player._id)) {
+                    jackpot.participants.push(player._id);
+                    await jackpot.save();
+                    await emitJackpotUpdate();
+                }
+            }
 
             socket.emit("player:joined", {
                 success: true,
@@ -1058,7 +1268,34 @@ app.get("/api/total-stakes", async (req, res) => {
 });
 
 // ============================================================
-// API HISTORIQUE DES GAINS – AJOUT DU CHAMP TOKEN
+// API JACKPOT (NOUVEAU)
+// ============================================================
+
+app.get("/api/jackpot", async (req, res) => {
+    try {
+        const jackpot = await getCurrentJackpot();
+        const nextDraw = getNextSaturday();
+        let winner = null;
+        if (jackpot.winner) {
+            winner = await Player.findById(jackpot.winner).select('name');
+        }
+        res.json({
+            success: true,
+            jackpot: {
+                prize: jackpot.prize,
+                participants: jackpot.participants.length,
+                nextDraw: nextDraw,
+                drawn: jackpot.drawn,
+                winner: winner ? winner.name : null
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ============================================================
+// API HISTORIQUE DES GAINS
 // ============================================================
 
 app.get("/api/player/history", async (req, res) => {
@@ -1110,7 +1347,7 @@ app.get("/api/player/history", async (req, res) => {
 });
 
 // ============================================================
-// API EXISTANTES (adaptées pour le token)
+// API EXISTANTES (inchangées)
 // ============================================================
 
 app.get("/api/game", async (req, res) => {
@@ -1165,6 +1402,15 @@ app.post("/api/join", async (req, res) => {
             player.bet = bet;
             player.token = token;
             await player.save();
+        }
+
+        // Ajouter à la cagnotte
+        const jackpot = await getCurrentJackpot();
+        if (jackpot && !jackpot.drawn) {
+            if (!jackpot.participants.includes(player._id)) {
+                jackpot.participants.push(player._id);
+                await jackpot.save();
+            }
         }
 
         res.json({
@@ -1271,7 +1517,7 @@ app.get("/api/chat", async (req, res) => {
 });
 
 // ============================================================
-// API PAYMENT VERIFY – AVEC TOKEN
+// API PAYMENT VERIFY
 // ============================================================
 
 app.post("/api/payment/verify", async (req, res) => {
@@ -1389,6 +1635,7 @@ server.listen(PORT, async () => {
     console.log("📊 Total des mises dynamique");
     console.log("📈 Historique des gains activé");
     console.log("🔔 Notifications en temps réel activées");
+    console.log(`🎁 Cagnotte du samedi (${JACKPOT_PERCENT}% du bénéfice) – Tirage à ${JACKPOT_HOUR}h`);
     console.log("==============================================");
 
     try {
@@ -1398,6 +1645,18 @@ server.listen(PORT, async () => {
     }
 
     setInterval(checkPendingPayments, 15000);
+
+    // ---- Vérification du tirage de la cagnotte toutes les minutes ----
+    setInterval(async () => {
+        const now = new Date();
+        const day = now.getDay(); // 6 = samedi
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+
+        if (day === 6 && hours === JACKPOT_HOUR && minutes === 0) {
+            await drawJackpot();
+        }
+    }, 60000);
 });
 
 // ============================================================
