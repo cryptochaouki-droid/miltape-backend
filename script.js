@@ -1,471 +1,352 @@
-const express = require("express");
-const http = require("http");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const { Server } = require("socket.io");
-const { TronWeb } = require("tronweb");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-const PORT = Number(process.env.PORT) || 3000;
+/* =========================================================
+   SCRIPT CLIENT MILTAPE - VERSION FINALE (Chrono + Chat)
+========================================================= */
 
-// ============================================================
-// ✅ AJOUT ANTI-CRASH (Ne JAMAIS tuer le serveur)
-// ============================================================
-process.on('uncaughtException', (err) => {
-    console.error('ERREUR NON GÉRÉE (le serveur continue) :', err.message);
-});
-process.on('unhandledRejection', (reason) => {
-    console.error('PROMESSE REJETÉE NON GÉRÉE :', reason);
-});
-// ============================================================
-
-const GAME_DURATION_SECONDS = 10 * 60;
-const USDT_CONTRACT = (process.env.USDT_CONTRACT || "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t").trim();
-const USDT_DECIMALS = 6;
-const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
-const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
-const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "MiltapeAdmin2026!";
-
-let tronWeb = null;
-let MILTAPE_WALLET = "";
-let gameTimer = null;
-let nextGameTimeout = null;
-const onlineSockets = new Set();
-const spectatorSockets = new Set();
-let processedTxIds = new Set();
-
-let game = {
-    id: null,
-    status: "waiting",
-    startedAt: null,
-    endsAt: null,
-    durationSeconds: GAME_DURATION_SECONDS
-};
-
-// ✅ CORRECTIONS MAJEURES : PLUS AUCUN process.exit(1) !
-if (!MONGODB_URI) console.error("❌ MONGO_URI manque dans Railway (mais le serveur continue) !");
-if (!PRIVATE_KEY) console.error("❌ MILTAPE_PRIVATE_KEY manque dans Railway (mais le serveur continue) !");
-
-try {
-    tronWeb = new TronWeb({
-        fullHost: "https://api.trongrid.io",
-        headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {},
-        privateKey: PRIVATE_KEY
-    });
-    MILTAPE_WALLET = TronWeb.address.fromPrivateKey(PRIVATE_KEY);
-    console.log("✅ TronWeb initialisé.");
-} catch (error) {
-    console.error("❌ Erreur TronWeb (le serveur démarre quand même) :", error.message);
-}
-
-console.log("==============================================");
-console.log("        TRON CONFIGURATION");
-console.log("==============================================");
-console.log("💰 Wallet :", MILTAPE_WALLET);
-console.log("💵 USDT :", USDT_CONTRACT);
-console.log("==============================================");
-
-// EXPRESS
-const app = express();
-const server = http.createServer(app);
-app.set('trust proxy', 1); 
-app.use(helmet());
-
-const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
-app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
-
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: "Trop de requêtes, veuillez réessayer plus tard." }
-});
-app.use('/api/', limiter);
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
-
-const io = new Server(server, {
-    cors: { origin: FRONTEND_ORIGIN, methods: ["GET", "POST"], credentials: true }
+const socket = io("https://miltape-backend-production.up.railway.app", {
+    transports: ['websocket'], upgrade: false
 });
 
-mongoose.set("strictQuery", true);
+// ==========================================
+// 1. ÉLÉMENTS DU DOM (Correspond au HTML)
+// ==========================================
+const tapButton = document.getElementById('tapButton');
+const tapButtonCount = document.getElementById('tapButtonCount');
+const enterChallenge = document.getElementById('enterChallenge');
+const spectatorBtn = document.getElementById('spectatorMode');
+const tapMessage = document.getElementById('tapMessage');
+const timerDisplay = document.getElementById('timer'); // CHRONO
+const onlineCount = document.getElementById('onlineCount');
+const leaderboardList = document.getElementById('leaderboardList');
+const chatInput = document.getElementById('chatInput'); // CHAT
+const chatSend = document.getElementById('chatSend'); // CHAT
+const chatMessages = document.getElementById('chatMessages'); // CHAT
+const betInput = document.getElementById('betInput');
+const payButton = document.getElementById('payButton');
+const demoBtn = document.getElementById('demomodebtn');
+const demoStatus = document.getElementById('demoStatus');
 
-// SCHEMAS
-const playerSchema = new mongoose.Schema(
-    {
-        gameId: { type: String, required: true, index: true },
-        name: { type: String, required: true, trim: true, maxlength: 30 },
-        wallet: { type: String, required: true, trim: true, index: true },
-        taps: { type: Number, default: 0, min: 0 },
-        bet: { type: Number, default: 0, min: 0 },
-        paid: { type: Boolean, default: false },
-        paymentTxId: { type: String, default: null }
-    },
-    { timestamps: true }
-);
+const API_URL = "https://miltape-backend-production.up.railway.app";
 
-const messageSchema = new mongoose.Schema(
-    {
-        name: { type: String, required: true, trim: true, maxlength: 30 },
-        message: { type: String, required: true, trim: true, maxlength: 300 },
-        gameId: { type: String, default: null }
-    },
-    { timestamps: true }
-);
+let isPlaying = false;
+let isPaid = false;
+let isSpectator = false;
+let myPlayerId = null;
+let myBet = 10;
+let myWallet = null;
+let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
 
-const paymentSchema = new mongoose.Schema(
-    {
-        txId: { type: String, required: true, unique: true, index: true },
-        from: { type: String, required: true },
-        to: { type: String, required: true },
-        amount: { type: Number, required: true },
-        verified: { type: Boolean, default: false },
-        gameId: { type: String, default: null }
-    },
-    { timestamps: true }
-);
-
-const Player = mongoose.model("Player", playerSchema);
-const Message = mongoose.model("Message", messageSchema);
-const Payment = mongoose.model("Payment", paymentSchema);
-
-// ✅ CORRECTIONS MAJEURES : ICI AUSSI, PLUS DE process.exit(1) !
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log("✅ MongoDB connecté."))
-    .catch((error) => console.error("❌ MongoDB erreur (attente de reconnexion...) :", error.message));
-
-function normalizeWallet(address) { return String(address || "").trim(); }
-function isValidTronAddress(address) {
-    const wallet = normalizeWallet(address);
-    if (!wallet) return false;
-    try { return tronWeb.isAddress(wallet); } catch { return false; }
-}
-function sameWallet(a, b) { return normalizeWallet(a) === normalizeWallet(b); }
-function generateGameId() {
-    return ("GAME-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).substring(2, 8).toUpperCase());
-}
-function getRemainingSeconds() {
-    if (game.status !== "running" || !game.endsAt) return 0;
-    return Math.max(0, Math.ceil((game.endsAt - Date.now()) / 1000));
+// ==========================================
+// 2. SYSTÈME DE TOAST & MODALES (Anti-carrés)
+// ==========================================
+function showToast(message, type = "success") {
+    let toastBox = document.getElementById('toastBox');
+    if (!toastBox) {
+        toastBox = document.createElement('div');
+        toastBox.id = 'toastBox';
+        toastBox.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;text-align:center;";
+        document.body.appendChild(toastBox);
+    }
+    const toast = document.createElement('div');
+    toast.innerText = message;
+    toast.style.cssText = `padding:12px 20px;border-radius:10px;font-weight:bold;color:#fff;background:${type === 'error' ? '#ff5b5b' : '#2ecc71'};margin-bottom:10px;font-family:'Orbitron',sans-serif;`;
+    toastBox.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
 }
 
-async function getLeaderboard() {
-    if (!game.id) return [];
-    const players = await Player.find({ gameId: game.id }).sort({ taps: -1, createdAt: 1 }).limit(5).lean();
-    return players.map((player, index) => ({ rank: index + 1, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid }));
+function showCustomModal(title, contentHTML) {
+    const modal = document.getElementById('dynamicModal');
+    const titleEl = document.getElementById('dynamicModalTitle');
+    const bodyEl = document.getElementById('dynamicModalBody');
+    titleEl.innerText = title;
+    bodyEl.innerHTML = contentHTML;
+    const btn = document.createElement('button');
+    btn.innerText = "VALIDER";
+    btn.onclick = () => modal.classList.remove('show');
+    bodyEl.appendChild(btn);
+    modal.classList.add('show');
 }
 
-async function broadcastGameState() {
+// ==========================================
+// 3. TELEGRAM & DEMO
+// ==========================================
+function getTelegramUser() {
     try {
-        const leaderboard = await getLeaderboard();
-        io.emit("online:count", onlineSockets.size + spectatorSockets.size);
-        io.emit("leaderboard:update", leaderboard);
-        io.emit("timer:update", { remainingSeconds: getRemainingSeconds(), status: game.status });
-    } catch (error) { console.error("broadcastGameState:", error.message); }
-}
-
-async function sendUsdtToWinners(winners) {
-    if (!tronWeb) return;
-    try {
-        const contract = await tronWeb.contract().at(USDT_CONTRACT);
-        for (const winner of winners) {
-            if (winner.gain <= 0) continue;
-            try {
-                const amountInSun = tronWeb.toBigNumber(winner.gain * Math.pow(10, USDT_DECIMALS));
-                await contract.transfer(winner.wallet, amountInSun);
-            } catch (error) { console.error(`❌ Erreur transfert :`, error.message); }
+        if (window.Telegram && window.Telegram.WebApp) {
+            const user = window.Telegram.WebApp.initDataUnsafe?.user;
+            if (user && user.username) return user.username;
+            if (user && user.first_name) return user.first_name;
         }
-    } catch (error) { console.error("❌ Erreur contrat :", error.message); }
+    } catch (e) { return null; }
+    return null;
 }
 
-// DÉMARRAGE DU JEU
-async function startGame() {
-    if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
-    game = { id: generateGameId(), status: "running", startedAt: Date.now(), endsAt: Date.now() + GAME_DURATION_SECONDS * 1000, durationSeconds: GAME_DURATION_SECONDS };
-    console.log("🎮 NOUVELLE PARTIE :", game.id);
-    await broadcastGameState();
-
-    gameTimer = setInterval(async () => {
-        try {
-            const remaining = getRemainingSeconds();
-            io.emit("timer:update", { remainingSeconds: remaining, status: game.status });
-            if (remaining <= 0) { await finishGame(); }
-        } catch (error) { console.error("gameTimer:", error.message); }
-    }, 1000);
+function updateDemoUI() {
+    if (demoMode) {
+        if (demoStatus) demoStatus.innerText = "MODE DEMO ACTIVE";
+        tapMessage.innerText = "MODE DEMO ACTIF - TU PEUX JOUER SANS PAYER !";
+    } else {
+        if (demoStatus) demoStatus.innerText = "DESACTIVE";
+        tapMessage.innerText = "CHOISIS TA MISE ET CONNECTE TON WALLET";
+    }
 }
+updateDemoUI();
 
-// FIN DE JEU
-async function finishGame() {
-    if (game.status !== "running") return;
-    game.status = "finished";
-    if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+if (demoBtn) demoBtn.addEventListener('click', async () => {
+    if (demoMode) { demoMode = false; localStorage.setItem("miltape_demo", "false"); updateDemoUI(); showToast("MODE DEMO DESACTIVE"); return; }
+    const password = prompt("Mot de passe admin :");
+    if (!password) return;
+    const res = await fetch(API_URL + "/api/admin/login", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+    const data = await res.json();
+    if (data.success) { demoMode = true; localStorage.setItem("miltape_demo", "true"); updateDemoUI(); showToast("MODE DEMO ACTIVE"); }
+    else showToast("MOT DE PASSE INCORRECT", "error");
+});
 
-    try {
-        const allPlayers = await Player.find({ gameId: game.id }).lean();
-        const top5 = await Player.find({ gameId: game.id }).sort({ taps: -1 }).limit(5).lean();
-        const totalStakes = allPlayers.reduce((sum, p) => sum + p.bet, 0);
-        const winners = top5.map((player, index) => {
-            const gain = player.bet * 2;
-            return { rank: index + 1, name: player.name, wallet: player.wallet, bet: player.bet, gain: gain, taps: player.taps };
-        });
-        const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
-        const deficit = totalPayout - totalStakes;
+// ==========================================
+// 4. REJOINDRE LA PARTIE (Sans prompt WALLET)
+// ==========================================
+function joinGame() {
+    let name = getTelegramUser() || prompt("Entre ton pseudo :");
+    if (!name) return;
 
-        console.log("🏁 PARTIE TERMINÉE :", game.id);
+    // On propose de connecter le wallet ou de le saisir manuellement
+    let wallet = null;
+    if (window.tronWeb && window.tronWeb.defaultAddress) {
+        wallet = window.tronWeb.defaultAddress.base58;
+    } else {
+        wallet = prompt("Entre ton adresse TRON (ex: T...) :");
+    }
 
-        for (const winner of winners) { await Player.findByIdAndUpdate(winner._id, { paid: true }); }
-        io.emit("game:finished", { winners, totalStakes, totalPayout, deficit });
+    let bet = 10;
+    if (betInput) {
+        const rawBet = parseFloat(betInput.value);
+        if (!isNaN(rawBet) && rawBet >= 0.5 && rawBet <= 1000000) bet = rawBet;
+    }
 
-        const realPayments = await Payment.find({ gameId: game.id, verified: true });
-        if (realPayments.length > 0) { await sendUsdtToWinners(winners); }
-
-        await broadcastGameState();
-        if (nextGameTimeout) clearTimeout(nextGameTimeout);
-        nextGameTimeout = setTimeout(async () => { nextGameTimeout = null; await startGame(); }, 5000);
-    } catch (error) {
-        console.error("finishGame:", error.message);
-        await startGame(); // Relance même si erreur
+    if (name && wallet) {
+        isSpectator = false;
+        myBet = bet;
+        myWallet = wallet;
+        socket.emit("player:join", { name, wallet, bet });
+        localStorage.removeItem("miltape_spectator");
+        tapMessage.innerText = "CONNEXION AU SERVEUR EN COURS...";
     }
 }
 
-async function checkPendingPayments() {
-    if (game.status !== "running" || !tronWeb) return;
-    try {
-        const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 } });
-        if (unpaidPlayers.length === 0) return;
-        const transactions = await tronWeb.trx.getAccountTransactions(MILTAPE_WALLET, { limit: 30, onlyConfirmed: true });
-        if (!transactions || transactions.length === 0) return;
+if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
 
-        for (const tx of transactions) {
-            const txId = tx.txID;
-            if (processedTxIds.has(txId)) continue;
-            const txInfo = await tronWeb.trx.getTransactionInfo(txId);
-            if (!txInfo || txInfo.receipt.result !== 'SUCCESS') continue;
-            const transaction = await tronWeb.trx.getTransaction(txId);
-            if (!transaction) continue;
-            const contracts = transaction.raw_data?.contract;
-            if (!Array.isArray(contracts) || contracts.length !== 1) continue;
-            const contract = contracts[0];
-            if (contract.type !== "TriggerSmartContract") continue;
-            const value = contract.parameter?.value;
-            if (!value) continue;
-            const contractAddress = tronWeb.address.fromHex(value.contract_address);
-            if (!sameWallet(contractAddress, USDT_CONTRACT)) continue;
-            const ownerAddress = tronWeb.address.fromHex(value.owner_address);
-            if (!ownerAddress) continue;
-            const matchingPlayer = unpaidPlayers.find(p => sameWallet(p.wallet, ownerAddress) && p.bet > 0);
-            if (!matchingPlayer) continue;
-            const data = String(value.data || "").toLowerCase();
-            if (!data.startsWith("a9059cbb") || data.length < 136) continue;
-            const amountHex = data.substring(72, 136);
-            const rawAmount = BigInt("0x" + amountHex);
-            const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
-            if (amount < matchingPlayer.bet) continue;
-            const recipientHex = "41" + data.substring(32, 72);
-            const recipient = tronWeb.address.fromHex(recipientHex);
-            if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
+// ==========================================
+// 5. ⏱️ LE CHRONO (RÉPARÉ)
+// ==========================================
+socket.on("timer:update", (data) => {
+    if (timerDisplay) {
+        const m = Math.floor(data.remainingSeconds / 60);
+        const s = data.remainingSeconds % 60;
+        timerDisplay.innerText = m + ":" + (s < 10 ? "0" : "") + s;
+    }
+});
 
-            matchingPlayer.paid = true;
-            matchingPlayer.paymentTxId = txId;
-            await matchingPlayer.save();
-            processedTxIds.add(txId);
-            await Payment.create({ txId, from: ownerAddress, to: MILTAPE_WALLET, amount, verified: true, gameId: game.id });
+// ==========================================
+// 6. 💬 LE CHAT (RÉPARÉ)
+// ==========================================
+function sendMessage() {
+    const text = chatInput.value.trim();
+    if (text) {
+        socket.emit("chat:send", { message: text });
+        chatInput.value = "";
+    }
+}
+if (chatSend) chatSend.addEventListener('click', sendMessage);
+if (chatInput) chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
 
-            io.emit("payment:verified", { verified: true, wallet: matchingPlayer.wallet, amount: matchingPlayer.bet, playerName: matchingPlayer.name });
-            io.emit("chat:message", { name: "🟢 Système", message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} USDT`, createdAt: new Date() });
+socket.on("chat:message", (data) => {
+    if (chatMessages) {
+        const div = document.createElement('div');
+        div.className = 'chat-message';
+        div.innerHTML = `<strong>${data.name} :</strong> ${data.message}`;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
+
+// ==========================================
+// 7. GESTION DU JEU (Score, Leaderboard, Paiement)
+// ==========================================
+socket.on('connect', async () => {
+    if (!demoMode) tapMessage.innerText = "CONNECTE AU SERVEUR !";
+    await restoreSession();
+});
+
+socket.on("player:joined", (data) => {
+    if (data.success) {
+        isPlaying = true;
+        isPaid = false;
+        isSpectator = false;
+        myPlayerId = data.player.id;
+        tapButton.disabled = true;
+        tapMessage.innerText = data.player.name + ", PAIE TA MISE POUR TAPER !";
+        
+        if (demoMode) {
+            isPaid = true;
+            tapButton.disabled = false;
+            tapMessage.innerText = "MODE DEMO : TAPE !";
+            fetch(API_URL + "/api/payment/verify", { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({txId: "DEMO_"+Date.now(), wallet: data.player.wallet, amount: data.player.bet, playerId: data.player.id})}).catch(()=>{});
+        } else {
+            if (payButton) { payButton.style.display = 'block'; payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet); }
         }
-    } catch (error) { console.error("❌ Erreur vérification auto paiements :", error.message); }
-}
-setInterval(() => { if (processedTxIds.size > 1000) processedTxIds.clear(); }, 3600000);
-
-// SOCKET EVENTS
-io.on("connection", async (socket) => {
-    onlineSockets.add(socket.id);
-    console.log("🟢 Socket connecté :", socket.id);
-    await broadcastGameState();
-
-    socket.on("player:join", async (data) => {
-        try {
-            const name = String(data?.name || "").trim().substring(0, 30);
-            const wallet = normalizeWallet(data?.wallet);
-            const bet = Number(data?.bet);
-            if (!name) return socket.emit("error", { message: "Nom invalide." });
-            if (!isValidTronAddress(wallet)) return socket.emit("error", { message: "Adresse TRON invalide." });
-            if (!Number.isFinite(bet) || bet <= 0) return socket.emit("error", { message: "Montant invalide." });
-            if (game.status !== "running") return socket.emit("error", { message: "La partie n'est pas ouverte." });
-
-            let player = await Player.findOne({ gameId: game.id, wallet });
-            if (!player) { player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false }); }
-            else { player.name = name; player.bet = bet; await player.save(); }
-
-            socket.data.playerId = player._id.toString();
-            socket.data.gameId = game.id;
-            socket.data.wallet = wallet;
-            socket.data.name = name;
-            socket.data.isSpectator = false;
-
-            socket.emit("player:joined", { success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid } });
-            await broadcastGameState();
-        } catch (error) { console.error("player:join:", error.message); }
-    });
-
-    socket.on("player:tap", async () => {
-        try {
-            if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
-            if (socket.data.isSpectator) return;
-            const player = await Player.findById(socket.data.playerId);
-            if (!player || player.gameId !== game.id) return;
-            player.taps += 1;
-            await player.save();
-            socket.emit("player:score", { taps: player.taps });
-            const leaderboard = await getLeaderboard();
-            io.emit("leaderboard:update", leaderboard);
-        } catch (error) { console.error("player:tap:", error.message); }
-    });
-
-    socket.on("chat:send", async (data) => {
-        try {
-            const name = String(data?.name || socket.data.name || "Joueur").trim().substring(0, 30);
-            const message = String(data?.message || "").trim().substring(0, 300);
-            if (!message) return;
-            const saved = await Message.create({ name, message, gameId: game.id });
-            io.emit("chat:message", { id: saved._id, name, message, createdAt: saved.createdAt });
-        } catch (error) { console.error("chat:send:", error.message); }
-    });
-
-    socket.on("spectator:join", async (data) => {
-        try {
-            const name = String(data?.name || "Spectateur").trim().substring(0, 30);
-            socket.data.isSpectator = true;
-            socket.data.name = name;
-            spectatorSockets.add(socket.id);
-            socket.emit("spectator:joined", { success: true, name: name, spectators: spectatorSockets.size });
-            io.emit("chat:message", { name: "👁️ Système", message: `${name} regarde la partie !`, createdAt: new Date() });
-            await broadcastGameState();
-        } catch (error) { console.error("spectator:join:", error.message); }
-    });
-
-    socket.on("player:restore", async (data) => {
-        try {
-            const playerId = data?.playerId;
-            const wallet = normalizeWallet(data?.wallet);
-            const query = { gameId: game.id };
-            if (playerId) query._id = playerId;
-            else query.wallet = wallet;
-            const player = await Player.findOne(query);
-            if (!player) return socket.emit("error", { message: "Joueur introuvable." });
-            socket.data.playerId = player._id.toString();
-            socket.data.wallet = player.wallet;
-            socket.data.name = player.name;
-            socket.emit("player:restored", { success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid } });
-            await broadcastGameState();
-        } catch (error) { console.error("player:restore:", error.message); }
-    });
-
-    socket.on("disconnect", async () => {
-        onlineSockets.delete(socket.id);
-        spectatorSockets.delete(socket.id);
-        console.log("🔴 Socket déconnecté :", socket.id);
-        await broadcastGameState();
-    });
+    }
 });
 
-// ROUTES API COMPLÈTES
-app.post("/api/admin/login", (req, res) => {
-    if (req.body.password === ADMIN_PASSWORD) res.json({ success: true });
-    else res.status(401).json({ success: false, message: "Mot de passe incorrect." });
+socket.on("player:score", (data) => {
+    if (tapButtonCount) tapButtonCount.innerText = data.taps;
 });
 
-app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET, usdtContract: USDT_CONTRACT }));
-app.get("/api/total-stakes", async (req, res) => {
-    try {
-        const result = await Player.aggregate([{ $match: { gameId: game.id } }, { $group: { _id: null, total: { $sum: "$bet" } } }]);
-        res.json({ success: true, totalStakes: result.length > 0 ? result[0].total : 0 });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
-});
-app.get("/api/online", (req, res) => res.json({ success: true, onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size }));
-app.get("/api/status", (req, res) => res.json({ success: true, server: "online", mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", tron: tronWeb ? "connected" : "disconnected", wallet: MILTAPE_WALLET, gameId: game.id, status: game.status, timerLeft: getRemainingSeconds() }));
-app.post("/api/join", async (req, res) => {
-    try {
-        const name = String(req.body?.name || "").trim().substring(0, 30);
-        const wallet = normalizeWallet(req.body?.wallet);
-        const bet = Number(req.body?.bet);
-        if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0) return res.status(400).json({ success: false, message: "Données invalides." });
-        let player = await Player.findOne({ gameId: game.id, wallet });
-        if (!player) { player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false }); }
-        else { player.name = name; player.bet = bet; await player.save(); }
-        res.json({ success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid } });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+socket.on("online:count", (count) => {
+    if (onlineCount) onlineCount.innerText = count + " EN LIGNE";
 });
 
-// VERIFICATION USDT
-async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
-    const cleanTxId = String(txId || "").trim();
-    const cleanFrom = normalizeWallet(expectedFrom);
-    const requiredAmount = Number(expectedAmount);
+socket.on("leaderboard:update", (leaderboard) => {
+    if (leaderboardList) {
+        leaderboardList.innerHTML = "";
+        if (leaderboard.length === 0) { leaderboardList.innerHTML = "<div style='color:#888;padding:10px;'>Aucun joueur</div>"; return; }
+        leaderboard.forEach(p => {
+            leaderboardList.innerHTML += `<div class="leaderboard-item"><span>#${p.rank}</span><span>${p.name}</span><span style="color:#ffcc00;">${p.taps} TAPS</span></div>`;
+        });
+    }
+});
 
-    if (!cleanTxId) throw new Error("Transaction ID manquant.");
-    if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
-    if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
+socket.on("payment:verified", (data) => {
+    if (data.verified && !isSpectator) {
+        isPaid = true;
+        tapButton.disabled = false;
+        showToast("PAIEMENT DETECTE, TAPE !");
+        if (payButton) payButton.style.display = 'none';
+    }
+});
 
-    const transaction = await tronWeb.trx.getTransaction(cleanTxId);
-    if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
-    const contracts = transaction.raw_data?.contract;
-    if (!Array.isArray(contracts) || contracts.length !== 1) throw new Error("Transaction TRON invalide.");
-    const contract = contracts[0];
-    if (contract.type !== "TriggerSmartContract") throw new Error("Ce n'est pas une transaction USDT TRC20.");
-    const value = contract.parameter?.value;
-    if (!value) throw new Error("Données de transaction manquantes.");
-    const contractAddress = tronWeb.address.fromHex(value.contract_address);
-    if (!sameWallet(contractAddress, USDT_CONTRACT)) throw new Error("Ce n'est pas le contrat USDT TRON.");
-    const ownerAddress = tronWeb.address.fromHex(value.owner_address);
-    if (!sameWallet(ownerAddress, cleanFrom)) throw new Error("Le portefeuille ne correspond pas.");
-    const data = String(value.data || "").toLowerCase();
-    if (!data.startsWith("a9059cbb")) throw new Error("Ce n'est pas un transfer USDT.");
-    if (data.length < 136) throw new Error("Données USDT invalides.");
-    const recipientHex = "41" + data.substring(32, 72);
-    const recipient = tronWeb.address.fromHex(recipientHex);
-    if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le paiement n'est pas destiné au wallet du serveur.");
-    const amountHex = data.substring(72, 136);
-    const rawAmount = BigInt("0x" + amountHex);
-    const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
-    if (amount < requiredAmount) throw new Error(`Montant insuffisant : ${amount} USDT reçu, ${requiredAmount} USDT requis.`);
-    const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
-    if (!info || !info.receipt || info.receipt.result !== "SUCCESS") throw new Error("La transaction USDT n'est pas confirmée.");
-    return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
+// ==========================================
+// 8. TAP (Avec Combo)
+// ==========================================
+let currentCombo = 0;
+let lastTapTime = 0;
+
+if (tapButton) {
+    tapButton.addEventListener('click', function() {
+        if (!isPlaying || !isPaid || isSpectator) {
+            if (!isPaid && !isSpectator) tapMessage.innerText = "TU DOIS PAYER TA MISE AVANT DE TAPER !";
+            return;
+        }
+        
+        const now = Date.now();
+        if (now - lastTapTime < 900) { currentCombo++; } else { currentCombo = 1; }
+        lastTapTime = now;
+        
+        if (currentCombo > 1) { tapMessage.innerText = "COMBO x" + currentCombo + " ! CONTINUE !"; }
+        else { tapMessage.innerText = "TAPE !"; }
+
+        socket.emit("player:tap");
+    });
 }
 
-// 404 & GESTION D'ERREUR
-app.use((req, res) => res.status(404).json({ success: false, message: "Route introuvable." }));
-app.use((error, req, res, next) => res.status(500).json({ success: false, message: "Erreur interne du serveur." }));
+// ==========================================
+// 9. PAIEMENT & SPECTATEUR
+// ==========================================
+function initiatePayment(wallet, amount) {
+    fetch(API_URL + "/api/wallet").then(res => res.json()).then(data => {
+        if (data.success) {
+            const serverWallet = data.wallet;
+            const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
+            window.open(paymentUrl, '_blank');
+            showToast("ENVOIE " + amount + " USDT VERS : " + serverWallet);
+        } else { showToast("IMPOSSIBLE DE RECUPERER LE WALLET", "error"); }
+    }).catch(() => showToast("ERREUR RESEAU", "error"));
+}
 
-// START
-server.listen(PORT, async () => {
-    console.log("");
-    console.log("==============================================");
-    console.log("       🚀 BACKEND ONLINE");
-    console.log("==============================================");
-    console.log("🌐 Port :", PORT);
-    console.log("💰 Wallet :", MILTAPE_WALLET);
-    console.log("💬 Chat actif");
-    console.log("⏱️ Chrono actif");
-    console.log("==============================================");
+function joinSpectator() {
+    const name = getTelegramUser() || "Spectateur";
+    isSpectator = true;
+    isPlaying = true;
+    isPaid = true;
+    tapButton.disabled = true;
+    enterChallenge.style.display = 'none';
+    if (payButton) payButton.style.display = 'none';
+    if (betInput) betInput.disabled = true;
+    tapMessage.innerText = "MODE SPECTATEUR";
+    socket.emit("spectator:join", { name });
+}
+if (spectatorBtn) spectatorBtn.addEventListener('click', joinSpectator);
 
-    try { await startGame(); } catch (error) { console.error("❌ Impossible de démarrer le jeu :", error.message); }
-    setInterval(checkPendingPayments, 15000); 
+socket.on("spectator:joined", (data) => {
+    if (data.success) {
+        isSpectator = true;
+        isPlaying = true;
+        isPaid = true;
+        tapButton.disabled = true;
+        tapMessage.innerText = "VOUS REGARDEZ EN DIRECT (" + data.spectators + " SPECTATEURS)";
+    }
 });
 
-// ARRÊT PROPRE
-async function gracefulShutdown(signal) {
-    console.log(`${signal} reçu...`);
-    if (gameTimer) clearInterval(gameTimer);
-    if (nextGameTimeout) clearTimeout(nextGameTimeout);
-    try { await mongoose.connection.close(); } catch (error) {}
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(0), 10000);
+// ==========================================
+// 10. RESTAURATION & FIN DE JEU
+// ==========================================
+async function restoreSession() {
+    const playerId = localStorage.getItem("miltape_player_id");
+    const wallet = localStorage.getItem("miltape_player_wallet");
+    const spectator = localStorage.getItem("miltape_spectator") === "true";
+    if (spectator) {
+        isSpectator = true;
+        isPlaying = true;
+        tapButton.disabled = true;
+        return true;
+    }
+    if (!playerId || !wallet) return false;
+    socket.emit("player:restore", { playerId, wallet });
+    return true;
 }
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+socket.on("player:restored", (data) => {
+    if (data.success) {
+        isPlaying = true;
+        isPaid = data.player.paid; // Si déjà payé, on peut taper direct
+        myPlayerId = data.player.id;
+        tapButton.disabled = !isPaid;
+        tapMessage.innerText = isPaid ? "BON RETOUR " + data.player.name + " ! TAPE !" : "PAIE TA MISE POUR CONTINUER !";
+        if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
+    } else {
+        localStorage.clear();
+        enterChallenge.style.display = 'block';
+        tapMessage.innerText = "REJOINS LA NOUVELLE PARTIE !";
+    }
+});
+
+socket.on("game:finished", (data) => {
+    if (tapButtonCount) tapButtonCount.innerText = "0";
+    tapButton.disabled = true;
+    isPlaying = false;
+    isPaid = false;
+    isSpectator = false;
+    localStorage.clear();
+    alert("PARTIE TERMINEE ! LES 5 PREMIERS GAGNENT 2X LEUR MISE !");
+    tapMessage.innerText = "PARTIE TERMINEE ! PROCHAINE PARTIE DANS 5 SEC...";
+    enterChallenge.style.display = 'block';
+    if (payButton) payButton.style.display = 'none';
+});
+
+// ==========================================
+// 11. MENU (Simple)
+// ==========================================
+const menuButton = document.getElementById('menuButton');
+const sideMenu = document.getElementById('sideMenu');
+const menuOverlay = document.getElementById('menuOverlay');
+
+function toggleMenu() {
+    if (sideMenu) sideMenu.classList.toggle('show');
+    if (menuOverlay) menuOverlay.classList.toggle('show');
+}
+if (menuButton) menuButton.addEventListener('click', toggleMenu);
+if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
+
+// Boutons du menu
+document.getElementById('menuRulesBtn')?.addEventListener('click', () => showCustomModal("REGLES", "10 MINUTES - TOP 5 - USDT TRC20"));
+document.getElementById('menuGamesBtn')?.addEventListener('click', () => showCustomModal("MES PARTIES", "Aucune partie enregistree."));
