@@ -1,4 +1,21 @@
 /* ============================================================
+   VARIABLES DE THÈME (dynamiques via Telegram)
+   ============================================================ */
+:root {
+    --bg: #0a0a0a;
+    --text: #ffffff;
+    --muted: #888888;
+    --gold: #ffd84d;
+    --gold-glow: rgba(255, 216, 77, 0.3);
+    --gold-border: rgba(255, 216, 77, 0.6);
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --shadow: rgba(0, 0, 0, 0.6);
+    --button-bg: linear-gradient(135deg, #ffcc00, #ff8a00);
+    --tap-bg: radial-gradient(circle at 30% 30%, #2a0a3e, #12001f 80%);
+}
+
+/* ============================================================
    BOUTON TAP – EFFETS FLUIDES
    ============================================================ */
 
@@ -17,9 +34,9 @@
     width: 190px;
     height: 190px;
     border-radius: 50%;
-    border: 3px solid rgba(255, 216, 77, 0.6);
-    background: radial-gradient(circle at 30% 30%, #2a0a3e, #12001f 80%);
-    color: white;
+    border: 3px solid var(--gold-border);
+    background: var(--tap-bg);
+    color: var(--text);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -28,8 +45,8 @@
     margin: 0 auto;
     transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 
-        0 0 30px rgba(255, 216, 77, 0.15),
-        inset 0 -8px 20px rgba(0, 0, 0, 0.6),
+        0 0 30px var(--gold-glow),
+        inset 0 -8px 20px var(--shadow),
         inset 0 8px 20px rgba(255, 216, 77, 0.08);
     touch-action: manipulation;
     user-select: none;
@@ -42,7 +59,7 @@
     position: absolute;
     inset: -6px;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(255, 216, 77, 0.3), transparent 70%);
+    background: radial-gradient(circle at center, var(--gold-glow), transparent 70%);
     opacity: 0.6;
     animation: tapGlow 2s ease-in-out infinite alternate;
     z-index: -1;
@@ -64,8 +81,8 @@
 .tap-button:active:not(:disabled) {
     transform: scale(0.88);
     box-shadow: 
-        0 0 60px rgba(255, 216, 77, 0.3),
-        inset 0 -4px 20px rgba(0, 0, 0, 0.8),
+        0 0 60px var(--gold-glow),
+        inset 0 -4px 20px var(--shadow),
         inset 0 8px 30px rgba(255, 216, 77, 0.15);
 }
 
@@ -78,14 +95,14 @@
     position: absolute;
     inset: 10%;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(255, 216, 77, 0.08), transparent 70%);
+    background: radial-gradient(circle at center, var(--gold-glow), transparent 70%);
     pointer-events: none;
     transition: opacity 0.3s ease;
 }
 
 .tap-button.tap-active .tap-glow {
     opacity: 1;
-    background: radial-gradient(circle at center, rgba(255, 216, 77, 0.3), transparent 70%);
+    background: radial-gradient(circle at center, var(--gold-glow), transparent 70%);
     animation: tapFlash 0.3s ease-out;
 }
 
@@ -103,9 +120,9 @@
     z-index: 3;
     text-align: center;
     font-size: 18px;
-    color: #ffd84d;
+    color: var(--gold);
     font-weight: 900;
-    text-shadow: 0 0 20px rgba(255, 216, 77, 0.5);
+    text-shadow: 0 0 20px var(--gold-glow);
     pointer-events: none;
     font-family: 'Orbitron', sans-serif;
     letter-spacing: 1px;
@@ -157,8 +174,8 @@
     font-family: 'Orbitron', sans-serif;
     font-weight: 900;
     font-size: 28px;
-    color: #ffd84d;
-    text-shadow: 0 0 30px rgba(255, 216, 77, 0.6);
+    color: var(--gold);
+    text-shadow: 0 0 30px var(--gold-glow);
     pointer-events: none;
     z-index: 25;
     animation: floatUp 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
@@ -186,7 +203,7 @@
 .tap-ripple {
     position: absolute;
     border-radius: 50%;
-    border: 2px solid rgba(255, 216, 77, 0.5);
+    border: 2px solid var(--gold-border);
     pointer-events: none;
     z-index: 15;
     animation: rippleExpand 0.7s ease-out forwards;
@@ -205,6 +222,45 @@
         opacity: 0;
         transform: translate(-50%, -50%) scale(1);
     }
+}
+
+/* ============================================================
+   ADAPTATION AU THÈME TELEGRAM (clair / sombre)
+   ============================================================ */
+
+/* Thème sombre (par défaut) */
+body {
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Thème clair (activé par Telegram) */
+body.light-theme {
+    --bg: #f5f5f5;
+    --text: #1a1a1a;
+    --muted: #666666;
+    --card-bg: rgba(0, 0, 0, 0.05);
+    --card-border: rgba(0, 0, 0, 0.08);
+    --shadow: rgba(0, 0, 0, 0.2);
+    --tap-bg: radial-gradient(circle at 30% 30%, #e8d5f0, #d4b8e0 80%);
+    --gold: #ffb800;
+    --gold-glow: rgba(255, 184, 0, 0.3);
+    --gold-border: rgba(255, 184, 0, 0.6);
+}
+
+/* Les couleurs Telegram sont appliquées via JavaScript */
+[data-telegram-theme="dark"] {
+    --bg: #0a0a0a;
+    --text: #ffffff;
+    --muted: #888888;
+}
+
+[data-telegram-theme="light"] {
+    --bg: #f5f5f5;
+    --text: #1a1a1a;
+    --muted: #666666;
+    --tap-bg: radial-gradient(circle at 30% 30%, #e8d5f0, #d4b8e0 80%);
 }
 
 /* ============================================================
