@@ -3,8 +3,8 @@ const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
-// Correction de l'import TronWeb (selon la version)
-const TronWeb = require("tronweb").default || require("tronweb");
+// Correction de l'import TronWeb (Syntaxe exacte pour extraire la classe)
+const { TronWeb } = require("tronweb");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
@@ -1271,6 +1271,85 @@ app.get("/api/jackpot/history", async (req, res) => {
             }))
         });
     } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ============================================================
+// NOUVELLES ROUTES AJOUTÉES (Pour compatibilité Frontend)
+// ============================================================
+
+// Route pour le Mode Démo
+app.post("/api/payment/verify", async (req, res) => {
+    try {
+        const { playerId, amount } = req.body;
+
+        if (!playerId) return res.status(400).json({ success: false, message: "playerId manquant." });
+
+        // En mode démo, on marque simplement le joueur comme payé
+        const player = await Player.findByIdAndUpdate(playerId, { paid: true, paymentTxId: "DEMO_" + Date.now() }, { new: true });
+        
+        if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
+
+        // Émettre l'événement pour débloquer le bouton taper côté client
+        io.emit("payment:verified", {
+            verified: true,
+            wallet: player.wallet,
+            amount: amount || player.bet,
+            playerName: player.name,
+            automatic: true,
+            token: player.token || 'USDT'
+        });
+
+        res.json({ success: true, verified: true, message: "Paiement démo validé." });
+    } catch (error) {
+        console.error("Erreur /api/payment/verify:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Route pour le Tableau de Bord des Gains
+app.get("/api/player/history", async (req, res) => {
+    try {
+        const playerId = String(req.query?.playerId || "").trim();
+        const wallet = normalizeWallet(req.query?.wallet);
+
+        if (!playerId && !wallet) return res.status(400).json({ success: false, message: "playerId ou wallet requis." });
+
+        // Trouver le joueur (soit par son ID stocké en localStorage, soit par son wallet)
+        const query = {};
+        if (playerId) query._id = playerId;
+        else query.wallet = wallet;
+
+        // On cherche dans la collection History qui enregistre les gains
+        const history = await History.find(query).sort({ createdAt: -1 }).limit(50).lean();
+
+        // Statistiques globales pour le dashboard
+        const totalGain = history.reduce((sum, h) => sum + h.gain, 0);
+        const gamesPlayed = history.length;
+        const bestScore = history.length > 0 ? Math.max(...history.map(h => h.taps)) : 0;
+
+        res.json({
+            success: true,
+            player: {
+                wallet: wallet || "inconnu",
+                totalGain,
+                gamesPlayed,
+                bestScore
+            },
+            history: history.map(h => ({
+                gameId: h.gameId,
+                rank: h.rank,
+                bet: h.bet,
+                gain: h.gain,
+                taps: h.taps,
+                token: h.token || 'USDT',
+                createdAt: h.createdAt
+            }))
+        });
+
+    } catch (error) {
+        console.error("Erreur /api/player/history:", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 });
