@@ -792,15 +792,27 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 21. GESTION DES ERREURS SOCKET
+// 21. GESTION DES ERREURS SOCKET (CORRIGÉE)
 // ==========================================
 socket.on("error", (err) => {
+    // Ignorer les erreurs de restauration de session (déjà gérées par player:restored)
+    if (err.message === "Joueur introuvable.") {
+        console.log("🔍 Session expirée, nettoyage automatique...");
+        localStorage.removeItem("miltape_player_id");
+        localStorage.removeItem("miltape_player_wallet");
+        localStorage.removeItem("miltape_player_name");
+        localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_spectator");
+        if (enterChallenge) enterChallenge.style.display = 'block';
+        if (tapMessage) tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
+        return;
+    }
     hapticError();
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 22. NOTIFICATIONS EN TEMPS RÉEL (NOUVEAU)
+// 22. NOTIFICATIONS EN TEMPS RÉEL
 // ==========================================
 
 // État des notifications
