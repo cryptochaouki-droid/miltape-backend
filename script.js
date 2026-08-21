@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version Railway
+   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -22,11 +22,20 @@ const chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
 const chatMessages = document.getElementById('chatMessages');
 
+// Éléments pour la mise et le paiement
+const betInput = document.getElementById('betInput');
+const payButton = document.getElementById('payButton');
+const verifyPaymentBtn = document.getElementById('verifyPaymentBtn');
+
 let isPlaying = false;
 let myPlayerId = null;
+let myBet = 10;
+let myWallet = null;
+
+const API_URL = "https://miltape-backend-production.up.railway.app";
 
 // ==========================================
-// 3. LOGS DE CONNEXION (pour diagnostiquer)
+// 3. LOGS DE CONNEXION
 // ==========================================
 socket.on('connect', () => {
     console.log('✅ Socket connecté avec ID :', socket.id);
@@ -44,14 +53,26 @@ socket.on('disconnect', (reason) => {
 });
 
 // ==========================================
-// 4. REJOINDRE LA PARTIE
+// 4. REJOINDRE LA PARTIE (avec mise flexible)
 // ==========================================
 function joinGame() {
     const name = prompt("Entre ton pseudo pour le classement :");
     const wallet = prompt("Entre ton adresse TRON (ex: T...) :");
-    const bet = 10;
+    
+    // Lire la mise depuis le champ (0.50 à 1 000 000)
+    let bet = 10; // valeur par défaut
+    if (betInput) {
+        const rawBet = parseFloat(betInput.value);
+        if (!isNaN(rawBet) && rawBet >= 0.5 && rawBet <= 1000000) {
+            bet = rawBet;
+        } else {
+            alert("⚠️ Mise invalide. Utilisation de 10 USDT par défaut.");
+        }
+    }
     
     if (name && wallet) {
+        myBet = bet;
+        myWallet = wallet;
         tapMessage.innerText = "Connexion au serveur en cours...";
         socket.emit("player:join", { name, wallet, bet });
     }
@@ -61,7 +82,7 @@ if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
 if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
 
 // ==========================================
-// 5. CONFIRMATION D'ENTRÉE
+// 5. CONFIRMATION D'ENTRÉE – AFFICHAGE DES BOUTONS DE PAIEMENT
 // ==========================================
 socket.on("player:joined", (data) => {
     if (data.success) {
@@ -72,6 +93,16 @@ socket.on("player:joined", (data) => {
         enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
+
+        // Afficher les boutons de paiement
+        if (payButton) {
+            payButton.style.display = 'block';
+            payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
+        }
+        if (verifyPaymentBtn) {
+            verifyPaymentBtn.style.display = 'block';
+            verifyPaymentBtn.onclick = () => verifyPayment(data.player.id, data.player.wallet, data.player.bet);
+        }
     }
 });
 
@@ -105,7 +136,7 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 8. AUTRES ÉVÉNEMENTS
+// 8. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
 // ==========================================
 socket.on("online:count", (count) => {
     if (onlineCount) {
@@ -161,14 +192,74 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 10. GESTION DES ERREURS
+// 10. PAYEMENT – INITIATION (via Telegram Wallet)
+// ==========================================
+function initiatePayment(wallet, amount) {
+    // Récupérer l'adresse du wallet serveur
+    fetch(API_URL + "/api/wallet")
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const serverWallet = data.wallet;
+                // Construire le lien Telegram Wallet
+                // Format officiel : https://t.me/wallet?start=transfer?to=ADRESSE&amount=MONTANT&token=USDT
+                const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
+                
+                // Ouvrir le wallet Telegram
+                window.open(paymentUrl, '_blank');
+                
+                // Message d'information
+                alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\nAprès paiement, clique sur "Vérifier" ci-dessous.`);
+            } else {
+                alert("❌ Impossible de récupérer le wallet du serveur.");
+            }
+        })
+        .catch(err => {
+            alert("❌ Erreur lors de la récupération du wallet.");
+            console.error(err);
+        });
+}
+
+// ==========================================
+// 11. PAYEMENT – VÉRIFICATION
+// ==========================================
+function verifyPayment(playerId, wallet, amount) {
+    const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
+    if (!txId) return;
+
+    fetch(API_URL + "/api/payment/verify", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txId, wallet, amount, playerId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.verified) {
+            alert("✅ Paiement vérifié ! Tu peux maintenant taper !");
+            // Cacher les boutons de paiement
+            if (payButton) payButton.style.display = 'none';
+            if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
+            // Activer le tap si ce n'est pas déjà fait
+            tapButton.disabled = false;
+        } else {
+            alert("❌ Paiement non vérifié : " + (data.message || "Transaction introuvable."));
+        }
+    })
+    .catch(err => {
+        alert("❌ Erreur lors de la vérification.");
+        console.error(err);
+    });
+}
+
+// ==========================================
+// 12. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 11. MENU LATÉRAL
+// 13. MENU LATÉRAL
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
