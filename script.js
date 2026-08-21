@@ -643,7 +643,21 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 17. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
+// 17. TOTAL DES MISES – MISE À JOUR DYNAMIQUE (NOUVEAU)
+// ==========================================
+socket.on("totalStakes:update", (data) => {
+    const displayBet = document.getElementById('displayBet');
+    const displayBetTop = document.getElementById('displayBetTop');
+    if (displayBet) {
+        displayBet.textContent = `$${data.totalStakes}`;
+    }
+    if (displayBetTop) {
+        displayBetTop.textContent = `$${data.totalStakes}`;
+    }
+});
+
+// ==========================================
+// 18. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
 // ==========================================
 socket.on("online:count", (count) => {
     if (onlineCount) {
@@ -672,7 +686,7 @@ socket.on("leaderboard:update", (leaderboard) => {
 });
 
 // ==========================================
-// 18. CHAT GLOBAL
+// 19. CHAT GLOBAL
 // ==========================================
 function sendMessage() {
     const text = chatInput.value.trim();
@@ -700,7 +714,7 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 19. PAYEMENT – INITIATION (via Telegram Wallet)
+// 20. PAYEMENT – INITIATION (via Telegram Wallet)
 // ==========================================
 function initiatePayment(wallet, amount) {
     fetch(API_URL + "/api/wallet")
@@ -723,14 +737,14 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 20. GESTION DES ERREURS SOCKET
+// 21. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 21. MENU LATÉRAL + FONCTIONS DE MODALE
+// 22. MENU LATÉRAL + FONCTIONS DE MODALE
 // ==========================================
 
 // ---- Fonction pour afficher une modale ----
@@ -843,7 +857,7 @@ if (menuRulesBtn) {
 }
 
 // ==========================================
-// 22. MENU LATÉRAL (ouverture/fermeture)
+// 23. MENU LATÉRAL (ouverture/fermeture)
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
