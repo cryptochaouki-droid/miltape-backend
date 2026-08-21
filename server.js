@@ -121,6 +121,9 @@ console.log("");
 const app = express();
 const server = http.createServer(app);
 
+// ✅ CORRECTION DU BUG "ValidationError: The 'X-Forwarded-For' header is set..." : 
+app.set('trust proxy', 1); 
+
 // 1. Sécurité des en-têtes HTTP avec Helmet
 app.use(helmet());
 
@@ -345,11 +348,9 @@ async function sendUsdtToWinners(winners) {
 // ============================================================
 
 async function checkPendingPayments() {
-    // Ne pas lancer si la partie n'est pas en cours
     if (game.status !== "running") return;
 
     try {
-        // Récupérer les joueurs non payés de la partie en cours
         const unpaidPlayers = await Player.find({
             gameId: game.id,
             paid: false,
@@ -358,7 +359,6 @@ async function checkPendingPayments() {
 
         if (unpaidPlayers.length === 0) return;
 
-        // Récupérer les transactions récentes du wallet serveur
         const transactions = await tronWeb.trx.getAccountTransactions(
             MILTAPE_WALLET,
             { limit: 30, onlyConfirmed: true }
@@ -369,14 +369,11 @@ async function checkPendingPayments() {
         for (const tx of transactions) {
             const txId = tx.txID;
 
-            // Ignorer les transactions déjà traitées
             if (processedTxIds.has(txId)) continue;
 
-            // Récupérer les infos de la transaction
             const txInfo = await tronWeb.trx.getTransactionInfo(txId);
             if (!txInfo || txInfo.receipt.result !== 'SUCCESS') continue;
 
-            // Vérifier que c'est un transfert USDT
             const transaction = await tronWeb.trx.getTransaction(txId);
             if (!transaction) continue;
 
@@ -395,14 +392,12 @@ async function checkPendingPayments() {
             const ownerAddress = tronWeb.address.fromHex(value.owner_address);
             if (!ownerAddress) continue;
 
-            // Vérifier si ce wallet correspond à un joueur en attente
             const matchingPlayer = unpaidPlayers.find(p =>
                 sameWallet(p.wallet, ownerAddress) && p.bet > 0
             );
 
             if (!matchingPlayer) continue;
 
-            // Extraire le montant
             const data = String(value.data || "").toLowerCase();
             if (!data.startsWith("a9059cbb")) continue;
             if (data.length < 136) continue;
@@ -411,23 +406,18 @@ async function checkPendingPayments() {
             const rawAmount = BigInt("0x" + amountHex);
             const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
 
-            // Vérifier que le montant correspond
             if (amount < matchingPlayer.bet) continue;
 
-            // Vérifier que le destinataire est bien le wallet serveur
             const recipientHex = "41" + data.substring(32, 72);
             const recipient = tronWeb.address.fromHex(recipientHex);
             if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
 
-            // ✅ C'est bon ! On marque le joueur comme payé
             matchingPlayer.paid = true;
             matchingPlayer.paymentTxId = txId;
             await matchingPlayer.save();
 
-            // Ajouter le TXID aux traités
             processedTxIds.add(txId);
 
-            // Enregistrer dans Payment
             await Payment.create({
                 txId: txId,
                 from: ownerAddress,
@@ -437,7 +427,6 @@ async function checkPendingPayments() {
                 gameId: game.id
             });
 
-            // Notification en temps réel
             io.emit("payment:verified", {
                 verified: true,
                 wallet: matchingPlayer.wallet,
@@ -446,7 +435,6 @@ async function checkPendingPayments() {
                 automatic: true
             });
 
-            // Message dans le chat
             io.emit("chat:message", {
                 name: "🟢 Système",
                 message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} USDT (auto-détecté)`,
@@ -460,7 +448,6 @@ async function checkPendingPayments() {
     }
 }
 
-// Nettoyer les TXID traités toutes les heures
 setInterval(() => {
     if (processedTxIds.size > 1000) {
         processedTxIds.clear();
@@ -523,20 +510,16 @@ async function finishGame() {
         gameTimer = null;
     }
 
-    // 1. Récupérer tous les joueurs de la partie
     const allPlayers = await Player.find({ gameId: game.id }).lean();
 
-    // 2. Récupérer le Top 5
     const top5 = await Player
         .find({ gameId: game.id })
         .sort({ taps: -1 })
         .limit(5)
         .lean();
 
-    // 3. Calcul du total des mises
     const totalStakes = allPlayers.reduce((sum, p) => sum + p.bet, 0);
 
-    // 4. Calcul des gains (double mise pour les 5 premiers)
     const winners = top5.map((player, index) => {
         const gain = player.bet * 2;
         return {
@@ -549,10 +532,8 @@ async function finishGame() {
         };
     });
 
-    // 5. Calcul du total des gains à redistribuer
     const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
 
-    // 6. Déficit = ce qui manque (si les gains dépassent le total des mises)
     const deficit = totalPayout - totalStakes;
 
     console.log("");
@@ -566,12 +547,10 @@ async function finishGame() {
         console.log(`✅ BÉNÉFICE SERVEUR : ${Math.abs(deficit)} USDT`);
     }
 
-    // 7. Marquer les gagnants comme "payés"
     for (const winner of winners) {
         await Player.findByIdAndUpdate(winner._id, { paid: true });
     }
 
-    // 8. Émettre les résultats aux clients
     io.emit("game:finished", {
         gameId: game.id,
         winners: winners,
@@ -582,7 +561,6 @@ async function finishGame() {
         spectators: spectatorSockets.size
     });
 
-    // 9. Transfert réel des USDT (uniquement si des vrais paiements ont été faits)
     const realPayments = await Payment.find({ gameId: game.id, verified: true });
     if (realPayments.length > 0) {
         console.log("💸 Envoi des USDT aux gagnants...");
@@ -610,7 +588,6 @@ io.on("connection", async (socket) => {
     console.log("🟢 Socket connecté :", socket.id);
     await broadcastGameState();
 
-    // --- JOIN (joueur) ---
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
@@ -664,7 +641,6 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- SPECTATEUR ---
     socket.on("spectator:join", async (data) => {
         try {
             const name = String(data?.name || "Spectateur").trim().substring(0, 30);
@@ -696,7 +672,6 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- RESTAURATION DE SESSION ---
     socket.on("player:restore", async (data) => {
         try {
             const playerId = data?.playerId;
@@ -743,7 +718,6 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- TAP ---
     socket.on("player:tap", async () => {
         try {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
@@ -764,7 +738,6 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- CHAT ---
     socket.on("chat:send", async (data) => {
         try {
             const name = String(data?.name || socket.data.name || "Joueur").trim().substring(0, 30);
@@ -784,7 +757,6 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- DISCONNECT ---
     socket.on("disconnect", async () => {
         onlineSockets.delete(socket.id);
         spectatorSockets.delete(socket.id);
@@ -1168,8 +1140,7 @@ server.listen(PORT, async () => {
         console.error("❌ Impossible de démarrer le jeu :", error.message);
     }
 
-    // Démarrer la vérification automatique des paiements
-    setInterval(checkPendingPayments, 15000); // Toutes les 15 secondes
+    setInterval(checkPendingPayments, 15000); 
 });
 
 // ============================================================
