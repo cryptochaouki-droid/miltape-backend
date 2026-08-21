@@ -9,7 +9,7 @@ const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
 
 // ============================================================
-// AJOUT ANTI-CRASH (Le serveur ne doit JAMAIS planter)
+// ✅ AJOUT ANTI-CRASH (Ne JAMAIS tuer le serveur)
 // ============================================================
 process.on('uncaughtException', (err) => {
     console.error('ERREUR NON GÉRÉE (le serveur continue) :', err.message);
@@ -43,9 +43,9 @@ let game = {
     durationSeconds: GAME_DURATION_SECONDS
 };
 
-// Vérifications (On log mais on ne tue pas le serveur !)
-if (!MONGODB_URI) console.error("❌ MONGO_URI manque !");
-if (!PRIVATE_KEY) console.error("❌ MILTAPE_PRIVATE_KEY manque !");
+// ✅ CORRECTIONS MAJEURES : PLUS AUCUN process.exit(1) !
+if (!MONGODB_URI) console.error("❌ MONGO_URI manque dans Railway (mais le serveur continue) !");
+if (!PRIVATE_KEY) console.error("❌ MILTAPE_PRIVATE_KEY manque dans Railway (mais le serveur continue) !");
 
 try {
     tronWeb = new TronWeb({
@@ -54,9 +54,17 @@ try {
         privateKey: PRIVATE_KEY
     });
     MILTAPE_WALLET = TronWeb.address.fromPrivateKey(PRIVATE_KEY);
+    console.log("✅ TronWeb initialisé.");
 } catch (error) {
     console.error("❌ Erreur TronWeb (le serveur démarre quand même) :", error.message);
 }
+
+console.log("==============================================");
+console.log("        TRON CONFIGURATION");
+console.log("==============================================");
+console.log("💰 Wallet :", MILTAPE_WALLET);
+console.log("💵 USDT :", USDT_CONTRACT);
+console.log("==============================================");
 
 // EXPRESS
 const app = express();
@@ -72,14 +80,13 @@ const limiter = rateLimit({
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: "Trop de requêtes." }
+    message: { error: "Trop de requêtes, veuillez réessayer plus tard." }
 });
 app.use('/api/', limiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// SOCKET.IO
 const io = new Server(server, {
     cors: { origin: FRONTEND_ORIGIN, methods: ["GET", "POST"], credentials: true }
 });
@@ -95,9 +102,7 @@ const playerSchema = new mongoose.Schema(
         taps: { type: Number, default: 0, min: 0 },
         bet: { type: Number, default: 0, min: 0 },
         paid: { type: Boolean, default: false },
-        paymentTxId: { type: String, default: null },
-        combo: { type: Number, default: 0 },
-        lastTapTime: { type: Number, default: 0 }
+        paymentTxId: { type: String, default: null }
     },
     { timestamps: true }
 );
@@ -127,12 +132,11 @@ const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
 const Payment = mongoose.model("Payment", paymentSchema);
 
-// ✅ CORRECTION CRITIQUE : Aucun process.exit(1) ici, le serveur ne meurt jamais
+// ✅ CORRECTIONS MAJEURES : ICI AUSSI, PLUS DE process.exit(1) !
 mongoose.connect(MONGODB_URI)
     .then(() => console.log("✅ MongoDB connecté."))
-    .catch((error) => console.error("❌ MongoDB erreur (connexion en attente, le serveur continue) :", error.message));
+    .catch((error) => console.error("❌ MongoDB erreur (attente de reconnexion...) :", error.message));
 
-// UTILITAIRES
 function normalizeWallet(address) { return String(address || "").trim(); }
 function isValidTronAddress(address) {
     const wallet = normalizeWallet(address);
@@ -157,31 +161,33 @@ async function getLeaderboard() {
 async function broadcastGameState() {
     try {
         const leaderboard = await getLeaderboard();
-        const state = { gameId: game.id, status: game.status, startedAt: game.startedAt, endsAt: game.endsAt, durationSeconds: game.durationSeconds, remainingSeconds: getRemainingSeconds(), onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size, leaderboard };
-        io.emit("game:state", state);
         io.emit("online:count", onlineSockets.size + spectatorSockets.size);
         io.emit("leaderboard:update", leaderboard);
         io.emit("timer:update", { remainingSeconds: getRemainingSeconds(), status: game.status });
     } catch (error) { console.error("broadcastGameState:", error.message); }
 }
 
+async function sendUsdtToWinners(winners) {
+    if (!tronWeb) return;
+    try {
+        const contract = await tronWeb.contract().at(USDT_CONTRACT);
+        for (const winner of winners) {
+            if (winner.gain <= 0) continue;
+            try {
+                const amountInSun = tronWeb.toBigNumber(winner.gain * Math.pow(10, USDT_DECIMALS));
+                await contract.transfer(winner.wallet, amountInSun);
+            } catch (error) { console.error(`❌ Erreur transfert :`, error.message); }
+        }
+    } catch (error) { console.error("❌ Erreur contrat :", error.message); }
+}
+
 // DÉMARRAGE DU JEU
 async function startGame() {
     if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
-    game = {
-        id: generateGameId(),
-        status: "running",
-        startedAt: Date.now(),
-        endsAt: Date.now() + GAME_DURATION_SECONDS * 1000,
-        durationSeconds: GAME_DURATION_SECONDS
-    };
+    game = { id: generateGameId(), status: "running", startedAt: Date.now(), endsAt: Date.now() + GAME_DURATION_SECONDS * 1000, durationSeconds: GAME_DURATION_SECONDS };
     console.log("🎮 NOUVELLE PARTIE :", game.id);
-    
-    try {
-        await broadcastGameState();
-    } catch (error) { console.error("broadcast start:", error); }
+    await broadcastGameState();
 
-    // Protéger le setInterval pour qu'il ne tue jamais le serveur
     gameTimer = setInterval(async () => {
         try {
             const remaining = getRemainingSeconds();
@@ -208,45 +214,28 @@ async function finishGame() {
         const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
         const deficit = totalPayout - totalStakes;
 
-        console.log("🏁 PARTIE TERMINÉE :", game.id, "| Total mises:", totalStakes, "USDT");
+        console.log("🏁 PARTIE TERMINÉE :", game.id);
 
         for (const winner of winners) { await Player.findByIdAndUpdate(winner._id, { paid: true }); }
-        io.emit("game:finished", { gameId: game.id, winners: winners, totalStakes: totalStakes, totalPayout: totalPayout, deficit: deficit });
+        io.emit("game:finished", { winners, totalStakes, totalPayout, deficit });
 
         const realPayments = await Payment.find({ gameId: game.id, verified: true });
-        if (realPayments.length > 0 && tronWeb) { 
-            try {
-                const contract = await tronWeb.contract().at(USDT_CONTRACT);
-                for (const winner of winners) {
-                    if (winner.gain <= 0) continue;
-                    try {
-                        const amountInSun = tronWeb.toBigNumber(winner.gain * Math.pow(10, USDT_DECIMALS));
-                        await contract.transfer(winner.wallet, amountInSun);
-                    } catch (error) { console.error("Transfert erreur:", error.message); }
-                }
-            } catch (error) { console.error("Contrat erreur:", error.message); }
-        }
+        if (realPayments.length > 0) { await sendUsdtToWinners(winners); }
 
         await broadcastGameState();
-
         if (nextGameTimeout) clearTimeout(nextGameTimeout);
-        nextGameTimeout = setTimeout(async () => { 
-            nextGameTimeout = null; 
-            await startGame(); 
-        }, 5000);
+        nextGameTimeout = setTimeout(async () => { nextGameTimeout = null; await startGame(); }, 5000);
     } catch (error) {
         console.error("finishGame:", error.message);
-        await startGame(); // Relance le jeu après une erreur
+        await startGame(); // Relance même si erreur
     }
 }
 
-// VÉRIF PAIEMENTS
 async function checkPendingPayments() {
-    if (game.status !== "running") return;
+    if (game.status !== "running" || !tronWeb) return;
     try {
         const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 } });
         if (unpaidPlayers.length === 0) return;
-
         const transactions = await tronWeb.trx.getAccountTransactions(MILTAPE_WALLET, { limit: 30, onlyConfirmed: true });
         if (!transactions || transactions.length === 0) return;
 
@@ -326,17 +315,12 @@ io.on("connection", async (socket) => {
     socket.on("player:tap", async () => {
         try {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
+            if (socket.data.isSpectator) return;
             const player = await Player.findById(socket.data.playerId);
             if (!player || player.gameId !== game.id) return;
-
-            const now = Date.now();
-            if (player.lastTapTime && now - player.lastTapTime < 900) { player.combo = (player.combo || 0) + 1; }
-            else { player.combo = 1; }
-            player.lastTapTime = now;
-            player.taps += 1 + Math.min(player.combo, 5);
-
+            player.taps += 1;
             await player.save();
-            socket.emit("player:score", { taps: player.taps, combo: player.combo });
+            socket.emit("player:score", { taps: player.taps });
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
         } catch (error) { console.error("player:tap:", error.message); }
@@ -403,7 +387,7 @@ app.get("/api/total-stakes", async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 app.get("/api/online", (req, res) => res.json({ success: true, onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size }));
-app.get("/api/status", (req, res) => res.json({ success: true, service: "Miltape Backend", server: "online", mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", tron: tronWeb ? "connected" : "disconnected", wallet: MILTAPE_WALLET, gameId: game.id, status: game.status, timerLeft: getRemainingSeconds() }));
+app.get("/api/status", (req, res) => res.json({ success: true, server: "online", mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", tron: tronWeb ? "connected" : "disconnected", wallet: MILTAPE_WALLET, gameId: game.id, status: game.status, timerLeft: getRemainingSeconds() }));
 app.post("/api/join", async (req, res) => {
     try {
         const name = String(req.body?.name || "").trim().substring(0, 30);
@@ -422,9 +406,11 @@ async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
     const cleanTxId = String(txId || "").trim();
     const cleanFrom = normalizeWallet(expectedFrom);
     const requiredAmount = Number(expectedAmount);
+
     if (!cleanTxId) throw new Error("Transaction ID manquant.");
     if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
     if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
+
     const transaction = await tronWeb.trx.getTransaction(cleanTxId);
     if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
     const contracts = transaction.raw_data?.contract;
@@ -452,7 +438,7 @@ async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
     return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
 }
 
-// 404
+// 404 & GESTION D'ERREUR
 app.use((req, res) => res.status(404).json({ success: false, message: "Route introuvable." }));
 app.use((error, req, res, next) => res.status(500).json({ success: false, message: "Erreur interne du serveur." }));
 
