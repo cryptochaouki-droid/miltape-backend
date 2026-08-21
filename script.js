@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur + menu)
+   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur + menu + animations)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -70,6 +70,7 @@ function applyTelegramTheme() {
     try {
         if (window.Telegram && window.Telegram.WebApp) {
             const colorScheme = window.Telegram.WebApp.colorScheme;
+            const themeParams = window.Telegram.WebApp.themeParams;
             document.body.setAttribute('data-telegram-theme', colorScheme);
 
             if (colorScheme === "dark") {
@@ -451,7 +452,7 @@ socket.on("payment:verified", (data) => {
 });
 
 // ==========================================
-// 13. FIN DE PARTIE – RÉINITIALISATION
+// 13. FIN DE PARTIE – RÉINITIALISATION + CONFETTIS
 // ==========================================
 socket.on("game:finished", (data) => {
     console.log("🏁 Partie terminée !", data);
@@ -473,6 +474,9 @@ socket.on("game:finished", (data) => {
                 message += `${emoji} #${w.rank} ${w.name}\n`;
                 message += `   Mise : ${w.bet} USDT → Gain : ${w.gain} USDT\n\n`;
             });
+
+            // Lancer les confettis s'il y a des gagnants
+            launchConfetti();
         } else {
             message += "❌ Aucun gagnant cette fois-ci.\n\n";
         }
@@ -516,8 +520,48 @@ socket.on("game:finished", (data) => {
 });
 
 // ==========================================
-// 14. GESTION DES CLICS (TAPS)
+// 14. CONFETTIS
 // ==========================================
+function launchConfetti() {
+    const colors = ['#ffd84d', '#ff5b20', '#ff2fd2', '#3dff9a', '#8b2cff', '#ff6b6b', '#4ecdc4', '#45b7d1'];
+    const container = document.querySelector('.app');
+
+    for (let i = 0; i < 60; i++) {
+        const confetti = document.createElement('div');
+        const size = 6 + Math.random() * 10;
+        const isCircle = Math.random() > 0.5;
+        confetti.style.cssText = `
+            position: fixed;
+            width: ${size}px;
+            height: ${isCircle ? size : size * 0.4}px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            border-radius: ${isCircle ? '50%' : '2px'};
+            top: -10px;
+            left: ${Math.random() * 100}%;
+            z-index: 9999;
+            pointer-events: none;
+            animation: confettiFall ${2 + Math.random() * 2}s linear forwards;
+            animation-delay: ${Math.random() * 0.8}s;
+            transform: rotate(${Math.random() * 360}deg);
+            box-shadow: 0 0 6px rgba(255,255,255,0.1);
+        `;
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 4000);
+    }
+}
+
+// ==========================================
+// 15. GESTION DES CLICS (TAPS) + ANIMATION COMPTEUR
+// ==========================================
+
+function animateTapCount() {
+    if (tapCount) {
+        tapCount.classList.remove('tap-count-pop');
+        // Forcer le reflow
+        void tapCount.offsetWidth;
+        tapCount.classList.add('tap-count-pop');
+    }
+}
 
 function tapEffects(event) {
     const btn = tapButton;
@@ -589,13 +633,17 @@ if (tapButton) {
     });
 }
 
+// ---- Écouteur score avec animation ----
 socket.on("player:score", (data) => {
-    if (tapCount) tapCount.innerText = data.taps;
+    if (tapCount) {
+        tapCount.innerText = data.taps;
+        animateTapCount();
+    }
     if (tapButtonCount) tapButtonCount.innerText = data.taps;
 });
 
 // ==========================================
-// 15. CHRONOMÈTRE EN DIRECT
+// 16. CHRONOMÈTRE EN DIRECT
 // ==========================================
 socket.on("timer:update", (data) => {
     if (timerDisplay) {
@@ -606,7 +654,7 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 16. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
+// 17. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
 // ==========================================
 socket.on("online:count", (count) => {
     if (onlineCount) {
@@ -635,7 +683,7 @@ socket.on("leaderboard:update", (leaderboard) => {
 });
 
 // ==========================================
-// 17. CHAT GLOBAL
+// 18. CHAT GLOBAL
 // ==========================================
 function sendMessage() {
     const text = chatInput.value.trim();
@@ -663,7 +711,7 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 18. PAYEMENT – INITIATION (via Telegram Wallet)
+// 19. PAYEMENT – INITIATION (via Telegram Wallet)
 // ==========================================
 function initiatePayment(wallet, amount) {
     fetch(API_URL + "/api/wallet")
@@ -685,7 +733,7 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 19. PAYEMENT – VÉRIFICATION
+// 20. PAYEMENT – VÉRIFICATION
 // ==========================================
 function verifyPayment(playerId, wallet, amount) {
     const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
@@ -717,14 +765,14 @@ function verifyPayment(playerId, wallet, amount) {
 }
 
 // ==========================================
-// 20. GESTION DES ERREURS SOCKET
+// 21. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 21. MENU LATÉRAL + FONCTIONS DE MODALE
+// 22. MENU LATÉRAL + FONCTIONS DE MODALE
 // ==========================================
 
 // ---- Fonction pour afficher une modale ----
@@ -837,7 +885,7 @@ if (menuRulesBtn) {
 }
 
 // ==========================================
-// 22. MENU LATÉRAL (ouverture/fermeture)
+// 23. MENU LATÉRAL (ouverture/fermeture)
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
