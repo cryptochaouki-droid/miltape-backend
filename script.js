@@ -1,10 +1,10 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement + mode démo)
+   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement + mode démo + effets tap)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
 const socket = io("https://miltape-backend-production.up.railway.app", {
-    transports: ['websocket'], // Force WebSocket
+    transports: ['websocket'],
     upgrade: false
 });
 
@@ -42,10 +42,8 @@ const API_URL = "https://miltape-backend-production.up.railway.app";
 // 3. MODE DÉMO – GESTION
 // ==========================================
 
-// Lecture du mode démo depuis localStorage
 let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
 
-// Fonction pour mettre à jour l'interface du mode démo
 function updateDemoUI() {
     if (demoMode) {
         if (demoStatus) {
@@ -73,11 +71,9 @@ function updateDemoUI() {
 }
 updateDemoUI();
 
-// Activation / désactivation du mode démo avec mot de passe
 if (demoBtn) {
     demoBtn.addEventListener('click', async function() {
         if (demoMode) {
-            // Désactiver sans mot de passe
             demoMode = false;
             localStorage.setItem("miltape_demo", "false");
             updateDemoUI();
@@ -85,7 +81,6 @@ if (demoBtn) {
             return;
         }
 
-        // Activer : demander le mot de passe admin
         const password = prompt("🔐 Entrez le mot de passe administrateur pour activer le mode démo :");
         if (!password) return;
 
@@ -137,8 +132,7 @@ function joinGame() {
     const name = prompt("Entre ton pseudo pour le classement :");
     const wallet = prompt("Entre ton adresse TRON (ex: T...) :");
     
-    // Lire la mise depuis le champ (0.50 à 1 000 000)
-    let bet = 10; // valeur par défaut
+    let bet = 10;
     if (betInput) {
         const rawBet = parseFloat(betInput.value);
         if (!isNaN(rawBet) && rawBet >= 0.5 && rawBet <= 1000000) {
@@ -160,7 +154,7 @@ if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
 if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
 
 // ==========================================
-// 6. CONFIRMATION D'ENTRÉE – AFFICHAGE DES BOUTONS DE PAIEMENT (ou mode démo)
+// 6. CONFIRMATION D'ENTRÉE
 // ==========================================
 socket.on("player:joined", (data) => {
     if (data.success) {
@@ -173,12 +167,10 @@ socket.on("player:joined", (data) => {
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
 
         if (demoMode) {
-            // Mode démo : on cache les boutons de paiement et on simule
             if (payButton) payButton.style.display = 'none';
             if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
             tapMessage.innerText = `🔬 Mode démo : ${data.player.name}, tape !`;
 
-            // Simuler le paiement en appelant l'API avec un TXID fictif
             fetch(API_URL + "/api/payment/verify", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -200,7 +192,6 @@ socket.on("player:joined", (data) => {
             .catch(err => console.error("Erreur mode démo :", err));
 
         } else {
-            // Mode normal : afficher les boutons de paiement
             if (payButton) {
                 payButton.style.display = 'block';
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
@@ -214,15 +205,83 @@ socket.on("player:joined", (data) => {
 });
 
 // ==========================================
-// 7. GESTION DES CLICS (TAPS)
+// 7. GESTION DES CLICS (TAPS) – AVEC EFFETS VISUELS
 // ==========================================
+
+// Fonction d'effets visuels
+function tapEffects(event) {
+    const btn = tapButton;
+    const rect = btn.getBoundingClientRect();
+    
+    let x, y;
+    if (event.touches) {
+        x = event.touches[0].clientX - rect.left;
+        y = event.touches[0].clientY - rect.top;
+    } else {
+        x = event.clientX - rect.left;
+        y = event.clientY - rect.top;
+    }
+    
+    // Compteur flottant +1
+    const floatText = document.createElement('div');
+    floatText.className = 'tap-float-text';
+    floatText.textContent = '+1';
+    floatText.style.left = (x - 10) + 'px';
+    floatText.style.top = (y - 10) + 'px';
+    btn.parentElement.appendChild(floatText);
+    setTimeout(() => floatText.remove(), 1000);
+    
+    // Particules (étincelles)
+    const colors = ['#ffd84d', '#ff9f1a', '#ff5b20', '#ff2fd2', '#8b2cff', '#3dff9a'];
+    for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'tap-particle';
+        const size = 3 + Math.random() * 8;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 25 + Math.random() * 65;
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.left = (x - size/2) + 'px';
+        particle.style.top = (y - size/2) + 'px';
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+        particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+        btn.parentElement.appendChild(particle);
+        setTimeout(() => particle.remove(), 900);
+    }
+    
+    // Onde (ripple)
+    const ripple = document.createElement('div');
+    ripple.className = 'tap-ripple';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    btn.parentElement.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 800);
+    
+    // Vibration haptique (mobile)
+    if (navigator.vibrate) {
+        navigator.vibrate(10);
+    }
+}
+
+// Écouteur du tap
 if (tapButton) {
-    tapButton.addEventListener('click', () => {
+    tapButton.addEventListener('click', function(event) {
         if (!isPlaying || tapButton.disabled) return;
+        
+        tapEffects(event);
+        
         tapButton.classList.add('tap-active');
         setTimeout(() => tapButton.classList.remove('tap-active'), 100);
+        
         socket.emit("player:tap");
     });
+    
+    // Pour mobile (touch)
+    tapButton.addEventListener('touchstart', function(event) {
+        if (!isPlaying || tapButton.disabled) return;
+        // On laisse le click gérer, mais on empêche le double déclenchement
+    }, { passive: true });
 }
 
 socket.on("player:score", (data) => {
@@ -260,11 +319,12 @@ socket.on("leaderboard:update", (leaderboard) => {
         }
         leaderboard.forEach(player => {
             const div = document.createElement('div');
-            div.style.padding = "10px";
-            div.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
-            div.style.color = "#ffcc00";
-            div.style.fontWeight = "bold";
-            div.innerText = `#${player.rank} - ${player.name} (${player.taps} clics)`;
+            div.className = 'leaderboard-item';
+            div.innerHTML = `
+                <span style="color:#ffd84d;font-weight:900;">#${player.rank}</span>
+                <span style="color:white;font-size:13px;">${player.name}</span>
+                <span style="color:#ffd84d;font-weight:900;font-size:13px;">${player.taps}</span>
+            `;
             leaderboardList.appendChild(div);
         });
     }
@@ -302,19 +362,13 @@ socket.on("chat:message", (data) => {
 // 11. PAYEMENT – INITIATION (via Telegram Wallet)
 // ==========================================
 function initiatePayment(wallet, amount) {
-    // Récupérer l'adresse du wallet serveur
     fetch(API_URL + "/api/wallet")
         .then(res => res.json())
         .then(data => {
             if (data.success) {
                 const serverWallet = data.wallet;
-                // Construire le lien Telegram Wallet
                 const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
-                
-                // Ouvrir le wallet Telegram
                 window.open(paymentUrl, '_blank');
-                
-                // Message d'information
                 alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\nAprès paiement, clique sur "Vérifier" ci-dessous.`);
             } else {
                 alert("❌ Impossible de récupérer le wallet du serveur.");
@@ -342,10 +396,8 @@ function verifyPayment(playerId, wallet, amount) {
     .then(data => {
         if (data.verified) {
             alert("✅ Paiement vérifié ! Tu peux maintenant taper !");
-            // Cacher les boutons de paiement
             if (payButton) payButton.style.display = 'none';
             if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
-            // Activer le tap si ce n'est pas déjà fait
             tapButton.disabled = false;
         } else {
             alert("❌ Paiement non vérifié : " + (data.message || "Transaction introuvable."));
