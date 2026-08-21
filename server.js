@@ -42,7 +42,12 @@ let gameTimer = null;
 let nextGameTimeout = null;
 
 const onlineSockets = new Set();
-const spectatorSockets = new Set(); // ← NOUVEAU : suivi des spectateurs
+const spectatorSockets = new Set();
+
+// ============================================================
+// PAIEMENT AUTOMATIQUE – ÉVITER LES DOUBLONS
+// ============================================================
+let processedTxIds = new Set();
 
 let game = {
     id: null,
@@ -336,6 +341,134 @@ async function sendUsdtToWinners(winners) {
 }
 
 // ============================================================
+// VÉRIFICATION AUTOMATIQUE DES PAIEMENTS (POLLING)
+// ============================================================
+
+async function checkPendingPayments() {
+    // Ne pas lancer si la partie n'est pas en cours
+    if (game.status !== "running") return;
+
+    try {
+        // Récupérer les joueurs non payés de la partie en cours
+        const unpaidPlayers = await Player.find({
+            gameId: game.id,
+            paid: false,
+            bet: { $gt: 0 }
+        });
+
+        if (unpaidPlayers.length === 0) return;
+
+        // Récupérer les transactions récentes du wallet serveur
+        const transactions = await tronWeb.trx.getAccountTransactions(
+            MILTAPE_WALLET,
+            { limit: 30, onlyConfirmed: true }
+        );
+
+        if (!transactions || transactions.length === 0) return;
+
+        for (const tx of transactions) {
+            const txId = tx.txID;
+
+            // Ignorer les transactions déjà traitées
+            if (processedTxIds.has(txId)) continue;
+
+            // Récupérer les infos de la transaction
+            const txInfo = await tronWeb.trx.getTransactionInfo(txId);
+            if (!txInfo || txInfo.receipt.result !== 'SUCCESS') continue;
+
+            // Vérifier que c'est un transfert USDT
+            const transaction = await tronWeb.trx.getTransaction(txId);
+            if (!transaction) continue;
+
+            const contracts = transaction.raw_data?.contract;
+            if (!Array.isArray(contracts) || contracts.length !== 1) continue;
+
+            const contract = contracts[0];
+            if (contract.type !== "TriggerSmartContract") continue;
+
+            const value = contract.parameter?.value;
+            if (!value) continue;
+
+            const contractAddress = tronWeb.address.fromHex(value.contract_address);
+            if (!sameWallet(contractAddress, USDT_CONTRACT)) continue;
+
+            const ownerAddress = tronWeb.address.fromHex(value.owner_address);
+            if (!ownerAddress) continue;
+
+            // Vérifier si ce wallet correspond à un joueur en attente
+            const matchingPlayer = unpaidPlayers.find(p =>
+                sameWallet(p.wallet, ownerAddress) && p.bet > 0
+            );
+
+            if (!matchingPlayer) continue;
+
+            // Extraire le montant
+            const data = String(value.data || "").toLowerCase();
+            if (!data.startsWith("a9059cbb")) continue;
+            if (data.length < 136) continue;
+
+            const amountHex = data.substring(72, 136);
+            const rawAmount = BigInt("0x" + amountHex);
+            const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
+
+            // Vérifier que le montant correspond
+            if (amount < matchingPlayer.bet) continue;
+
+            // Vérifier que le destinataire est bien le wallet serveur
+            const recipientHex = "41" + data.substring(32, 72);
+            const recipient = tronWeb.address.fromHex(recipientHex);
+            if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
+
+            // ✅ C'est bon ! On marque le joueur comme payé
+            matchingPlayer.paid = true;
+            matchingPlayer.paymentTxId = txId;
+            await matchingPlayer.save();
+
+            // Ajouter le TXID aux traités
+            processedTxIds.add(txId);
+
+            // Enregistrer dans Payment
+            await Payment.create({
+                txId: txId,
+                from: ownerAddress,
+                to: MILTAPE_WALLET,
+                amount: amount,
+                verified: true,
+                gameId: game.id
+            });
+
+            // Notification en temps réel
+            io.emit("payment:verified", {
+                verified: true,
+                wallet: matchingPlayer.wallet,
+                amount: matchingPlayer.bet,
+                playerName: matchingPlayer.name,
+                automatic: true
+            });
+
+            // Message dans le chat
+            io.emit("chat:message", {
+                name: "🟢 Système",
+                message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} USDT (auto-détecté)`,
+                createdAt: new Date()
+            });
+
+            console.log(`💰 Paiement automatique détecté : ${matchingPlayer.name} (${matchingPlayer.bet} USDT) - TX: ${txId}`);
+        }
+    } catch (error) {
+        console.error("❌ Erreur vérification auto paiements :", error.message);
+    }
+}
+
+// Nettoyer les TXID traités toutes les heures
+setInterval(() => {
+    if (processedTxIds.size > 1000) {
+        processedTxIds.clear();
+        console.log("🧹 Nettoyage des TXID traités");
+    }
+}, 60 * 60 * 1000);
+
+// ============================================================
 // START GAME
 // ============================================================
 
@@ -531,7 +664,7 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- SPECTATEUR (NOUVEAU) ---
+    // --- SPECTATEUR ---
     socket.on("spectator:join", async (data) => {
         try {
             const name = String(data?.name || "Spectateur").trim().substring(0, 30);
@@ -540,10 +673,7 @@ io.on("connection", async (socket) => {
             socket.data.name = name;
             socket.data.gameId = game.id;
 
-            // Ajouter aux spectateurs
             spectatorSockets.add(socket.id);
-
-            // Compter les spectateurs
             const spectatorCount = spectatorSockets.size;
 
             socket.emit("spectator:joined", {
@@ -552,7 +682,6 @@ io.on("connection", async (socket) => {
                 spectators: spectatorCount
             });
 
-            // Message dans le chat
             io.emit("chat:message", {
                 name: "👁️ Système",
                 message: `${name} regarde la partie en direct ! (${spectatorCount} spectateur${spectatorCount > 1 ? 's' : ''})`,
@@ -560,7 +689,6 @@ io.on("connection", async (socket) => {
             });
 
             await broadcastGameState();
-
             console.log("👁️ Spectateur rejoint :", name);
         } catch (error) {
             console.error("spectator:join:", error.message);
@@ -619,7 +747,7 @@ io.on("connection", async (socket) => {
     socket.on("player:tap", async () => {
         try {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
-            if (socket.data.isSpectator) return; // ← Les spectateurs ne peuvent pas taper
+            if (socket.data.isSpectator) return;
 
             const player = await Player.findById(socket.data.playerId);
             if (!player || player.gameId !== game.id) return;
@@ -666,7 +794,7 @@ io.on("connection", async (socket) => {
 });
 
 // ============================================================
-// ================= ROUTES ADMIN ==============================
+// ROUTES ADMIN
 // ============================================================
 
 app.post("/api/admin/login", (req, res) => {
@@ -1031,6 +1159,7 @@ server.listen(PORT, async () => {
     console.log("💬 Chat actif");
     console.log("⏱️ Chrono actif");
     console.log("👁️ Mode spectateur activé");
+    console.log("💸 Surveillance automatique des paiements activée (15s)");
     console.log("==============================================");
 
     try {
@@ -1038,6 +1167,9 @@ server.listen(PORT, async () => {
     } catch (error) {
         console.error("❌ Impossible de démarrer le jeu :", error.message);
     }
+
+    // Démarrer la vérification automatique des paiements
+    setInterval(checkPendingPayments, 15000); // Toutes les 15 secondes
 });
 
 // ============================================================
