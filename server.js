@@ -204,7 +204,7 @@ const paymentSchema = new mongoose.Schema(
 );
 
 // ============================================================
-// SCHEMA HISTORIQUE (NOUVEAU)
+// SCHEMA HISTORIQUE
 // ============================================================
 const historySchema = new mongoose.Schema(
     {
@@ -279,6 +279,19 @@ function getRemainingSeconds() {
 }
 
 // ============================================================
+// NOTIFICATIONS (NOUVEAU)
+// ============================================================
+
+function sendNotification(type, message, data = {}) {
+    io.emit("notification:new", {
+        type: type, // 'info', 'success', 'warning', 'alert', 'champion'
+        message: message,
+        data: data,
+        timestamp: Date.now()
+    });
+}
+
+// ============================================================
 // LEADERBOARD
 // ============================================================
 
@@ -297,7 +310,8 @@ async function getLeaderboard() {
         wallet: player.wallet,
         taps: player.taps,
         bet: player.bet,
-        paid: player.paid
+        paid: player.paid,
+        id: player._id
     }));
 }
 
@@ -487,6 +501,12 @@ async function checkPendingPayments() {
                 createdAt: new Date()
             });
 
+            // Notification push
+            sendNotification('success', `💰 ${matchingPlayer.name} a payé ${matchingPlayer.bet} USDT !`, {
+                playerName: matchingPlayer.name,
+                amount: matchingPlayer.bet
+            });
+
             console.log(`💰 Paiement automatique détecté : ${matchingPlayer.name} (${matchingPlayer.bet} USDT) - TX: ${txId}`);
         }
     } catch (error) {
@@ -533,6 +553,11 @@ async function startGame() {
                 remainingSeconds: remaining,
                 status: game.status
             });
+
+            // Notification dernière minute
+            if (remaining === 60) {
+                sendNotification('warning', `⏱️ DERNIÈRE MINUTE ! Tapez plus vite !`);
+            }
 
             if (remaining <= 0) {
                 await finishGame();
@@ -629,7 +654,14 @@ async function finishGame() {
         spectators: spectatorSockets.size
     });
 
-    // 9. Transfert réel des USDT (uniquement si des vrais paiements ont été faits)
+    // 9. Notifications des gagnants
+    winners.forEach((w, index) => {
+        const emoji = index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+        sendNotification('champion', `${emoji} #${w.rank} ${w.name} → ${w.gain} USDT !`, { winner: w });
+    });
+    sendNotification('alert', `⏰ Partie terminée ! Prochaine partie dans 5 secondes...`);
+
+    // 10. Transfert réel des USDT (uniquement si des vrais paiements ont été faits)
     const realPayments = await Payment.find({ gameId: game.id, verified: true });
     if (realPayments.length > 0) {
         console.log("💸 Envoi des USDT aux gagnants...");
@@ -707,6 +739,9 @@ io.on("connection", async (socket) => {
                     paid: player.paid
                 }
             });
+
+            // Notification nouveau joueur
+            sendNotification('info', `🎮 ${player.name} a rejoint la partie !`, { playerName: player.name });
 
             await broadcastGameState();
 
@@ -811,6 +846,7 @@ io.on("connection", async (socket) => {
             const player = await Player.findById(socket.data.playerId);
             if (!player || player.gameId !== game.id) return;
 
+            const oldTaps = player.taps;
             player.taps += 1;
             await player.save();
 
@@ -818,6 +854,16 @@ io.on("connection", async (socket) => {
 
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
+
+            // Vérifier si le joueur entre dans le Top 5
+            const playerRank = leaderboard.findIndex(p => p.id === player._id);
+            if (playerRank !== -1 && playerRank < 5 && oldTaps < 5) {
+                sendNotification('info', `🔥 ${player.name} est dans le Top 5 ! (${player.taps} taps)`, {
+                    playerName: player.name,
+                    rank: playerRank + 1,
+                    taps: player.taps
+                });
+            }
         } catch (error) {
             console.error("player:tap:", error.message);
         }
@@ -925,7 +971,7 @@ app.get("/api/total-stakes", async (req, res) => {
 });
 
 // ============================================================
-// API HISTORIQUE DES GAINS (NOUVEAU)
+// API HISTORIQUE DES GAINS
 // ============================================================
 
 app.get("/api/player/history", async (req, res) => {
@@ -1269,6 +1315,7 @@ server.listen(PORT, async () => {
     console.log("💸 Surveillance automatique des paiements activée (15s)");
     console.log("📊 Total des mises dynamique");
     console.log("📈 Historique des gains activé");
+    console.log("🔔 Notifications en temps réel activées");
     console.log("==============================================");
 
     try {
