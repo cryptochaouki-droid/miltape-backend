@@ -1219,3 +1219,65 @@ if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
         console.log("ℹ️ Pas de Telegram WebApp détecté");
     }
 })();
+
+// ==========================================
+// 27. COMPTE À REBOURS CAGNOTTE (NOUVEAU)
+// ==========================================
+let jackpotCountdownInterval = null;
+
+function updateJackpotCountdown(nextDrawTime) {
+    // Remplacez 'jackpotCountdown' par l'ID réel de votre élément HTML qui affiche le temps
+    const countdownElement = document.getElementById('jackpotCountdown'); 
+    if (!countdownElement) return;
+
+    if (!nextDrawTime) {
+        countdownElement.textContent = "--";
+        return;
+    }
+
+    if (jackpotCountdownInterval) clearInterval(jackpotCountdownInterval);
+
+    jackpotCountdownInterval = setInterval(() => {
+        const now = Date.now();
+        let diff = nextDrawTime - now;
+
+        if (diff <= 0) {
+            countdownElement.textContent = "Tirage en cours...";
+            clearInterval(jackpotCountdownInterval);
+            socket.emit("jackpot:get"); // Demande une mise à jour au serveur
+            return;
+        }
+
+        // Calcul Jours, Heures, Minutes, Secondes
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        let display = "";
+        if (days > 0) display += days + "j ";
+        if (hours > 0 || days > 0) display += hours + "h ";
+        if (minutes > 0 || hours > 0 || days > 0) display += minutes + "m ";
+        display += seconds + "s";
+
+        countdownElement.textContent = display;
+    }, 1000);
+}
+
+// Écouter l'événement du serveur pour mettre à jour le compte à rebours et le montant
+socket.on("jackpot:update", (data) => {
+    // Remplacez 'jackpotPrize' par l'ID réel de l'élément qui affiche le montant (0 USDT)
+    const prizeElement = document.getElementById('jackpotPrize');
+    if (prizeElement) prizeElement.textContent = data.prize + " USDT";
+
+    // Mettre à jour le compte à rebours
+    if (data.nextDraw) {
+        updateJackpotCountdown(data.nextDraw);
+    } else {
+        const countdownElement = document.getElementById('jackpotCountdown');
+        if (countdownElement) countdownElement.textContent = "--";
+    }
+});
+
+// Demander l'état initial dès que la page est chargée
+socket.emit("jackpot:get");
