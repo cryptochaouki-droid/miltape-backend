@@ -1,13 +1,5 @@
 {
-  "name": "Mon Jeu Tap",
-  "short_name": "TapGame",
-  "icons": [
-    {
-      "src": "icon-192~2.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg"
-    }
-  ],
-  "start_url": "/",
-  "display": "standalone"
+  "url": "https://cryptochaouki-droid.github.io/miltape-backend/",
+  "name": "Miltape World Challenge",
+  "iconUrl": "https://cryptochaouki-droid.github.io/miltape-backend/icon-192~2.jpg"
 }
