@@ -42,6 +42,7 @@ let gameTimer = null;
 let nextGameTimeout = null;
 
 const onlineSockets = new Set();
+const spectatorSockets = new Set(); // ← NOUVEAU : suivi des spectateurs
 
 let game = {
     id: null,
@@ -291,11 +292,12 @@ async function broadcastGameState() {
             durationSeconds: game.durationSeconds,
             remainingSeconds: getRemainingSeconds(),
             onlinePlayers: onlineSockets.size,
+            spectators: spectatorSockets.size,
             leaderboard
         };
 
         io.emit("game:state", state);
-        io.emit("online:count", onlineSockets.size);
+        io.emit("online:count", onlineSockets.size + spectatorSockets.size);
         io.emit("leaderboard:update", leaderboard);
         io.emit("timer:update", {
             remainingSeconds: getRemainingSeconds(),
@@ -443,11 +445,11 @@ async function finishGame() {
         totalStakes: totalStakes,
         totalPayout: totalPayout,
         deficit: deficit,
-        onlinePlayers: onlineSockets.size
+        onlinePlayers: onlineSockets.size,
+        spectators: spectatorSockets.size
     });
 
     // 9. Transfert réel des USDT (uniquement si des vrais paiements ont été faits)
-    // Vérifier si la partie contient des paiements réels (pas seulement du mode démo)
     const realPayments = await Payment.find({ gameId: game.id, verified: true });
     if (realPayments.length > 0) {
         console.log("💸 Envoi des USDT aux gagnants...");
@@ -475,7 +477,7 @@ io.on("connection", async (socket) => {
     console.log("🟢 Socket connecté :", socket.id);
     await broadcastGameState();
 
-    // --- JOIN ---
+    // --- JOIN (joueur) ---
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
@@ -508,6 +510,7 @@ io.on("connection", async (socket) => {
             socket.data.gameId = game.id;
             socket.data.wallet = wallet;
             socket.data.name = name;
+            socket.data.isSpectator = false;
 
             socket.emit("player:joined", {
                 success: true,
@@ -525,6 +528,43 @@ io.on("connection", async (socket) => {
         } catch (error) {
             console.error("player:join:", error.message);
             socket.emit("error", { message: "Impossible de rejoindre la partie." });
+        }
+    });
+
+    // --- SPECTATEUR (NOUVEAU) ---
+    socket.on("spectator:join", async (data) => {
+        try {
+            const name = String(data?.name || "Spectateur").trim().substring(0, 30);
+
+            socket.data.isSpectator = true;
+            socket.data.name = name;
+            socket.data.gameId = game.id;
+
+            // Ajouter aux spectateurs
+            spectatorSockets.add(socket.id);
+
+            // Compter les spectateurs
+            const spectatorCount = spectatorSockets.size;
+
+            socket.emit("spectator:joined", {
+                success: true,
+                name: name,
+                spectators: spectatorCount
+            });
+
+            // Message dans le chat
+            io.emit("chat:message", {
+                name: "👁️ Système",
+                message: `${name} regarde la partie en direct ! (${spectatorCount} spectateur${spectatorCount > 1 ? 's' : ''})`,
+                createdAt: new Date()
+            });
+
+            await broadcastGameState();
+
+            console.log("👁️ Spectateur rejoint :", name);
+        } catch (error) {
+            console.error("spectator:join:", error.message);
+            socket.emit("error", { message: "Impossible de rejoindre en spectateur." });
         }
     });
 
@@ -551,6 +591,7 @@ io.on("connection", async (socket) => {
             socket.data.gameId = game.id;
             socket.data.wallet = player.wallet;
             socket.data.name = player.name;
+            socket.data.isSpectator = false;
 
             socket.emit("player:restored", {
                 success: true,
@@ -578,6 +619,7 @@ io.on("connection", async (socket) => {
     socket.on("player:tap", async () => {
         try {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
+            if (socket.data.isSpectator) return; // ← Les spectateurs ne peuvent pas taper
 
             const player = await Player.findById(socket.data.playerId);
             if (!player || player.gameId !== game.id) return;
@@ -617,6 +659,7 @@ io.on("connection", async (socket) => {
     // --- DISCONNECT ---
     socket.on("disconnect", async () => {
         onlineSockets.delete(socket.id);
+        spectatorSockets.delete(socket.id);
         console.log("🔴 Socket déconnecté :", socket.id);
         await broadcastGameState();
     });
@@ -710,6 +753,7 @@ app.get("/api/game", async (req, res) => {
             durationSeconds: game.durationSeconds,
             remainingSeconds: getRemainingSeconds(),
             onlinePlayers: onlineSockets.size,
+            spectators: spectatorSockets.size,
             leaderboard
         });
     } catch (error) {
@@ -890,7 +934,7 @@ app.post("/api/payment/verify", async (req, res) => {
 });
 
 app.get("/api/online", (req, res) => {
-    res.json({ success: true, onlinePlayers: onlineSockets.size });
+    res.json({ success: true, onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size });
 });
 
 app.get("/api/status", (req, res) => {
@@ -904,7 +948,8 @@ app.get("/api/status", (req, res) => {
         gameId: game.id || null,
         status: game.status,
         timerLeft: getRemainingSeconds(),
-        onlinePlayers: onlineSockets.size
+        onlinePlayers: onlineSockets.size,
+        spectators: spectatorSockets.size
     });
 });
 
@@ -985,6 +1030,7 @@ server.listen(PORT, async () => {
     console.log("🏆 Top 5");
     console.log("💬 Chat actif");
     console.log("⏱️ Chrono actif");
+    console.log("👁️ Mode spectateur activé");
     console.log("==============================================");
 
     try {
