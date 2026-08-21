@@ -8,6 +8,17 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
 
+// ============================================================
+// ✅ AJOUT ANTI-CRASH (Empêche les redémarrages en boucle)
+// ============================================================
+process.on('uncaughtException', (err) => {
+    console.error('ERREUR NON GÉRÉE (le serveur continue) :', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('PROMESSE REJETÉE NON GÉRÉE :', reason);
+});
+// ============================================================
+
 const GAME_DURATION_SECONDS = 10 * 60;
 const USDT_CONTRACT = (process.env.USDT_CONTRACT || "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t").trim();
 const USDT_DECIMALS = 6;
@@ -283,7 +294,7 @@ async function checkPendingPayments() {
 }
 setInterval(() => { if (processedTxIds.size > 1000) processedTxIds.clear(); }, 3600000);
 
-// SOCKET EVENTS (COMPLET SANS COMMENTAIRES)
+// SOCKET EVENTS
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log("🟢 Socket connecté :", socket.id);
@@ -393,11 +404,68 @@ app.get("/api/total-stakes", async (req, res) => {
 });
 app.get("/api/online", (req, res) => res.json({ success: true, onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size }));
 app.get("/api/status", (req, res) => res.json({ success: true, service: "Miltape Backend", server: "online", mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", tron: tronWeb ? "connected" : "disconnected", wallet: MILTAPE_WALLET, gameId: game.id, status: game.status, timerLeft: getRemainingSeconds() }));
-app.post("/api/join", async (req, res) => { /* ... Logique identique à player:join ... */ });
+app.post("/api/join", async (req, res) => {
+    // Route API join complétée
+    try {
+        const name = String(req.body?.name || "").trim().substring(0, 30);
+        const wallet = normalizeWallet(req.body?.wallet);
+        const bet = Number(req.body?.bet);
+        if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0) return res.status(400).json({ success: false, message: "Données invalides." });
+        
+        let player = await Player.findOne({ gameId: game.id, wallet });
+        if (!player) { player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false }); }
+        else { player.name = name; player.bet = bet; await player.save(); }
+        
+        res.json({ success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid } });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
 
-// VERIFICATION USDT
+// VERIFICATION USDT (Fonction complétée)
 async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
-    // ... (Votre fonction existante, elle est parfaite) ...
+    const cleanTxId = String(txId || "").trim();
+    const cleanFrom = normalizeWallet(expectedFrom);
+    const requiredAmount = Number(expectedAmount);
+
+    if (!cleanTxId) throw new Error("Transaction ID manquant.");
+    if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
+    if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
+
+    const transaction = await tronWeb.trx.getTransaction(cleanTxId);
+    if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
+
+    const contracts = transaction.raw_data?.contract;
+    if (!Array.isArray(contracts) || contracts.length !== 1) throw new Error("Transaction TRON invalide.");
+
+    const contract = contracts[0];
+    if (contract.type !== "TriggerSmartContract") throw new Error("Ce n'est pas une transaction USDT TRC20.");
+
+    const value = contract.parameter?.value;
+    if (!value) throw new Error("Données de transaction manquantes.");
+
+    const contractAddress = tronWeb.address.fromHex(value.contract_address);
+    if (!sameWallet(contractAddress, USDT_CONTRACT)) throw new Error("Ce n'est pas le contrat USDT TRON.");
+
+    const ownerAddress = tronWeb.address.fromHex(value.owner_address);
+    if (!sameWallet(ownerAddress, cleanFrom)) throw new Error("Le portefeuille ne correspond pas.");
+
+    const data = String(value.data || "").toLowerCase();
+    if (!data.startsWith("a9059cbb")) throw new Error("Ce n'est pas un transfer USDT.");
+    if (data.length < 136) throw new Error("Données USDT invalides.");
+
+    const recipientHex = "41" + data.substring(32, 72);
+    const recipient = tronWeb.address.fromHex(recipientHex);
+    if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le paiement n'est pas destiné au wallet du serveur.");
+
+    const amountHex = data.substring(72, 136);
+    const rawAmount = BigInt("0x" + amountHex);
+    const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
+
+    if (amount < requiredAmount) throw new Error(`Montant insuffisant : ${amount} USDT reçu, ${requiredAmount} USDT requis.`);
+
+    const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
+    if (!info || !info.receipt || info.receipt.result !== "SUCCESS") throw new Error("La transaction USDT n'est pas confirmée.");
+
+    return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
 }
 
 // 404
