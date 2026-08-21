@@ -1133,6 +1133,17 @@
             font-size: 14px;
             font-family: 'Orbitron', sans-serif;
         }
+
+        /* ============================================================
+           CAGNOTTE RESPONSIVE
+           ============================================================ */
+        @media(max-width:480px) {
+            #jackpotDisplay {
+                flex-direction: column;
+                text-align: center;
+                gap: 4px;
+            }
+        }
     </style>
 </head>
 
@@ -1391,6 +1402,30 @@
             </button>
 
         </header>
+
+        <!-- ============================================================
+           CAGNOTTE DU SAMEDI (NOUVEAU)
+           ============================================================ -->
+        <div id="jackpotDisplay" style="
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(139, 44, 255, 0.15));
+            border: 1px solid #ffd84d;
+            border-radius: 12px;
+            padding: 8px 16px;
+            margin: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Orbitron', sans-serif;
+        ">
+            <div>
+                <span style="font-size:10px; color:#888;">🎁 CAGNOTTE DU SAMEDI</span>
+                <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#ffd84d;">0 USDT</span>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:9px; color:#888;">Tirage dans</span>
+                <span id="jackpotCountdown" style="display:block; font-size:14px; font-weight:700; color:#3dff9a;">--</span>
+            </div>
+        </div>
 
         <!-- BANDEAU DES GAGNANTS -->
         <div id="winnerTicker">
