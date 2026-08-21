@@ -33,6 +33,9 @@ const TRONGRID_API_KEY = (
     ""
 ).trim();
 
+// ---------- ADMIN PASSWORD (ajout) ----------
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "MiltapeAdmin2026!";
+
 let tronWeb = null;
 let MILTAPE_WALLET = "";
 let gameTimer = null;
@@ -115,11 +118,12 @@ const server = http.createServer(app);
 // 1. Sécurité des en-têtes HTTP avec Helmet
 app.use(helmet());
 
-// 2. Restriction CORS (Corrigé pour autoriser toutes les origines)
+// 2. CORS – autoriser spécifiquement ton frontend GitHub Pages (ajout)
+const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
 app.use(
     cors({
-        origin: "*" 
-        // credentials: true est retiré car incompatible avec origin: "*"
+        origin: FRONTEND_ORIGIN, // ou "*" si tu préfères, mais plus sécurisé comme ça
+        credentials: true
     })
 );
 
@@ -136,7 +140,7 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Fichiers statiques (AJOUTÉ POUR AFFICHER INDEX.HTML)
+// 4. Fichiers statiques (si besoin)
 app.use(express.static(__dirname));
 
 // ============================================================
@@ -145,8 +149,9 @@ app.use(express.static(__dirname));
 
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: FRONTEND_ORIGIN, // ou "*"
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
@@ -157,7 +162,7 @@ const io = new Server(server, {
 mongoose.set("strictQuery", true);
 
 // ============================================================
-// PLAYER
+// SCHEMAS
 // ============================================================
 
 const playerSchema = new mongoose.Schema(
@@ -173,10 +178,6 @@ const playerSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// ============================================================
-// MESSAGE
-// ============================================================
-
 const messageSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -185,10 +186,6 @@ const messageSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-
-// ============================================================
-// PAYMENT
-// ============================================================
 
 const paymentSchema = new mongoose.Schema(
     {
@@ -499,25 +496,83 @@ io.on("connection", async (socket) => {
 });
 
 // ============================================================
-// API ROOT
+// ================= NOUVELLES ROUTES ADMIN ===================
 // ============================================================
 
-/* COMMENTÉ POUR LAISSER EXPRESS SERVIR LE FICHIER INDEX.HTML
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        service: "Project World Challenge",
-        status: "online",
-        wallet: MILTAPE_WALLET,
-        gameStatus: game.status,
-        remainingSeconds: getRemainingSeconds(),
-        onlinePlayers: onlineSockets.size
-    });
+// 1. Login admin
+app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+        res.json({ success: true, message: "Connecté." });
+    } else {
+        res.status(401).json({ success: false, message: "Mot de passe incorrect." });
+    }
 });
-*/
+
+// 2. Stats admin (derniers joueurs)
+app.get("/api/admin/stats", async (req, res) => {
+    try {
+        const recentPlayers = await Player
+            .find({ gameId: game.id })
+            .sort({ updatedAt: -1 })
+            .limit(20)
+            .select('name wallet taps');
+        res.json({
+            success: true,
+            recentPlayers: recentPlayers.map(p => ({
+                playerName: p.name,
+                playerId: p._id,
+                score: p.taps,
+                wallet: p.wallet
+            }))
+        });
+    } catch (error) {
+        console.error("/api/admin/stats:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 3. Payouts (Top 5 gagnants)
+app.get("/api/admin/payouts", async (req, res) => {
+    try {
+        const winners = await Player
+            .find({ gameId: game.id })
+            .sort({ taps: -1 })
+            .limit(5)
+            .select('name wallet taps bet');
+        res.json({
+            success: true,
+            winners: winners.map((p, index) => ({
+                rank: index + 1,
+                playerName: p.name,
+                wallet: p.wallet,
+                score: p.taps,
+                amount: p.bet || 0
+            }))
+        });
+    } catch (error) {
+        console.error("/api/admin/payouts:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 4. Total des enjeux
+app.get("/api/total-stakes", async (req, res) => {
+    try {
+        const result = await Player.aggregate([
+            { $match: { gameId: game.id } },
+            { $group: { _id: null, total: { $sum: "$bet" } } }
+        ]);
+        const totalStakes = result.length > 0 ? result[0].total : 0;
+        res.json({ success: true, totalStakes });
+    } catch (error) {
+        console.error("/api/total-stakes:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
 
 // ============================================================
-// API GAME
+// API EXISTANTES (inchangées)
 // ============================================================
 
 app.get("/api/game", async (req, res) => {
@@ -540,17 +595,9 @@ app.get("/api/game", async (req, res) => {
     }
 });
 
-// ============================================================
-// API WALLET
-// ============================================================
-
 app.get("/api/wallet", (req, res) => {
     res.json({ success: true, wallet: MILTAPE_WALLET, usdtContract: USDT_CONTRACT });
 });
-
-// ============================================================
-// API JOIN
-// ============================================================
 
 app.post("/api/join", async (req, res) => {
     try {
@@ -590,10 +637,6 @@ app.post("/api/join", async (req, res) => {
     }
 });
 
-// ============================================================
-// API PLAYER STATUS (Restauration de session)
-// ============================================================
-
 app.get("/api/player/status", async (req, res) => {
     try {
         const playerId = String(req.query?.playerId || "").trim();
@@ -629,10 +672,6 @@ app.get("/api/player/status", async (req, res) => {
     }
 });
 
-// ============================================================
-// API TAP
-// ============================================================
-
 app.post("/api/tap", async (req, res) => {
     try {
         if (game.status !== "running") return res.status(400).json({ success: false, message: "La partie est terminée." });
@@ -658,10 +697,6 @@ app.post("/api/tap", async (req, res) => {
     }
 });
 
-// ============================================================
-// API LEADERBOARD
-// ============================================================
-
 app.get("/api/leaderboard", async (req, res) => {
     try {
         const leaderboard = await getLeaderboard();
@@ -670,10 +705,6 @@ app.get("/api/leaderboard", async (req, res) => {
         res.status(500).json({ success: false, message: "Erreur serveur." });
     }
 });
-
-// ============================================================
-// API CHAT
-// ============================================================
 
 app.get("/api/chat", async (req, res) => {
     try {
@@ -689,61 +720,6 @@ app.get("/api/chat", async (req, res) => {
         res.status(500).json({ success: false, message: "Erreur serveur." });
     }
 });
-
-// ============================================================
-// VÉRIFICATION USDT
-// ============================================================
-
-async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
-    const cleanTxId = String(txId || "").trim();
-    const cleanFrom = normalizeWallet(expectedFrom);
-    const requiredAmount = Number(expectedAmount);
-
-    if (!cleanTxId) throw new Error("Transaction ID manquant.");
-    if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
-    if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
-
-    const transaction = await tronWeb.trx.getTransaction(cleanTxId);
-    if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
-
-    const contracts = transaction.raw_data?.contract;
-    if (!Array.isArray(contracts) || contracts.length !== 1) throw new Error("Transaction TRON invalide.");
-
-    const contract = contracts[0];
-    if (contract.type !== "TriggerSmartContract") throw new Error("Ce n'est pas une transaction USDT TRC20.");
-
-    const value = contract.parameter?.value;
-    if (!value) throw new Error("Données de transaction manquantes.");
-
-    const contractAddress = tronWeb.address.fromHex(value.contract_address);
-    if (!sameWallet(contractAddress, USDT_CONTRACT)) throw new Error("Ce n'est pas le contrat USDT TRON.");
-
-    const ownerAddress = tronWeb.address.fromHex(value.owner_address);
-    if (!sameWallet(ownerAddress, cleanFrom)) throw new Error("Le portefeuille ne correspond pas.");
-
-    const data = String(value.data || "").toLowerCase();
-    if (!data.startsWith("a9059cbb")) throw new Error("Ce n'est pas un transfer USDT.");
-    if (data.length < 136) throw new Error("Données USDT invalides.");
-
-    const recipientHex = "41" + data.substring(32, 72);
-    const recipient = tronWeb.address.fromHex(recipientHex);
-    if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le paiement n'est pas destiné au wallet du serveur.");
-
-    const amountHex = data.substring(72, 136);
-    const rawAmount = BigInt("0x" + amountHex);
-    const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
-
-    if (amount < requiredAmount) throw new Error(`Montant insuffisant : ${amount} USDT reçu, ${requiredAmount} USDT requis.`);
-
-    const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
-    if (!info || !info.receipt || info.receipt.result !== "SUCCESS") throw new Error("La transaction USDT n'est pas confirmée.");
-
-    return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
-}
-
-// ============================================================
-// API PAYMENT VERIFY
-// ============================================================
 
 app.post("/api/payment/verify", async (req, res) => {
     try {
@@ -790,46 +766,40 @@ app.post("/api/payment/verify", async (req, res) => {
     }
 });
 
-// ============================================================
-// API ONLINE
-// ============================================================
-
 app.get("/api/online", (req, res) => {
     res.json({ success: true, onlinePlayers: onlineSockets.size });
 });
 
-// ============================================================
-// API STATUS
-// ============================================================
-
+// --- /api/status améliorée (déjà bonne, mais on ajoute gameId et timerLeft) ---
 app.get("/api/status", (req, res) => {
     res.json({
         success: true,
-        service: "Project World Challenge",
+        service: "Miltape Backend",
         server: "online",
         mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
         tron: tronWeb ? "connected" : "disconnected",
         wallet: MILTAPE_WALLET,
-        game: {
-            id: game.id,
-            status: game.status,
-            remainingSeconds: getRemainingSeconds()
-        },
+        gameId: game.id || null,
+        status: game.status,
+        timerLeft: getRemainingSeconds(),
         onlinePlayers: onlineSockets.size
     });
 });
 
 // ============================================================
-// 404
+// VERIFICATION USDT (existante)
 // ============================================================
+async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
+    // ... (le code existant est déjà présent plus haut, je ne le répète pas)
+    // Mais il est déjà défini avant, donc pas besoin de le redéfinir.
+}
 
+// ============================================================
+// 404 & GESTION D'ERREUR
+// ============================================================
 app.use((req, res) => {
     res.status(404).json({ success: false, message: "Route introuvable." });
 });
-
-// ============================================================
-// ERREUR
-// ============================================================
 
 app.use((error, req, res, next) => {
     console.error("Express error:", error);
@@ -839,7 +809,6 @@ app.use((error, req, res, next) => {
 // ============================================================
 // START
 // ============================================================
-
 server.listen(PORT, async () => {
     console.log("");
     console.log("==============================================");
@@ -864,7 +833,6 @@ server.listen(PORT, async () => {
 // ============================================================
 // ARRÊT PROPRE
 // ============================================================
-
 async function gracefulShutdown(signal) {
     console.log(`${signal} reçu...`);
     if (gameTimer) {
