@@ -283,12 +283,26 @@ async function getLeaderboard() {
 }
 
 // ============================================================
+// TOTAL DES MISES (NOUVEAU)
+// ============================================================
+
+async function getTotalStakes() {
+    if (!game.id) return 0;
+    const result = await Player.aggregate([
+        { $match: { gameId: game.id } },
+        { $group: { _id: null, total: { $sum: "$bet" } } }
+    ]);
+    return result.length > 0 ? result[0].total : 0;
+}
+
+// ============================================================
 // BROADCAST
 // ============================================================
 
 async function broadcastGameState() {
     try {
         const leaderboard = await getLeaderboard();
+        const totalStakes = await getTotalStakes();
         const state = {
             gameId: game.id,
             status: game.status,
@@ -308,6 +322,7 @@ async function broadcastGameState() {
             remainingSeconds: getRemainingSeconds(),
             status: game.status
         });
+        io.emit("totalStakes:update", { totalStakes });
     } catch (error) {
         console.error("broadcastGameState:", error.message);
     }
@@ -610,6 +625,10 @@ io.on("connection", async (socket) => {
     console.log("🟢 Socket connecté :", socket.id);
     await broadcastGameState();
 
+    // Envoyer le total des mises au nouveau client
+    const totalStakes = await getTotalStakes();
+    socket.emit("totalStakes:update", { totalStakes });
+
     // --- JOIN (joueur) ---
     socket.on("player:join", async (data) => {
         try {
@@ -658,6 +677,10 @@ io.on("connection", async (socket) => {
             });
 
             await broadcastGameState();
+
+            // Mettre à jour le total des mises
+            const newTotalStakes = await getTotalStakes();
+            io.emit("totalStakes:update", { totalStakes: newTotalStakes });
         } catch (error) {
             console.error("player:join:", error.message);
             socket.emit("error", { message: "Impossible de rejoindre la partie." });
@@ -735,6 +758,10 @@ io.on("connection", async (socket) => {
 
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
+
+            // Mettre à jour le total des mises
+            const totalStakesRestore = await getTotalStakes();
+            io.emit("totalStakes:update", { totalStakes: totalStakesRestore });
 
             console.log("🔄 Session restaurée :", player.name, player.taps, "taps");
         } catch (error) {
@@ -1160,6 +1187,7 @@ server.listen(PORT, async () => {
     console.log("⏱️ Chrono actif");
     console.log("👁️ Mode spectateur activé");
     console.log("💸 Surveillance automatique des paiements activée (15s)");
+    console.log("📊 Total des mises dynamique");
     console.log("==============================================");
 
     try {
