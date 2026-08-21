@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement + mode démo + effets tap + reprise session)
+   SCRIPT CLIENT MILTAPE – Version Railway (avec paiement + mode démo + effets tap + reprise session + Telegram)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -39,7 +39,69 @@ let myWallet = null;
 const API_URL = "https://miltape-backend-production.up.railway.app";
 
 // ==========================================
-// 3. MODE DÉMO – GESTION
+// 3. INTÉGRATION TELEGRAM
+// ==========================================
+
+// 3.1 Récupérer le pseudo Telegram automatiquement
+function getTelegramUser() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            const user = window.Telegram.WebApp.initDataUnsafe?.user;
+            if (user && user.username) {
+                return user.username;
+            }
+            if (user && user.first_name) {
+                return user.first_name;
+            }
+        }
+        return null;
+    } catch (e) {
+        console.warn("⚠️ Impossible de récupérer l'utilisateur Telegram:", e);
+        return null;
+    }
+}
+
+// 3.2 Adapter le thème Telegram (clair / sombre)
+function applyTelegramTheme() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            const colorScheme = window.Telegram.WebApp.colorScheme; // "light" ou "dark"
+            const themeParams = window.Telegram.WebApp.themeParams;
+            
+            if (colorScheme === "dark") {
+                document.documentElement.style.setProperty('--bg', '#0a0a0a');
+                document.documentElement.style.setProperty('--text', '#ffffff');
+                document.documentElement.style.setProperty('--muted', '#888888');
+                document.body.style.background = '#0a0a0a';
+            } else {
+                document.documentElement.style.setProperty('--bg', '#f5f5f5');
+                document.documentElement.style.setProperty('--text', '#1a1a1a');
+                document.documentElement.style.setProperty('--muted', '#666666');
+                document.body.style.background = '#f5f5f5';
+            }
+            
+            // Appliquer la couleur primaire Telegram
+            if (themeParams && themeParams.button_color) {
+                document.documentElement.style.setProperty('--gold', themeParams.button_color);
+            }
+            
+            console.log("🎨 Thème Telegram appliqué :", colorScheme);
+        }
+    } catch (e) {
+        console.warn("⚠️ Impossible d'appliquer le thème Telegram:", e);
+    }
+}
+
+// Appliquer le thème au chargement
+applyTelegramTheme();
+
+// Détecter les changements de thème dans Telegram
+if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.onEvent('themeChanged', applyTelegramTheme);
+}
+
+// ==========================================
+// 4. MODE DÉMO – GESTION
 // ==========================================
 
 let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
@@ -108,7 +170,7 @@ if (demoBtn) {
 }
 
 // ==========================================
-// 4. RESTAURER LA SESSION (via événement socket)
+// 5. RESTAURER LA SESSION (via événement socket)
 // ==========================================
 async function restoreSession() {
     const playerId = localStorage.getItem("miltape_player_id");
@@ -144,7 +206,7 @@ async function restoreSession() {
 }
 
 // ==========================================
-// 5. LOGS DE CONNEXION + RESTAURATION AUTO
+// 6. LOGS DE CONNEXION + RESTAURATION AUTO
 // ==========================================
 socket.on('connect', async () => {
     console.log('✅ Socket connecté avec ID :', socket.id);
@@ -165,10 +227,18 @@ socket.on('disconnect', (reason) => {
 });
 
 // ==========================================
-// 6. REJOINDRE LA PARTIE (avec mise flexible)
+// 7. REJOINDRE LA PARTIE (avec mise flexible + pseudo Telegram auto)
 // ==========================================
 function joinGame() {
-    const name = prompt("Entre ton pseudo pour le classement :");
+    // Récupérer le pseudo Telegram automatiquement
+    const telegramName = getTelegramUser();
+    let name = telegramName;
+    
+    // Si pas de pseudo Telegram, demander
+    if (!name) {
+        name = prompt("Entre ton pseudo pour le classement :");
+    }
+    
     const wallet = prompt("Entre ton adresse TRON (ex: T...) :");
 
     let bet = 10;
@@ -193,7 +263,7 @@ if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
 if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
 
 // ==========================================
-// 7. CONFIRMATION D'ENTRÉE
+// 8. CONFIRMATION D'ENTRÉE
 // ==========================================
 socket.on("player:joined", (data) => {
     if (data.success) {
@@ -250,7 +320,7 @@ socket.on("player:joined", (data) => {
 });
 
 // ==========================================
-// 8. SESSION RESTAURÉE
+// 9. SESSION RESTAURÉE
 // ==========================================
 socket.on("player:restored", (data) => {
     if (data.success) {
@@ -285,7 +355,7 @@ socket.on("player:restored", (data) => {
 });
 
 // ==========================================
-// 9. FIN DE PARTIE – AFFICHAGE DES RÉSULTATS
+// 10. FIN DE PARTIE – AFFICHAGE DES RÉSULTATS
 // ==========================================
 socket.on("game:finished", (data) => {
     console.log("🏁 Partie terminée !", data);
@@ -342,7 +412,7 @@ socket.on("game:finished", (data) => {
 });
 
 // ==========================================
-// 10. GESTION DES CLICS (TAPS) – AVEC EFFETS VISUELS
+// 11. GESTION DES CLICS (TAPS) – AVEC EFFETS VISUELS
 // ==========================================
 
 // Fonction d'effets visuels
@@ -427,7 +497,7 @@ socket.on("player:score", (data) => {
 });
 
 // ==========================================
-// 11. CHRONOMÈTRE EN DIRECT
+// 12. CHRONOMÈTRE EN DIRECT
 // ==========================================
 socket.on("timer:update", (data) => {
     console.log("⏱️ Timer update reçu :", data.remainingSeconds);
@@ -439,7 +509,7 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 12. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
+// 13. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
 // ==========================================
 socket.on("online:count", (count) => {
     if (onlineCount) {
@@ -468,7 +538,7 @@ socket.on("leaderboard:update", (leaderboard) => {
 });
 
 // ==========================================
-// 13. CHAT GLOBAL
+// 14. CHAT GLOBAL
 // ==========================================
 function sendMessage() {
     const text = chatInput.value.trim();
@@ -496,7 +566,7 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 14. PAYEMENT – INITIATION (via Telegram Wallet)
+// 15. PAYEMENT – INITIATION (via Telegram Wallet)
 // ==========================================
 function initiatePayment(wallet, amount) {
     fetch(API_URL + "/api/wallet")
@@ -518,7 +588,7 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 15. PAYEMENT – VÉRIFICATION
+// 16. PAYEMENT – VÉRIFICATION
 // ==========================================
 function verifyPayment(playerId, wallet, amount) {
     const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
@@ -547,14 +617,14 @@ function verifyPayment(playerId, wallet, amount) {
 }
 
 // ==========================================
-// 16. GESTION DES ERREURS SOCKET
+// 17. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 17. MENU LATÉRAL
+// 18. MENU LATÉRAL
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
