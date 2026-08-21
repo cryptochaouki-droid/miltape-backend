@@ -648,6 +648,44 @@
             box-shadow: 0 4px 0 #a84c00, 0 0 50px rgba(255, 204, 0, 0.4);
         }
 
+        /* ============================================================
+                   BOUTON SPECTATEUR
+                   ============================================================ */
+        .spectator-button {
+            display: block;
+            width: 80%;
+            max-width: 300px;
+            margin: 5px auto;
+            padding: 12px 20px;
+            background: rgba(139, 44, 255, 0.2);
+            border: 2px solid rgba(139, 44, 255, 0.5);
+            border-radius: 12px;
+            color: #c13cff;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .spectator-button:hover {
+            background: rgba(139, 44, 255, 0.3);
+            border-color: #c13cff;
+            box-shadow: 0 0 30px rgba(139, 44, 255, 0.2);
+        }
+
+        .spectator-button:active {
+            transform: scale(0.95);
+        }
+
+        .spectator-button.active {
+            background: rgba(139, 44, 255, 0.4);
+            border-color: #c13cff;
+            box-shadow: 0 0 40px rgba(139, 44, 255, 0.3);
+        }
+
         /* MESSAGE */
         .tap-message {
             text-align: center;
@@ -1211,6 +1249,13 @@
                 ➜
             </b>
 
+        </button>
+
+        <!-- ============================================= -->
+        <!-- BOUTON SPECTATEUR (NOUVEAU)                   -->
+        <!-- ============================================= -->
+        <button id="spectatorMode" class="spectator-button" type="button">
+            👁️ REGARDER EN DIRECT (Spectateur)
         </button>
 
         <!-- MESSAGE -->
