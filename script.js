@@ -1,14 +1,13 @@
 // ==========================================
-// RESTAURER LA CONNEXION SOCKET (associer le socket au joueur)
+// RESTAURER LA SESSION (via événement socket)
 // ==========================================
-async function restorePlayer() {
+async function restoreSession() {
     const playerId = localStorage.getItem("miltape_player_id");
     const wallet = localStorage.getItem("miltape_player_wallet");
     const name = localStorage.getItem("miltape_player_name");
-    const bet = parseFloat(localStorage.getItem("miltape_player_bet")) || 10;
 
     if (!playerId || !wallet || !name) {
-        console.log("🔍 Aucune donnée de joueur pour restauration.");
+        console.log("🔍 Aucune session trouvée.");
         return false;
     }
 
@@ -29,8 +28,8 @@ async function restorePlayer() {
         return false;
     }
 
-    // Ré-émettre l'événement player:join pour associer le socket
-    socket.emit("player:join", { name, wallet, bet });
-    console.log("🔄 Restauration du joueur en cours...");
+    // Envoyer l'événement de restauration
+    socket.emit("player:restore", { playerId, wallet });
+    console.log("🔄 Demande de restauration envoyée...");
     return true;
 }
