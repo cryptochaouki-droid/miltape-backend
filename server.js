@@ -118,7 +118,7 @@ const server = http.createServer(app);
 // 1. Sécurité des en-têtes HTTP avec Helmet
 app.use(helmet());
 
-// 2. CORS – autoriser spécifiquement ton frontend GitHub Pages
+// 2. CORS
 const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
 app.use(
     cors({
@@ -127,7 +127,7 @@ app.use(
     })
 );
 
-// 3. Rate Limiting global
+// 3. Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -139,8 +139,6 @@ app.use('/api/', limiter);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
-
-// 4. Fichiers statiques
 app.use(express.static(__dirname));
 
 // ============================================================
@@ -309,6 +307,33 @@ async function broadcastGameState() {
 }
 
 // ============================================================
+// TRANSFERT USDT VERS LES GAGNANTS
+// ============================================================
+
+async function sendUsdtToWinners(winners) {
+    if (!tronWeb) {
+        console.error("❌ TronWeb non initialisé, transferts impossibles.");
+        return;
+    }
+
+    const contract = await tronWeb.contract().at(USDT_CONTRACT);
+
+    for (const winner of winners) {
+        if (winner.gain <= 0) continue;
+
+        try {
+            const amountInSun = tronWeb.toBigNumber(winner.gain * Math.pow(10, USDT_DECIMALS));
+            const tx = await contract.transfer(winner.wallet, amountInSun);
+
+            console.log(`✅ ${winner.gain} USDT envoyé à ${winner.name} (${winner.wallet})`);
+            console.log(`   TXID : ${tx}`);
+        } catch (error) {
+            console.error(`❌ Erreur transfert vers ${winner.wallet} :`, error.message);
+        }
+    }
+}
+
+// ============================================================
 // START GAME
 // ============================================================
 
@@ -350,7 +375,7 @@ async function startGame() {
 }
 
 // ============================================================
-// FIN GAME
+// FIN GAME – AVEC REDISTRIBUTION DOUBLE MISE
 // ============================================================
 
 async function finishGame() {
@@ -363,17 +388,73 @@ async function finishGame() {
         gameTimer = null;
     }
 
-    const leaderboard = await getLeaderboard();
+    // 1. Récupérer tous les joueurs de la partie
+    const allPlayers = await Player.find({ gameId: game.id }).lean();
+
+    // 2. Récupérer le Top 5
+    const top5 = await Player
+        .find({ gameId: game.id })
+        .sort({ taps: -1 })
+        .limit(5)
+        .lean();
+
+    // 3. Calcul du total des mises
+    const totalStakes = allPlayers.reduce((sum, p) => sum + p.bet, 0);
+
+    // 4. Calcul des gains (double mise pour les 5 premiers)
+    const winners = top5.map((player, index) => {
+        const gain = player.bet * 2;
+        return {
+            rank: index + 1,
+            name: player.name,
+            wallet: player.wallet,
+            bet: player.bet,
+            gain: gain,
+            taps: player.taps
+        };
+    });
+
+    // 5. Calcul du total des gains à redistribuer
+    const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
+
+    // 6. Déficit = ce qui manque (si les gains dépassent le total des mises)
+    const deficit = totalPayout - totalStakes;
 
     console.log("");
     console.log("🏁 PARTIE TERMINÉE :", game.id);
-    console.log("🏆 Classement :", leaderboard);
+    console.log("💰 Total des mises :", totalStakes, "USDT");
+    console.log("💸 Gains à redistribuer :", totalPayout, "USDT");
 
+    if (deficit > 0) {
+        console.log(`📉 DÉFICIT : ${deficit} USDT (pris depuis le wallet serveur)`);
+    } else {
+        console.log(`✅ BÉNÉFICE SERVEUR : ${Math.abs(deficit)} USDT`);
+    }
+
+    // 7. Marquer les gagnants comme "payés"
+    for (const winner of winners) {
+        await Player.findByIdAndUpdate(winner._id, { paid: true });
+    }
+
+    // 8. Émettre les résultats aux clients
     io.emit("game:finished", {
         gameId: game.id,
-        leaderboard,
+        winners: winners,
+        totalStakes: totalStakes,
+        totalPayout: totalPayout,
+        deficit: deficit,
         onlinePlayers: onlineSockets.size
     });
+
+    // 9. Transfert réel des USDT (uniquement si des vrais paiements ont été faits)
+    // Vérifier si la partie contient des paiements réels (pas seulement du mode démo)
+    const realPayments = await Payment.find({ gameId: game.id, verified: true });
+    if (realPayments.length > 0) {
+        console.log("💸 Envoi des USDT aux gagnants...");
+        await sendUsdtToWinners(winners);
+    } else {
+        console.log("🔬 Mode démo ou aucun paiement réel : transferts simulés.");
+    }
 
     await broadcastGameState();
 
@@ -447,7 +528,7 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // --- RESTAURATION DE SESSION (NOUVEAU) ---
+    // --- RESTAURATION DE SESSION ---
     socket.on("player:restore", async (data) => {
         try {
             const playerId = data?.playerId;
@@ -466,13 +547,11 @@ io.on("connection", async (socket) => {
                 return socket.emit("error", { message: "Joueur introuvable." });
             }
 
-            // Associer le socket au joueur
             socket.data.playerId = player._id.toString();
             socket.data.gameId = game.id;
             socket.data.wallet = player.wallet;
             socket.data.name = player.name;
 
-            // Envoyer les données au client
             socket.emit("player:restored", {
                 success: true,
                 player: {
@@ -485,7 +564,6 @@ io.on("connection", async (socket) => {
                 }
             });
 
-            // Mettre à jour le classement pour tous
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
 
@@ -548,7 +626,6 @@ io.on("connection", async (socket) => {
 // ================= ROUTES ADMIN ==============================
 // ============================================================
 
-// 1. Login admin
 app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
@@ -558,7 +635,6 @@ app.post("/api/admin/login", (req, res) => {
     }
 });
 
-// 2. Stats admin (derniers joueurs)
 app.get("/api/admin/stats", async (req, res) => {
     try {
         const recentPlayers = await Player
@@ -581,7 +657,6 @@ app.get("/api/admin/stats", async (req, res) => {
     }
 });
 
-// 3. Payouts (Top 5 gagnants)
 app.get("/api/admin/payouts", async (req, res) => {
     try {
         const winners = await Player
@@ -605,7 +680,6 @@ app.get("/api/admin/payouts", async (req, res) => {
     }
 });
 
-// 4. Total des enjeux
 app.get("/api/total-stakes", async (req, res) => {
     try {
         const result = await Player.aggregate([
@@ -819,7 +893,6 @@ app.get("/api/online", (req, res) => {
     res.json({ success: true, onlinePlayers: onlineSockets.size });
 });
 
-// --- /api/status améliorée ---
 app.get("/api/status", (req, res) => {
     res.json({
         success: true,
