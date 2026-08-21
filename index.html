@@ -926,6 +926,40 @@
 
         </section>
 
+        <!-- ============================================= -->
+        <!-- NOUVEAU : CHAMP MISE ET BOUTONS DE PAIEMENT   -->
+        <!-- ============================================= -->
+
+        <div style="text-align:center; margin: 15px 0;">
+
+            <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap;">
+
+                <label style="color:#ffcc00; font-weight:bold; font-size:14px;">
+                    💰 MISE (USDT) :
+                </label>
+
+                <input type="number" id="betInput" min="0.5" max="1000000" step="0.5" value="10"
+                       style="width:140px; padding:10px; border-radius:8px; background:#1a1a2e; color:#fff; border:1px solid #ffcc00; font-size:16px; text-align:center; outline:none;">
+
+            </div>
+
+            <span style="color:#888; font-size:11px; display:block; margin-top:4px;">
+                Min 0.50 – Max 1 000 000 USDT
+            </span>
+
+        </div>
+
+        <!-- BOUTONS DE PAIEMENT (cachés par défaut) -->
+        <button id="payButton" style="display:none; background:#00d2ff; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #0077aa;">
+            💳 PAYER MA MISE
+        </button>
+
+        <button id="verifyPaymentBtn" style="display:none; background:#ffcc00; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #b38a00;">
+            ✅ VÉRIFIER MON PAIEMENT
+        </button>
+
+        <!-- FIN NOUVEAU -->
+
         <!-- JOUER -->
         <button
             id="enterChallenge"
@@ -1252,7 +1286,7 @@
     </script>
 
     <!-- =========================================================
-         SCRIPT PRINCIPAL MILTAPE
+         SCRIPT PRINCIPAL MILTAPE (script.js)
          ========================================================= -->
 
     <script
