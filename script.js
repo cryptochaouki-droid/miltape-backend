@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (sécurisée)
+   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -14,6 +14,7 @@ const tapCount = document.getElementById('tapCount');
 const tapButtonCount = document.getElementById('tapButtonCount');
 const enterChallenge = document.getElementById('enterChallenge');
 const enterChallengeTop = document.getElementById('enterChallengeTop');
+const spectatorBtn = document.getElementById('spectatorMode');
 const tapMessage = document.getElementById('tapMessage');
 const timerDisplay = document.getElementById('timer');
 const onlineCount = document.getElementById('onlineCount');
@@ -33,7 +34,8 @@ const demoStatus = document.getElementById('demoStatus');
 
 // Variables d'état
 let isPlaying = false;
-let isPaid = false;          // ← NOUVEAU : vérifier le paiement
+let isPaid = false;
+let isSpectator = false;      // ← NOUVEAU : mode spectateur
 let myPlayerId = null;
 let myBet = 10;
 let myWallet = null;
@@ -119,7 +121,7 @@ function updateDemoUI() {
             demoBtn.style.background = "rgba(255,50,50,0.2)";
             demoBtn.style.borderColor = "rgba(255,50,50,0.5)";
         }
-        tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
+        if (!isSpectator) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
     } else {
         if (demoStatus) {
             demoStatus.textContent = "🔒 Mode démo désactivé";
@@ -130,7 +132,7 @@ function updateDemoUI() {
             demoBtn.style.background = "rgba(255,204,0,0.2)";
             demoBtn.style.borderColor = "rgba(255,204,0,0.35)";
         }
-        tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
+        if (!isSpectator) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
     }
 }
 updateDemoUI();
@@ -172,12 +174,62 @@ if (demoBtn) {
 }
 
 // ==========================================
-// 5. RESTAURER LA SESSION (via événement socket)
+// 5. MODE SPECTATEUR
+// ==========================================
+
+function joinSpectator() {
+    const name = getTelegramUser() || prompt("Entre ton pseudo (spectateur) :");
+    if (!name) return;
+    
+    isSpectator = true;
+    isPlaying = true;
+    isPaid = true; // Spectateur n'a pas besoin de payer
+    tapButton.disabled = true;
+    tapMessage.innerText = `👁️ Mode spectateur : ${name} regarde la partie !`;
+    enterChallenge.style.display = 'none';
+    if (spectatorBtn) {
+        spectatorBtn.classList.add('active');
+        spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF';
+    }
+    
+    if (payButton) payButton.style.display = 'none';
+    if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
+    if (betInput) betInput.disabled = true;
+    
+    // Rejoindre en tant que spectateur
+    socket.emit("spectator:join", { name });
+}
+
+if (spectatorBtn) {
+    spectatorBtn.addEventListener('click', joinSpectator);
+}
+
+// ==========================================
+// 6. RESTAURER LA SESSION (via événement socket)
 // ==========================================
 async function restoreSession() {
     const playerId = localStorage.getItem("miltape_player_id");
     const wallet = localStorage.getItem("miltape_player_wallet");
     const name = localStorage.getItem("miltape_player_name");
+    const spectator = localStorage.getItem("miltape_spectator") === "true";
+
+    // Si spectateur, restaurer sans paiement
+    if (spectator && name) {
+        isSpectator = true;
+        isPlaying = true;
+        isPaid = true;
+        tapButton.disabled = true;
+        tapMessage.innerText = `👁️ Spectateur : ${name}`;
+        enterChallenge.style.display = 'none';
+        if (spectatorBtn) {
+            spectatorBtn.classList.add('active');
+            spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF';
+        }
+        if (payButton) payButton.style.display = 'none';
+        if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
+        if (betInput) betInput.disabled = true;
+        return true;
+    }
 
     if (!playerId || !wallet || !name) {
         console.log("🔍 Aucune session trouvée.");
@@ -194,6 +246,7 @@ async function restoreSession() {
             localStorage.removeItem("miltape_player_wallet");
             localStorage.removeItem("miltape_player_name");
             localStorage.removeItem("miltape_player_bet");
+            localStorage.removeItem("miltape_spectator");
             return false;
         }
     } catch (error) {
@@ -208,7 +261,7 @@ async function restoreSession() {
 }
 
 // ==========================================
-// 6. LOGS DE CONNEXION + RESTAURATION AUTO
+// 7. LOGS DE CONNEXION + RESTAURATION AUTO
 // ==========================================
 socket.on('connect', async () => {
     console.log('✅ Socket connecté avec ID :', socket.id);
@@ -229,18 +282,11 @@ socket.on('disconnect', (reason) => {
 });
 
 // ==========================================
-// 7. REJOINDRE LA PARTIE (avec mise flexible + pseudo Telegram auto)
+// 8. REJOINDRE LA PARTIE (joueur)
 // ==========================================
 function joinGame() {
-    // Récupérer le pseudo Telegram automatiquement
     const telegramName = getTelegramUser();
-    let name = telegramName;
-    
-    // Si pas de pseudo Telegram, demander
-    if (!name) {
-        name = prompt("Entre ton pseudo pour le classement :");
-    }
-    
+    let name = telegramName || prompt("Entre ton pseudo pour le classement :");
     const wallet = prompt("Entre ton adresse TRON (ex: T...) :");
 
     let bet = 10;
@@ -254,10 +300,12 @@ function joinGame() {
     }
 
     if (name && wallet) {
+        isSpectator = false;
         myBet = bet;
         myWallet = wallet;
         tapMessage.innerText = "Connexion au serveur en cours...";
         socket.emit("player:join", { name, wallet, bet });
+        localStorage.removeItem("miltape_spectator");
     }
 }
 
@@ -265,34 +313,33 @@ if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
 if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
 
 // ==========================================
-// 8. CONFIRMATION D'ENTRÉE – BLOCAGE DU TAP TANT QUE NON PAYÉ
+// 9. CONFIRMATION D'ENTRÉE (joueur)
 // ==========================================
 socket.on("player:joined", (data) => {
     if (data.success) {
         isPlaying = true;
-        isPaid = false;                 // ← Paiement non vérifié
+        isPaid = false;
+        isSpectator = false;
         myPlayerId = data.player.id;
-        tapButton.disabled = true;      // ← Tap bloqué en attendant paiement
+        tapButton.disabled = true;
         tapMessage.innerText = `💰 ${data.player.name}, paie ta mise pour taper !`;
         enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
 
-        // Stocker pour reprise de session
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
+        localStorage.removeItem("miltape_spectator");
 
         if (demoMode) {
-            // --- MODE DÉMO : paiement simulé immédiatement ---
             isPaid = true;
             tapButton.disabled = false;
             tapMessage.innerText = `🔬 Mode démo : ${data.player.name}, tape !`;
             if (payButton) payButton.style.display = 'none';
             if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
 
-            // Simuler le paiement en appelant l'API
             fetch(API_URL + "/api/payment/verify", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -314,7 +361,6 @@ socket.on("player:joined", (data) => {
             .catch(err => console.error("Erreur mode démo :", err));
 
         } else {
-            // --- MODE RÉEL : afficher les boutons de paiement ---
             if (payButton) {
                 payButton.style.display = 'block';
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
@@ -328,16 +374,35 @@ socket.on("player:joined", (data) => {
 });
 
 // ==========================================
-// 9. SESSION RESTAURÉE
+// 10. CONFIRMATION SPECTATEUR
+// ==========================================
+socket.on("spectator:joined", (data) => {
+    if (data.success) {
+        isSpectator = true;
+        isPlaying = true;
+        isPaid = true;
+        tapButton.disabled = true;
+        tapMessage.innerText = `👁️ Vous regardez en direct (${data.spectators} spectateurs)`;
+        if (payButton) payButton.style.display = 'none';
+        if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
+        if (betInput) betInput.disabled = true;
+        localStorage.setItem("miltape_spectator", "true");
+        localStorage.setItem("miltape_player_name", data.name);
+    }
+});
+
+// ==========================================
+// 11. SESSION RESTAURÉE (joueur)
 // ==========================================
 socket.on("player:restored", (data) => {
     if (data.success) {
         isPlaying = true;
+        isSpectator = false;
         myPlayerId = data.player.id;
         myWallet = data.player.wallet;
         myBet = data.player.bet || 10;
+        localStorage.removeItem("miltape_spectator");
         
-        // En mode démo, débloquer immédiatement
         if (demoMode) {
             isPaid = true;
             tapButton.disabled = false;
@@ -346,7 +411,6 @@ socket.on("player:restored", (data) => {
             isPaid = false;
             tapButton.disabled = true;
             tapMessage.innerText = `💰 ${data.player.name}, paie ta mise pour continuer à taper !`;
-            // Réafficher les boutons de paiement
             if (payButton) {
                 payButton.style.display = 'block';
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
@@ -361,7 +425,6 @@ socket.on("player:restored", (data) => {
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
 
-        // Stocker pour la prochaine fois
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
@@ -374,16 +437,17 @@ socket.on("player:restored", (data) => {
         localStorage.removeItem("miltape_player_wallet");
         localStorage.removeItem("miltape_player_name");
         localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_spectator");
         enterChallenge.style.display = 'block';
         tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
     }
 });
 
 // ==========================================
-// 10. CONFIRMATION DE PAIEMENT (débloque le tap)
+// 12. CONFIRMATION DE PAIEMENT (débloque le tap)
 // ==========================================
 socket.on("payment:verified", (data) => {
-    if (data.verified) {
+    if (data.verified && !isSpectator) {
         isPaid = true;
         tapButton.disabled = false;
         tapMessage.innerText = "✅ Paiement vérifié ! Tape maintenant !";
@@ -393,7 +457,7 @@ socket.on("payment:verified", (data) => {
 });
 
 // ==========================================
-// 11. FIN DE PARTIE – RÉINITIALISATION
+// 13. FIN DE PARTIE – RÉINITIALISATION
 // ==========================================
 socket.on("game:finished", (data) => {
     console.log("🏁 Partie terminée !", data);
@@ -405,53 +469,65 @@ socket.on("game:finished", (data) => {
     isPaid = false;
     tapButton.disabled = true;
 
-    // === CONSTRUCTION DU MESSAGE ===
-    let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n";
-    message += "═".repeat(30) + "\n\n";
+    // Si spectateur, ne pas réafficher les boutons de paiement
+    if (!isSpectator) {
+        // === CONSTRUCTION DU MESSAGE ===
+        let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n";
+        message += "═".repeat(30) + "\n\n";
 
-    if (data.winners && data.winners.length > 0) {
-        message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";
-        data.winners.forEach((w, index) => {
-            const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
-            message += `${emoji} #${w.rank} ${w.name}\n`;
-            message += `   Mise : ${w.bet} USDT → Gain : ${w.gain} USDT\n\n`;
-        });
+        if (data.winners && data.winners.length > 0) {
+            message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";
+            data.winners.forEach((w, index) => {
+                const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
+                message += `${emoji} #${w.rank} ${w.name}\n`;
+                message += `   Mise : ${w.bet} USDT → Gain : ${w.gain} USDT\n\n`;
+            });
+        } else {
+            message += "❌ Aucun gagnant cette fois-ci.\n\n";
+        }
+
+        message += "═".repeat(30) + "\n";
+        message += `💰 Total des mises : ${data.totalStakes} USDT\n`;
+        message += `💸 Total redistribué : ${data.totalPayout} USDT\n`;
+
+        if (data.deficit > 0) {
+            message += `📉 Déficit (serveur) : ${data.deficit} USDT\n`;
+            message += `ℹ️ Le wallet du serveur a comblé la différence.\n`;
+        } else {
+            message += `✅ Bénéfice serveur : ${Math.abs(data.deficit)} USDT\n`;
+        }
+
+        message += "═".repeat(30) + "\n";
+        message += "🔥 Prochaine partie dans 5 secondes...";
+
+        // === AFFICHAGE ===
+        tapMessage.innerText = `🏆 Partie terminée ! ${data.winners ? data.winners.length : 0} gagnant(s) !`;
+        alert(message);
+        console.log(message);
     } else {
-        message += "❌ Aucun gagnant cette fois-ci.\n\n";
+        tapMessage.innerText = `👁️ Partie terminée ! Prochaine partie dans 5 secondes...`;
     }
-
-    message += "═".repeat(30) + "\n";
-    message += `💰 Total des mises : ${data.totalStakes} USDT\n`;
-    message += `💸 Total redistribué : ${data.totalPayout} USDT\n`;
-
-    if (data.deficit > 0) {
-        message += `📉 Déficit (serveur) : ${data.deficit} USDT\n`;
-        message += `ℹ️ Le wallet du serveur a comblé la différence.\n`;
-    } else {
-        message += `✅ Bénéfice serveur : ${Math.abs(data.deficit)} USDT\n`;
-    }
-
-    message += "═".repeat(30) + "\n";
-    message += "🔥 Prochaine partie dans 5 secondes...";
-
-    // === AFFICHAGE ===
-    tapMessage.innerText = `🏆 Partie terminée ! ${data.winners ? data.winners.length : 0} gagnant(s) !`;
-    alert(message);
-    console.log(message);
 
     // === RÉINITIALISATION ===
     enterChallenge.style.display = 'block';
     if (payButton) payButton.style.display = 'none';
     if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
+    if (betInput) betInput.disabled = false;
+    if (spectatorBtn) {
+        spectatorBtn.classList.remove('active');
+        spectatorBtn.textContent = '👁️ REGARDER EN DIRECT (Spectateur)';
+    }
+    isSpectator = false;
 
     localStorage.removeItem("miltape_player_id");
     localStorage.removeItem("miltape_player_wallet");
     localStorage.removeItem("miltape_player_name");
     localStorage.removeItem("miltape_player_bet");
+    localStorage.removeItem("miltape_spectator");
 });
 
 // ==========================================
-// 12. GESTION DES CLICS (TAPS) – VÉRIFICATION PAIEMENT
+// 14. GESTION DES CLICS (TAPS) – VÉRIFICATION PAIEMENT + SPECTATEUR
 // ==========================================
 
 // Fonction d'effets visuels
@@ -510,12 +586,12 @@ function tapEffects(event) {
     }
 }
 
-// Écouteur du tap AVEC vérification paiement
+// Écouteur du tap AVEC vérification paiement + spectateur
 if (tapButton) {
     tapButton.addEventListener('click', function(event) {
-        // Vérifier que le joueur a payé
-        if (!isPlaying || tapButton.disabled || !isPaid) {
-            if (!isPaid) {
+        // Vérifier que le joueur a payé et n'est pas spectateur
+        if (!isPlaying || tapButton.disabled || !isPaid || isSpectator) {
+            if (!isPaid && !isSpectator) {
                 tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
                 setTimeout(() => {
                     tapMessage.innerText = `💰 Paie ta mise pour taper !`;
@@ -537,7 +613,7 @@ socket.on("player:score", (data) => {
 });
 
 // ==========================================
-// 13. CHRONOMÈTRE EN DIRECT
+// 15. CHRONOMÈTRE EN DIRECT
 // ==========================================
 socket.on("timer:update", (data) => {
     console.log("⏱️ Timer update reçu :", data.remainingSeconds);
@@ -549,7 +625,7 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 14. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
+// 16. AUTRES ÉVÉNEMENTS (online, leaderboard, chat)
 // ==========================================
 socket.on("online:count", (count) => {
     if (onlineCount) {
@@ -578,7 +654,7 @@ socket.on("leaderboard:update", (leaderboard) => {
 });
 
 // ==========================================
-// 15. CHAT GLOBAL
+// 17. CHAT GLOBAL
 // ==========================================
 function sendMessage() {
     const text = chatInput.value.trim();
@@ -606,7 +682,7 @@ socket.on("chat:message", (data) => {
 });
 
 // ==========================================
-// 16. PAYEMENT – INITIATION (via Telegram Wallet)
+// 18. PAYEMENT – INITIATION (via Telegram Wallet)
 // ==========================================
 function initiatePayment(wallet, amount) {
     fetch(API_URL + "/api/wallet")
@@ -628,7 +704,7 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 17. PAYEMENT – VÉRIFICATION
+// 19. PAYEMENT – VÉRIFICATION
 // ==========================================
 function verifyPayment(playerId, wallet, amount) {
     const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
@@ -660,14 +736,14 @@ function verifyPayment(playerId, wallet, amount) {
 }
 
 // ==========================================
-// 18. GESTION DES ERREURS SOCKET
+// 20. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 19. MENU LATÉRAL
+// 21. MENU LATÉRAL
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
