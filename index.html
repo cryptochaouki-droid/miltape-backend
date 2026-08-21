@@ -1032,7 +1032,7 @@
         }
 
         /* ============================================================
-           BANDEAU DES GAGNANTS (TICKER) – NOUVEAU
+           BANDEAU DES GAGNANTS (TICKER)
            ============================================================ */
         #winnerTicker {
             width: 100%;
@@ -1097,6 +1097,41 @@
         /* Pause au survol */
         #winnerTicker:hover #tickerTrack {
             animation-play-state: paused;
+        }
+
+        /* ============================================================
+           SÉLECTEUR DE CRYPTO
+           ============================================================ */
+        #tokenSelect {
+            width: 140px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            border: 1px solid #ffcc00;
+            font-size: 14px;
+            text-align: center;
+            outline: none;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffcc00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        #tokenSelect option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        .crypto-label {
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 14px;
+            font-family: 'Orbitron', sans-serif;
         }
     </style>
 </head>
@@ -1256,7 +1291,7 @@
 
                 </div>
 
-                <!-- 🔍 LIEN TRONSCAN (TRANSPARENCE TOTALE) -->
+                <!-- 🔍 LIEN TRONSCAN -->
                 <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);">
                     <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="
                         display:inline-flex;
@@ -1334,7 +1369,7 @@
             <div class="wallet-box">
 
                 <small>
-                    MISE USDT
+                    MISE
                 </small>
 
                 <strong id="displayBet">
@@ -1357,9 +1392,7 @@
 
         </header>
 
-        <!-- ============================================================
-               BANDEAU DES GAGNANTS (TICKER) – NOUVEAU
-               ============================================================ -->
+        <!-- BANDEAU DES GAGNANTS -->
         <div id="winnerTicker">
             <div id="tickerTrack">
                 <!-- Les messages seront ajoutés dynamiquement via JavaScript -->
@@ -1416,7 +1449,7 @@
                     <div>
 
                         <span class="wb-label">
-                            MISE USDT
+                            MISE
                         </span>
 
                         <span class="wb-value" id="displayBetTop">
@@ -1436,15 +1469,27 @@
         </section>
 
         <!-- ============================================= -->
-        <!-- CHAMP MISE ET BOUTON DE PAIEMENT             -->
+        <!-- CHAMP MISE, SÉLECTEUR DE CRYPTO ET BOUTON DE PAIEMENT -->
         <!-- ============================================= -->
 
         <div style="text-align:center; margin: 15px 0;">
 
+            <!-- Sélecteur de crypto -->
+            <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <label class="crypto-label">🪙 CRYPTO :</label>
+                <select id="tokenSelect">
+                    <option value="USDT">USDT (TRC20)</option>
+                    <option value="USDC">USDC (TRC20)</option>
+                    <option value="TUSD">TUSD (TRC20)</option>
+                    <option value="TRX">TRX</option>
+                </select>
+            </div>
+
+            <!-- Mise -->
             <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap;">
 
                 <label style="color:#ffcc00; font-weight:bold; font-size:14px; font-family:'Orbitron', sans-serif;">
-                    💰 MISE (USDT) :
+                    💰 MISE :
                 </label>
 
                 <input type="number" id="betInput" min="0.5" max="1000000" step="0.5" value="10" style="
@@ -1464,7 +1509,7 @@
             </div>
 
             <span style="color:#888; font-size:11px; display:block; margin-top:4px; font-family:'Orbitron', sans-serif;">
-                Min 0.50 – Max 1 000 000 USDT
+                Min 0.50 – Max 1 000 000 (unité selon crypto choisie)
             </span>
 
         </div>
@@ -1562,11 +1607,11 @@
                 </span>
 
                 <strong>
-                    USDT
+                    TOKENS
                 </strong>
 
                 <small>
-                    TRC20
+                    USDT / USDC / TUSD / TRX
                 </small>
 
             </div>
