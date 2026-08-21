@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur + menu + animations + paiement auto)
+   SCRIPT CLIENT MILTAPE – Version finale (sans vérification manuelle)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -26,7 +26,6 @@ const chatMessages = document.getElementById('chatMessages');
 // Éléments pour la mise et le paiement
 const betInput = document.getElementById('betInput');
 const payButton = document.getElementById('payButton');
-const verifyPaymentBtn = document.getElementById('verifyPaymentBtn');
 
 // Éléments du mode démo
 const demoBtn = document.getElementById('demomodebtn');
@@ -193,7 +192,6 @@ function joinSpectator() {
     }
 
     if (payButton) payButton.style.display = 'none';
-    if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
     if (betInput) betInput.disabled = true;
 
     socket.emit("spectator:join", { name });
@@ -224,7 +222,6 @@ async function restoreSession() {
             spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF';
         }
         if (payButton) payButton.style.display = 'none';
-        if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
         if (betInput) betInput.disabled = true;
         return true;
     }
@@ -333,7 +330,6 @@ socket.on("player:joined", (data) => {
             tapButton.disabled = false;
             tapMessage.innerText = `🔬 Mode démo : ${data.player.name}, tape !`;
             if (payButton) payButton.style.display = 'none';
-            if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
 
             fetch(API_URL + "/api/payment/verify", {
                 method: 'POST',
@@ -360,10 +356,6 @@ socket.on("player:joined", (data) => {
                 payButton.style.display = 'block';
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
             }
-            if (verifyPaymentBtn) {
-                verifyPaymentBtn.style.display = 'block';
-                verifyPaymentBtn.onclick = () => verifyPayment(data.player.id, data.player.wallet, data.player.bet);
-            }
         }
     }
 });
@@ -379,7 +371,6 @@ socket.on("spectator:joined", (data) => {
         tapButton.disabled = true;
         tapMessage.innerText = `👁️ Vous regardez en direct (${data.spectators} spectateurs)`;
         if (payButton) payButton.style.display = 'none';
-        if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
         if (betInput) betInput.disabled = true;
         localStorage.setItem("miltape_spectator", "true");
         localStorage.setItem("miltape_player_name", data.name);
@@ -409,10 +400,6 @@ socket.on("player:restored", (data) => {
             if (payButton) {
                 payButton.style.display = 'block';
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
-            }
-            if (verifyPaymentBtn) {
-                verifyPaymentBtn.style.display = 'block';
-                verifyPaymentBtn.onclick = () => verifyPayment(data.player.id, data.player.wallet, data.player.bet);
             }
         }
 
@@ -451,7 +438,6 @@ socket.on("payment:verified", (data) => {
             tapMessage.innerText = "✅ Paiement vérifié ! Tape maintenant !";
         }
         if (payButton) payButton.style.display = 'none';
-        if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
     }
 });
 
@@ -508,7 +494,6 @@ socket.on("game:finished", (data) => {
 
     enterChallenge.style.display = 'block';
     if (payButton) payButton.style.display = 'none';
-    if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
     if (betInput) betInput.disabled = false;
     if (spectatorBtn) {
         spectatorBtn.classList.remove('active');
@@ -725,7 +710,8 @@ function initiatePayment(wallet, amount) {
                 const serverWallet = data.wallet;
                 const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
                 window.open(paymentUrl, '_blank');
-                alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\nAprès paiement, clique sur "Vérifier" ci-dessous.`);
+                // Message simplifié – pas besoin de "Vérifier"
+                alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\n✅ Le paiement sera détecté automatiquement !`);
             } else {
                 alert("❌ Impossible de récupérer le wallet du serveur.");
             }
@@ -737,46 +723,14 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 20. PAYEMENT – VÉRIFICATION (manuel)
-// ==========================================
-function verifyPayment(playerId, wallet, amount) {
-    const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
-    if (!txId) return;
-
-    fetch(API_URL + "/api/payment/verify", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txId, wallet, amount, playerId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.verified) {
-            alert("✅ Paiement vérifié ! Tu peux maintenant taper !");
-            isPaid = true;
-            tapButton.disabled = false;
-            tapMessage.innerText = "🔥 Tape maintenant !";
-            if (payButton) payButton.style.display = 'none';
-            if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
-        } else {
-            alert("❌ Paiement non vérifié : " + (data.message || "Transaction introuvable."));
-            tapMessage.innerText = "❌ Paiement invalide. Réessaie.";
-        }
-    })
-    .catch(err => {
-        alert("❌ Erreur lors de la vérification.");
-        console.error(err);
-    });
-}
-
-// ==========================================
-// 21. GESTION DES ERREURS SOCKET
+// 20. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
     alert("⚠️ Erreur : " + err.message);
 });
 
 // ==========================================
-// 22. MENU LATÉRAL + FONCTIONS DE MODALE
+// 21. MENU LATÉRAL + FONCTIONS DE MODALE
 // ==========================================
 
 // ---- Fonction pour afficher une modale ----
@@ -889,7 +843,7 @@ if (menuRulesBtn) {
 }
 
 // ==========================================
-// 23. MENU LATÉRAL (ouverture/fermeture)
+// 22. MENU LATÉRAL (ouverture/fermeture)
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
