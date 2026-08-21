@@ -33,7 +33,7 @@ const TRONGRID_API_KEY = (
     ""
 ).trim();
 
-// ---------- ADMIN PASSWORD (ajout) ----------
+// ---------- ADMIN PASSWORD ----------
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "MiltapeAdmin2026!";
 
 let tronWeb = null;
@@ -118,11 +118,11 @@ const server = http.createServer(app);
 // 1. Sécurité des en-têtes HTTP avec Helmet
 app.use(helmet());
 
-// 2. CORS – autoriser spécifiquement ton frontend GitHub Pages (ajout)
+// 2. CORS – autoriser spécifiquement ton frontend GitHub Pages
 const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
 app.use(
     cors({
-        origin: FRONTEND_ORIGIN, // ou "*" si tu préfères, mais plus sécurisé comme ça
+        origin: FRONTEND_ORIGIN,
         credentials: true
     })
 );
@@ -140,7 +140,7 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Fichiers statiques (si besoin)
+// 4. Fichiers statiques
 app.use(express.static(__dirname));
 
 // ============================================================
@@ -149,7 +149,7 @@ app.use(express.static(__dirname));
 
 const io = new Server(server, {
     cors: {
-        origin: FRONTEND_ORIGIN, // ou "*"
+        origin: FRONTEND_ORIGIN,
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -394,7 +394,7 @@ io.on("connection", async (socket) => {
     console.log("🟢 Socket connecté :", socket.id);
     await broadcastGameState();
 
-    // JOIN
+    // --- JOIN ---
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
@@ -447,7 +447,56 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // TAP
+    // --- RESTAURATION DE SESSION (NOUVEAU) ---
+    socket.on("player:restore", async (data) => {
+        try {
+            const playerId = data?.playerId;
+            const wallet = normalizeWallet(data?.wallet);
+
+            if (!playerId && !wallet) {
+                return socket.emit("error", { message: "playerId ou wallet requis." });
+            }
+
+            const query = { gameId: game.id };
+            if (playerId) query._id = playerId;
+            else query.wallet = wallet;
+
+            const player = await Player.findOne(query);
+            if (!player) {
+                return socket.emit("error", { message: "Joueur introuvable." });
+            }
+
+            // Associer le socket au joueur
+            socket.data.playerId = player._id.toString();
+            socket.data.gameId = game.id;
+            socket.data.wallet = player.wallet;
+            socket.data.name = player.name;
+
+            // Envoyer les données au client
+            socket.emit("player:restored", {
+                success: true,
+                player: {
+                    id: player._id,
+                    name: player.name,
+                    wallet: player.wallet,
+                    taps: player.taps,
+                    bet: player.bet,
+                    paid: player.paid
+                }
+            });
+
+            // Mettre à jour le classement pour tous
+            const leaderboard = await getLeaderboard();
+            io.emit("leaderboard:update", leaderboard);
+
+            console.log("🔄 Session restaurée :", player.name, player.taps, "taps");
+        } catch (error) {
+            console.error("player:restore:", error.message);
+            socket.emit("error", { message: "Erreur restauration." });
+        }
+    });
+
+    // --- TAP ---
     socket.on("player:tap", async () => {
         try {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
@@ -467,7 +516,7 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // CHAT
+    // --- CHAT ---
     socket.on("chat:send", async (data) => {
         try {
             const name = String(data?.name || socket.data.name || "Joueur").trim().substring(0, 30);
@@ -487,7 +536,7 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // DISCONNECT
+    // --- DISCONNECT ---
     socket.on("disconnect", async () => {
         onlineSockets.delete(socket.id);
         console.log("🔴 Socket déconnecté :", socket.id);
@@ -496,7 +545,7 @@ io.on("connection", async (socket) => {
 });
 
 // ============================================================
-// ================= NOUVELLES ROUTES ADMIN ===================
+// ================= ROUTES ADMIN ==============================
 // ============================================================
 
 // 1. Login admin
@@ -572,7 +621,7 @@ app.get("/api/total-stakes", async (req, res) => {
 });
 
 // ============================================================
-// API EXISTANTES (inchangées)
+// API EXISTANTES
 // ============================================================
 
 app.get("/api/game", async (req, res) => {
@@ -770,7 +819,7 @@ app.get("/api/online", (req, res) => {
     res.json({ success: true, onlinePlayers: onlineSockets.size });
 });
 
-// --- /api/status améliorée (déjà bonne, mais on ajoute gameId et timerLeft) ---
+// --- /api/status améliorée ---
 app.get("/api/status", (req, res) => {
     res.json({
         success: true,
@@ -787,11 +836,53 @@ app.get("/api/status", (req, res) => {
 });
 
 // ============================================================
-// VERIFICATION USDT (existante)
+// VERIFICATION USDT
 // ============================================================
 async function verifyUsdtTransaction(txId, expectedFrom, expectedAmount) {
-    // ... (le code existant est déjà présent plus haut, je ne le répète pas)
-    // Mais il est déjà défini avant, donc pas besoin de le redéfinir.
+    const cleanTxId = String(txId || "").trim();
+    const cleanFrom = normalizeWallet(expectedFrom);
+    const requiredAmount = Number(expectedAmount);
+
+    if (!cleanTxId) throw new Error("Transaction ID manquant.");
+    if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
+    if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
+
+    const transaction = await tronWeb.trx.getTransaction(cleanTxId);
+    if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
+
+    const contracts = transaction.raw_data?.contract;
+    if (!Array.isArray(contracts) || contracts.length !== 1) throw new Error("Transaction TRON invalide.");
+
+    const contract = contracts[0];
+    if (contract.type !== "TriggerSmartContract") throw new Error("Ce n'est pas une transaction USDT TRC20.");
+
+    const value = contract.parameter?.value;
+    if (!value) throw new Error("Données de transaction manquantes.");
+
+    const contractAddress = tronWeb.address.fromHex(value.contract_address);
+    if (!sameWallet(contractAddress, USDT_CONTRACT)) throw new Error("Ce n'est pas le contrat USDT TRON.");
+
+    const ownerAddress = tronWeb.address.fromHex(value.owner_address);
+    if (!sameWallet(ownerAddress, cleanFrom)) throw new Error("Le portefeuille ne correspond pas.");
+
+    const data = String(value.data || "").toLowerCase();
+    if (!data.startsWith("a9059cbb")) throw new Error("Ce n'est pas un transfer USDT.");
+    if (data.length < 136) throw new Error("Données USDT invalides.");
+
+    const recipientHex = "41" + data.substring(32, 72);
+    const recipient = tronWeb.address.fromHex(recipientHex);
+    if (!sameWallet(recipient, MILTAPE_WALLET)) throw new Error("Le paiement n'est pas destiné au wallet du serveur.");
+
+    const amountHex = data.substring(72, 136);
+    const rawAmount = BigInt("0x" + amountHex);
+    const amount = Number(rawAmount) / Math.pow(10, USDT_DECIMALS);
+
+    if (amount < requiredAmount) throw new Error(`Montant insuffisant : ${amount} USDT reçu, ${requiredAmount} USDT requis.`);
+
+    const info = await tronWeb.trx.getTransactionInfo(cleanTxId);
+    if (!info || !info.receipt || info.receipt.result !== "SUCCESS") throw new Error("La transaction USDT n'est pas confirmée.");
+
+    return { txId: cleanTxId, from: ownerAddress, to: recipient, amount, confirmed: true };
 }
 
 // ============================================================
