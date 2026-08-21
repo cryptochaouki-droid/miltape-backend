@@ -2,8 +2,8 @@
    NOUVEAU PROJET - SCRIPT CÔTÉ CLIENT (NAVIGATEUR)
 ========================================================= */
 
-// 1. Initialisation de la connexion Socket.IO avec le serveur
-const socket = io("https://miltape-server.onrender.com");
+// 1. Initialisation de la connexion Socket.IO avec le serveur (URL corrigée)
+const socket = io("https://miltape-backend.onrender.com");
 
 
 // 2. Récupération des éléments HTML (DOM)
