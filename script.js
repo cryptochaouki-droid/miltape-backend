@@ -2,11 +2,8 @@
    SCRIPT CLIENT MILTAPE – Version finale (multi-crypto + notifications + tableau de bord + Telegram + ticker)
 ========================================================= */
 
-// 1. Connexion Socket.IO – URL RAILWAY
-const socket = io("https://miltape-backend-production.up.railway.app", {
-    transports: ['websocket'],
-    upgrade: false
-});
+// 1. Connexion Socket.IO – URL RAILWAY (CORRIGÉ : Connexion automatique robuste)
+const socket = io("https://miltape-backend-production.up.railway.app");
 
 // 2. Éléments DOM
 const tapButton = document.getElementById('tapButton');
