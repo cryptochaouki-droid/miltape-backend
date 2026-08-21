@@ -12,6 +12,9 @@
 
     <title>Miltape World Challenge</title>
 
+    <!-- Google Fonts – Orbitron (look cyberpunk/crypto) -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192~2.jpg">
     <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg">
@@ -30,9 +33,53 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
-        /* CORRECTION RADICALE : Masquer les widgets flottants injectés par TonConnect */
+        /* ============================================================
+                   FOND ANIMÉ (PARTICULES / ÉTOILES)
+                   ============================================================ */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, #0d0221 0%, #090014 70%, #050010 100%);
+        }
+
+        /* ============================================================
+                   POLICE PERSONNALISÉE
+                   ============================================================ */
+        body {
+            font-family: 'Orbitron', sans-serif;
+            width: 100%;
+            min-width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: auto;
+        }
+
+        /* ============================================================
+                   GLASSMORPHISM (effet verre)
+                   ============================================================ */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ============================================================
+                   CORRECTION RADICALE : Masquer les widgets flottants TonConnect
+                   ============================================================ */
         #ton-connect-button,
-        div[id^="tc-widget"], 
+        div[id^="tc-widget"],
         iframe[id^="tc-widget"],
         .tc-connect-button {
             display: none !important;
@@ -46,18 +93,6 @@
             scroll-behavior: smooth;
         }
 
-        body {
-            width: 100%;
-            min-width: 100%;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: auto;
-        }
-
         .app {
             width: 100%;
             max-width: 480px;
@@ -67,6 +102,7 @@
             padding-bottom: 80px;
             position: relative;
             overflow: visible !important;
+            z-index: 1;
         }
 
         /* PWA */
@@ -84,31 +120,36 @@
             color: #ffcc00;
             font-size: 13px;
             font-weight: 900;
-            box-shadow: 0 0 15px rgba(255,204,0,.35);
+            box-shadow: 0 0 15px rgba(255, 204, 0, .35);
             cursor: pointer;
             white-space: nowrap;
             -webkit-tap-highlight-color: transparent;
+            font-family: 'Orbitron', sans-serif;
         }
 
         .install-pwa-button.show {
             display: block;
         }
 
-        /* HERO BANNER */
+        /* HERO BANNER – avec glassmorphism */
         .hero-banner-container {
             position: relative;
             width: calc(100% - 24px);
             margin: 12px 12px 15px;
             border-radius: 16px;
             overflow: hidden;
-            border: 1px solid rgba(255,204,0,.3);
-            background: #090014;
+            background: rgba(9, 0, 20, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
 
         .hero-bg-image {
             width: 100%;
             display: block;
             height: auto;
+            opacity: 0.85;
         }
 
         .hero-header-overlay {
@@ -127,6 +168,7 @@
             align-items: center;
             gap: 6px;
             background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
             padding: 4px 8px;
             border-radius: 20px;
             border: 1px solid rgba(255, 204, 0, 0.3);
@@ -155,6 +197,7 @@
 
         .timer-badge-top {
             background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 204, 0, 0.5);
             padding: 4px 10px;
             border-radius: 12px;
@@ -182,6 +225,7 @@
 
         .wallet-badge-top {
             background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
             border: 1px solid rgba(193, 60, 255, 0.5);
             padding: 4px 8px;
             border-radius: 12px;
@@ -220,8 +264,10 @@
             width: 280px;
             height: 100vh;
             height: 100dvh;
-            background: #0f051d;
-            border-right: 1px solid rgba(255,204,0,.2);
+            background: rgba(15, 5, 29, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 204, 0, .2);
             z-index: 1000;
             transition: left .3s ease;
             padding: 20px;
@@ -250,13 +296,16 @@
         .side-menu-content h3 {
             color: #ffcc00;
             margin-bottom: 20px;
+            font-size: 16px;
+            letter-spacing: 1px;
         }
 
         .menu-block {
             margin-bottom: 15px;
-            background: rgba(255,255,255,.03);
+            background: rgba(255, 255, 255, .03);
             padding: 12px;
             border-radius: 10px;
+            backdrop-filter: blur(5px);
         }
 
         .menu-block label,
@@ -276,6 +325,8 @@
             color: #fff;
             border: 1px solid #444;
             box-sizing: border-box;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
         }
 
         .menu-nav-btn {
@@ -292,11 +343,13 @@
             border-radius: 8px;
             text-decoration: none;
             box-sizing: border-box;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.2s ease;
         }
 
         .menu-nav-btn:hover,
         .menu-nav-btn:active {
-            background: rgba(255,204,0,.15);
+            background: rgba(255, 204, 0, .15);
             color: #ffcc00;
         }
 
@@ -313,12 +366,13 @@
             border-radius: 6px;
             font-size: 12px;
             font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
         }
 
         .menu-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,.7);
+            background: rgba(0, 0, 0, .7);
             display: none;
             z-index: 999;
         }
@@ -332,7 +386,7 @@
         .modal {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,.82);
+            background: rgba(0, 0, 0, .82);
             display: none;
             align-items: center;
             justify-content: center;
@@ -348,7 +402,8 @@
 
         .legal-content,
         .modal-content {
-            background: #120624;
+            background: rgba(18, 6, 36, 0.95);
+            backdrop-filter: blur(20px);
             border: 1px solid #ffcc00;
             border-radius: 16px;
             max-width: 500px;
@@ -405,12 +460,13 @@
             min-width: 190px;
             min-height: 190px;
             border: none;
-            border-radius: 0;
-            background: transparent;
+            border-radius: 50%;
+            background: rgba(255, 204, 0, 0.05);
+            backdrop-filter: blur(5px);
             overflow: visible;
             cursor: pointer;
             outline: none;
-            transition: transform .08s ease-in-out;
+            transition: transform .08s ease-in-out, box-shadow 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -420,11 +476,16 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
-            box-shadow: none;
+            box-shadow: 0 0 40px rgba(255, 204, 0, 0.1);
         }
 
         .tap-button:disabled {
             cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .tap-button:not(:disabled):hover {
+            box-shadow: 0 0 60px rgba(255, 204, 0, 0.2);
         }
 
         .tap-img-bg {
@@ -436,6 +497,7 @@
             pointer-events: none;
             z-index: 0;
             display: block;
+            border-radius: 50%;
         }
 
         .tap-button::before {
@@ -464,7 +526,7 @@
             color: #ffcc00;
             font-weight: bold;
             margin-top: 0;
-            text-shadow: 0 2px 6px rgba(0,0,0,.9);
+            text-shadow: 0 2px 6px rgba(0, 0, 0, .9);
             pointer-events: none;
         }
 
@@ -493,8 +555,9 @@
             margin-top: 10px;
             margin-bottom: 10px;
             border-radius: 12px;
-            background: rgba(0,0,0,.20);
-            border: 1px solid rgba(255,255,255,.06);
+            background: rgba(0, 0, 0, .20);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, .06);
             box-sizing: border-box;
         }
 
@@ -502,7 +565,7 @@
             margin-bottom: 8px;
             padding: 7px 8px;
             border-radius: 8px;
-            background: rgba(255,255,255,.035);
+            background: rgba(255, 255, 255, .035);
             font-size: 13px;
             color: #ddd;
             word-break: break-word;
@@ -529,13 +592,15 @@
             min-width: 0;
             height: 44px;
             padding: 0 12px;
-            border: 1px solid rgba(193,60,255,.30);
+            border: 1px solid rgba(193, 60, 255, .30);
             border-radius: 12px;
             outline: none;
-            background: rgba(0,0,0,.35);
+            background: rgba(0, 0, 0, .35);
+            backdrop-filter: blur(5px);
             color: #fff;
             font-size: 13px;
             box-sizing: border-box;
+            font-family: 'Orbitron', sans-serif;
         }
 
         .chat-input-box button {
@@ -544,13 +609,221 @@
             min-width: 46px;
             border: none;
             border-radius: 12px;
-            background: linear-gradient(135deg,#ffcc00,#ff8a00);
+            background: linear-gradient(135deg, #ffcc00, #ff8a00);
             color: #16051f;
             font-size: 20px;
             font-weight: 900;
             cursor: pointer;
             box-shadow: 0 4px 0 #a84c00;
             touch-action: manipulation;
+        }
+
+        /* BOUTON JOUER */
+        .main-play-button {
+            display: block;
+            width: 80%;
+            max-width: 300px;
+            margin: 10px auto;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #ffcc00, #ff8a00);
+            color: #16051f;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #a84c00, 0 0 30px rgba(255, 204, 0, 0.2);
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-play-button:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #a84c00;
+        }
+
+        .main-play-button:hover {
+            box-shadow: 0 4px 0 #a84c00, 0 0 50px rgba(255, 204, 0, 0.4);
+        }
+
+        /* MESSAGE */
+        .tap-message {
+            text-align: center;
+            font-size: 13px;
+            color: #b8b8b8;
+            padding: 10px 20px;
+            margin: 5px 0;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        /* RÈGLES */
+        .rules {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 15px;
+            flex-wrap: wrap;
+        }
+
+        .rule {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+        }
+
+        .rule .rule-icon {
+            font-size: 18px;
+        }
+        .rule strong {
+            color: #ffcc00;
+            font-size: 13px;
+        }
+        .rule small {
+            color: #888;
+            font-size: 9px;
+        }
+
+        /* STATS */
+        .stats {
+            display: flex;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 15px 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .stat-box small {
+            display: block;
+            font-size: 10px;
+            color: #888;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .stat-box strong {
+            font-size: 28px;
+            color: #ffcc00;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* HEADER */
+        .top-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: rgba(9, 0, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-button {
+            background: none;
+            border: none;
+            color: #ffcc00;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px 8px;
+        }
+
+        .online {
+            font-size: 10px;
+            color: #2ecc71;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .wallet-box {
+            text-align: right;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .wallet-box small {
+            display: block;
+            font-size: 8px;
+            color: #888;
+        }
+
+        .wallet-box strong {
+            font-size: 14px;
+            color: #ffcc00;
+        }
+
+        .wallet-button {
+            background: rgba(255, 204, 0, 0.1);
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            border-radius: 10px;
+            color: #ffcc00;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* CLASSEMENT + CHAT wrapper */
+        .leaderboard-chat-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 0 16px;
+        }
+
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+        }
+
+        .section-title span {
+            color: #fff;
+        }
+        .section-title strong {
+            color: #ffcc00;
+            font-size: 14px;
+        }
+
+        .leaderboard-list {
+            min-height: 80px;
+        }
+
+        .empty-ranking {
+            color: #888;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 12px;
+            font-family: 'Orbitron', sans-serif;
         }
 
         /* MOBILE */
@@ -592,20 +865,28 @@
 
             .app {
                 border-radius: 30px;
-                border: 1px solid rgba(255,255,255,.06);
-                box-shadow: 0 0 80px rgba(91,20,150,.18);
+                border: 1px solid rgba(255, 255, 255, .06);
+                box-shadow: 0 0 80px rgba(91, 20, 150, .18);
+                background: rgba(9, 0, 20, 0.3);
+                backdrop-filter: blur(10px);
             }
 
             .top-header {
                 position: sticky;
                 top: 0;
                 z-index: 500;
+                border-radius: 30px 30px 0 0;
             }
         }
     </style>
 </head>
 
 <body>
+
+    <!-- ============================================================
+               FOND ANIMÉ – CANVAS (PARTICULES / ÉTOILES)
+               ============================================================ -->
+    <canvas id="bgCanvas"></canvas>
 
     <!-- INSTALLATION -->
     <button id="installPwaButton" class="install-pwa-button" type="button">
@@ -653,34 +934,29 @@
                     📜 Règles
                 </button>
 
-                <a
-                    href="./conditions.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="menu-nav-btn"
-                >
+                <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">
                     📄 Conditions d'utilisation
                 </a>
 
             </div>
 
-            <!-- MODE DEMO -->
+            <!-- MODE DÉMO (sécurisé par mot de passe) -->
             <div class="menu-block" style="text-align:center;">
 
-                <button
-                    id="demomodebtn"
-                    class="menu-nav-btn"
-                    type="button"
-                    style="
-                        background:rgba(255,204,0,0.2);
-                        color:#ffcc00;
-                        font-weight:bold;
-                        text-align:center;
-                        border:1px solid rgba(255,204,0,.35);
-                    "
-                >
+                <button id="demomodebtn" class="menu-nav-btn" type="button" style="
+                            background:rgba(255,204,0,0.2);
+                            color:#ffcc00;
+                            font-weight:bold;
+                            text-align:center;
+                            border:1px solid rgba(255,204,0,.35);
+                            font-family:'Orbitron', sans-serif;
+                        ">
                     🎮 ACTIVER MODE DÉMO
                 </button>
+
+                <div id="demoStatus" style="font-size:10px; color:#888; margin-top:6px; font-family:'Orbitron', sans-serif;">
+                    🔒 Désactivé
+                </div>
 
             </div>
 
@@ -710,25 +986,17 @@
                     🛡️ Support & Confiance
                 </h4>
 
-                <p style="font-size:12px;color:#b8b8b8;">
+                <p style="font-size:12px;color:#b8b8b8;font-family:'Orbitron', sans-serif;">
                     Une question ? Un problème ?
                 </p>
 
-                <a
-                    href="https://t.me/ton_canal_telegram"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="support-link"
-                >
+                <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">
                     📢 Telegram officiel
                 </a>
 
                 <div style="margin-top:8px;font-size:12px;">
 
-                    <a
-                        href="mailto:miltapesupport@gmail.com"
-                        style="color:#ffcc00;text-decoration:none;"
-                    >
+                    <a href="mailto:miltapesupport@gmail.com" style="color:#ffcc00;text-decoration:none;font-family:'Orbitron', sans-serif;">
                         📧 miltapesupport@gmail.com
                     </a>
 
@@ -743,20 +1011,11 @@
     <div id="menuOverlay" class="menu-overlay"></div>
 
     <!-- MODAL -->
-    <div
-        id="dynamicModal"
-        class="legal-modal"
-        role="dialog"
-        aria-modal="true"
-    >
+    <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
 
         <div class="legal-content">
 
-            <button
-                id="closeDynamicModal"
-                class="legal-close"
-                type="button"
-            >
+            <button id="closeDynamicModal" class="legal-close" type="button">
                 ×
             </button>
 
@@ -776,11 +1035,7 @@
         <!-- HEADER -->
         <header class="top-header">
 
-            <button
-                class="menu-button"
-                id="menuButton"
-                type="button"
-            >
+            <button class="menu-button" id="menuButton" type="button">
                 ☰
             </button>
 
@@ -788,16 +1043,14 @@
 
                 <strong id="onlineCount">
 
-                    <span
-                        style="
-                            display:inline-block;
-                            width:8px;
-                            height:8px;
-                            background:#2ecc71;
-                            border-radius:50%;
-                            margin-right:5px;
-                        "
-                    ></span>
+                    <span style="
+                                display:inline-block;
+                                width:8px;
+                                height:8px;
+                                background:#2ecc71;
+                                border-radius:50%;
+                                margin-right:5px;
+                            "></span>
 
                     <span>
                         1 EN LIGNE
@@ -820,16 +1073,9 @@
             </div>
 
             <!-- TON CONNECT -->
-            <div
-                id="ton-connect-button"
-                style="display:none;"
-            ></div>
+            <div id="ton-connect-button" style="display:none;"></div>
 
-            <button
-                class="wallet-button"
-                id="walletButton"
-                type="button"
-            >
+            <button class="wallet-button" id="walletButton" type="button">
                 💰
 
                 <span id="globalTotalStakes">
@@ -843,11 +1089,7 @@
         <!-- HERO -->
         <section class="hero-banner-container">
 
-            <img
-                src="./tap-art.jpg"
-                alt="Miltape World Challenge"
-                class="hero-bg-image"
-            >
+            <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
 
             <div class="hero-header-overlay">
 
@@ -872,19 +1114,13 @@
                 </div>
 
                 <!-- CHRONO -->
-                <div
-                    class="timer-badge-top"
-                    id="topTimerBox"
-                >
+                <div class="timer-badge-top" id="topTimerBox">
 
                     <span class="tb-label">
                         TEMPS RESTANT
                     </span>
 
-                    <span
-                        class="tb-value"
-                        id="timer"
-                    >
+                    <span class="tb-value" id="timer">
                         10:00
                     </span>
 
@@ -895,11 +1131,7 @@
                 </div>
 
                 <!-- WALLET / MISE -->
-                <div
-                    class="wallet-badge-top"
-                    id="enterChallengeTop"
-                    title="Modifier ta mise"
-                >
+                <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
 
                     <div>
 
@@ -907,10 +1139,7 @@
                             MISE USDT
                         </span>
 
-                        <span
-                            class="wb-value"
-                            id="displayBetTop"
-                        >
+                        <span class="wb-value" id="displayBetTop">
                             $0
                         </span>
 
@@ -927,45 +1156,52 @@
         </section>
 
         <!-- ============================================= -->
-        <!-- NOUVEAU : CHAMP MISE ET BOUTONS DE PAIEMENT   -->
+        <!-- CHAMP MISE ET BOUTONS DE PAIEMENT             -->
         <!-- ============================================= -->
 
         <div style="text-align:center; margin: 15px 0;">
 
             <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap;">
 
-                <label style="color:#ffcc00; font-weight:bold; font-size:14px;">
+                <label style="color:#ffcc00; font-weight:bold; font-size:14px; font-family:'Orbitron', sans-serif;">
                     💰 MISE (USDT) :
                 </label>
 
-                <input type="number" id="betInput" min="0.5" max="1000000" step="0.5" value="10"
-                       style="width:140px; padding:10px; border-radius:8px; background:#1a1a2e; color:#fff; border:1px solid #ffcc00; font-size:16px; text-align:center; outline:none;">
+                <input type="number" id="betInput" min="0.5" max="1000000" step="0.5" value="10" style="
+                            width:140px;
+                            padding:10px;
+                            border-radius:8px;
+                            background:rgba(26, 26, 46, 0.8);
+                            backdrop-filter:blur(5px);
+                            color:#fff;
+                            border:1px solid #ffcc00;
+                            font-size:16px;
+                            text-align:center;
+                            outline:none;
+                            font-family:'Orbitron', sans-serif;
+                        ">
 
             </div>
 
-            <span style="color:#888; font-size:11px; display:block; margin-top:4px;">
+            <span style="color:#888; font-size:11px; display:block; margin-top:4px; font-family:'Orbitron', sans-serif;">
                 Min 0.50 – Max 1 000 000 USDT
             </span>
 
         </div>
 
         <!-- BOUTONS DE PAIEMENT (cachés par défaut) -->
-        <button id="payButton" style="display:none; background:#00d2ff; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #0077aa;">
+        <button id="payButton" style="display:none; background:#00d2ff; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #0077aa; font-family:'Orbitron', sans-serif; text-transform:uppercase; font-size:12px;">
             💳 PAYER MA MISE
         </button>
 
-        <button id="verifyPaymentBtn" style="display:none; background:#ffcc00; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #b38a00;">
+        <button id="verifyPaymentBtn" style="display:none; background:#ffcc00; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #b38a00; font-family:'Orbitron', sans-serif; text-transform:uppercase; font-size:12px;">
             ✅ VÉRIFIER MON PAIEMENT
         </button>
 
         <!-- FIN NOUVEAU -->
 
         <!-- JOUER -->
-        <button
-            id="enterChallenge"
-            class="main-play-button"
-            type="button"
-        >
+        <button id="enterChallenge" class="main-play-button" type="button">
 
             <span>
                 JOUER MAINTENANT
@@ -978,34 +1214,16 @@
         </button>
 
         <!-- MESSAGE -->
-        <div
-            id="tapMessage"
-            class="tap-message"
-            role="status"
-            aria-live="polite"
-        >
+        <div id="tapMessage" class="tap-message" role="status" aria-live="polite">
             ⚡ CHOISIS TA MISE ET CONNECTE TON WALLET
         </div>
 
         <!-- TAP -->
-        <section
-            class="tap-zone"
-            aria-label="Zone de tap"
-        >
+        <section class="tap-zone" aria-label="Zone de tap">
 
-            <button
-                id="tapButton"
-                class="tap-button"
-                type="button"
-                disabled
-            >
+            <button id="tapButton" class="tap-button" type="button" disabled>
 
-                <img
-                    src="./icon-192~2.jpg"
-                    alt="TAP NOW"
-                    class="tap-img-bg"
-                    draggable="false"
-                >
+                <img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false">
 
                 <span class="tap-glow"></span>
 
@@ -1075,24 +1293,15 @@
         </section>
 
         <!-- STATS -->
-        <section
-            class="stats"
-            style="display:flex;justify-content:center;"
-        >
+        <section class="stats" style="display:flex;justify-content:center;">
 
-            <div
-                class="stat-box"
-                style="width:100%;max-width:300px;"
-            >
+            <div class="stat-box" style="width:100%;max-width:300px;">
 
                 <small>
                     TES TAPS
                 </small>
 
-                <strong
-                    id="tapCount"
-                    style="font-size:28px;color:#ffcc00;"
-                >
+                <strong id="tapCount" style="font-size:28px;color:#ffcc00;">
                     0
                 </strong>
 
@@ -1118,10 +1327,7 @@
 
                 </div>
 
-                <div
-                    id="leaderboardList"
-                    class="leaderboard-list"
-                >
+                <div id="leaderboardList" class="leaderboard-list">
 
                     <div class="empty-ranking">
                         Aucun joueur pour le moment
@@ -1132,10 +1338,7 @@
             </section>
 
             <!-- CHAT -->
-            <section
-                class="chat-section"
-                id="globalChat"
-            >
+            <section class="chat-section" id="globalChat">
 
                 <div class="section-title">
 
@@ -1149,10 +1352,7 @@
 
                 </div>
 
-                <div
-                    id="chatMessages"
-                    class="chat-messages"
-                >
+                <div id="chatMessages" class="chat-messages">
 
                     <div class="chat-message">
 
@@ -1166,26 +1366,11 @@
 
                 </div>
 
-                <div
-                    class="chat-input-box"
-                    id="chatInputBox"
-                >
+                <div class="chat-input-box" id="chatInputBox">
 
-                    <input
-                        type="text"
-                        id="chatInput"
-                        placeholder="Écris ton message..."
-                        maxlength="200"
-                        autocomplete="off"
-                        enterkeyhint="send"
-                        inputmode="text"
-                    >
+                    <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="200" autocomplete="off" enterkeyhint="send" inputmode="text">
 
-                    <button
-                        id="chatSend"
-                        type="button"
-                        aria-label="Envoyer le message"
-                    >
+                    <button id="chatSend" type="button" aria-label="Envoyer le message">
                         ➤
                     </button>
 
@@ -1195,104 +1380,135 @@
 
         </div><!-- Fin du wrapper classement & chat -->
 
-        <div
-            style="
-                width:100%;
-                height:40px;
-            "
-        ></div>
+        <div style="width:100%; height:40px;"></div>
 
     </main>
 
     <!-- =========================================================
-         TON CONNECT
-         PROTÉGÉ POUR NE PAS BLOQUER MILTAPE
-         ========================================================= -->
-
+               TON CONNECT – Initialisation corrigée
+               ========================================================= -->
     <script>
-        window.tonConnectUI = null;
-
-        function initTonConnect() {
-
+        (function initTonConnect() {
             try {
-
-                if (
-                    typeof TON_CONNECT_UI === "undefined" ||
-                    !TON_CONNECT_UI.TonConnectUI
-                ) {
-                    console.warn("TON Connect UI indisponible.");
+                if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {
+                    console.warn("⚠️ TON Connect UI indisponible.");
                     return;
                 }
 
-                window.tonConnectUI =
-                    new TON_CONNECT_UI.TonConnectUI({
+                window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
+                    buttonRootId: "ton-connect-button"
+                });
 
-                        manifestUrl:
-                            "https://miltape.vercel.app/tonconnect-manifest.json",
-
-                        buttonRootId:
-                            "ton-connect-button"
-                    });
-
-                if (
-                    window.tonConnectUI &&
-                    typeof window.tonConnectUI.onStatusChange === "function"
-                ) {
-
-                    window.tonConnectUI.onStatusChange(
-                        function(walletInfo) {
-
-                            if (
-                                walletInfo &&
-                                walletInfo.account
-                            ) {
-
-                                console.log(
-                                    "Wallet TON connecté :",
-                                    walletInfo.account.address
-                                );
-
-                            }
-
+                if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {
+                    window.tonConnectUI.onStatusChange(function(walletInfo) {
+                        if (walletInfo && walletInfo.account) {
+                            console.log("✅ Wallet TON connecté :", walletInfo.account.address);
                         }
-                    );
-
+                    });
                 }
 
+                console.log("✅ TON Connect initialisé.");
             } catch (error) {
-
-                console.error(
-                    "Erreur TON Connect :",
-                    error
-                );
-
+                console.error("❌ Erreur TON Connect :", error);
                 window.tonConnectUI = null;
             }
-        }
+        })();
 
+        // Fallback DOM chargé
         if (document.readyState === "loading") {
-
-            document.addEventListener(
-                "DOMContentLoaded",
-                initTonConnect,
-                { once: true }
-            );
-
-        } else {
-
-            initTonConnect();
-
+            document.addEventListener("DOMContentLoaded", function() {
+                console.log("✅ DOM chargé – TON Connect déjà actif.");
+            });
         }
     </script>
 
     <!-- =========================================================
-         SCRIPT PRINCIPAL MILTAPE (script.js)
-         ========================================================= -->
+               SCRIPT PRINCIPAL (script.js)
+               ========================================================= -->
+    <script src="./script.js"></script>
 
-    <script
-        src="./script.js"
-        defer
-    ></script>
+    <!-- =========================================================
+               FOND ANIMÉ – PARTICULES (canvas)
+               ========================================================= -->
+    <script>
+        (function initBackground() {
+            const canvas = document.getElementById('bgCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            let width, height;
+            const particles = [];
+            const NUM_PARTICLES = 150;
+            const MAX_SPEED = 0.3;
+            const MIN_RADIUS = 1.0;
+            const MAX_RADIUS = 2.5;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+
+            function createParticles() {
+                particles.length = 0;
+                for (let i = 0; i < NUM_PARTICLES; i++) {
+                    particles.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        radius: MIN_RADIUS + Math.random() * (MAX_RADIUS - MIN_RADIUS),
+                        dx: (Math.random() - 0.5) * MAX_SPEED * 2,
+                        dy: (Math.random() - 0.5) * MAX_SPEED * 2,
+                        opacity: 0.4 + Math.random() * 0.6,
+                        twinkleSpeed: 0.005 + Math.random() * 0.015,
+                        phase: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+
+            function updateParticles() {
+                for (const p of particles) {
+                    p.x += p.dx;
+                    p.y += p.dy;
+                    if (p.x < 0 || p.x > width) p.dx = -p.dx;
+                    if (p.y < 0 || p.y > height) p.dy = -p.dy;
+                    p.phase += p.twinkleSpeed;
+                }
+            }
+
+            function drawParticles() {
+                ctx.clearRect(0, 0, width, height);
+                for (const p of particles) {
+                    const alpha = p.opacity * (0.7 + 0.3 * Math.sin(p.phase));
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.fill();
+
+                    if (p.radius > 2.0) {
+                        ctx.shadowColor = `rgba(255, 215, 0, ${alpha * 0.15})`;
+                        ctx.shadowBlur = 8;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+
+            function animate() {
+                updateParticles();
+                drawParticles();
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => {
+                resize();
+                createParticles();
+            });
+
+            resize();
+            createParticles();
+            animate();
+        })();
+    </script>
 
 </body>
 
