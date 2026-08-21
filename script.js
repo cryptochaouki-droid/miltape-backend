@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (sans vérification manuelle)
+   SCRIPT CLIENT MILTAPE – Version finale (intégration Telegram WebApp)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -95,6 +95,47 @@ function applyTelegramTheme() {
     }
 }
 
+// 3.3 Haptic Feedback (vibrations Telegram)
+function hapticLight() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+    } catch (e) { /* Silencieux */ }
+}
+
+function hapticMedium() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
+    } catch (e) { /* Silencieux */ }
+}
+
+function hapticHeavy() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+        }
+    } catch (e) { /* Silencieux */ }
+}
+
+function hapticSuccess() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    } catch (e) { /* Silencieux */ }
+}
+
+function hapticError() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        }
+    } catch (e) { /* Silencieux */ }
+}
+
 // Appliquer le thème au chargement
 applyTelegramTheme();
 
@@ -142,6 +183,7 @@ if (demoBtn) {
             demoMode = false;
             localStorage.setItem("miltape_demo", "false");
             updateDemoUI();
+            hapticMedium();
             alert("🔒 Mode démo désactivé.");
             return;
         }
@@ -161,12 +203,15 @@ if (demoBtn) {
                 demoMode = true;
                 localStorage.setItem("miltape_demo", "true");
                 updateDemoUI();
+                hapticSuccess();
                 alert("🔬 Mode démo activé ! Tu peux jouer sans payer.");
             } else {
+                hapticError();
                 alert("❌ Mot de passe incorrect.");
             }
         } catch (error) {
             console.error("Erreur vérification mot de passe :", error);
+            hapticError();
             alert("❌ Erreur de connexion au serveur. Vérifie que le backend est en ligne.");
         }
     });
@@ -195,6 +240,7 @@ function joinSpectator() {
     if (betInput) betInput.disabled = true;
 
     socket.emit("spectator:join", { name });
+    hapticMedium();
 }
 
 if (spectatorBtn) {
@@ -265,6 +311,7 @@ socket.on('connect', async () => {
 
 socket.on('connect_error', (err) => {
     console.error('❌ Erreur de connexion Socket :', err.message);
+    hapticError();
     tapMessage.innerText = "⚠️ Erreur de connexion au serveur.";
 });
 
@@ -287,6 +334,7 @@ function joinGame() {
         if (!isNaN(rawBet) && rawBet >= 0.5 && rawBet <= 1000000) {
             bet = rawBet;
         } else {
+            hapticError();
             alert("⚠️ Mise invalide. Utilisation de 10 USDT par défaut.");
         }
     }
@@ -298,6 +346,7 @@ function joinGame() {
         tapMessage.innerText = "Connexion au serveur en cours...";
         socket.emit("player:join", { name, wallet, bet });
         localStorage.removeItem("miltape_spectator");
+        hapticMedium();
     }
 }
 
@@ -357,6 +406,7 @@ socket.on("player:joined", (data) => {
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
             }
         }
+        hapticMedium();
     }
 });
 
@@ -413,6 +463,7 @@ socket.on("player:restored", (data) => {
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
 
         console.log("✅ Session restaurée avec succès !");
+        hapticMedium();
     } else {
         console.warn("⚠️ Restauration échouée :", data.message);
         localStorage.removeItem("miltape_player_id");
@@ -432,6 +483,7 @@ socket.on("payment:verified", (data) => {
     if (data.verified && !isSpectator) {
         isPaid = true;
         tapButton.disabled = false;
+        hapticSuccess();
         if (data.automatic) {
             tapMessage.innerText = "✅ Paiement automatique détecté ! Tape maintenant !";
         } else {
@@ -467,6 +519,7 @@ socket.on("game:finished", (data) => {
 
             // Lancer les confettis s'il y a des gagnants
             launchConfetti();
+            hapticHeavy();
         } else {
             message += "❌ Aucun gagnant cette fois-ci.\n\n";
         }
@@ -540,7 +593,7 @@ function launchConfetti() {
 }
 
 // ==========================================
-// 15. GESTION DES CLICS (TAPS) + ANIMATION COMPTEUR
+// 15. GESTION DES CLICS (TAPS) + ANIMATION COMPTEUR + HAPTIC
 // ==========================================
 
 function animateTapCount() {
@@ -598,9 +651,8 @@ function tapEffects(event) {
     btn.parentElement.appendChild(ripple);
     setTimeout(() => ripple.remove(), 800);
 
-    if (navigator.vibrate) {
-        navigator.vibrate(10);
-    }
+    // Haptic feedback pour Telegram
+    hapticLight();
 }
 
 if (tapButton) {
@@ -608,6 +660,7 @@ if (tapButton) {
         if (!isPlaying || tapButton.disabled || !isPaid || isSpectator) {
             if (!isPaid && !isSpectator) {
                 tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
+                hapticError();
                 setTimeout(() => {
                     tapMessage.innerText = `💰 Paie ta mise pour taper !`;
                 }, 3000);
@@ -643,7 +696,7 @@ socket.on("timer:update", (data) => {
 });
 
 // ==========================================
-// 17. TOTAL DES MISES – MISE À JOUR DYNAMIQUE (NOUVEAU)
+// 17. TOTAL DES MISES – MISE À JOUR DYNAMIQUE
 // ==========================================
 socket.on("totalStakes:update", (data) => {
     const displayBet = document.getElementById('displayBet');
@@ -724,13 +777,15 @@ function initiatePayment(wallet, amount) {
                 const serverWallet = data.wallet;
                 const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
                 window.open(paymentUrl, '_blank');
-                // Message simplifié – pas besoin de "Vérifier"
+                hapticMedium();
                 alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\n✅ Le paiement sera détecté automatiquement !`);
             } else {
+                hapticError();
                 alert("❌ Impossible de récupérer le wallet du serveur.");
             }
         })
         .catch(err => {
+            hapticError();
             alert("❌ Erreur lors de la récupération du wallet.");
             console.error(err);
         });
@@ -740,6 +795,7 @@ function initiatePayment(wallet, amount) {
 // 21. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
+    hapticError();
     alert("⚠️ Erreur : " + err.message);
 });
 
@@ -757,6 +813,7 @@ function showMenuMessage(title, content) {
         modalTitle.textContent = title;
         modalBody.innerHTML = content;
         modal.classList.add('show');
+        hapticLight();
     }
 }
 
@@ -874,3 +931,27 @@ function toggleMenu() {
 if (menuButton) menuButton.addEventListener('click', toggleMenu);
 if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
 if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
+
+// ==========================================
+// 24. INITIALISATION DU BOUTON RETOUR TELEGRAM
+// ==========================================
+(function initTelegramBackButton() {
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            const webapp = window.Telegram.WebApp;
+            
+            // Agrandir l'app pour utiliser tout l'écran
+            webapp.expand();
+            
+            // Afficher le bouton "Retour"
+            webapp.BackButton.show();
+            webapp.BackButton.onClick(function() {
+                webapp.close();
+            });
+            
+            console.log("✅ Telegram WebApp bouton retour initialisé");
+        }
+    } catch (e) {
+        console.log("ℹ️ Pas de Telegram WebApp détecté");
+    }
+})();
