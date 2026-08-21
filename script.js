@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (intégration Telegram WebApp)
+   SCRIPT CLIENT MILTAPE – Version finale (intégration Telegram WebApp + tableau de bord)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -800,7 +800,7 @@ socket.on("error", (err) => {
 });
 
 // ==========================================
-// 22. MENU LATÉRAL + FONCTIONS DE MODALE
+// 22. MENU LATÉRAL + FONCTIONS DE MODALE (avec tableau de bord des gains)
 // ==========================================
 
 // ---- Fonction pour afficher une modale ----
@@ -856,15 +856,101 @@ if (menuRankingsBtn) {
     });
 }
 
+// ---- 🔥 NOUVEAU : Mes gains avec tableau de bord ----
 const menuGainsBtn = document.getElementById('menuGainsBtn');
 if (menuGainsBtn) {
     menuGainsBtn.addEventListener('click', function() {
-        showMenuMessage('💰 Mes gains',
-            `<p>Total gagné : <strong style="color:#ffcc00;">0 USDT</strong></p>
-             <p style="color:#888;font-size:12px;">Les gains sont versés en fin de partie.</p>`
-        );
+        // Récupérer le wallet ou playerId stocké
+        const wallet = localStorage.getItem("miltape_player_wallet");
+        const playerId = localStorage.getItem("miltape_player_id");
+        if (!wallet && !playerId) {
+            showMenuMessage('💰 Mes gains',
+                `<p style="color:#888;">Tu n'as pas encore de parties enregistrées.</p>
+                 <p style="color:#888;font-size:12px;">Rejoins une partie pour commencer !</p>`
+            );
+            return;
+        }
+
+        // Construire l'URL avec wallet ou playerId
+        let url = `${API_URL}/api/player/history?`;
+        if (playerId) url += `playerId=${playerId}`;
+        else url += `wallet=${wallet}`;
+
+        // Afficher un loader dans la modale
+        showMenuMessage('💰 Mes gains', `<div class="loader" style="margin:20px auto;"></div>`);
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    showMenuMessage('💰 Mes gains', `<p>Erreur: ${data.message}</p>`);
+                    return;
+                }
+
+                const p = data.player;
+                const history = data.history;
+
+                let html = `
+                    <div class="dashboard-stats" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:space-around; margin-bottom:15px;">
+                        <div class="stat-item" style="text-align:center; flex:1 1 80px;">
+                            <span class="stat-label" style="display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Total gagné</span>
+                            <span class="stat-value" style="display:block; font-size:20px; font-weight:900; color:var(--gold);">${p.totalGain} USDT</span>
+                        </div>
+                        <div class="stat-item" style="text-align:center; flex:1 1 80px;">
+                            <span class="stat-label" style="display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Parties jouées</span>
+                            <span class="stat-value" style="display:block; font-size:20px; font-weight:900; color:var(--gold);">${p.gamesPlayed}</span>
+                        </div>
+                        <div class="stat-item" style="text-align:center; flex:1 1 80px;">
+                            <span class="stat-label" style="display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Meilleur score</span>
+                            <span class="stat-value" style="display:block; font-size:20px; font-weight:900; color:var(--gold);">${p.bestScore} taps</span>
+                        </div>
+                    </div>
+                `;
+
+                if (history.length === 0) {
+                    html += `<p class="no-data-message" style="color:var(--muted); text-align:center; font-size:13px; padding:20px 0;">Aucune partie gagnée pour le moment.</p>`;
+                } else {
+                    html += `
+                        <div class="history-table-wrapper" style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+                            <table class="history-table" style="width:100%; border-collapse:collapse; font-size:11px; margin-top:5px;">
+                                <thead>
+                                    <tr style="color:var(--gold); border-bottom:1px solid rgba(255,255,255,0.08);">
+                                        <th style="text-align:left;padding:6px 4px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">#</th>
+                                        <th style="text-align:left;padding:6px 4px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Rang</th>
+                                        <th style="text-align:right;padding:6px 4px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Mise</th>
+                                        <th style="text-align:right;padding:6px 4px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Gain</th>
+                                        <th style="text-align:right;padding:6px 4px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Taps</th>
+                                        <th style="text-align:right;padding:6px 4px; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    history.forEach((h, idx) => {
+                        const date = new Date(h.createdAt).toLocaleDateString('fr-FR');
+                        html += `
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                <td style="padding:6px 4px;">${idx+1}</td>
+                                <td style="padding:6px 4px; font-weight:700; color:var(--gold);">#${h.rank}</td>
+                                <td style="padding:6px 4px; text-align:right;">${h.bet} USDT</td>
+                                <td style="padding:6px 4px; text-align:right; color:#3dff9a;">+${h.gain} USDT</td>
+                                <td style="padding:6px 4px; text-align:right;">${h.taps}</td>
+                                <td style="padding:6px 4px; text-align:right; color:var(--muted);">${date}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+
+                showMenuMessage('💰 Mes gains', html);
+            })
+            .catch(err => {
+                console.error(err);
+                showMenuMessage('💰 Mes gains', `<p style="color:#ff5b5b;">Erreur de chargement des gains.</p>`);
+            });
     });
 }
+
+// ---- Fin du nouveau bloc ----
 
 const menuWithdrawalsBtn = document.getElementById('menuWithdrawalsBtn');
 if (menuWithdrawalsBtn) {
@@ -939,16 +1025,16 @@ if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
     try {
         if (window.Telegram && window.Telegram.WebApp) {
             const webapp = window.Telegram.WebApp;
-            
+
             // Agrandir l'app pour utiliser tout l'écran
             webapp.expand();
-            
+
             // Afficher le bouton "Retour"
             webapp.BackButton.show();
             webapp.BackButton.onClick(function() {
                 webapp.close();
             });
-            
+
             console.log("✅ Telegram WebApp bouton retour initialisé");
         }
     } catch (e) {
