@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (intégration Telegram WebApp + tableau de bord)
+   SCRIPT CLIENT MILTAPE – Version finale (notifications + tableau de bord + Telegram)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -800,7 +800,77 @@ socket.on("error", (err) => {
 });
 
 // ==========================================
-// 22. MENU LATÉRAL + FONCTIONS DE MODALE (avec tableau de bord des gains)
+// 22. NOTIFICATIONS EN TEMPS RÉEL (NOUVEAU)
+// ==========================================
+
+// État des notifications
+let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
+let notificationQueue = [];
+let isNotificationShowing = false;
+const NOTIFICATION_DURATION = 4000;
+
+// Toggle dans le menu
+const notifToggle = document.getElementById('notifToggle');
+if (notifToggle) {
+    notifToggle.checked = notificationsEnabled;
+    notifToggle.addEventListener('change', function() {
+        notificationsEnabled = this.checked;
+        localStorage.setItem("miltape_notifications", this.checked.toString());
+    });
+}
+
+// Icône selon le type de notification
+function getNotifIcon(type) {
+    const icons = {
+        'info': '📢',
+        'success': '✅',
+        'warning': '⏱️',
+        'alert': '🔔',
+        'champion': '🏆'
+    };
+    return icons[type] || '📢';
+}
+
+// Afficher une notification
+function showNotification(type, message, data = {}) {
+    if (!notificationsEnabled) return;
+
+    const container = document.getElementById('notificationContainer');
+    if (!container) return;
+
+    const notif = document.createElement('div');
+    notif.className = `notification ${type}`;
+    notif.innerHTML = `
+        <span style="display:flex; align-items:center; gap:8px;">
+            <span class="notif-icon">${getNotifIcon(type)}</span>
+            <span class="notif-text">${message}</span>
+        </span>
+    `;
+    container.appendChild(notif);
+
+    // Haptic feedback selon le type
+    if (type === 'champion') hapticHeavy();
+    else if (type === 'success') hapticMedium();
+    else hapticLight();
+
+    // Supprimer après délai
+    setTimeout(() => {
+        if (notif.parentNode) {
+            notif.classList.add('hiding');
+            setTimeout(() => {
+                if (notif.parentNode) notif.remove();
+            }, 300);
+        }
+    }, NOTIFICATION_DURATION);
+}
+
+// Écouter les notifications du serveur
+socket.on("notification:new", (data) => {
+    showNotification(data.type, data.message, data.data);
+});
+
+// ==========================================
+// 23. MENU LATÉRAL + FONCTIONS DE MODALE (avec tableau de bord des gains)
 // ==========================================
 
 // ---- Fonction pour afficher une modale ----
@@ -856,7 +926,7 @@ if (menuRankingsBtn) {
     });
 }
 
-// ---- 🔥 NOUVEAU : Mes gains avec tableau de bord ----
+// ---- Mes gains avec tableau de bord ----
 const menuGainsBtn = document.getElementById('menuGainsBtn');
 if (menuGainsBtn) {
     menuGainsBtn.addEventListener('click', function() {
@@ -950,7 +1020,7 @@ if (menuGainsBtn) {
     });
 }
 
-// ---- Fin du nouveau bloc ----
+// ---- Fin du bloc des gains ----
 
 const menuWithdrawalsBtn = document.getElementById('menuWithdrawalsBtn');
 if (menuWithdrawalsBtn) {
@@ -1000,7 +1070,7 @@ if (menuRulesBtn) {
 }
 
 // ==========================================
-// 23. MENU LATÉRAL (ouverture/fermeture)
+// 24. MENU LATÉRAL (ouverture/fermeture)
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
@@ -1019,7 +1089,7 @@ if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
 if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
 
 // ==========================================
-// 24. INITIALISATION DU BOUTON RETOUR TELEGRAM
+// 25. INITIALISATION DU BOUTON RETOUR TELEGRAM
 // ==========================================
 (function initTelegramBackButton() {
     try {
