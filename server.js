@@ -203,9 +203,28 @@ const paymentSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+// ============================================================
+// SCHEMA HISTORIQUE (NOUVEAU)
+// ============================================================
+const historySchema = new mongoose.Schema(
+    {
+        playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true },
+        playerName: { type: String, required: true },
+        wallet: { type: String, required: true },
+        gameId: { type: String, required: true },
+        rank: { type: Number, required: true },
+        bet: { type: Number, required: true },
+        gain: { type: Number, required: true },
+        taps: { type: Number, required: true },
+        createdAt: { type: Date, default: Date.now }
+    },
+    { timestamps: true }
+);
+
 const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
 const Payment = mongoose.model("Payment", paymentSchema);
+const History = mongoose.model("History", historySchema);
 
 // ============================================================
 // MONGODB
@@ -283,7 +302,7 @@ async function getLeaderboard() {
 }
 
 // ============================================================
-// TOTAL DES MISES (NOUVEAU)
+// TOTAL DES MISES
 // ============================================================
 
 async function getTotalStakes() {
@@ -525,7 +544,7 @@ async function startGame() {
 }
 
 // ============================================================
-// FIN GAME – AVEC REDISTRIBUTION DOUBLE MISE
+// FIN GAME – AVEC REDISTRIBUTION DOUBLE MISE ET HISTORIQUE
 // ============================================================
 
 async function finishGame() {
@@ -560,7 +579,8 @@ async function finishGame() {
             wallet: player.wallet,
             bet: player.bet,
             gain: gain,
-            taps: player.taps
+            taps: player.taps,
+            _id: player._id
         };
     });
 
@@ -581,9 +601,21 @@ async function finishGame() {
         console.log(`✅ BÉNÉFICE SERVEUR : ${Math.abs(deficit)} USDT`);
     }
 
-    // 7. Marquer les gagnants comme "payés"
+    // 7. Marquer les gagnants comme "payés" et enregistrer l'historique
     for (const winner of winners) {
         await Player.findByIdAndUpdate(winner._id, { paid: true });
+
+        // Enregistrer dans l'historique
+        await History.create({
+            playerId: winner._id,
+            playerName: winner.name,
+            wallet: winner.wallet,
+            gameId: game.id,
+            rank: winner.rank,
+            bet: winner.bet,
+            gain: winner.gain,
+            taps: winner.taps
+        });
     }
 
     // 8. Émettre les résultats aux clients
@@ -893,6 +925,54 @@ app.get("/api/total-stakes", async (req, res) => {
 });
 
 // ============================================================
+// API HISTORIQUE DES GAINS (NOUVEAU)
+// ============================================================
+
+app.get("/api/player/history", async (req, res) => {
+    try {
+        const { wallet, playerId } = req.query;
+        if (!wallet && !playerId) {
+            return res.status(400).json({ success: false, message: "wallet ou playerId requis" });
+        }
+
+        let player = null;
+        if (playerId) {
+            player = await Player.findById(playerId);
+        } else {
+            player = await Player.findOne({ wallet: normalizeWallet(wallet) });
+        }
+        if (!player) {
+            return res.status(404).json({ success: false, message: "Joueur introuvable" });
+        }
+
+        const history = await History.find({ playerId: player._id })
+            .sort({ createdAt: -1 })
+            .limit(100);
+
+        const totalGain = history.reduce((sum, h) => sum + h.gain, 0);
+        const totalBets = history.reduce((sum, h) => sum + h.bet, 0);
+        const gamesPlayed = history.length;
+        const bestScore = history.length > 0 ? Math.max(...history.map(h => h.taps)) : 0;
+
+        res.json({
+            success: true,
+            player: {
+                name: player.name,
+                wallet: player.wallet,
+                totalGain,
+                totalBets,
+                gamesPlayed,
+                bestScore
+            },
+            history
+        });
+    } catch (error) {
+        console.error("/api/player/history:", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ============================================================
 // API EXISTANTES
 // ============================================================
 
@@ -1188,6 +1268,7 @@ server.listen(PORT, async () => {
     console.log("👁️ Mode spectateur activé");
     console.log("💸 Surveillance automatique des paiements activée (15s)");
     console.log("📊 Total des mises dynamique");
+    console.log("📈 Historique des gains activé");
     console.log("==============================================");
 
     try {
