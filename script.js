@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur + menu + animations)
+   SCRIPT CLIENT MILTAPE – Version finale (sécurisée + spectateur + menu + animations + paiement auto)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -445,7 +445,11 @@ socket.on("payment:verified", (data) => {
     if (data.verified && !isSpectator) {
         isPaid = true;
         tapButton.disabled = false;
-        tapMessage.innerText = "✅ Paiement vérifié ! Tape maintenant !";
+        if (data.automatic) {
+            tapMessage.innerText = "✅ Paiement automatique détecté ! Tape maintenant !";
+        } else {
+            tapMessage.innerText = "✅ Paiement vérifié ! Tape maintenant !";
+        }
         if (payButton) payButton.style.display = 'none';
         if (verifyPaymentBtn) verifyPaymentBtn.style.display = 'none';
     }
@@ -733,7 +737,7 @@ function initiatePayment(wallet, amount) {
 }
 
 // ==========================================
-// 20. PAYEMENT – VÉRIFICATION
+// 20. PAYEMENT – VÉRIFICATION (manuel)
 // ==========================================
 function verifyPayment(playerId, wallet, amount) {
     const txId = prompt("✏️ Entre l'ID de ta transaction USDT (TRC20) :");
