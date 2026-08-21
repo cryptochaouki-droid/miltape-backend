@@ -1,5 +1,5 @@
 /* =========================================================
-   SCRIPT CLIENT MILTAPE – Version finale (notifications + tableau de bord + Telegram)
+   SCRIPT CLIENT MILTAPE – Version finale (notifications + tableau de bord + Telegram + ticker)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY
@@ -520,6 +520,14 @@ socket.on("game:finished", (data) => {
             // Lancer les confettis s'il y a des gagnants
             launchConfetti();
             hapticHeavy();
+
+            // Ajouter les gagnants au bandeau (ticker)
+            data.winners.forEach((winner, index) => {
+                setTimeout(() => {
+                    addWinnerToTicker(winner.name, winner.gain, winner.rank);
+                }, index * 200);
+            });
+
         } else {
             message += "❌ Aucun gagnant cette fois-ci.\n\n";
         }
@@ -879,10 +887,84 @@ function showNotification(type, message, data = {}) {
 // Écouter les notifications du serveur
 socket.on("notification:new", (data) => {
     showNotification(data.type, data.message, data.data);
+
+    // Ajouter les gagnants au bandeau (ticker)
+    if (data.type === 'champion') {
+        const match = data.message.match(/#\d+\s+(\S+)\s+→\s+(\d+\.?\d*)/);
+        if (match) {
+            const name = match[1];
+            const amount = match[2];
+            const rank = data.data?.winner?.rank || 1;
+            addWinnerToTicker(name, amount, rank);
+        }
+    }
 });
 
 // ==========================================
-// 23. MENU LATÉRAL + FONCTIONS DE MODALE (avec tableau de bord des gains)
+// 23. BANDEAU DES GAGNANTS (TICKER) – NOUVEAU
+// ==========================================
+
+const winnerTicker = document.getElementById('winnerTicker');
+const tickerTrack = document.getElementById('tickerTrack');
+let tickerItems = [];
+const MAX_TICKER_ITEMS = 20;
+
+function addWinnerToTicker(name, amount, rank) {
+    if (!name) return;
+    // Vérifier si le nom est déjà dans le bandeau (éviter les doublons récents)
+    const existing = tickerItems.find(item => item.name === name);
+    if (existing) {
+        existing.amount = amount;
+        updateTickerDisplay();
+        return;
+    }
+
+    const emoji = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
+    tickerItems.push({ name, amount, rank, emoji });
+
+    if (tickerItems.length > MAX_TICKER_ITEMS) {
+        tickerItems.shift();
+    }
+
+    updateTickerDisplay();
+    showTicker();
+}
+
+function updateTickerDisplay() {
+    if (!tickerTrack) return;
+    let html = '';
+    // Doubler les items pour un défilement infini
+    const doubledItems = [...tickerItems, ...tickerItems];
+    for (const item of doubledItems) {
+        const displayAmount = typeof item.amount === 'number' ? `${item.amount} USDT` : item.amount;
+        html += `
+            <span class="ticker-item">
+                <span class="trophy">${item.emoji}</span>
+                <span class="name">${item.name}</span>
+                <span>→</span>
+                <span class="amount">${displayAmount}</span>
+            </span>
+        `;
+    }
+    tickerTrack.innerHTML = html;
+    // Réinitialiser l'animation pour éviter les sauts
+    tickerTrack.style.animation = 'none';
+    void tickerTrack.offsetWidth;
+    tickerTrack.style.animation = 'tickerScroll 20s linear infinite';
+}
+
+function showTicker() {
+    if (winnerTicker) winnerTicker.classList.add('show');
+}
+
+function hideTicker() {
+    if (winnerTicker && tickerItems.length === 0) {
+        winnerTicker.classList.remove('show');
+    }
+}
+
+// ==========================================
+// 24. MENU LATÉRAL + FONCTIONS DE MODALE (avec tableau de bord des gains)
 // ==========================================
 
 // ---- Fonction pour afficher une modale ----
@@ -1082,7 +1164,7 @@ if (menuRulesBtn) {
 }
 
 // ==========================================
-// 24. MENU LATÉRAL (ouverture/fermeture)
+// 25. MENU LATÉRAL (ouverture/fermeture)
 // ==========================================
 const menuButton = document.getElementById('menuButton');
 const sideMenu = document.getElementById('sideMenu');
@@ -1101,7 +1183,7 @@ if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
 if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
 
 // ==========================================
-// 25. INITIALISATION DU BOUTON RETOUR TELEGRAM
+// 26. INITIALISATION DU BOUTON RETOUR TELEGRAM
 // ==========================================
 (function initTelegramBackButton() {
     try {
