@@ -23,6 +23,39 @@
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+    <!-- =========================================================
+               INITIALISATION TELEGRAM WEBBAPP
+               ========================================================= -->
+    <script>
+        (function initTelegramWebApp() {
+            try {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    const webapp = window.Telegram.WebApp;
+
+                    // 1. Agrandir l'app pour utiliser tout l'écran
+                    webapp.expand();
+
+                    // 2. Activer le bouton "Retour"
+                    webapp.BackButton.show();
+                    webapp.BackButton.onClick(function() {
+                        webapp.close();
+                    });
+
+                    // 3. Appliquer le thème (déjà fait dans script.js, mais on le fait aussi ici)
+                    if (webapp.colorScheme) {
+                        document.body.setAttribute('data-telegram-theme', webapp.colorScheme);
+                    }
+
+                    console.log("✅ Telegram WebApp initialisée avec bouton retour");
+                } else {
+                    console.log("ℹ️ Pas de Telegram WebApp détecté (navigation normale)");
+                }
+            } catch (e) {
+                console.warn("⚠️ Erreur init Telegram WebApp:", e);
+            }
+        })();
+    </script>
+
     <!-- TronWeb -->
     <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
 
