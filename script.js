@@ -59,7 +59,7 @@ function getTelegramUser() {
         }
         return null;
     } catch (e) {
-        console.warn("⚠️ Impossible de récupérer l'utilisateur Telegram:", e);
+        console.warn("Impossible de récupérer l'utilisateur Telegram:", e);
         return null;
     }
 }
@@ -88,10 +88,10 @@ function applyTelegramTheme() {
                 document.documentElement.style.setProperty('--gold', themeParams.button_color);
             }
 
-            console.log("🎨 Thème Telegram appliqué :", colorScheme);
+            console.log("Thème Telegram appliqué :", colorScheme);
         }
     } catch (e) {
-        console.warn("⚠️ Impossible d'appliquer le thème Telegram:", e);
+        console.warn("Impossible d'appliquer le thème Telegram:", e);
     }
 }
 
@@ -112,26 +112,26 @@ let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
 function updateDemoUI() {
     if (demoMode) {
         if (demoStatus) {
-            demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)";
+            demoStatus.textContent = "Mode démo ACTIVÉ (paiements simulés)";
             demoStatus.style.color = "#ffcc00";
         }
         if (demoBtn) {
-            demoBtn.textContent = "🔬 DÉSACTIVER MODE DÉMO";
+            demoBtn.textContent = "DESACTIVER MODE DEMO";
             demoBtn.style.background = "rgba(255,50,50,0.2)";
             demoBtn.style.borderColor = "rgba(255,50,50,0.5)";
         }
-        if (!isSpectator) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
+        if (!isSpectator) tapMessage.innerText = "MODE DEMO ACTIF - Tu peux jouer sans payer !";
     } else {
         if (demoStatus) {
-            demoStatus.textContent = "🔒 Mode démo désactivé";
+            demoStatus.textContent = "Mode démo désactivé";
             demoStatus.style.color = "#888";
         }
         if (demoBtn) {
-            demoBtn.textContent = "🎮 ACTIVER MODE DÉMO";
+            demoBtn.textContent = "ACTIVER MODE DEMO";
             demoBtn.style.background = "rgba(255,204,0,0.2)";
             demoBtn.style.borderColor = "rgba(255,204,0,0.35)";
         }
-        if (!isSpectator) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
+        if (!isSpectator) tapMessage.innerText = "CHOISIS TA MISE ET CONNECTE TON WALLET";
     }
 }
 updateDemoUI();
@@ -142,11 +142,11 @@ if (demoBtn) {
             demoMode = false;
             localStorage.setItem("miltape_demo", "false");
             updateDemoUI();
-            alert("🔒 Mode démo désactivé.");
+            alert("Mode démo désactivé.");
             return;
         }
 
-        const password = prompt("🔐 Entrez le mot de passe administrateur pour activer le mode démo :");
+        const password = prompt("Entrez le mot de passe administrateur pour activer le mode démo :");
         if (!password) return;
 
         try {
@@ -161,13 +161,13 @@ if (demoBtn) {
                 demoMode = true;
                 localStorage.setItem("miltape_demo", "true");
                 updateDemoUI();
-                alert("🔬 Mode démo activé ! Tu peux jouer sans payer.");
+                alert("Mode démo activé ! Tu peux jouer sans payer.");
             } else {
-                alert("❌ Mot de passe incorrect.");
+                alert("Mot de passe incorrect.");
             }
         } catch (error) {
             console.error("Erreur vérification mot de passe :", error);
-            alert("❌ Erreur de connexion au serveur. Vérifie que le backend est en ligne.");
+            alert("Erreur de connexion au serveur. Vérifie que le backend est en ligne.");
         }
     });
 }
@@ -184,11 +184,11 @@ function joinSpectator() {
     isPlaying = true;
     isPaid = true;
     tapButton.disabled = true;
-    tapMessage.innerText = `👁️ Mode spectateur : ${name} regarde la partie !`;
+    tapMessage.innerText = `Mode spectateur : ${name} regarde la partie !`;
     enterChallenge.style.display = 'none';
     if (spectatorBtn) {
         spectatorBtn.classList.add('active');
-        spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF';
+        spectatorBtn.textContent = 'SPECTATEUR ACTIF';
     }
 
     if (payButton) payButton.style.display = 'none';
@@ -215,11 +215,11 @@ async function restoreSession() {
         isPlaying = true;
         isPaid = true;
         tapButton.disabled = true;
-        tapMessage.innerText = `👁️ Spectateur : ${name}`;
+        tapMessage.innerText = `Spectateur : ${name}`;
         enterChallenge.style.display = 'none';
         if (spectatorBtn) {
             spectatorBtn.classList.add('active');
-            spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF';
+            spectatorBtn.textContent = 'SPECTATEUR ACTIF';
         }
         if (payButton) payButton.style.display = 'none';
         if (betInput) betInput.disabled = true;
@@ -227,7 +227,7 @@ async function restoreSession() {
     }
 
     if (!playerId || !wallet || !name) {
-        console.log("🔍 Aucune session trouvée.");
+        console.log("Aucune session trouvée.");
         return false;
     }
 
@@ -235,7 +235,7 @@ async function restoreSession() {
         const res = await fetch(`${API_URL}/api/status`);
         const data = await res.json();
         if (data.status !== "running") {
-            console.log("⏰ La partie est terminée, pas de restauration.");
+            console.log("La partie est terminée, pas de restauration.");
             localStorage.removeItem("miltape_player_id");
             localStorage.removeItem("miltape_player_wallet");
             localStorage.removeItem("miltape_player_name");
@@ -244,12 +244,12 @@ async function restoreSession() {
             return false;
         }
     } catch (error) {
-        console.error("❌ Erreur vérification statut :", error);
+        console.error("Erreur vérification statut :", error);
         return false;
     }
 
     socket.emit("player:restore", { playerId, wallet });
-    console.log("🔄 Demande de restauration envoyée...");
+    console.log("Demande de restauration envoyée...");
     return true;
 }
 
@@ -257,20 +257,20 @@ async function restoreSession() {
 // 7. LOGS DE CONNEXION + RESTAURATION AUTO
 // ==========================================
 socket.on('connect', async () => {
-    console.log('✅ Socket connecté avec ID :', socket.id);
-    if (!demoMode) tapMessage.innerText = "✅ Connecté au serveur !";
+    console.log('Socket connecté avec ID :', socket.id);
+    if (!demoMode) tapMessage.innerText = "Connecté au serveur !";
 
     await restoreSession();
 });
 
 socket.on('connect_error', (err) => {
-    console.error('❌ Erreur de connexion Socket :', err.message);
-    tapMessage.innerText = "⚠️ Erreur de connexion au serveur.";
+    console.error('Erreur de connexion Socket :', err.message);
+    tapMessage.innerText = "Erreur de connexion au serveur.";
 });
 
 socket.on('disconnect', (reason) => {
-    console.log('🔴 Socket déconnecté :', reason);
-    tapMessage.innerText = "🔴 Déconnecté du serveur.";
+    console.log('Socket déconnecté :', reason);
+    tapMessage.innerText = "Déconnecté du serveur.";
 });
 
 // ==========================================
@@ -287,7 +287,7 @@ function joinGame() {
         if (!isNaN(rawBet) && rawBet >= 0.5 && rawBet <= 1000000) {
             bet = rawBet;
         } else {
-            alert("⚠️ Mise invalide. Utilisation de 10 USDT par défaut.");
+            alert("Mise invalide. Utilisation de 10 USDT par défaut.");
         }
     }
 
@@ -314,7 +314,7 @@ socket.on("player:joined", (data) => {
         isSpectator = false;
         myPlayerId = data.player.id;
         tapButton.disabled = true;
-        tapMessage.innerText = `💰 ${data.player.name}, paie ta mise pour taper !`;
+        tapMessage.innerText = `${data.player.name}, paie ta mise pour taper !`;
         enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
@@ -328,7 +328,7 @@ socket.on("player:joined", (data) => {
         if (demoMode) {
             isPaid = true;
             tapButton.disabled = false;
-            tapMessage.innerText = `🔬 Mode démo : ${data.player.name}, tape !`;
+            tapMessage.innerText = `Mode démo : ${data.player.name}, tape !`;
             if (payButton) payButton.style.display = 'none';
 
             fetch(API_URL + "/api/payment/verify", {
@@ -344,9 +344,9 @@ socket.on("player:joined", (data) => {
             .then(res => res.json())
             .then(data => {
                 if (data.verified) {
-                    console.log("✅ Mode démo : paiement simulé avec succès");
+                    console.log("Mode démo : paiement simulé avec succès");
                 } else {
-                    console.warn("⚠️ Mode démo : la simulation a échoué, mais le jeu continue.");
+                    console.warn("Mode démo : la simulation a échoué, mais le jeu continue.");
                 }
             })
             .catch(err => console.error("Erreur mode démo :", err));
@@ -369,7 +369,7 @@ socket.on("spectator:joined", (data) => {
         isPlaying = true;
         isPaid = true;
         tapButton.disabled = true;
-        tapMessage.innerText = `👁️ Vous regardez en direct (${data.spectators} spectateurs)`;
+        tapMessage.innerText = `Vous regardez en direct (${data.spectators} spectateurs)`;
         if (payButton) payButton.style.display = 'none';
         if (betInput) betInput.disabled = true;
         localStorage.setItem("miltape_spectator", "true");
@@ -392,11 +392,11 @@ socket.on("player:restored", (data) => {
         if (demoMode) {
             isPaid = true;
             tapButton.disabled = false;
-            tapMessage.innerText = `🔬 Mode démo : bon retour ${data.player.name} !`;
+            tapMessage.innerText = `Mode démo : bon retour ${data.player.name} !`;
         } else {
             isPaid = false;
             tapButton.disabled = true;
-            tapMessage.innerText = `💰 ${data.player.name}, paie ta mise pour continuer à taper !`;
+            tapMessage.innerText = `${data.player.name}, paie ta mise pour continuer à taper !`;
             if (payButton) {
                 payButton.style.display = 'block';
                 payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
@@ -412,16 +412,16 @@ socket.on("player:restored", (data) => {
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
 
-        console.log("✅ Session restaurée avec succès !");
+        console.log("Session restaurée avec succès !");
     } else {
-        console.warn("⚠️ Restauration échouée :", data.message);
+        console.warn("Restauration échouée :", data.message);
         localStorage.removeItem("miltape_player_id");
         localStorage.removeItem("miltape_player_wallet");
         localStorage.removeItem("miltape_player_name");
         localStorage.removeItem("miltape_player_bet");
         localStorage.removeItem("miltape_spectator");
         enterChallenge.style.display = 'block';
-        tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
+        tapMessage.innerText = "Rejoins la nouvelle partie !";
     }
 });
 
@@ -433,9 +433,9 @@ socket.on("payment:verified", (data) => {
         isPaid = true;
         tapButton.disabled = false;
         if (data.automatic) {
-            tapMessage.innerText = "✅ Paiement automatique détecté ! Tape maintenant !";
+            tapMessage.innerText = "Paiement automatique détecté ! Tape maintenant !";
         } else {
-            tapMessage.innerText = "✅ Paiement vérifié ! Tape maintenant !";
+            tapMessage.innerText = "Paiement vérifié ! Tape maintenant !";
         }
         if (payButton) payButton.style.display = 'none';
     }
@@ -445,7 +445,7 @@ socket.on("payment:verified", (data) => {
 // 13. FIN DE PARTIE – RÉINITIALISATION + CONFETTIS
 // ==========================================
 socket.on("game:finished", (data) => {
-    console.log("🏁 Partie terminée !", data);
+    console.log("Partie terminée !", data);
 
     if (tapCount) tapCount.innerText = "0";
     if (tapButtonCount) tapButtonCount.innerText = "0";
@@ -454,42 +454,42 @@ socket.on("game:finished", (data) => {
     tapButton.disabled = true;
 
     if (!isSpectator) {
-        let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n";
-        message += "═".repeat(30) + "\n\n";
+        let message = "RESULTATS DE LA PARTIE\n";
+        message += "==============================\n\n";
 
         if (data.winners && data.winners.length > 0) {
-            message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";
+            message += "Les 5 gagnants (2x leur mise) :\n\n";
             data.winners.forEach((w, index) => {
-                const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
+                const emoji = index === 0 ? "1er" : index === 1 ? "2eme" : index === 2 ? "3eme" : "Gagnant";
                 message += `${emoji} #${w.rank} ${w.name}\n`;
-                message += `   Mise : ${w.bet} USDT → Gain : ${w.gain} USDT\n\n`;
+                message += `   Mise : ${w.bet} USDT -> Gain : ${w.gain} USDT\n\n`;
             });
 
             // Lancer les confettis s'il y a des gagnants
             launchConfetti();
         } else {
-            message += "❌ Aucun gagnant cette fois-ci.\n\n";
+            message += "Aucun gagnant cette fois-ci.\n\n";
         }
 
-        message += "═".repeat(30) + "\n";
-        message += `💰 Total des mises : ${data.totalStakes} USDT\n`;
-        message += `💸 Total redistribué : ${data.totalPayout} USDT\n`;
+        message += "==============================\n";
+        message += `Total des mises : ${data.totalStakes} USDT\n`;
+        message += `Total redistribué : ${data.totalPayout} USDT\n`;
 
         if (data.deficit > 0) {
-            message += `📉 Déficit (serveur) : ${data.deficit} USDT\n`;
-            message += `ℹ️ Le wallet du serveur a comblé la différence.\n`;
+            message += `Déficit (serveur) : ${data.deficit} USDT\n`;
+            message += `Le wallet du serveur a comblé la différence.\n`;
         } else {
-            message += `✅ Bénéfice serveur : ${Math.abs(data.deficit)} USDT\n`;
+            message += `Bénéfice serveur : ${Math.abs(data.deficit)} USDT\n`;
         }
 
-        message += "═".repeat(30) + "\n";
-        message += "🔥 Prochaine partie dans 5 secondes...";
+        message += "==============================\n";
+        message += "Prochaine partie dans 5 secondes...";
 
-        tapMessage.innerText = `🏆 Partie terminée ! ${data.winners ? data.winners.length : 0} gagnant(s) !`;
+        tapMessage.innerText = `Partie terminée ! ${data.winners ? data.winners.length : 0} gagnant(s) !`;
         alert(message);
         console.log(message);
     } else {
-        tapMessage.innerText = `👁️ Partie terminée ! Prochaine partie dans 5 secondes...`;
+        tapMessage.innerText = `Partie terminée ! Prochaine partie dans 5 secondes...`;
     }
 
     enterChallenge.style.display = 'block';
@@ -497,7 +497,7 @@ socket.on("game:finished", (data) => {
     if (betInput) betInput.disabled = false;
     if (spectatorBtn) {
         spectatorBtn.classList.remove('active');
-        spectatorBtn.textContent = '👁️ REGARDER EN DIRECT (Spectateur)';
+        spectatorBtn.textContent = 'REGARDER EN DIRECT (Spectateur)';
     }
     isSpectator = false;
 
@@ -607,9 +607,9 @@ if (tapButton) {
     tapButton.addEventListener('click', function(event) {
         if (!isPlaying || tapButton.disabled || !isPaid || isSpectator) {
             if (!isPaid && !isSpectator) {
-                tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
+                tapMessage.innerText = "Tu dois payer ta mise avant de taper !";
                 setTimeout(() => {
-                    tapMessage.innerText = `💰 Paie ta mise pour taper !`;
+                    tapMessage.innerText = `Paie ta mise pour taper !`;
                 }, 3000);
             }
             return;
@@ -711,13 +711,13 @@ function initiatePayment(wallet, amount) {
                 const paymentUrl = `https://t.me/wallet?start=transfer?to=${serverWallet}&amount=${amount}&token=USDT`;
                 window.open(paymentUrl, '_blank');
                 // Message simplifié – pas besoin de "Vérifier"
-                alert(`💰 Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\n✅ Le paiement sera détecté automatiquement !`);
+                alert(`Envoie ${amount} USDT (TRC20) vers :\n${serverWallet}\n\nLe paiement sera détecté automatiquement !`);
             } else {
-                alert("❌ Impossible de récupérer le wallet du serveur.");
+                alert("Impossible de récupérer le wallet du serveur.");
             }
         })
         .catch(err => {
-            alert("❌ Erreur lors de la récupération du wallet.");
+            alert("Erreur lors de la récupération du wallet.");
             console.error(err);
         });
 }
@@ -726,7 +726,7 @@ function initiatePayment(wallet, amount) {
 // 20. GESTION DES ERREURS SOCKET
 // ==========================================
 socket.on("error", (err) => {
-    alert("⚠️ Erreur : " + err.message);
+    alert("Erreur : " + err.message);
 });
 
 // ==========================================
@@ -767,7 +767,7 @@ if (modalOverlay) {
 const menuGamesBtn = document.getElementById('menuGamesBtn');
 if (menuGamesBtn) {
     menuGamesBtn.addEventListener('click', function() {
-        showMenuMessage('🎮 Mes parties',
+        showMenuMessage('Mes parties',
             `<p>Tu n'as pas encore de parties enregistrées.</p>
              <p style="color:#888;font-size:12px;">Rejoins une partie pour commencer !</p>`
         );
@@ -778,7 +778,7 @@ const menuRankingsBtn = document.getElementById('menuRankingsBtn');
 if (menuRankingsBtn) {
     menuRankingsBtn.addEventListener('click', function() {
         const score = tapCount ? tapCount.textContent : '0';
-        showMenuMessage('🏆 Mes classements',
+        showMenuMessage('Mes classements',
             `<p>Ton meilleur score : <strong style="color:#ffcc00;">${score}</strong> taps</p>
              <p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>`
         );
@@ -788,7 +788,7 @@ if (menuRankingsBtn) {
 const menuGainsBtn = document.getElementById('menuGainsBtn');
 if (menuGainsBtn) {
     menuGainsBtn.addEventListener('click', function() {
-        showMenuMessage('💰 Mes gains',
+        showMenuMessage('Mes gains',
             `<p>Total gagné : <strong style="color:#ffcc00;">0 USDT</strong></p>
              <p style="color:#888;font-size:12px;">Les gains sont versés en fin de partie.</p>`
         );
@@ -798,7 +798,7 @@ if (menuGainsBtn) {
 const menuWithdrawalsBtn = document.getElementById('menuWithdrawalsBtn');
 if (menuWithdrawalsBtn) {
     menuWithdrawalsBtn.addEventListener('click', function() {
-        showMenuMessage('💸 Mes retraits',
+        showMenuMessage('Mes retraits',
             `<p>Tu n'as pas encore effectué de retrait.</p>
              <p style="color:#888;font-size:12px;">Les retraits sont disponibles après chaque partie.</p>`
         );
@@ -808,7 +808,7 @@ if (menuWithdrawalsBtn) {
 const menuReferralBtn = document.getElementById('menuReferralBtn');
 if (menuReferralBtn) {
     menuReferralBtn.addEventListener('click', function() {
-        showMenuMessage('👥 Parrainage',
+        showMenuMessage('Parrainage',
             `<p>Parraine tes amis et gagne des bonus !</p>
              <p style="color:#888;font-size:12px;">Lien de parrainage :<br>
              <span style="color:#ffcc00;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>`
@@ -832,12 +832,12 @@ if (menuChatBtn) {
 const menuRulesBtn = document.getElementById('menuRulesBtn');
 if (menuRulesBtn) {
     menuRulesBtn.addEventListener('click', function() {
-        showMenuMessage('📜 Règles du jeu',
-            `<p><strong>⏱️ 10 minutes</strong> pour taper le plus possible.</p>
-             <p><strong>🏆 Top 5</strong> seulement.</p>
-             <p><strong>🪙 USDT (TRC20)</strong> – mise de 0.50 à 1 000 000 USDT.</p>
-             <p><strong>💰 Gains :</strong> les 5 premiers gagnent 2x leur mise.</p>
-             <p style="color:#888;font-size:12px;">Bonne chance ! 🔥</p>`
+        showMenuMessage('Règles du jeu',
+            `<p><strong>10 minutes</strong> pour taper le plus possible.</p>
+             <p><strong>Top 5</strong> seulement.</p>
+             <p><strong>USDT (TRC20)</strong> – mise de 0.50 à 1 000 000 USDT.</p>
+             <p><strong>Gains :</strong> les 5 premiers gagnent 2x leur mise.</p>
+             <p style="color:#888;font-size:12px;">Bonne chance !</p>`
         );
     });
 }
