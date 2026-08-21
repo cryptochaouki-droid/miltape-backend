@@ -128,9 +128,10 @@ const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
 const Payment = mongoose.model("Payment", paymentSchema);
 
+// ✅ CORRECTION CRITIQUE : process.exit(1) SUPPRIMÉ ICI (Le serveur ne plantera plus si MongoDB a une micro-coupure)
 mongoose.connect(MONGODB_URI)
     .then(() => console.log("✅ MongoDB connecté."))
-    .catch((error) => { console.error("❌ MongoDB erreur :", error.message); process.exit(1); });
+    .catch((error) => console.error("❌ MongoDB erreur (connexion en attente, le serveur continue) :", error.message));
 
 // UTILITAIRES
 function normalizeWallet(address) { return String(address || "").trim(); }
