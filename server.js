@@ -79,12 +79,21 @@ const server = http.createServer(app);
 app.use(helmet());
 
 // ============================================================
-// ✅ CORS CORRIGÉ ICI (avec /miltape-backend)
+// ✅ CORS CORRIGÉ (avec /miltape-backend)
 // ============================================================
 const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io/miltape-backend";
 app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+// ============================================================
+// 🛠️ CORRECTION DU REDÉMARRAGE INFINI (On ignore /api/status pour le Healthcheck de Railway !)
+// ============================================================
+const limiter = rateLimit({ 
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
+    standardHeaders: true, 
+    legacyHeaders: false,
+    skip: (req) => req.path === '/api/status' // La ligne magique qui évite le SIGTERM !
+});
 app.use('/api/', limiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
