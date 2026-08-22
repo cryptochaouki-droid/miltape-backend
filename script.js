@@ -1,5 +1,5 @@
 /* =========================================================
-SCRIPT CLIENT MILTAPE – Version finale (corrigée + multi-crypto + notifications + tableau de bord + Telegram + ticker)
+SCRIPT CLIENT MILTAPE – Version finale (corrigée + multi-crypto + notifications + tableau de bord + Telegram + ticker + anti-clignotement classement)
 ========================================================= */
 
 // 1. Connexion Socket.IO – URL RAILWAY (CORRIGÉ : Connexion automatique robuste)
@@ -423,7 +423,7 @@ socket.on("game:finished", (data) => {
             launchConfetti();
             hapticHeavy();
             data.winners.forEach((winner, index) => {
-                setTimeout(() => { addWinnerToTicker(winner.name, winner.gain, winner.rank); }, index * 200);
+                setTimeout(() => { addWinnerToTicker(winner.name, winner.gain, winner.rank, winner.token || 'USDT'); }, index * 200);
             });
         } else {
             message += "❌ Aucun gagnant cette fois-ci.\n\n";
@@ -577,16 +577,34 @@ socket.on("online:count", (count) => {
     if (onlineCount) onlineCount.innerHTML = `<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>${count} EN LIGNE</span>`;
 });
 
+// CORRECTION ANTI-CLIGNOTEMENT : On met à jour le texte sans supprimer/recréer les éléments
 socket.on("leaderboard:update", (leaderboard) => {
     if (leaderboardList) {
-        leaderboardList.innerHTML = "";
-        if (leaderboard.length === 0) { leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`; return; }
-        leaderboard.forEach(player => {
-            const div = document.createElement('div');
-            div.className = 'leaderboard-item';
-            div.innerHTML = `<span style="color:#ffd84d;font-weight:900;">#${player.rank}</span> <span style="color:white;font-size:13px;">${player.name}</span> <span style="color:#ffd84d;font-weight:900;font-size:13px;">${player.taps}</span>`;
-            leaderboardList.appendChild(div);
+        if (leaderboard.length === 0) {
+            leaderboardList.innerHTML = `<div class="empty-ranking">Aucun joueur pour le moment</div>`;
+            return;
+        }
+        
+        const currentItems = leaderboardList.querySelectorAll('.leaderboard-item');
+        
+        leaderboard.forEach((player, index) => {
+            let item = currentItems[index];
+            
+            // Si l'élément n'existe pas, on le crée
+            if (!item) {
+                item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                leaderboardList.appendChild(item);
+            }
+
+            // On met à jour le texte SANS supprimer l'élément
+            item.innerHTML = `<span style="color:#ffd84d;font-weight:900;">#${player.rank}</span> <span style="color:white;font-size:13px;">${player.name}</span> <span style="color:#ffd84d;font-weight:900;font-size:13px;">${player.taps}</span>`;
         });
+
+        // Supprimer les éléments en trop s'il y en a
+        while (leaderboardList.children.length > leaderboard.length) {
+            leaderboardList.removeChild(leaderboardList.lastChild);
+        }
     }
 });
 
@@ -684,33 +702,35 @@ function showNotification(type, message, data = {}) {
     }, 4000);
 }
 
+// MODIFICATION TICKER : Capture et passe le token à la fonction
 socket.on("notification:new", (data) => {
     showNotification(data.type, data.message, data.data);
     if (data.type === 'champion') {
-        const match = data.message.match(/#\d+\s+(\S+)\s+→\s+(\d+\.?\d*)/);
+        const match = data.message.match(/#\d+\s+(\S+)\s+→\s+(\d+\.?\d*)\s*(\S*)/);
         if (match) {
             const name = match[1];
             const amount = match[2];
+            const token = match[3] || 'USDT'; // Récupère USDT ou TRX si présent
             const rank = data.data?.winner?.rank || 1;
-            addWinnerToTicker(name, amount, rank);
+            addWinnerToTicker(name, amount, rank, token);
         }
     }
 });
 
 // ==========================================
-// 23. BANDEAU DES GAGNANTS (TICKER)
+// 23. BANDEAU DES GAGNANTS (TICKER) - CORRIGÉ POUR AFFICHER LA DEVISE
 // ==========================================
 const winnerTicker = document.getElementById('winnerTicker');
 const tickerTrack = document.getElementById('tickerTrack');
 let tickerItems = [];
 const MAX_TICKER_ITEMS = 20;
 
-function addWinnerToTicker(name, amount, rank) {
+function addWinnerToTicker(name, amount, rank, token = 'USDT') {
     if (!name) return;
     const existing = tickerItems.find(item => item.name === name);
-    if (existing) { existing.amount = amount; updateTickerDisplay(); return; }
+    if (existing) { existing.amount = amount; existing.token = token; updateTickerDisplay(); return; }
     const emoji = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
-    tickerItems.push({ name, amount, rank, emoji });
+    tickerItems.push({ name, amount, rank, emoji, token });
     if (tickerItems.length > MAX_TICKER_ITEMS) tickerItems.shift();
     updateTickerDisplay();
     showTicker();
@@ -721,7 +741,7 @@ function updateTickerDisplay() {
     let html = '';
     const doubledItems = [...tickerItems, ...tickerItems];
     for (const item of doubledItems) {
-        const displayAmount = typeof item.amount === 'number' ? `${item.amount} USDT` : item.amount;
+        const displayAmount = `${item.amount} ${item.token || 'USDT'}`;
         html += `<span class="ticker-item"><span class="trophy">${item.emoji}</span><span class="name">${item.name}</span><span>→</span><span class="amount">${displayAmount}</span></span>`;
     }
     tickerTrack.innerHTML = html;
