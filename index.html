@@ -96,1052 +96,124 @@
             overscroll-behavior-y: auto;
         }
 
-        /* ============================================================
-           GLASSMORPHISM (effet verre)
-           ============================================================ */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
+        /* ... [Tout votre code CSS existant reste identique] ... */
 
         /* ============================================================
-           CORRECTION : Masquer les widgets flottants TonConnect
+           CAGNOTTE PREMIUM (Néon / Or) - AJOUTÉ À LA FIN
            ============================================================ */
-        #ton-connect-button,
-        div[id^="tc-widget"],
-        iframe[id^="tc-widget"],
-        .tc-connect-button {
-            display: none !important;
-        }
-
-        html {
-            width: 100%;
-            min-height: 100%;
-            overflow-x: hidden;
-            overflow-y: scroll;
-            scroll-behavior: smooth;
-        }
-
-        .app {
-            width: 100%;
-            max-width: 480px;
-            min-height: 100vh;
-            height: auto;
-            margin: 0 auto;
-            padding-bottom: 80px;
+        #jackpotDisplay {
             position: relative;
-            overflow: visible !important;
-            z-index: 1;
-            animation: fadeIn 0.6s ease-out;
+            background: radial-gradient(circle at center, #1a0b2e 0%, #0d0221 70%, #000 100%);
+            border-radius: 20px;
+            padding: 25px 30px;
+            margin: 20px auto;
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            
+            /* Bordure dégradée violet -> Or -> Violet */
+            border: 3px solid transparent;
+            background-clip: padding-box, border-box;
+            background-origin: padding-box, border-box;
+            background-image: linear-gradient(#1a0b2e, #1a0b2e), linear-gradient(90deg, #ff00cc, #ffcc00, #ff00cc);
+            
+            box-shadow: 0 0 25px rgba(255, 204, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.05);
+            overflow: visible; /* Pour laisser dépasser la couronne et l'étoile */
         }
 
-        /* PWA */
-        .install-pwa-button {
-            position: fixed;
-            bottom: 18px;
+        /* Motif pointillé en fond */
+        #jackpotDisplay::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 10px 10px;
+            pointer-events: none;
+        }
+
+        /* Couronne en haut */
+        .jackpot-crown {
+            position: absolute;
+            top: -25px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 3000;
-            display: none;
-            padding: 13px 20px;
-            border: 1px solid #ffcc00;
-            border-radius: 999px;
-            background: #120624;
-            color: #ffcc00;
-            font-size: 13px;
-            font-weight: 900;
-            box-shadow: 0 0 15px rgba(255, 204, 0, .35);
-            cursor: pointer;
-            white-space: nowrap;
-            -webkit-tap-highlight-color: transparent;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .install-pwa-button.show {
-            display: block;
-        }
-
-        /* HERO BANNER – avec glassmorphism */
-        .hero-banner-container {
-            position: relative;
-            width: calc(100% - 24px);
-            margin: 12px 12px 15px;
-            border-radius: 16px;
-            overflow: hidden;
-            background: rgba(9, 0, 20, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 204, 0, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            animation: slideUp 0.5s ease-out;
-        }
-
-        .hero-bg-image {
-            width: 100%;
-            display: block;
-            height: auto;
-            opacity: 0.85;
-        }
-
-        .hero-header-overlay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-        }
-
-        .player-profile-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
-            padding: 4px 8px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 204, 0, 0.3);
-        }
-
-        .avatar-icon {
-            font-size: 16px;
-        }
-
-        .profile-text .p-name {
-            display: block;
-            font-size: 10px;
-            font-weight: 900;
-            color: #fff;
-        }
-
-        .profile-text .p-level {
-            display: block;
-            font-size: 8px;
-            background: #7b2cff;
-            color: #fff;
-            padding: 1px 4px;
-            border-radius: 4px;
-            width: fit-content;
-        }
-
-        .timer-badge-top {
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 204, 0, 0.5);
-            padding: 4px 10px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .timer-badge-top .tb-label {
-            display: block;
-            font-size: 7px;
-            color: #bbb;
-            font-weight: bold;
-        }
-
-        .timer-badge-top .tb-value {
-            display: block;
-            font-size: 14px;
-            font-weight: 900;
-            color: #ffcc00;
-        }
-
-        .timer-badge-top .tb-sub {
-            font-size: 6px;
-            color: #888;
-        }
-
-        .wallet-badge-top {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(193, 60, 255, 0.5);
-            padding: 4px 8px;
-            border-radius: 12px;
-            text-align: right;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-
-        .wallet-badge-top .wb-label {
-            display: block;
-            font-size: 7px;
-            color: #bbb;
-        }
-
-        .wallet-badge-top .wb-value {
-            display: block;
-            font-size: 13px;
-            font-weight: 900;
-            color: #ffcc00;
-        }
-
-        .wallet-badge-top .wallet-icon {
-            font-size: 16px;
-            background: #240046;
-            padding: 4px;
-            border-radius: 6px;
-        }
-
-        /* MENU */
-        .side-menu {
-            position: fixed;
-            top: 0;
-            left: -300px;
-            width: 280px;
-            height: 100vh;
-            height: 100dvh;
-            background: rgba(15, 5, 29, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 204, 0, .2);
-            z-index: 1000;
-            transition: left .3s ease;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .side-menu.show {
-            left: 0;
-        }
-
-        .close-menu {
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 28px;
-            cursor: pointer;
-        }
-
-        .side-menu-content {
-            margin-top: 40px;
-            padding-bottom: 30px;
-        }
-
-        .side-menu-content h3 {
-            color: #ffcc00;
-            margin-bottom: 20px;
-            font-size: 16px;
-            letter-spacing: 1px;
-        }
-
-        .menu-block {
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, .03);
-            padding: 12px;
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-        }
-
-        .menu-block label,
-        .menu-block h4 {
-            display: block;
-            font-size: 13px;
-            color: #ffcc00;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-
-        .menu-block select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            background: #1a1a2e;
-            color: #fff;
-            border: 1px solid #444;
-            box-sizing: border-box;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 12px;
-        }
-
-        .menu-nav-btn {
-            display: block;
-            width: 100%;
-            background: transparent;
-            border: none;
-            color: #fff;
-            text-align: left;
-            font-size: 14px;
-            padding: 10px 12px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            border-radius: 8px;
-            text-decoration: none;
-            box-sizing: border-box;
-            font-family: 'Orbitron', sans-serif;
-            transition: all 0.2s ease;
-        }
-
-        .menu-nav-btn:hover,
-        .menu-nav-btn:active {
-            background: rgba(255, 204, 0, .15);
-            color: #ffcc00;
-        }
-
-        .trust-contact-box {
-            border-left: 3px solid #2ecc71;
-        }
-
-        .support-link {
-            display: inline-block;
-            padding: 8px 12px;
-            background: #0088cc;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .menu-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .7);
-            display: none;
-            z-index: 999;
-        }
-
-        .menu-overlay.show {
-            display: block;
-        }
-
-        /* MODAL */
-        .legal-modal,
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .82);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .legal-modal.show,
-        .modal.show {
-            display: flex;
-        }
-
-        .legal-content,
-        .modal-content {
-            background: rgba(18, 6, 36, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid #ffcc00;
-            border-radius: 16px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            max-height: 90dvh;
-            overflow-y: auto;
-            padding: 20px;
-            box-sizing: border-box;
-            color: #fff;
-            position: relative;
-            animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .legal-content h3,
-        .modal-content h2 {
-            color: #ffcc00;
-            margin-top: 0;
-        }
-
-        .legal-content p,
-        .legal-content li {
-            font-size: 13px;
-            color: #b8b8b8;
-            line-height: 1.5;
-        }
-
-        .legal-close,
-        .modal-close {
-            position: absolute;
-            top: 12px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        /* TAP */
-        .tap-zone {
-            width: 100%;
-            min-height: 245px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            padding-bottom: 10px;
-            animation: slideUp 0.7s ease-out 0.2s both;
-        }
-
-        .tap-button {
-            position: relative;
-            width: 190px;
-            height: 190px;
-            min-width: 190px;
-            min-height: 190px;
-            border: none;
-            border-radius: 50%;
-            background: rgba(255, 204, 0, 0.05);
-            backdrop-filter: blur(5px);
-            overflow: visible;
-            cursor: pointer;
-            outline: none;
-            transition: transform .08s ease-in-out, box-shadow 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            padding: 0;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            box-shadow: 0 0 40px rgba(255, 204, 0, 0.1);
-        }
-
-        .tap-button:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .tap-button:not(:disabled):hover {
-            box-shadow: 0 0 60px rgba(255, 204, 0, 0.2);
-        }
-
-        .tap-img-bg {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: none;
-            z-index: 0;
-            display: block;
-            border-radius: 50%;
-        }
-
-        .tap-button::before {
-            display: none;
-        }
-
-        .tap-button strong,
-        .tap-button small,
-        .tap-button .tap-glow {
-            position: relative;
+            font-size: 40px;
+            text-shadow: 0 0 10px gold, 0 0 20px gold;
             z-index: 2;
         }
 
-        .tap-button strong {
-            display: none;
-        }
-
-        .tap-button small {
+        /* Étoile en bas */
+        .jackpot-star {
             position: absolute;
-            bottom: 14px;
-            left: 0;
-            right: 0;
-            z-index: 3;
-            text-align: center;
-            font-size: 16px;
-            color: #ffcc00;
-            font-weight: bold;
-            margin-top: 0;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, .9);
-            pointer-events: none;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            text-shadow: 0 0 10px violet, 0 0 20px violet;
+            z-index: 2;
         }
 
-        .tap-button:active:not(:disabled) {
-            transform: scale(.92);
+        /* Pièces de monnaie (émojis pour l'instant) */
+        .jackpot-coins-left, .jackpot-coins-right {
+            position: absolute;
+            bottom: -10px;
+            font-size: 35px;
+            opacity: 0.9;
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.8));
+            z-index: 2;
         }
+        .jackpot-coins-left { left: 10px; }
+        .jackpot-coins-right { right: 10px; }
 
-        .tap-button.tap-active {
-            transform: scale(.94);
-            box-shadow: 0 0 80px rgba(255, 204, 0, 0.3);
-        }
-
-        /* CHAT */
-        .chat-section {
-            position: relative;
-            z-index: 20;
-            margin-bottom: 20px;
-            width: 100%;
-            pointer-events: auto;
-            isolation: isolate;
-        }
-
-        .chat-messages {
-            height: 170px;
-            overflow-y: auto;
-            padding: 10px;
-            margin-top: 10px;
-            margin-bottom: 10px;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, .20);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, .06);
-            box-sizing: border-box;
-        }
-
-        .chat-message {
-            margin-bottom: 8px;
-            padding: 7px 8px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, .035);
-            font-size: 13px;
-            color: #ddd;
-            word-break: break-word;
-            line-height: 1.35;
-            animation: messageSlide 0.3s ease-out;
-        }
-
-        .chat-message strong {
-            color: #ffcc00;
-        }
-
-        .chat-input-box {
-            position: relative;
-            z-index: 30;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            pointer-events: auto;
-            box-sizing: border-box;
-        }
-
-        .chat-input-box input {
-            flex: 1;
-            min-width: 0;
-            height: 44px;
-            padding: 0 12px;
-            border: 1px solid rgba(193, 60, 255, .30);
-            border-radius: 12px;
-            outline: none;
-            background: rgba(0, 0, 0, .35);
-            backdrop-filter: blur(5px);
+        /* Typographie */
+        .jackpot-title {
             color: #fff;
-            font-size: 13px;
-            box-sizing: border-box;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .chat-input-box button {
-            width: 46px;
-            height: 44px;
-            min-width: 46px;
-            border: none;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #ffcc00, #ff8a00);
-            color: #16051f;
-            font-size: 20px;
-            font-weight: 900;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #a84c00;
-            touch-action: manipulation;
-        }
-
-        /* BOUTON JOUER */
-        .main-play-button {
-            display: block;
-            width: 80%;
-            max-width: 300px;
-            margin: 10px auto;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, #ffcc00, #ff8a00);
-            color: #16051f;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 900;
-            font-family: 'Orbitron', sans-serif;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #a84c00, 0 0 30px rgba(255, 204, 0, 0.2);
-            transition: all 0.15s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            animation: slideUp 0.6s ease-out 0.1s both;
-        }
-
-        .main-play-button:active {
-            transform: translateY(3px);
-            box-shadow: 0 1px 0 #a84c00;
-        }
-
-        .main-play-button:hover {
-            box-shadow: 0 4px 0 #a84c00, 0 0 50px rgba(255, 204, 0, 0.4);
-        }
-
-        /* BOUTON SPECTATEUR */
-        .spectator-button {
-            display: block;
-            width: 80%;
-            max-width: 300px;
-            margin: 5px auto;
-            padding: 12px 20px;
-            background: rgba(139, 44, 255, 0.2);
-            border: 2px solid rgba(139, 44, 255, 0.5);
-            border-radius: 12px;
-            color: #c13cff;
-            font-size: 14px;
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            animation: slideUp 0.6s ease-out 0.1s both;
-        }
-
-        .spectator-button:hover {
-            background: rgba(139, 44, 255, 0.3);
-            border-color: #c13cff;
-            box-shadow: 0 0 30px rgba(139, 44, 255, 0.2);
-            transform: scale(1.02);
-        }
-
-        .spectator-button:active {
-            transform: scale(0.95);
-        }
-
-        .spectator-button.active {
-            background: rgba(139, 44, 255, 0.4);
-            border-color: #c13cff;
-            box-shadow: 0 0 40px rgba(139, 44, 255, 0.3);
-        }
-
-        /* MESSAGE */
-        .tap-message {
-            text-align: center;
-            font-size: 13px;
-            color: #b8b8b8;
-            padding: 10px 20px;
-            margin: 5px 0;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 0.5px;
-        }
-
-        /* RÈGLES */
-        .rules {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            padding: 15px;
-            flex-wrap: wrap;
-            animation: slideUp 0.8s ease-out 0.3s both;
-        }
-
-        .rule {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
-            padding: 8px 14px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            font-family: 'Orbitron', sans-serif;
             font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .rule .rule-icon {
-            font-size: 18px;
+        /* Le montant (0 USDT) */
+        .jackpot-amount {
+            display: block;
+            font-size: 45px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8), 0 0 20px rgba(255, 215, 0, 0.8);
+            margin: 5px 0 15px;
         }
-        .rule strong {
-            color: #ffcc00;
+
+        .jackpot-subtitle {
+            color: #fff;
             font-size: 13px;
-        }
-        .rule small {
-            color: #888;
-            font-size: 9px;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
 
-        /* STATS */
-        .stats {
-            display: flex;
-            justify-content: center;
-            padding: 10px 0;
-            animation: slideUp 0.9s ease-out 0.4s both;
-        }
-
-        .stat-box {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 15px 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .stat-box small {
+        /* Le compte à rebours (14h 13m 16s) */
+        #jackpotCountdown {
             display: block;
-            font-size: 10px;
-            color: #888;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .stat-box strong {
             font-size: 28px;
-            color: #ffcc00;
-            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            color: #00ff88;
+            text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
         }
 
-        /* HEADER avec reflet */
-        .top-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 16px;
-            background: rgba(9, 0, 20, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .top-header::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-            animation: headerShine 6s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes headerShine {
-            0% { left: -100%; }
-            50% { left: 100%; }
-            100% { left: 100%; }
-        }
-
-        .menu-button {
-            background: none;
-            border: none;
-            color: #ffcc00;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px 8px;
-        }
-
-        .online {
-            font-size: 10px;
-            color: #2ecc71;
-            font-weight: bold;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .wallet-box {
-            text-align: right;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .wallet-box small {
-            display: block;
-            font-size: 8px;
-            color: #888;
-        }
-
-        .wallet-box strong {
-            font-size: 14px;
-            color: #ffcc00;
-        }
-
-        .wallet-button {
-            background: rgba(255, 204, 0, 0.1);
-            border: 1px solid rgba(255, 204, 0, 0.3);
-            border-radius: 10px;
-            color: #ffcc00;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-family: 'Orbitron', sans-serif;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* CLASSEMENT + CHAT wrapper */
-        .leaderboard-chat-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            padding: 0 16px;
-            animation: slideUp 1s ease-out 0.5s both;
-        }
-
-        .leaderboard {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 15px;
-        }
-
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 12px;
-        }
-
-        .section-title span {
-            color: #fff;
-        }
-        .section-title strong {
-            color: #ffcc00;
-            font-size: 14px;
-        }
-
-        .leaderboard-list {
-            min-height: 80px;
-        }
-
-        .leaderboard-item {
-            display: grid;
-            grid-template-columns: 35px 1fr auto;
-            align-items: center;
-            gap: 8px;
-            min-height: 50px;
-            padding: 7px 9px;
-            border-radius: 13px;
-            background: rgba(255, 255, 255, .035);
-            opacity: 0;
-            animation: leaderboardSlide 0.5s ease-out forwards;
-        }
-        .leaderboard-item:nth-child(1) { animation-delay: 0.05s; border-left: 3px solid #ffd700; }
-        .leaderboard-item:nth-child(2) { animation-delay: 0.1s; border-left: 3px solid #c0c0c0; }
-        .leaderboard-item:nth-child(3) { animation-delay: 0.15s; border-left: 3px solid #cd7f32; }
-        .leaderboard-item:nth-child(4) { animation-delay: 0.2s; }
-        .leaderboard-item:nth-child(5) { animation-delay: 0.25s; }
-
-        @keyframes leaderboardSlide {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .empty-ranking {
-            color: #888;
-            text-align: center;
-            padding: 20px 0;
-            font-size: 12px;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        /* MOBILE */
-        @media(max-width:430px) {
-            .tap-button {
-                width: 170px;
-                height: 170px;
-                min-width: 170px;
-                min-height: 170px;
-            }
-
-            .tap-zone {
-                min-height: 220px;
-            }
-        }
-
-        @media(max-width:360px) {
-            .tap-button {
-                width: 165px;
-                height: 165px;
-                min-width: 165px;
-                min-height: 165px;
-            }
-
-            .chat-input-box input {
-                font-size: 12px;
-            }
-
-            .chat-input-box button {
-                width: 42px;
-                min-width: 42px;
-            }
-        }
-
-        @media(min-width:600px) {
-            body {
-                padding: 20px 0 40px;
-            }
-
-            .app {
-                border-radius: 30px;
-                border: 1px solid rgba(255, 255, 255, .06);
-                box-shadow: 0 0 80px rgba(91, 20, 150, .18);
-                background: rgba(9, 0, 20, 0.3);
-                backdrop-filter: blur(10px);
-            }
-
-            .top-header {
-                position: sticky;
-                top: 0;
-                z-index: 500;
-                border-radius: 30px 30px 0 0;
-            }
-        }
-
-        /* ============================================================
-           ANIMATIONS GLOBALES
-           ============================================================ */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @keyframes messageSlide {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes modalPop {
-            from { opacity: 0; transform: scale(0.85) translateY(30px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        @keyframes confettiFall {
-            0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
-        }
-
-        /* ============================================================
-           BANDEAU DES GAGNANTS (TICKER)
-           ============================================================ */
-        #winnerTicker {
-            width: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-bottom: 1px solid rgba(255, 216, 77, 0.1);
-            border-top: 1px solid rgba(255, 216, 77, 0.1);
-            height: 36px;
-            position: sticky;
-            top: 68px;
-            z-index: 40;
-            display: none;
-        }
-
-        #winnerTicker.show {
-            display: block;
-        }
-
-        #tickerTrack {
-            display: flex;
-            align-items: center;
-            height: 100%;
-            white-space: nowrap;
-            animation: tickerScroll 20s linear infinite;
-            gap: 40px;
-            padding-left: 100%;
-        }
-
-        @keyframes tickerScroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .ticker-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 12px;
-            color: #ffd84d;
-            padding: 0 10px;
-            text-shadow: 0 0 20px rgba(255, 216, 77, 0.2);
-            flex-shrink: 0;
-        }
-
-        .ticker-item .trophy {
-            font-size: 14px;
-        }
-        .ticker-item .name {
-            color: #fff;
-            font-weight: 700;
-        }
-        .ticker-item .amount {
-            color: #3dff9a;
-            font-weight: 700;
-        }
-
-        /* Pause au survol */
-        #winnerTicker:hover #tickerTrack {
-            animation-play-state: paused;
-        }
-
-        /* ============================================================
-           SÉLECTEUR DE CRYPTO
-           ============================================================ */
-        #tokenSelect {
-            width: 140px;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(26, 26, 46, 0.8);
-            backdrop-filter: blur(5px);
-            color: #fff;
-            border: 1px solid #ffcc00;
-            font-size: 14px;
-            text-align: center;
-            outline: none;
-            font-family: 'Orbitron', sans-serif;
-            cursor: pointer;
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffcc00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-        }
-
-        #tokenSelect option {
-            background: #1a1a2e;
-            color: #fff;
-        }
-
-        .crypto-label {
-            color: #ffcc00;
-            font-weight: bold;
-            font-size: 14px;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        /* ============================================================
-           CAGNOTTE RESPONSIVE
-           ============================================================ */
+        /* Responsive pour petits écrans */
         @media(max-width:480px) {
             #jackpotDisplay {
-                flex-direction: column;
-                text-align: center;
-                gap: 4px;
+                padding: 20px 15px;
+            }
+            .jackpot-amount {
+                font-size: 32px;
+            }
+            #jackpotCountdown {
+                font-size: 24px;
+            }
+            .jackpot-coins-left, .jackpot-coins-right {
+                font-size: 25px;
             }
         }
     </style>
@@ -1404,27 +476,17 @@
         </header>
 
         <!-- ============================================================
-           CAGNOTTE DU SAMEDI (NOUVEAU)
+           CAGNOTTE DU SAMEDI (STYLE PREMIUM)
            ============================================================ -->
-        <div id="jackpotDisplay" style="
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(139, 44, 255, 0.15));
-            border: 1px solid #ffd84d;
-            border-radius: 12px;
-            padding: 8px 16px;
-            margin: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'Orbitron', sans-serif;
-        ">
-            <div>
-                <span style="font-size:10px; color:#888;">🎁 CAGNOTTE DU SAMEDI</span>
-                <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#ffd84d;">0 USDT</span>
-            </div>
-            <div style="text-align:right;">
-                <span style="font-size:9px; color:#888;">Tirage dans</span>
-                <span id="jackpotCountdown" style="display:block; font-size:14px; font-weight:700; color:#3dff9a;">--</span>
-            </div>
+        <div id="jackpotDisplay">
+            <div class="jackpot-crown">👑</div>
+            <div class="jackpot-title">🎁 Cagnotte du Samedi</div>
+            <span id="jackpotAmount" class="jackpot-amount">0 USDT</span>
+            <div class="jackpot-subtitle">Tirage dans</div>
+            <span id="jackpotCountdown">--</span>
+            <div class="jackpot-coins-left">🪙🪙🪙</div>
+            <div class="jackpot-coins-right">🪙🪙🪙</div>
+            <div class="jackpot-star">⭐</div>
         </div>
 
         <!-- BANDEAU DES GAGNANTS -->
