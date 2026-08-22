@@ -52,8 +52,8 @@
         body { font-family: 'Orbitron', sans-serif; width: 100%; min-width: 100%; min-height: 100vh; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: auto; }  
         .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; overflow: visible !important; z-index: 1; animation: fadeIn 0.6s ease-out; }  
         
-        /* ZONE TAP CORRIGÉE */  
-        .tap-zone { position: relative !important; overflow: visible !important; width: 100%; min-height: 245px; display: flex; align-items: center; justify-content: center; padding-bottom: 10px; animation: slideUp 0.7s ease-out 0.2s both; }  
+        /* ZONE TAP CORRIGÉE (Ajout de flex-direction: column) */  
+        .tap-zone { position: relative !important; overflow: visible !important; width: 100%; min-height: 245px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 10px; animation: slideUp 0.7s ease-out 0.2s both; }  
         .tap-float-text { position: absolute; font-size: 16px; font-weight: 900; color: #ffd84d; pointer-events: none; animation: floatUp 1s ease-out forwards; text-shadow: 0 2px 8px rgba(0,0,0,0.8); z-index: 20; }  
         .tap-particle { position: absolute; border-radius: 50%; pointer-events: none; z-index: 10; animation: particleFly 0.9s ease-out forwards; }  
         .tap-ripple { position: absolute; width: 10px; height: 10px; border: 2px solid rgba(255, 204, 0, 0.5); border-radius: 50%; pointer-events: none; animation: rippleEffect 0.8s ease-out forwards; z-index: 5; }  
@@ -66,7 +66,7 @@
         #jackpotPrize { display: block; font-size: 18px; font-weight: 900; color: #ffd84d; }  
         #jackpotCountdown { display: block; font-size: 14px; font-weight: 700; color: #3dff9a; }  
 
-        /* STYLES RESTANTS (Header, Menu, Modales, Boutons, Chat, Leaderboard) */  
+        /* STYLES RESTANTS */  
         .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #ffcc00; border-radius: 999px; background: #120624; color: #ffcc00; font-size: 13px; font-weight: 900; box-shadow: 0 0 15px rgba(255, 204, 0, .35); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }  
         .install-pwa-button.show { display: block; }  
         .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; border-radius: 16px; overflow: hidden; background: rgba(9, 0, 20, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 204, 0, 0.3); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); animation: slideUp 0.5s ease-out; }  
@@ -241,8 +241,7 @@
         <section class="hero-banner-container">  
             <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">  
             <div class="hero-header-overlay">  
-                <!-- LE BADGE MILTAPER LEVEL 12 A ÉTÉ SUPPRIMÉ ICI -->  
-                <div class="timer-badge-top" id="topTimerBox"><span class="tb-label">TEMPS RESTANT</span><span class="tb-value" id="timer">10:00</span><small class="tb-sub">EN DIRECT</small></div>  
+                <!-- TIMER RETIRÉ ICI -->  
                 <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise"><div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div><div class="wallet-icon">👛</div></div>  
             </div>  
         </section>  
@@ -266,6 +265,13 @@
         <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ CHOISIS TA MISE ET CONNECTE TON WALLET</div>  
 
         <section class="tap-zone" aria-label="Zone de tap">  
+            <!-- NOUVEL EMPLACEMENT DU TIMER -->  
+            <div class="timer-badge-top" id="topTimerBox" style="margin-bottom: 15px;">  
+                <span class="tb-label">TEMPS RESTANT</span>  
+                <span class="tb-value" id="timer">10:00</span>  
+                <small class="tb-sub">EN DIRECT</small>  
+            </div>  
+
             <button id="tapButton" class="tap-button" type="button" disabled>  
                 <img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false">  
                 <span class="tap-glow"></span>  
