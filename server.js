@@ -78,7 +78,9 @@ const server = http.createServer(app);
 
 app.use(helmet());
 
-// ATTENTION : Ici il faut mettre l'URL avec le /miltape-backend
+// ============================================================
+// ✅ CORS CORRIGÉ ICI (avec /miltape-backend)
+// ============================================================
 const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io/miltape-backend";
 app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 
@@ -262,12 +264,71 @@ async function emitJackpotUpdate() {
     io.emit("jackpot:update", { prize: jackpot.prize, participants: jackpot.participants.length, nextDraw: getNextSaturday(), drawn: jackpot.drawn, winner: winnerName });
 }
 
-async function drawJackpot() { /* ... (Code inchangé) ... */ }
-
 // ============================================================
 // PAIEMENTS AUTOMATIQUES
 // ============================================================
-async function checkPendingPayments() { /* ... (Code inchangé) ... */ }
+async function checkPendingPayments() {
+    if (game.status !== "running") return;
+    try {
+        const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 } });
+        if (unpaidPlayers.length === 0) return;
+        const transactions = await tronWeb.trx.getAccountTransactions(MILTAPE_WALLET, { limit: 30, onlyConfirmed: true });
+        if (!transactions || transactions.length === 0) return;
+        for (const tx of transactions) {
+            const txId = tx.txID;
+            if (processedTxIds.has(txId)) continue;
+            const txInfo = await tronWeb.trx.getTransactionInfo(txId);
+            if (!txInfo || txInfo.receipt.result !== 'SUCCESS') continue;
+            const transaction = await tronWeb.trx.getTransaction(txId);
+            if (!transaction) continue;
+            const contracts = transaction.raw_data?.contract;
+            if (!Array.isArray(contracts) || contracts.length !== 1) continue;
+            const contract = contracts[0];
+            let token = null, ownerAddress = null, amount = 0, decimals = 6;
+            
+            if (contract.type === "TransferContract") {
+                token = 'TRX';
+                const value = contract.parameter.value;
+                ownerAddress = tronWeb.address.fromHex(value.owner_address);
+                amount = value.amount / 1e6;
+                const recipient = tronWeb.address.fromHex(value.to_address);
+                if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
+            } else if (contract.type === "TriggerSmartContract") {
+                const value = contract.parameter?.value;
+                if (!value) continue;
+                const contractAddress = tronWeb.address.fromHex(value.contract_address);
+                let foundToken = null;
+                for (const [sym, info] of Object.entries(SUPPORTED_TOKENS)) {
+                    if (info.contract && sameWallet(contractAddress, info.contract)) { foundToken = sym; decimals = info.decimals; break; }
+                }
+                if (!foundToken) continue;
+                token = foundToken;
+                ownerAddress = tronWeb.address.fromHex(value.owner_address);
+                const data = String(value.data || "").toLowerCase();
+                if (!data.startsWith("a9059cbb")) continue;
+                if (data.length < 136) continue;
+                const recipientHex = "41" + data.substring(32, 72);
+                const recipient = tronWeb.address.fromHex(recipientHex);
+                if (!sameWallet(recipient, MILTAPE_WALLET)) continue;
+                const amountHex = data.substring(72, 136);
+                const rawAmount = BigInt("0x" + amountHex);
+                amount = Number(rawAmount) / Math.pow(10, decimals);
+            } else continue;
+
+            const matchingPlayer = unpaidPlayers.find(p => sameWallet(p.wallet, ownerAddress) && p.bet > 0 && p.token === token && amount >= p.bet);
+            if (!matchingPlayer) continue;
+            matchingPlayer.paid = true;
+            matchingPlayer.paymentTxId = txId;
+            await matchingPlayer.save();
+            processedTxIds.add(txId);
+            await Payment.create({ txId, from: ownerAddress, to: MILTAPE_WALLET, amount, verified: true, gameId: game.id, token });
+            io.emit("payment:verified", { verified: true, wallet: matchingPlayer.wallet, amount: matchingPlayer.bet, playerName: matchingPlayer.name, automatic: true, token });
+            io.emit("chat:message", { name: "🟢 Système", message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token}`, createdAt: new Date() });
+            sendNotification('success', `💰 ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} !`, { playerName: matchingPlayer.name, amount: matchingPlayer.bet, token });
+            console.log(`💰 Paiement auto : ${matchingPlayer.name}`);
+        }
+    } catch (error) { console.error("❌ Erreur vérification auto paiements :", error.message); }
+}
 
 setInterval(() => { if (processedTxIds.size > 1000) processedTxIds.clear(); }, 60 * 60 * 1000);
 
@@ -278,7 +339,6 @@ async function startGame() {
     if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
     game = { id: generateGameId(), status: "running", startedAt: Date.now(), endsAt: Date.now() + GAME_DURATION_SECONDS * 1000, durationSeconds: GAME_DURATION_SECONDS };
     console.log("🎮 NOUVELLE PARTIE :", game.id);
-
     await broadcastGameState();
     gameTimer = setInterval(async () => {
         try {
@@ -290,7 +350,45 @@ async function startGame() {
     }, 1000);
 }
 
-async function finishGame() { /* ... (Code inchangé) ... */ }
+async function finishGame() {
+    if (game.status !== "running") return;
+    game.status = "finished";
+    if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
+    const allPlayers = await Player.find({ gameId: game.id }).lean();
+    const top5 = await Player.find({ gameId: game.id }).sort({ taps: -1 }).limit(5).lean();
+    const totalStakes = allPlayers.reduce((sum, p) => sum + p.bet, 0);
+    const winners = top5.map((p, index) => ({ rank: index + 1, name: p.name, wallet: p.wallet, bet: p.bet, gain: p.bet * 2, taps: p.taps, _id: p._id, token: p.token || 'USDT' }));
+    const totalPayout = winners.reduce((sum, w) => sum + w.gain, 0);
+    const deficit = totalPayout - totalStakes;
+    const serverProfit = deficit > 0 ? 0 : Math.abs(deficit);
+    console.log("🏁 PARTIE TERMINÉE :", game.id, "| Bénéfice:", serverProfit);
+
+    if (serverProfit > 0) await addToJackpotFund(serverProfit);
+    for (const w of winners) {
+        await Player.findByIdAndUpdate(w._id, { paid: true });
+        await History.create({ playerId: w._id, playerName: w.name, wallet: w.wallet, gameId: game.id, rank: w.rank, bet: w.bet, gain: w.gain, taps: w.taps, token: w.token });
+    }
+
+    io.emit("game:finished", { gameId: game.id, winners, totalStakes, totalPayout, deficit, onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size });
+    winners.forEach((w, i) => {
+        const emoji = i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🏅';
+        sendNotification('champion', `${emoji} #${w.rank} ${w.name} → ${w.gain} USDT !`, { winner: w });
+    });
+    sendNotification('alert', `⏰ Partie terminée ! Prochaine partie dans 5 secondes...`);
+
+    const realPayments = await Payment.find({ gameId: game.id, verified: true });
+    if (realPayments.length > 0) {
+        console.log("💸 Envoi des gains...");
+        for (const w of winners) { if (w.gain > 0) await sendTokenToWinner(w.wallet, w.gain, w.token); }
+    } else {
+        console.log("🔬 Mode démo : transferts simulés.");
+    }
+    await broadcastGameState();
+    await emitJackpotUpdate();
+
+    if (nextGameTimeout) clearTimeout(nextGameTimeout);
+    nextGameTimeout = setTimeout(async () => { nextGameTimeout = null; await startGame(); }, 5000);
+}
 
 // ============================================================
 // SOCKET.IO - CONNEXION
@@ -303,7 +401,6 @@ io.on("connection", async (socket) => {
     socket.emit("totalStakes:update", { totalStakes });
 
     socket.on("jackpot:get", async () => { await emitJackpotUpdate(); });
-
     socket.on("player:join", async (data) => { /* ... (Code inchangé) ... */ });
     socket.on("spectator:join", async (data) => { /* ... (Code inchangé) ... */ });
     socket.on("player:restore", async (data) => { /* ... (Code inchangé) ... */ });
@@ -316,39 +413,25 @@ io.on("connection", async (socket) => {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
             if (socket.data.isSpectator) return;
 
-            // Récupère le nombre total de taps envoyé par le client (ex: 5 taps en 1 seule requête)
             const tapsToAdd = (data && typeof data.count === 'number' && data.count > 0) ? data.count : 1;
-
-            // Mise à jour ATOMIQUE et ultra-rapide (on n'utilise plus findById + save)
             await Player.updateOne(
                 { _id: socket.data.playerId, gameId: game.id },
                 { $inc: { taps: tapsToAdd } }
             );
 
-            // On renvoie juste le nouveau total à ce joueur
             const updatedPlayer = await Player.findById(socket.data.playerId);
             if (updatedPlayer) socket.emit("player:score", { taps: updatedPlayer.taps });
 
-            // NOTE IMPORTANTE : On a ENLEVÉ le leaderboard ici pour éviter de surcharger le serveur !
-            // Le classement est maintenant géré par le setInterval global en bas.
-
-        } catch (error) {
-            console.error("player:tap:", error.message);
-        }
+            // NOTE : Classement géré par le setInterval global en bas !
+        } catch (error) { console.error("player:tap:", error.message); }
     });
 
     socket.on("chat:send", async (data) => { /* ... (Code inchangé) ... */ });
-
-    socket.on("disconnect", async () => {
-        onlineSockets.delete(socket.id);
-        spectatorSockets.delete(socket.id);
-        await broadcastGameState();
-    });
+    socket.on("disconnect", async () => { onlineSockets.delete(socket.id); spectatorSockets.delete(socket.id); await broadcastGameState(); });
 });
 
 // ============================================================
 // *** OPTIMISATION MAJEURE : CLASSEMENT GLOBAL TOUTES LES 2 SECONDES ***
-// (Au lieu d'envoyer le classement à chaque clic, ce qui surcharge le serveur)
 // ============================================================
 setInterval(async () => {
     try {
@@ -356,13 +439,11 @@ setInterval(async () => {
             const leaderboard = await getLeaderboard();
             io.emit("leaderboard:update", leaderboard);
         }
-    } catch (error) {
-        console.error("Erreur classement global :", error.message);
-    }
+    } catch (error) { console.error("Erreur classement global :", error.message); }
 }, 2000);
 
 // ============================================================
-// ROUTES ADMIN & API
+// ROUTES ADMIN & API (Inchangées)
 // ============================================================
 app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
@@ -370,27 +451,22 @@ app.post("/api/admin/login", (req, res) => {
     else res.status(401).json({ success: false, message: "Mot de passe incorrect." });
 });
 
-app.get("/api/admin/stats", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.get("/api/admin/payouts", async (req, res) => { /* ... (Code inchangé) ... */ });
-
-app.get("/api/game", async (req, res) => { /* ... (Code inchangé) ... */ });
+app.get("/api/admin/stats", async (req, res) => { /* ... */ });
+app.get("/api/admin/payouts", async (req, res) => { /* ... */ });
+app.get("/api/game", async (req, res) => { /* ... */ });
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET, usdtContract: SUPPORTED_TOKENS.USDT.contract, supportedTokens: Object.keys(SUPPORTED_TOKENS) }));
-app.get("/api/total-stakes", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.post("/api/join", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.get("/api/player/status", async (req, res) => { /* ... (Code inchangé) ... */ });
-
-app.post("/api/tap", async (req, res) => { /* ... (Code inchangé) ... */ });
-
-app.get("/api/leaderboard", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.get("/api/chat", async (req, res) => { /* ... (Code inchangé) ... */ });
+app.get("/api/total-stakes", async (req, res) => { /* ... */ });
+app.post("/api/join", async (req, res) => { /* ... */ });
+app.get("/api/player/status", async (req, res) => { /* ... */ });
+app.post("/api/tap", async (req, res) => { /* ... */ });
+app.get("/api/leaderboard", async (req, res) => { /* ... */ });
+app.get("/api/chat", async (req, res) => { /* ... */ });
 app.get("/api/online", (req, res) => res.json({ success: true, onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size }));
-
 app.get("/api/status", (req, res) => res.json({ success: true, service: "Miltape Backend", server: "online", mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", tron: tronWeb ? "connected" : "disconnected", wallet: MILTAPE_WALLET, gameId: game.id || null, status: game.status, timerLeft: getRemainingSeconds(), onlinePlayers: onlineSockets.size, spectators: spectatorSockets.size, supportedTokens: Object.keys(SUPPORTED_TOKENS) }));
-
-app.get("/api/jackpot", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.get("/api/jackpot/history", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.post("/api/payment/verify", async (req, res) => { /* ... (Code inchangé) ... */ });
-app.get("/api/player/history", async (req, res) => { /* ... (Code inchangé) ... */ });
+app.get("/api/jackpot", async (req, res) => { /* ... */ });
+app.get("/api/jackpot/history", async (req, res) => { /* ... */ });
+app.post("/api/payment/verify", async (req, res) => { /* ... */ });
+app.get("/api/player/history", async (req, res) => { /* ... */ });
 
 app.use((req, res) => res.status(404).json({ success: false, message: "Route introuvable." }));
 app.use((error, req, res, next) => { console.error("Express error:", error); res.status(500).json({ success: false, message: "Erreur interne du serveur." }); });
