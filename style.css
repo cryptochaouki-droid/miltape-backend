@@ -637,14 +637,6 @@ function tapEffects(event) {
         y = event.clientY - rect.top;
     }
 
-    const floatText = document.createElement('div');
-    floatText.className = 'tap-float-text';
-    floatText.textContent = '+1';
-    floatText.style.left = (x - 10) + 'px';
-    floatText.style.top = (y - 10) + 'px';
-    btn.parentElement.appendChild(floatText);
-    setTimeout(() => floatText.remove(), 1000);
-
     const colors = ['#ffd84d', '#ff9f1a', '#ff5b20', '#ff2fd2', '#8b2cff', '#3dff9a'];
     for (let i = 0; i < 8; i++) {
         const particle = document.createElement('div');
