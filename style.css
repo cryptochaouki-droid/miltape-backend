@@ -1,1034 +1,617 @@
 /* ============================================================
-   MILTAPE WORLD CHALLENGE
-   STYLE.CSS — PREMIUM MOBILE / STABLE
-   HTML + SCRIPT.JS INCHANGÉS
-   ============================================================ */
-
+VARIABLES DE THÈME (dynamiques via Telegram)
+============================================================ */
 :root {
-    --gold: #ffcc00;
-    --gold-light: #ffe066;
-    --orange: #ff8500;
-
-    --purple: #8b2cff;
-    --purple-light: #c44cff;
-
-    --dark: #090014;
-    --dark-2: #10021f;
-    --dark-card: rgba(18, 6, 36, 0.88);
-
-    --green: #3dff9a;
-    --red: #ff4d6d;
-
-    --white: #ffffff;
-    --text: #e8e3ee;
-    --muted: #85808f;
+--bg: #0a0a0a;
+--text: #ffffff;
+--muted: #888888;
+--gold: #ffd84d;
+--gold-glow: rgba(255, 216, 77, 0.3);
+--gold-border: rgba(255, 216, 77, 0.6);
+--card-bg: rgba(255, 255, 255, 0.05);
+--card-border: rgba(255, 255, 255, 0.08);
+--shadow: rgba(0, 0, 0, 0.6);
+--button-bg: linear-gradient(135deg, #ffcc00, #ff8a00);
+--tap-bg: radial-gradient(circle at 30% 30%, #2a0a3e, #12001f 80%);
 }
 
 /* ============================================================
-   RESET
-   ============================================================ */
+BOUTON TAP – EFFETS FLUIDES
+============================================================ */
 
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+.tap-zone {
+position: relative;
+min-height: 245px;
+display: flex;
+align-items: center;
+justify-content: center;
+margin-top: -20px;
 }
 
-html {
-    width: 100%;
-    min-height: 100%;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    scroll-behavior: smooth;
+.tap-button {
+position: relative;
+z-index: 2;
+width: 190px;
+height: 190px;
+border-radius: 50%;
+border: 3px solid var(--gold-border);
+background: var(--tap-bg);
+color: var(--text);
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+cursor: pointer;
+margin: 0 auto;
+transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1),
+box-shadow 0.3s ease;
+box-shadow:
+0 0 30px var(--gold-glow),
+inset 0 -8px 20px var(--shadow),
+inset 0 8px 20px rgba(255, 216, 77, 0.08);
+touch-action: manipulation;
+user-select: none;
+-webkit-tap-highlight-color: transparent;
 }
 
+/* Glow extérieur (pulse) */
+.tap-button::before {
+content: "";
+position: absolute;
+inset: -6px;
+border-radius: 50%;
+background: radial-gradient(circle at center, var(--gold-glow), transparent 70%);
+opacity: 0.6;
+animation: tapGlow 2.5s ease-in-out infinite alternate;
+z-index: -1;
+pointer-events: none;
+}
+
+@keyframes tapGlow {
+0% { opacity: 0.3; transform: scale(1); }
+100% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.tap-button:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+filter: grayscale(0.5);
+}
+
+/* Animation au clic (squash amélioré) */
+.tap-button:active:not(:disabled) {
+transform: scale(0.88);
+box-shadow:
+0 0 60px var(--gold-glow),
+inset 0 -4px 20px var(--shadow),
+inset 0 8px 30px rgba(255, 216, 77, 0.15);
+}
+
+.tap-button.tap-active {
+transform: scale(0.92);
+box-shadow: 0 0 80px var(--gold-glow);
+}
+
+/* Cercle interne lumineux */
+.tap-button .tap-glow {
+position: absolute;
+inset: 10%;
+border-radius: 50%;
+background: radial-gradient(circle at center, var(--gold-glow), transparent 70%);
+pointer-events: none;
+transition: opacity 0.3s ease;
+}
+
+.tap-button.tap-active .tap-glow {
+opacity: 1;
+background: radial-gradient(circle at center, var(--gold-glow), transparent 70%);
+animation: tapFlash 0.3s ease-out;
+}
+
+@keyframes tapFlash {
+0% { transform: scale(1.2); opacity: 0.8; }
+100% { transform: scale(1); opacity: 0; }
+}
+
+/* Compteur sur le bouton */
+.tap-button small {
+position: absolute;
+bottom: 18px;
+left: 0;
+right: 0;
+z-index: 3;
+text-align: center;
+font-size: 18px;
+color: var(--gold);
+font-weight: 900;
+text-shadow: 0 0 20px var(--gold-glow);
+pointer-events: none;
+font-family: 'Orbitron', sans-serif;
+letter-spacing: 1px;
+}
+
+/* Image du bouton */
+.tap-img-bg {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+object-fit: contain;
+pointer-events: none;
+z-index: 0;
+display: block;
+border-radius: 50%;
+opacity: 0.85;
+}
+
+/* ============================================================
+PARTICULES FLOTTANTES
+============================================================ */
+
+.tap-particle {
+position: absolute;
+border-radius: 50%;
+pointer-events: none;
+z-index: 20;
+animation: particleFly 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes particleFly {
+0% {
+opacity: 1;
+transform: translate(0, 0) scale(1);
+}
+100% {
+opacity: 0;
+transform: translate(var(--tx), var(--ty)) scale(0);
+}
+}
+
+/* ============================================================
+COMPTEUR FLOTTANT (+1)
+============================================================ */
+
+.tap-float-text {
+position: absolute;
+font-family: 'Orbitron', sans-serif;
+font-weight: 900;
+font-size: 28px;
+color: var(--gold);
+text-shadow: 0 0 30px var(--gold-glow);
+pointer-events: none;
+z-index: 25;
+animation: floatUp 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes floatUp {
+0% {
+opacity: 1;
+transform: translateY(0) scale(0.5);
+}
+60% {
+opacity: 1;
+transform: translateY(-60px) scale(1.2);
+}
+100% {
+opacity: 0;
+transform: translateY(-120px) scale(1);
+}
+}
+
+/* ============================================================
+ONDE (RIPPLE)
+============================================================ */
+
+.tap-ripple {
+position: absolute;
+border-radius: 50%;
+border: 2px solid var(--gold-border);
+pointer-events: none;
+z-index: 15;
+animation: rippleExpand 0.7s ease-out forwards;
+}
+
+@keyframes rippleExpand {
+0% {
+width: 20px;
+height: 20px;
+opacity: 0.8;
+transform: translate(-50%, -50%) scale(0.5);
+}
+100% {
+width: 200px;
+height: 200px;
+opacity: 0;
+transform: translate(-50%, -50%) scale(1);
+}
+}
+
+/* ============================================================
+ADAPTATION AU THÈME TELEGRAM (clair / sombre)
+============================================================ */
+
+/* Thème sombre (par défaut) */
 body {
-    width: 100%;
-    min-width: 100%;
-    min-height: 100vh;
+background: var(--bg);
+color: var(--text);
+transition: background 0.3s ease, color 0.3s ease;
+}
 
-    margin: 0;
-    padding: 0;
+/* Thème clair (activé par Telegram) */
+body.light-theme {
+--bg: #f5f5f5;
+--text: #1a1a1a;
+--muted: #666666;
+--card-bg: rgba(0, 0, 0, 0.05);
+--card-border: rgba(0, 0, 0, 0.08);
+--shadow: rgba(0, 0, 0, 0.2);
+--tap-bg: radial-gradient(circle at 30% 30%, #e8d5f0, #d4b8e0 80%);
+--gold: #ffb800;
+--gold-glow: rgba(255, 184, 0, 0.3);
+--gold-border: rgba(255, 184, 0, 0.6);
+}
 
-    overflow-x: hidden;
-    overflow-y: auto;
+/* Les couleurs Telegram sont appliquées via JavaScript */
+[data-telegram-theme="dark"] {
+--bg: #0a0a0a;
+--text: #ffffff;
+--muted: #888888;
+}
 
-    color: var(--white);
-
-    font-family: 'Orbitron', sans-serif;
-
-    background:
-        radial-gradient(
-            circle at 50% 10%,
-            rgba(92, 24, 145, 0.20),
-            transparent 30%
-        ),
-        radial-gradient(
-            circle at 50% 55%,
-            rgba(42, 8, 75, 0.30),
-            transparent 45%
-        ),
-        linear-gradient(
-            180deg,
-            #090014 0%,
-            #070010 55%,
-            #040009 100%
-        );
-
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: auto;
+[data-telegram-theme="light"] {
+--bg: #f5f5f5;
+--text: #1a1a1a;
+--muted: #666666;
+--tap-bg: radial-gradient(circle at 30% 30%, #e8d5f0, #d4b8e0 80%);
 }
 
 /* ============================================================
-   FOND
-   ============================================================ */
+RESPONSIVE
+============================================================ */
 
-#bgCanvas {
-    position: fixed;
+@media(max-width:430px) {
+.tap-button { width: 170px; height: 170px; }
+.tap-button small { font-size: 16px; bottom: 14px; }
+.tap-float-text { font-size: 24px; }
+.tap-zone { min-height: 220px; }
+}
 
-    inset: 0;
-
-    width: 100%;
-    height: 100%;
-
-    z-index: -10;
-
-    pointer-events: none;
-
-    background:
-        radial-gradient(
-            circle at 50% 30%,
-            rgba(67, 18, 110, 0.18),
-            transparent 42%
-        ),
-        #090014;
+@media(max-width:360px) {
+.tap-button { width: 155px; height: 155px; }
+.tap-button small { font-size: 14px; bottom: 12px; }
+.tap-float-text { font-size: 20px; }
 }
 
 /* ============================================================
-   APP
-   ============================================================ */
+ANIMATIONS GLOBALES
+============================================================ */
+
+/* Fade-in au chargement */
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
 
 .app {
-    position: relative;
-
-    width: 100%;
-    max-width: 480px;
-
-    min-height: 100vh;
-
-    margin: 0 auto;
-    padding-bottom: 80px;
-
-    overflow: visible !important;
-
-    z-index: 1;
+animation: fadeIn 0.6s ease-out;
 }
 
-/* ============================================================
-   GLASS CARD
-   ============================================================ */
-
-.glass-card {
-    background: rgba(255, 255, 255, 0.045);
-
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-
-    border: 1px solid rgba(255, 255, 255, 0.08);
-
-    border-radius: 16px;
-
-    box-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.30);
+/* Apparition en cascade des éléments */
+@keyframes slideUp {
+from { opacity: 0; transform: translateY(30px) scale(0.95); }
+to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
-/* ============================================================
-   TON CONNECT
-   ============================================================ */
-
-#ton-connect-button,
-div[id^="tc-widget"],
-iframe[id^="tc-widget"],
-.tc-connect-button {
-    display: none !important;
-}
-
-/* ============================================================
-   NOTIFICATIONS
-   ============================================================ */
-
-#notificationContainer {
-    pointer-events: none;
-}
-
-/* ============================================================
-   PWA
-   ============================================================ */
-
-.install-pwa-button {
-    position: fixed;
-
-    left: 50%;
-    bottom: 18px;
-
-    transform: translateX(-50%);
-
-    z-index: 3000;
-
-    display: none;
-
-    padding: 12px 20px;
-
-    border: 1px solid var(--gold);
-    border-radius: 999px;
-
-    background:
-        linear-gradient(
-            135deg,
-            rgba(25, 8, 45, 0.98),
-            rgba(9, 0, 20, 0.98)
-        );
-
-    color: var(--gold);
-
-    font-family: 'Orbitron', sans-serif;
-    font-size: 12px;
-    font-weight: 900;
-
-    box-shadow:
-        0 0 20px rgba(255, 204, 0, 0.25);
-
-    cursor: pointer;
-
-    white-space: nowrap;
-}
-
-.install-pwa-button.show {
-    display: block;
-}
-
-/* ============================================================
-   HEADER
-   ============================================================ */
-
-.top-header {
-    position: relative;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 8px;
-
-    min-height: 58px;
-
-    padding: 9px 14px;
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(14, 2, 28, 0.96),
-            rgba(9, 0, 20, 0.90)
-        );
-
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-
-    border-bottom:
-        1px solid rgba(255, 204, 0, 0.08);
-
-    overflow: hidden;
-}
-
-.top-header::after {
-    content: "";
-
-    position: absolute;
-
-    top: 0;
-    left: -100%;
-
-    width: 80%;
-    height: 100%;
-
-    background:
-        linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.04),
-            transparent
-        );
-
-    animation: headerShine 8s ease-in-out infinite;
-
-    pointer-events: none;
-}
-
-.menu-button {
-    position: relative;
-    z-index: 2;
-
-    width: 42px;
-    height: 42px;
-
-    padding: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: transparent;
-
-    border: 1px solid rgba(255, 204, 0, 0.15);
-    border-radius: 11px;
-
-    color: var(--gold);
-
-    font-size: 23px;
-
-    cursor: pointer;
-}
-
-.online {
-    position: relative;
-    z-index: 2;
-
-    font-size: 9px;
-
-    color: var(--green);
-
-    font-weight: 900;
-
-    white-space: nowrap;
-}
-
-.wallet-box {
-    position: relative;
-    z-index: 2;
-
-    text-align: right;
-
-    font-family: 'Orbitron', sans-serif;
-}
-
-.wallet-box small {
-    display: block;
-
-    margin-bottom: 2px;
-
-    color: var(--muted);
-
-    font-size: 7px;
-}
-
-.wallet-box strong {
-    color: var(--gold);
-
-    font-size: 12px;
-}
-
-.wallet-button {
-    position: relative;
-    z-index: 2;
-
-    display: flex;
-    align-items: center;
-
-    gap: 5px;
-
-    padding: 7px 10px;
-
-    background: rgba(255, 204, 0, 0.08);
-
-    border: 1px solid rgba(255, 204, 0, 0.25);
-
-    border-radius: 10px;
-
-    color: var(--gold);
-
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-
-    cursor: pointer;
-}
-
-/* ============================================================
-   CAGNOTTE DU SAMEDI
-   ============================================================ */
-
-#jackpotDisplay {
-    position: relative !important;
-
-    width: calc(100% - 24px) !important;
-
-    min-height: 68px !important;
-
-    margin: 10px 12px !important;
-
-    padding: 10px 12px !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-
-    gap: 10px !important;
-
-    border-radius: 15px !important;
-
-    background:
-        radial-gradient(
-            circle at 5% 50%,
-            rgba(255, 204, 0, 0.12),
-            transparent 32%
-        ),
-        radial-gradient(
-            circle at 100% 50%,
-            rgba(139, 44, 255, 0.16),
-            transparent 40%
-        ),
-        linear-gradient(
-            135deg,
-            rgba(25, 8, 43, 0.96),
-            rgba(9, 0, 20, 0.96)
-        ) !important;
-
-    border:
-        1px solid rgba(255, 204, 0, 0.30) !important;
-
-    box-shadow:
-        0 6px 22px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-
-    overflow: hidden !important;
-
-    font-family: 'Orbitron', sans-serif !important;
-}
-
-#jackpotDisplay::before {
-    content: "";
-
-    position: absolute;
-
-    top: 0;
-    left: 10%;
-    right: 10%;
-
-    height: 1px;
-
-    background:
-        linear-gradient(
-            90deg,
-            transparent,
-            var(--gold),
-            var(--purple-light),
-            transparent
-        );
-
-    opacity: 0.7;
-}
-
-#jackpotDisplay::after {
-    content: "";
-
-    position: absolute;
-
-    width: 80px;
-    height: 80px;
-
-    right: -35px;
-    top: -35px;
-
-    background: rgba(139, 44, 255, 0.16);
-
-    border-radius: 50%;
-
-    filter: blur(18px);
-
-    pointer-events: none;
-}
-
-#jackpotDisplay > div:first-child {
-    position: relative;
-    z-index: 2;
-
-    min-width: 0;
-
-    text-align: left;
-}
-
-#jackpotDisplay > div:first-child > span:first-child {
-    display: block !important;
-
-    margin-bottom: 3px;
-
-    color: #898391 !important;
-
-    font-size: 8px !important;
-
-    font-weight: 700 !important;
-
-    letter-spacing: 0.5px;
-}
-
-#jackpotAmount {
-    display: block !important;
-
-    color: var(--gold-light) !important;
-
-    font-size: 19px !important;
-
-    line-height: 1.1;
-
-    font-weight: 900 !important;
-
-    letter-spacing: 0.4px;
-
-    text-shadow:
-        0 0 8px rgba(255, 216, 77, 0.35);
-}
-
-#jackpotDisplay > div:last-child {
-    position: relative;
-    z-index: 2;
-
-    min-width: 88px;
-
-    padding: 6px 8px;
-
-    text-align: center !important;
-
-    border-radius: 10px;
-
-    background: rgba(0, 0, 0, 0.28);
-
-    border: 1px solid rgba(61, 255, 154, 0.12);
-}
-
-#jackpotDisplay > div:last-child > span:first-child {
-    display: block !important;
-
-    margin-bottom: 2px;
-
-    color: #777 !important;
-
-    font-size: 7px !important;
-}
-
-#jackpotCountdown {
-    display: block !important;
-
-    color: var(--green) !important;
-
-    font-size: 12px !important;
-
-    font-weight: 900 !important;
-
-    line-height: 1.2;
-
-    text-shadow:
-        0 0 8px rgba(61, 255, 154, 0.25);
-}
-
-/* ============================================================
-   HERO
-   ============================================================ */
 
 .hero-banner-container {
-    position: relative;
-
-    width: calc(100% - 24px);
-
-    margin: 10px 12px 14px;
-
-    border-radius: 15px;
-
-    overflow: hidden;
-
-    background: rgba(9, 0, 20, 0.75);
-
-    border:
-        1px solid rgba(255, 204, 0, 0.28);
-
-    box-shadow:
-        0 8px 28px rgba(0, 0, 0, 0.45);
+animation: slideUp 0.5s ease-out;
 }
 
-.hero-bg-image {
-    display: block;
-
-    width: 100%;
-    height: auto;
-
-    opacity: 0.92;
+.main-play-button, .spectator-button {
+animation: slideUp 0.6s ease-out 0.1s both;
 }
 
-.hero-header-overlay {
-    position: absolute;
-
-    top: 8px;
-    left: 8px;
-    right: 8px;
-
-    display: flex;
-
-    justify-content: space-between;
-    align-items: flex-start;
-
-    gap: 4px;
-
-    z-index: 10;
+.tap-zone {
+animation: slideUp 0.7s ease-out 0.2s both;
 }
 
-.player-profile-badge,
-.timer-badge-top,
-.wallet-badge-top {
-    background: rgba(0, 0, 0, 0.68);
-
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+.rules {
+animation: slideUp 0.8s ease-out 0.3s both;
 }
 
-.player-profile-badge {
-    display: flex;
-    align-items: center;
-
-    gap: 5px;
-
-    padding: 4px 7px;
-
-    border-radius: 12px;
-
-    border:
-        1px solid rgba(255, 204, 0, 0.28);
+.stats {
+animation: slideUp 0.9s ease-out 0.4s both;
 }
 
-.avatar-icon {
-    font-size: 14px;
-}
-
-.profile-text .p-name {
-    display: block;
-
-    color: #fff;
-
-    font-size: 8px;
-    font-weight: 900;
-}
-
-.profile-text .p-level {
-    display: block;
-
-    width: fit-content;
-
-    padding: 1px 4px;
-
-    margin-top: 1px;
-
-    background: #7b2cff;
-
-    color: #fff;
-
-    border-radius: 4px;
-
-    font-size: 6px;
-}
-
-.timer-badge-top {
-    padding: 4px 8px;
-
-    border-radius: 10px;
-
-    text-align: center;
-
-    border:
-        1px solid rgba(255, 204, 0, 0.40);
-}
-
-.timer-badge-top .tb-label {
-    display: block;
-
-    color: #aaa;
-
-    font-size: 6px;
-    font-weight: 700;
-}
-
-.timer-badge-top .tb-value {
-    display: block;
-
-    margin-top: 1px;
-
-    color: var(--gold);
-
-    font-size: 12px;
-
-    font-weight: 900;
-}
-
-.timer-badge-top .tb-sub {
-    color: #777;
-
-    font-size: 5px;
-}
-
-.wallet-badge-top {
-    display: flex;
-    align-items: center;
-
-    gap: 5px;
-
-    padding: 4px 6px;
-
-    border-radius: 10px;
-
-    border:
-        1px solid rgba(193, 60, 255, 0.40);
-
-    cursor: pointer;
-}
-
-.wallet-badge-top .wb-label {
-    display: block;
-
-    color: #aaa;
-
-    font-size: 6px;
-}
-
-.wallet-badge-top .wb-value {
-    display: block;
-
-    color: var(--gold);
-
-    font-size: 11px;
-
-    font-weight: 900;
-}
-
-.wallet-badge-top .wallet-icon {
-    padding: 3px;
-
-    background: #240046;
-
-    border-radius: 5px;
-
-    font-size: 13px;
+.leaderboard-chat-wrapper {
+animation: slideUp 1s ease-out 0.5s both;
 }
 
 /* ============================================================
-   MENU LATÉRAL
-   ============================================================ */
+HEADER GLASSMORPHISM AVEC REFLET
+============================================================ */
 
-.side-menu {
-    position: fixed;
-
-    top: 0;
-    left: -300px;
-
-    width: 280px;
-
-    height: 100vh;
-    height: 100dvh;
-
-    padding: 18px;
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(20, 5, 38, 0.98),
-            rgba(8, 0, 18, 0.98)
-        );
-
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-
-    border-right:
-        1px solid rgba(255, 204, 0, 0.18);
-
-    z-index: 1000;
-
-    transition: left 0.28s ease;
-
-    overflow-y: auto;
-
-    -webkit-overflow-scrolling: touch;
+.top-header {
+position: relative;
+overflow: hidden;
 }
 
-.side-menu.show {
-    left: 0;
+/* Reflet lumineux qui glisse */
+.top-header::after {
+content: "";
+position: absolute;
+top: 0;
+left: -100%;
+width: 100%;
+height: 100%;
+background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+animation: headerShine 6s ease-in-out infinite;
+pointer-events: none;
 }
 
-.close-menu {
-    background: transparent;
-
-    border: none;
-
-    color: #fff;
-
-    font-size: 27px;
-
-    cursor: pointer;
-}
-
-.side-menu-content {
-    margin-top: 35px;
-
-    padding-bottom: 30px;
-}
-
-.side-menu-content h3 {
-    margin-bottom: 18px;
-
-    color: var(--gold);
-
-    font-size: 15px;
-
-    letter-spacing: 1px;
-}
-
-.menu-block {
-    margin-bottom: 13px;
-
-    padding: 11px;
-
-    background: rgba(255, 255, 255, 0.035);
-
-    border-radius: 10px;
-
-    border:
-        1px solid rgba(255, 255, 255, 0.05);
-}
-
-.menu-block label,
-.menu-block h4 {
-    display: block;
-
-    margin-bottom: 7px;
-
-    color: var(--gold);
-
-    font-size: 11px;
-
-    font-weight: 900;
-}
-
-.menu-block select {
-    width: 100%;
-
-    padding: 8px;
-
-    background: #1a1028;
-
-    color: #fff;
-
-    border:
-        1px solid rgba(255, 204, 0, 0.20);
-
-    border-radius: 7px;
-
-    font-family: 'Orbitron', sans-serif;
-
-    font-size: 11px;
-}
-
-.menu-nav-btn {
-    display: block;
-
-    width: 100%;
-
-    margin-bottom: 5px;
-
-    padding: 10px 11px;
-
-    background: transparent;
-
-    border: none;
-
-    border-radius: 8px;
-
-    color: #fff;
-
-    text-align: left;
-
-    font-family: 'Orbitron', sans-serif;
-
-    font-size: 12px;
-
-    cursor: pointer;
-
-    text-decoration: none;
-}
-
-.menu-nav-btn:hover,
-.menu-nav-btn:active {
-    background: rgba(255, 204, 0, 0.10);
-
-    color: var(--gold);
-}
-
-.trust-contact-box {
-    border-left: 3px solid #2ecc71;
-}
-
-.support-link {
-    display: inline-block;
-
-    padding: 7px 11px;
-
-    background: #0088cc;
-
-    color: #fff;
-
-    border-radius: 6px;
-
-    text-decoration: none;
-
-    font-size: 11px;
-
-    font-weight: 900;
-}
-
-.menu-overlay {
-    position: fixed;
-
-    inset: 0;
-
-    display: none;
-
-    background: rgba(0, 0, 0, 0.72);
-
-    z-index: 999;
-}
-
-.menu-overlay.show {
-    display: block;
+@keyframes headerShine {
+0% { left: -100%; }
+50% { left: 100%; }
+100% { left: 100%; }
 }
 
 /* ============================================================
-   MODALS
-   ============================================================ */
+CLASSEMENT ANIMÉ (STAGGER)
+============================================================ */
 
-.legal-modal,
-.modal {
-    position: fixed;
-
-    inset: 0;
-
-    display: none;
-
-    align-items: center;
-    justify-content: center;
-
-    padding: 18px;
-
-    background: rgba(0, 0, 0, 0.84);
-
-    z-index: 2000;
+.leaderboard-item {
+opacity: 0;
+animation: leaderboardSlide 0.5s ease-out forwards;
 }
 
-.legal-modal.show,
-.modal.show {
-    display: flex;
+.leaderboard-item:nth-child(1) { animation-delay: 0.05s; }
+.leaderboard-item:nth-child(2) { animation-delay: 0.1s; }
+.leaderboard-item:nth-child(3) { animation-delay: 0.15s; }
+.leaderboard-item:nth-child(4) { animation-delay: 0.2s; }
+.leaderboard-item:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes leaderboardSlide {
+from { opacity: 0; transform: translateX(-20px); }
+to { opacity: 1; transform: translateX(0); }
 }
 
-.legal-content,
-.modal-content {
-    position: relative;
+/* Podium : couleurs spéciales pour le top 3 */
+.leaderboard-item:nth-child(1) { border-left: 3px solid #ffd700; }
+.leaderboard-item:nth-child(2) { border-left: 3px solid #c0c0c0; }
+.leaderboard-item:nth-child(3) { border-left: 3px solid #cd7f32; }
 
-    width: 100%;
-    max-width: 500px;
+/* ============================================================
+CHAT MESSAGES ANIMÉS
+============================================================ */
 
-    max-height: 90vh;
-    max-height: 90dvh;
-
-    overflow-y: auto;
-
-    padding: 20px;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(25, 8, 43, 0.98),
-            rgba(9, 0, 20, 0.98)
-        );
-
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-
-    border:
-        1px solid rgba(255, 204, 0, 0.55);
-
-    border-radius: 16px;
-
-    color: #fff;
-
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.65);
+.chat-message {
+animation: messageSlide 0.3s ease-out;
 }
 
-.legal-content h3,
-.modal-content h2 {
-    margin-top: 0;
-
-    color: var(--gold);
-}
-
-.legal-content p,
-.legal-content li {
-    color: #b8b4bd;
-
-    font-size: 12px;
-
-    line-height: 1.55;
-}
-
-.legal-close,
-.modal-close {
-    position: absolute;
-
-    top: 10px;
-    right: 13px;
-
-    background: transparent;
-
-    border: none;
-
-    color: #fff;
-
-    font-size: 23px;
-
-    cursor: pointer;
+@keyframes messageSlide {
+from { opacity: 0; transform: translateX(-10px); }
+to { opacity: 1; transform: translateX(0); }
 }
 
 /* ============================================================
-   CRYPTO
-   ============================================================ */
+MODALE AMÉLIORÉE
+============================================================ */
 
-#tokenSelect {
-    width: 140px;
+.legal-modal.show .legal-content {
+animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-    padding: 9px 30px 9px 10px;
+@keyframes modalPop {
+from { opacity: 0; transform: scale(0.85) translateY(30px); }
+to { opacity: 1; transform: scale(1) translateY(0); }
+}
 
-    background-color: rgba(26, 26, 46, 0.85);
+/* ============================================================
+BOUTON SPECTATEUR AMÉLIORÉ
+============================================================ */
 
-    color: #fff;
+.spectator-button {
+transition: all 0.3s ease;
+}
 
-    border:
-        1px solid var(--gold);
+.spectator-button:hover {
+transform: scale(1.02);
+}
 
-    border-radius: 8px;
+.spectator-button:active {
+transform: scale(0.95);
+}
 
-    font-family: 'Orbitron', sans-serif;
+/* ============================================================
+SPINNER / LOADER
+============================================================ */
 
-    font-size: 12px;
+.loader {
+display: inline-block;
+width: 40px;
+height: 40px;
+border: 4px solid rgba(255, 216, 77, 0.1);
+border-top-color: var(--gold);
+border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
 
-    text-align: center;
+@keyframes spin {
+to { transform: rotate(360deg); }
+}
 
-    outline: none;
+/* ============================================================
+TAP-COUNT ANIMÉ (quand le score change)
+============================================================ */
 
-    cursor: pointer;
+.tap-count-pop {
+animation: countPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-    appearance: none;
-    -webkit-appearance: none;
+@keyframes countPop {
+0% { transform: scale(1); }
+50% { transform: scale(1.3); }
+100% { transform: scale(1); }
+}
 
-    background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' view
+/* ============================================================
+CONFETTIS
+============================================================ */
+
+@keyframes confettiFall {
+0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
+}
+
+/* ============================================================
+NOTIFICATIONS (TOASTS)
+============================================================ */
+
+.notification {
+padding: 12px 18px;
+border-radius: 12px;
+background: rgba(10, 10, 10, 0.92);
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+border: 1px solid rgba(255, 216, 77, 0.2);
+color: #fff;
+font-family: 'Orbitron', sans-serif;
+font-size: 12px;
+text-align: center;
+width: 100%;
+max-width: 380px;
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+animation: notificationSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+pointer-events: auto;
+cursor: default;
+transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.notification.info { border-color: rgba(46, 204, 113, 0.4); }
+.notification.success { border-color: rgba(46, 204, 113, 0.6); }
+.notification.warning { border-color: rgba(255, 193, 7, 0.4); }
+.notification.alert { border-color: rgba(255, 91, 91, 0.4); }
+.notification.champion { border-color: rgba(255, 216, 77, 0.6); background: rgba(255, 216, 77, 0.15); }
+
+.notification .notif-icon { font-size: 18px; margin-right: 10px; }
+.notification .notif-text { flex: 1; }
+.notification .notif-text strong { color: #ffd84d; }
+.notification .notif-time { font-size: 9px; color: #666; margin-top: 2px; }
+
+@keyframes notificationSlide {
+from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.notification.hiding {
+animation: notificationHide 0.3s ease forwards;
+}
+
+@keyframes notificationHide {
+from { opacity: 1; transform: translateY(0) scale(1); }
+to { opacity: 0; transform: translateY(-20px) scale(0.95); }
+}
+
+/* Thème clair pour les notifications */
+[data-telegram-theme="light"] .notification {
+background: rgba(245, 245, 245, 0.95);
+color: #1a1a1a;
+border-color: rgba(0, 0, 0, 0.1);
+}
+[data-telegram-theme="light"] .notification .notif-text strong {
+color: #ffb800;
+}
+
+/* ============================================================
+TABLEAU DE BORD DES GAINS (historique dans la modale)
+============================================================ */
+
+.dashboard-stats {
+display: flex;
+flex-wrap: wrap;
+gap: 10px;
+justify-content: space-around;
+margin-bottom: 15px;
+}
+
+.dashboard-stats .stat-item {
+text-align: center;
+flex: 1 1 80px;
+}
+
+.dashboard-stats .stat-item .stat-label {
+display: block;
+font-size: 10px;
+color: var(--muted);
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+
+.dashboard-stats .stat-item .stat-value {
+display: block;
+font-size: 20px;
+font-weight: 900;
+color: var(--gold);
+}
+
+.history-table {
+width: 100%;
+border-collapse: collapse;
+font-size: 11px;
+margin-top: 5px;
+}
+
+.history-table thead th {
+text-align: left;
+padding: 6px 4px;
+color: var(--gold);
+border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+font-weight: 700;
+font-size: 10px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+
+.history-table tbody td {
+padding: 6px 4px;
+border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+color: var(--text);
+}
+
+.history-table .rank-badge {
+font-weight: 700;
+color: var(--gold);
+}
+
+.history-table .gain-positive {
+color: #3dff9a;
+}
+
+.history-table .gain-negative {
+color: #ff5b5b;
+}
+
+/* Ajustements pour le mode clair */
+[data-telegram-theme="light"] .history-table thead th {
+border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+[data-telegram-theme="light"] .history-table tbody td {
+border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+.no-data-message {
+color: var(--muted);
+text-align: center;
+font-size: 13px;
+padding: 20px 0;
+}
+
+/* Scroll horizontal pour la table sur petits écrans */
+@media(max-width:480px) {
+.history-table-wrapper {
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+.history-table {
+min-width: 400px;
+}
+}
