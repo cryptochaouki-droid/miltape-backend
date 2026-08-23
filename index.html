@@ -199,30 +199,9 @@
       border-radius: 4px;
       width: fit-content;
     }
-    .timer-badge-top {
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 204, 0, 0.5);
-      padding: 4px 10px;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .timer-badge-top .tb-label {
-      display: block;
-      font-size: 7px;
-      color: #bbb;
-      font-weight: bold;
-    }
-    .timer-badge-top .tb-value {
-      display: block;
-      font-size: 14px;
-      font-weight: 900;
-      color: #ffcc00;
-    }
-    .timer-badge-top .tb-sub {
-      font-size: 6px;
-      color: #888;
-    }
+
+    /* === LE CHRONO EN HAUT A ÉTÉ SUPPRIMÉ === */
+
     .wallet-badge-top {
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(8px);
@@ -1104,11 +1083,7 @@
             <span class="p-level">Level 12</span>
           </div>
         </div>
-        <div class="timer-badge-top" id="topTimerBox">
-          <span class="tb-label">TEMPS RESTANT</span>
-          <span class="tb-value" id="timer">10:00</span>
-          <small class="tb-sub">EN DIRECT</small>
-        </div>
+        <!-- LE CHRONO EN HAUT A ÉTÉ SUPPRIMÉ -->
         <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
           <div>
             <span class="wb-label">MISE</span>
@@ -1166,13 +1141,14 @@
       <button id="tapButton" class="tap-button" type="button" disabled>
         <img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false">
         <span class="tap-glow"></span>
-        <small id="tapTimerDisplay">10:00</small>
+        <small><span id="tapButtonCount">0</span></small>
       </button>
     </section>
 
     <!-- RÈGLES -->
     <section class="rules">
       <div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div>
+      <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
       <div class="rule"><span class="rule-icon">🪙</span><strong>TOKENS</strong><small>USDT / USDC / TUSD / TRX</small></div>
     </section>
 
@@ -1238,7 +1214,7 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL (client.js) – corrigé et intégré
+         SCRIPT PRINCIPAL (client.js) – corrigé
          ========================================================= -->
   <script>
     // =========================================================
@@ -1256,7 +1232,7 @@
     const enterChallengeTop = document.getElementById('enterChallengeTop');
     const spectatorBtn = document.getElementById('spectatorMode');
     const tapMessage = document.getElementById('tapMessage');
-    const timerDisplay = document.getElementById('timer');
+    const timerDisplay = document.getElementById('timer'); // ⚠️ plus utilisé (chrono en haut supprimé)
     const onlineCount = document.getElementById('onlineCount');
     const leaderboardList = document.getElementById('leaderboardList');
     const chatInput = document.getElementById('chatInput');
@@ -1721,28 +1697,24 @@
       });
     }
 
+    // ---- Écouteur score ----
     socket.on("player:score", (data) => {
       if (tapCount) { tapCount.innerText = data.taps; animateTapCount(); }
-      // Le compteur de taps sur le bouton a été supprimé → on ne met plus à jour tapButtonCount
+      if (tapButtonCount) tapButtonCount.innerText = data.taps; // ← compteur sur le bouton
     });
 
     // ==========================================
-    // 16. CHRONO
+    // 16. CHRONO – UNIQUEMENT DANS LES RÈGLES
     // ==========================================
     socket.on("timer:update", (data) => {
-      // Chrono en haut
-      if (timerDisplay) {
+      // Chrono dans la section des règles (remplacement de "10 MINUTES PAR PARTIE")
+      const timerRuleValue = document.getElementById('timerRuleValue');
+      if (timerRuleValue) {
         const m = Math.floor(data.remainingSeconds / 60);
         const s = data.remainingSeconds % 60;
-        timerDisplay.innerText = m + ":" + s.toString().padStart(2,'0');
+        timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
       }
-      // Chrono en bas du bouton TAP
-      const tapTimerDisplay = document.getElementById('tapTimerDisplay');
-      if (tapTimerDisplay) {
-        const m = Math.floor(data.remainingSeconds / 60);
-        const s = data.remainingSeconds % 60;
-        tapTimerDisplay.innerText = m + ":" + s.toString().padStart(2,'0');
-      }
+      // Le chrono en haut (timerDisplay) n'est plus mis à jour car supprimé du HTML
     });
 
     // ==========================================
@@ -1802,7 +1774,7 @@
     });
 
     // ==========================================
-    // 20. PAIEMENT - INITIATION
+    // 20. PAIEMENT
     // ==========================================
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
@@ -2048,7 +2020,24 @@
     if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
 
     // ==========================================
-    // 26. CAGNOTTE – COMPTE À REBOURS
+    // 26. BOUTON RETOUR TELEGRAM
+    // ==========================================
+    (function initTelegramBackButton() {
+      try {
+        if (window.Telegram && window.Telegram.WebApp) {
+          const webapp = window.Telegram.WebApp;
+          webapp.expand();
+          webapp.BackButton.show();
+          webapp.BackButton.onClick(function() { webapp.close(); });
+          console.log("✅ Telegram WebApp bouton retour initialisé");
+        }
+      } catch (e) {
+        console.log("ℹ️ Pas de Telegram WebApp détecté");
+      }
+    })();
+
+    // ==========================================
+    // 27. CAGNOTTE – COMPTE À REBOURS
     // ==========================================
     let jackpotCountdownInterval = null;
 
