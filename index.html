@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#090014" />
+  <meta name="theme-color" content="#f7c948" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -58,39 +58,55 @@
 
   <style>
     /* ============================================================
-       FOND ANIMÉ (PARTICULES / ÉTOILES)
+       FOND COMIC – Dégradé lumineux + motif points
        ============================================================ */
-    #bgCanvas {
+    body {
+      background: linear-gradient(145deg, #ffe893 0%, #ffb347 50%, #ff7eb3 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      font-family: 'Orbitron', sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: auto;
+      position: relative;
+    }
+
+    /* Motif de points comic (overlay) */
+    body::before {
+      content: "";
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: -1;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px);
+      background-size: 30px 30px;
       pointer-events: none;
-      background: radial-gradient(ellipse at center, #0d0221 0%, #090014 70%, #050010 100%);
+      z-index: 0;
     }
 
-    body {
-      font-family: 'Orbitron', sans-serif;
+    .app {
       width: 100%;
-      min-width: 100%;
+      max-width: 480px;
       min-height: 100vh;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: auto;
+      height: auto;
+      margin: 0 auto;
+      padding-bottom: 80px;
+      position: relative;
+      z-index: 1;
+      animation: fadeIn 0.6s ease-out;
     }
 
+    /* On garde le glassmorphism mais avec un fond plus transparent pour voir le comic */
     .glass-card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     }
 
     /* Masquer les widgets flottants TonConnect */
@@ -107,19 +123,6 @@
       overflow-x: hidden;
       overflow-y: scroll;
       scroll-behavior: smooth;
-    }
-
-    .app {
-      width: 100%;
-      max-width: 480px;
-      min-height: 100vh;
-      height: auto;
-      margin: 0 auto;
-      padding-bottom: 80px;
-      position: relative;
-      overflow: visible !important;
-      z-index: 1;
-      animation: fadeIn 0.6s ease-out;
     }
 
     .install-pwa-button {
@@ -150,18 +153,19 @@
       margin: 12px 12px 15px;
       border-radius: 16px;
       overflow: hidden;
-      background: rgba(9, 0, 20, 0.6);
+      background: rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 204, 0, 0.3);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
       animation: slideUp 0.5s ease-out;
     }
     .hero-bg-image {
       width: 100%;
       display: block;
       height: auto;
-      opacity: 0.85;
+      opacity: 0.9;
+      mix-blend-mode: multiply;
     }
     .hero-header-overlay {
       position: absolute;
@@ -177,11 +181,11 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(8px);
       padding: 4px 8px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 204, 0, 0.3);
+      border: 1px solid rgba(255, 204, 0, 0.5);
     }
     .avatar-icon { font-size: 16px; }
     .profile-text .p-name {
@@ -200,12 +204,12 @@
       width: fit-content;
     }
 
-    /* === LE CHRONO EN HAUT A ÉTÉ SUPPRIMÉ === */
+    /* Chrono en haut SUPPRIMÉ */
 
     .wallet-badge-top {
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(193, 60, 255, 0.5);
+      border: 1px solid rgba(193, 60, 255, 0.6);
       padding: 4px 8px;
       border-radius: 12px;
       text-align: right;
@@ -217,7 +221,7 @@
     .wallet-badge-top .wb-label {
       display: block;
       font-size: 7px;
-      color: #bbb;
+      color: #ddd;
     }
     .wallet-badge-top .wb-value {
       display: block;
@@ -240,35 +244,36 @@
       width: 280px;
       height: 100vh;
       height: 100dvh;
-      background: rgba(15, 5, 29, 0.95);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(255, 204, 0, .2);
+      border-right: 1px solid rgba(255, 204, 0, .3);
       z-index: 1000;
       transition: left .3s ease;
       padding: 20px;
       box-sizing: border-box;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      color: #222;
     }
     .side-menu.show { left: 0; }
     .close-menu {
       background: none;
       border: none;
-      color: #fff;
+      color: #222;
       font-size: 28px;
       cursor: pointer;
     }
     .side-menu-content { margin-top: 40px; padding-bottom: 30px; }
     .side-menu-content h3 {
-      color: #ffcc00;
+      color: #ff8a00;
       margin-bottom: 20px;
       font-size: 16px;
       letter-spacing: 1px;
     }
     .menu-block {
       margin-bottom: 15px;
-      background: rgba(255, 255, 255, .03);
+      background: rgba(0, 0, 0, 0.03);
       padding: 12px;
       border-radius: 10px;
       backdrop-filter: blur(5px);
@@ -277,7 +282,7 @@
     .menu-block h4 {
       display: block;
       font-size: 13px;
-      color: #ffcc00;
+      color: #ff8a00;
       margin-bottom: 8px;
       font-weight: bold;
     }
@@ -285,9 +290,9 @@
       width: 100%;
       padding: 8px;
       border-radius: 6px;
-      background: #1a1a2e;
-      color: #fff;
-      border: 1px solid #444;
+      background: #fff;
+      color: #222;
+      border: 1px solid #ccc;
       box-sizing: border-box;
       font-family: 'Orbitron', sans-serif;
       font-size: 12px;
@@ -297,7 +302,7 @@
       width: 100%;
       background: transparent;
       border: none;
-      color: #fff;
+      color: #222;
       text-align: left;
       font-size: 14px;
       padding: 10px 12px;
@@ -311,8 +316,8 @@
     }
     .menu-nav-btn:hover,
     .menu-nav-btn:active {
-      background: rgba(255, 204, 0, .15);
-      color: #ffcc00;
+      background: rgba(255, 204, 0, .2);
+      color: #ff8a00;
     }
     .trust-contact-box { border-left: 3px solid #2ecc71; }
     .support-link {
@@ -329,7 +334,7 @@
     .menu-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .7);
+      background: rgba(0, 0, 0, .5);
       display: none;
       z-index: 999;
     }
@@ -339,7 +344,7 @@
     .legal-modal {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .82);
+      background: rgba(0, 0, 0, .6);
       display: none;
       align-items: center;
       justify-content: center;
@@ -349,9 +354,9 @@
     }
     .legal-modal.show { display: flex; }
     .legal-content {
-      background: rgba(18, 6, 36, 0.95);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(20px);
-      border: 1px solid #ffcc00;
+      border: 1px solid #ff8a00;
       border-radius: 16px;
       max-width: 500px;
       width: 100%;
@@ -360,18 +365,18 @@
       overflow-y: auto;
       padding: 20px;
       box-sizing: border-box;
-      color: #fff;
+      color: #222;
       position: relative;
       animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .legal-content h3 {
-      color: #ffcc00;
+      color: #ff8a00;
       margin-top: 0;
     }
     .legal-content p,
     .legal-content li {
       font-size: 13px;
-      color: #b8b8b8;
+      color: #333;
       line-height: 1.5;
     }
     .legal-close {
@@ -380,7 +385,7 @@
       right: 15px;
       background: none;
       border: none;
-      color: #fff;
+      color: #222;
       font-size: 24px;
       cursor: pointer;
     }
@@ -404,8 +409,8 @@
       min-height: 190px;
       border: none;
       border-radius: 50%;
-      background: rgba(255, 204, 0, 0.05);
-      backdrop-filter: blur(5px);
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
       overflow: visible;
       cursor: pointer;
       outline: none;
@@ -419,14 +424,15 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
-      box-shadow: 0 0 40px rgba(255, 204, 0, 0.1);
+      box-shadow: 0 0 40px rgba(255, 204, 0, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.5);
     }
     .tap-button:disabled {
       cursor: not-allowed;
       opacity: 0.6;
     }
     .tap-button:not(:disabled):hover {
-      box-shadow: 0 0 60px rgba(255, 204, 0, 0.2);
+      box-shadow: 0 0 60px rgba(255, 204, 0, 0.4);
     }
     .tap-img-bg {
       position: absolute;
@@ -438,6 +444,7 @@
       z-index: 0;
       display: block;
       border-radius: 50%;
+      mix-blend-mode: multiply;
     }
     .tap-button strong,
     .tap-button small,
@@ -454,15 +461,15 @@
       z-index: 3;
       text-align: center;
       font-size: 16px;
-      color: #ffcc00;
-      font-weight: bold;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, .9);
+      color: #222;
+      font-weight: 900;
+      text-shadow: 0 2px 6px rgba(255, 255, 255, 0.8);
       pointer-events: none;
     }
     .tap-button:active:not(:disabled) { transform: scale(.92); }
     .tap-button.tap-active {
       transform: scale(.94);
-      box-shadow: 0 0 80px rgba(255, 204, 0, 0.3);
+      box-shadow: 0 0 80px rgba(255, 204, 0, 0.4);
     }
 
     /* CHAT */
@@ -481,23 +488,23 @@
       margin-top: 10px;
       margin-bottom: 10px;
       border-radius: 12px;
-      background: rgba(0, 0, 0, .20);
+      background: rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       box-sizing: border-box;
     }
     .chat-message {
       margin-bottom: 8px;
       padding: 7px 8px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, .035);
+      background: rgba(255, 255, 255, 0.2);
       font-size: 13px;
-      color: #ddd;
+      color: #222;
       word-break: break-word;
       line-height: 1.35;
       animation: messageSlide 0.3s ease-out;
     }
-    .chat-message strong { color: #ffcc00; }
+    .chat-message strong { color: #ff8a00; }
     .chat-input-box {
       position: relative;
       z-index: 30;
@@ -513,12 +520,12 @@
       min-width: 0;
       height: 44px;
       padding: 0 12px;
-      border: 1px solid rgba(193, 60, 255, .30);
+      border: 1px solid rgba(0, 0, 0, 0.2);
       border-radius: 12px;
       outline: none;
-      background: rgba(0, 0, 0, .35);
+      background: rgba(255, 255, 255, 0.7);
       backdrop-filter: blur(5px);
-      color: #fff;
+      color: #222;
       font-size: 13px;
       box-sizing: border-box;
       font-family: 'Orbitron', sans-serif;
@@ -552,7 +559,7 @@
       font-weight: 900;
       font-family: 'Orbitron', sans-serif;
       cursor: pointer;
-      box-shadow: 0 4px 0 #a84c00, 0 0 30px rgba(255, 204, 0, 0.2);
+      box-shadow: 0 4px 0 #a84c00, 0 0 30px rgba(255, 204, 0, 0.3);
       transition: all 0.15s ease;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -563,7 +570,7 @@
       box-shadow: 0 1px 0 #a84c00;
     }
     .main-play-button:hover {
-      box-shadow: 0 4px 0 #a84c00, 0 0 50px rgba(255, 204, 0, 0.4);
+      box-shadow: 0 4px 0 #a84c00, 0 0 50px rgba(255, 204, 0, 0.5);
     }
 
     .spectator-button {
@@ -573,9 +580,9 @@
       margin: 5px auto;
       padding: 12px 20px;
       background: rgba(139, 44, 255, 0.2);
-      border: 2px solid rgba(139, 44, 255, 0.5);
+      border: 2px solid rgba(139, 44, 255, 0.6);
       border-radius: 12px;
-      color: #c13cff;
+      color: #6a1fb1;
       font-size: 14px;
       font-weight: 700;
       font-family: 'Orbitron', sans-serif;
@@ -587,25 +594,31 @@
     }
     .spectator-button:hover {
       background: rgba(139, 44, 255, 0.3);
-      border-color: #c13cff;
+      border-color: #8b2cff;
       box-shadow: 0 0 30px rgba(139, 44, 255, 0.2);
       transform: scale(1.02);
     }
     .spectator-button:active { transform: scale(0.95); }
     .spectator-button.active {
       background: rgba(139, 44, 255, 0.4);
-      border-color: #c13cff;
+      border-color: #8b2cff;
       box-shadow: 0 0 40px rgba(139, 44, 255, 0.3);
     }
 
     .tap-message {
       text-align: center;
       font-size: 13px;
-      color: #b8b8b8;
+      color: #222;
       padding: 10px 20px;
       margin: 5px 0;
       font-family: 'Orbitron', sans-serif;
       letter-spacing: 0.5px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      border-radius: 20px;
+      display: inline-block;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .rules {
@@ -620,17 +633,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.25);
       backdrop-filter: blur(5px);
       padding: 8px 14px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       font-family: 'Orbitron', sans-serif;
       font-size: 11px;
+      color: #222;
     }
     .rule .rule-icon { font-size: 18px; }
-    .rule strong { color: #ffcc00; font-size: 13px; }
-    .rule small { color: #888; font-size: 9px; }
+    .rule strong { color: #ff8a00; font-size: 13px; }
+    .rule small { color: #555; font-size: 9px; }
 
     .stats {
       display: flex;
@@ -639,9 +653,9 @@
       animation: slideUp 0.9s ease-out 0.4s both;
     }
     .stat-box {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.25);
       backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 12px;
       padding: 15px 20px;
       text-align: center;
@@ -651,12 +665,12 @@
     .stat-box small {
       display: block;
       font-size: 10px;
-      color: #888;
+      color: #555;
       font-family: 'Orbitron', sans-serif;
     }
     .stat-box strong {
       font-size: 28px;
-      color: #ffcc00;
+      color: #ff8a00;
       font-family: 'Orbitron', sans-serif;
     }
 
@@ -665,9 +679,9 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 16px;
-      background: rgba(9, 0, 20, 0.8);
+      background: rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       position: relative;
       overflow: hidden;
     }
@@ -678,7 +692,7 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
       animation: headerShine 6s ease-in-out infinite;
       pointer-events: none;
     }
@@ -690,7 +704,7 @@
     .menu-button {
       background: none;
       border: none;
-      color: #ffcc00;
+      color: #222;
       font-size: 24px;
       cursor: pointer;
       padding: 5px 8px;
@@ -708,17 +722,17 @@
     .wallet-box small {
       display: block;
       font-size: 8px;
-      color: #888;
+      color: #555;
     }
     .wallet-box strong {
       font-size: 14px;
-      color: #ffcc00;
+      color: #ff8a00;
     }
     .wallet-button {
-      background: rgba(255, 204, 0, 0.1);
-      border: 1px solid rgba(255, 204, 0, 0.3);
+      background: rgba(255, 204, 0, 0.2);
+      border: 1px solid rgba(255, 204, 0, 0.4);
       border-radius: 10px;
-      color: #ffcc00;
+      color: #222;
       padding: 6px 12px;
       font-size: 12px;
       font-family: 'Orbitron', sans-serif;
@@ -736,9 +750,9 @@
       animation: slideUp 1s ease-out 0.5s both;
     }
     .leaderboard {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 12px;
       padding: 15px;
     }
@@ -749,9 +763,10 @@
       margin-bottom: 10px;
       font-family: 'Orbitron', sans-serif;
       font-size: 12px;
+      color: #222;
     }
-    .section-title span { color: #fff; }
-    .section-title strong { color: #ffcc00; font-size: 14px; }
+    .section-title span { color: #222; }
+    .section-title strong { color: #ff8a00; font-size: 14px; }
     .leaderboard-list { min-height: 80px; }
     .leaderboard-item {
       display: grid;
@@ -761,9 +776,10 @@
       min-height: 50px;
       padding: 7px 9px;
       border-radius: 13px;
-      background: rgba(255, 255, 255, .035);
+      background: rgba(255, 255, 255, 0.15);
       opacity: 0;
       animation: leaderboardSlide 0.5s ease-out forwards;
+      color: #222;
     }
     .leaderboard-item:nth-child(1) { animation-delay: 0.05s; border-left: 3px solid #ffd700; }
     .leaderboard-item:nth-child(2) { animation-delay: 0.1s; border-left: 3px solid #c0c0c0; }
@@ -775,7 +791,7 @@
       to { opacity: 1; transform: translateX(0); }
     }
     .empty-ranking {
-      color: #888;
+      color: #555;
       text-align: center;
       padding: 20px 0;
       font-size: 12px;
@@ -796,9 +812,9 @@
       body { padding: 20px 0 40px; }
       .app {
         border-radius: 30px;
-        border: 1px solid rgba(255, 255, 255, .06);
-        box-shadow: 0 0 80px rgba(91, 20, 150, .18);
-        background: rgba(9, 0, 20, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 80px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.15);
         backdrop-filter: blur(10px);
       }
       .top-header {
@@ -837,11 +853,10 @@
       max-width: 480px;
       margin: 0 auto;
       overflow: hidden;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255, 216, 77, 0.1);
-      border-top: 1px solid rgba(255, 216, 77, 0.1);
+      border-bottom: 1px solid rgba(255, 216, 77, 0.2);
+      border-top: 1px solid rgba(255, 216, 77, 0.2);
       height: 36px;
       position: sticky;
       top: 68px;
@@ -868,13 +883,13 @@
       gap: 8px;
       font-family: 'Orbitron', sans-serif;
       font-size: 12px;
-      color: #ffd84d;
+      color: #ff8a00;
       padding: 0 10px;
-      text-shadow: 0 0 20px rgba(255, 216, 77, 0.2);
+      text-shadow: 0 0 20px rgba(255, 216, 77, 0.1);
       flex-shrink: 0;
     }
     .ticker-item .trophy { font-size: 14px; }
-    .ticker-item .name { color: #fff; font-weight: 700; }
+    .ticker-item .name { color: #222; font-weight: 700; }
     .ticker-item .amount { color: #3dff9a; font-weight: 700; }
     #winnerTicker:hover #tickerTrack { animation-play-state: paused; }
 
@@ -883,10 +898,10 @@
       width: 140px;
       padding: 10px;
       border-radius: 8px;
-      background: rgba(26, 26, 46, 0.8);
+      background: rgba(255, 255, 255, 0.8);
       backdrop-filter: blur(5px);
-      color: #fff;
-      border: 1px solid #ffcc00;
+      color: #222;
+      border: 1px solid #ff8a00;
       font-size: 14px;
       text-align: center;
       outline: none;
@@ -894,13 +909,13 @@
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffcc00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff8a00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
     }
-    #tokenSelect option { background: #1a1a2e; color: #fff; }
+    #tokenSelect option { background: #fff; color: #222; }
     .crypto-label {
-      color: #ffcc00;
+      color: #222;
       font-weight: bold;
       font-size: 14px;
       font-family: 'Orbitron', sans-serif;
@@ -909,13 +924,23 @@
     @media(max-width:480px) {
       #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; }
     }
+
+    /* Ajustement des couleurs pour les éléments texte sur fond clair */
+    .wallet-box strong,
+    .wallet-badge-top .wb-value,
+    .online strong {
+      color: #222;
+    }
+    .online strong span:last-child {
+      color: #222;
+    }
+    .wallet-button {
+      color: #222;
+    }
   </style>
 </head>
 
 <body>
-
-  <!-- ====== FOND ANIMÉ (CANVAS) ====== -->
-  <canvas id="bgCanvas"></canvas>
 
   <!-- ====== CONTENEUR NOTIFICATIONS ====== -->
   <div id="notificationContainer" style="
@@ -956,25 +981,25 @@
       <div class="menu-block" style="text-align:center;">
         <button id="demomodebtn" class="menu-nav-btn" type="button" style="
           background:rgba(255,204,0,0.2);
-          color:#ffcc00;
+          color:#ff8a00;
           font-weight:bold;
           text-align:center;
           border:1px solid rgba(255,204,0,.35);
           font-family:'Orbitron', sans-serif;
         ">🎮 ACTIVER MODE DÉMO</button>
-        <div id="demoStatus" style="font-size:10px; color:#888; margin-top:6px; font-family:'Orbitron', sans-serif;">🔒 Désactivé</div>
+        <div id="demoStatus" style="font-size:10px; color:#555; margin-top:6px; font-family:'Orbitron', sans-serif;">🔒 Désactivé</div>
       </div>
 
       <!-- TOGGLE NOTIFICATIONS -->
       <div class="menu-block">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-          <span style="color:#ffcc00; font-weight:bold; font-size:13px;">🔔 Notifications</span>
+          <span style="color:#ff8a00; font-weight:bold; font-size:13px;">🔔 Notifications</span>
           <input type="checkbox" id="notifToggle" checked style="
             width:40px;
             height:20px;
             cursor:pointer;
-            accent-color:#ffcc00;
-            background:rgba(255,255,255,0.1);
+            accent-color:#ff8a00;
+            background:rgba(255,255,255,0.3);
             border-radius:10px;
           ">
         </label>
@@ -991,17 +1016,17 @@
       <!-- SUPPORT & CONFIANCE -->
       <div class="menu-block trust-contact-box">
         <h4>🛡️ Support & Confiance</h4>
-        <p style="font-size:12px;color:#b8b8b8;font-family:'Orbitron', sans-serif;">Une question ? Un problème ?</p>
+        <p style="font-size:12px;color:#444;font-family:'Orbitron', sans-serif;">Une question ? Un problème ?</p>
         <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
         <div style="margin-top:8px;font-size:12px;">
-          <a href="mailto:miltapesupport@gmail.com" style="color:#ffcc00;text-decoration:none;font-family:'Orbitron', sans-serif;">📧 miltapesupport@gmail.com</a>
+          <a href="mailto:miltapesupport@gmail.com" style="color:#ff8a00;text-decoration:none;font-family:'Orbitron', sans-serif;">📧 miltapesupport@gmail.com</a>
         </div>
-        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);">
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
           <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="
             display:inline-flex;
             align-items:center;
             gap:8px;
-            color:#ffcc00;
+            color:#ff8a00;
             text-decoration:none;
             font-family:'Orbitron', sans-serif;
             font-size:11px;
@@ -1047,7 +1072,7 @@
 
     <!-- ====== CAGNOTTE DU SAMEDI ====== -->
     <div id="jackpotDisplay" style="
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(139, 44, 255, 0.15));
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(139, 44, 255, 0.15));
       border: 1px solid #ffd84d;
       border-radius: 12px;
       padding: 8px 16px;
@@ -1056,13 +1081,14 @@
       justify-content: space-between;
       align-items: center;
       font-family: 'Orbitron', sans-serif;
+      backdrop-filter: blur(8px);
     ">
       <div>
-        <span style="font-size:10px; color:#888;">🎁 CAGNOTTE DU SAMEDI</span>
-        <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#ffd84d;">0 USDT</span>
+        <span style="font-size:10px; color:#555;">🎁 CAGNOTTE DU SAMEDI</span>
+        <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#ff8a00;">0 USDT</span>
       </div>
       <div style="text-align:right;">
-        <span style="font-size:9px; color:#888;">Tirage dans</span>
+        <span style="font-size:9px; color:#555;">Tirage dans</span>
         <span id="jackpotCountdown" style="display:block; font-size:14px; font-weight:700; color:#3dff9a;">--</span>
       </div>
     </div>
@@ -1106,22 +1132,22 @@
         </select>
       </div>
       <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap;">
-        <label style="color:#ffcc00; font-weight:bold; font-size:14px; font-family:'Orbitron', sans-serif;">💰 MISE :</label>
+        <label style="color:#222; font-weight:bold; font-size:14px; font-family:'Orbitron', sans-serif;">💰 MISE :</label>
         <input type="number" id="betInput" min="0.5" max="1000000" step="0.5" value="10" style="
           width:140px;
           padding:10px;
           border-radius:8px;
-          background:rgba(26, 26, 46, 0.8);
+          background:rgba(255,255,255,0.8);
           backdrop-filter:blur(5px);
-          color:#fff;
-          border:1px solid #ffcc00;
+          color:#222;
+          border:1px solid #ff8a00;
           font-size:16px;
           text-align:center;
           outline:none;
           font-family:'Orbitron', sans-serif;
         ">
       </div>
-      <span style="color:#888; font-size:11px; display:block; margin-top:4px; font-family:'Orbitron', sans-serif;">Min 0.50 – Max 1 000 000 (unité selon crypto choisie)</span>
+      <span style="color:#555; font-size:11px; display:block; margin-top:4px; font-family:'Orbitron', sans-serif;">Min 0.50 – Max 1 000 000 (unité selon crypto choisie)</span>
     </div>
 
     <!-- BOUTON PAYER -->
@@ -1156,7 +1182,7 @@
     <section class="stats" style="display:flex;justify-content:center;">
       <div class="stat-box" style="width:100%;max-width:300px;">
         <small>TES TAPS</small>
-        <strong id="tapCount" style="font-size:28px;color:#ffcc00;">0</strong>
+        <strong id="tapCount" style="font-size:28px;color:#ff8a00;">0</strong>
       </div>
     </section>
 
@@ -1285,11 +1311,11 @@
 
     function updateDemoUI() {
       if (demoMode) {
-        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#ffcc00"; }
+        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#ff8a00"; }
         if (demoBtn) { demoBtn.textContent = "🔬 DÉSACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(255,50,50,0.2)"; demoBtn.style.borderColor = "rgba(255,50,50,0.5)"; }
         if (!isSpectator && tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
       } else {
-        if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "#888"; }
+        if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "#555"; }
         if (demoBtn) { demoBtn.textContent = "🎮 ACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(255,204,0,0.2)"; demoBtn.style.borderColor = "rgba(255,204,0,0.35)"; }
         if (!isSpectator && tapMessage) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
       }
@@ -1746,7 +1772,7 @@
         leaderboard.forEach(player => {
           const div = document.createElement('div');
           div.className = 'leaderboard-item';
-          div.innerHTML = '<span style="color:#ffd84d;font-weight:900;">#' + player.rank + '</span> <span style="color:white;font-size:13px;">' + player.name + '</span> <span style="color:#ffd84d;font-weight:900;font-size:13px;">' + player.taps + '</span>';
+          div.innerHTML = '<span style="color:#ff8a00;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:13px;">' + player.name + '</span> <span style="color:#ff8a00;font-weight:900;font-size:13px;">' + player.taps + '</span>';
           leaderboardList.appendChild(div);
         });
       }
@@ -1931,7 +1957,7 @@
     if (menuRankingsBtn) {
       menuRankingsBtn.addEventListener('click', function() {
         const score = tapCount ? tapCount.textContent : '0';
-        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#ffcc00;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
+        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#ff8a00;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
       });
     }
 
@@ -1955,16 +1981,16 @@
             const p = data.player;
             const history = data.history;
             let html = '<div class="dashboard-stats" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-around;margin-bottom:15px;">' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:var(--gold);">' + p.totalGain + ' USDT</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:var(--gold);">' + p.gamesPlayed + '</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:var(--gold);">' + p.bestScore + ' taps</span></div></div>';
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#ff8a00;">' + p.totalGain + ' USDT</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#ff8a00;">' + p.gamesPlayed + '</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#ff8a00;">' + p.bestScore + ' taps</span></div></div>';
             if (history.length === 0) {
-              html += '<p class="no-data-message" style="color:var(--muted);text-align:center;font-size:13px;padding:20px 0;">Aucune partie gagnée pour le moment.</p>';
+              html += '<p class="no-data-message" style="color:#555;text-align:center;font-size:13px;padding:20px 0;">Aucune partie gagnée pour le moment.</p>';
             } else {
-              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:var(--gold);border-bottom:1px solid rgba(255,255,255,0.08);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
+              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#ff8a00;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
               history.forEach((h, idx) => {
                 const date = new Date(h.createdAt).toLocaleDateString('fr-FR');
-                html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:var(--gold);">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#3dff9a;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:var(--muted);">' + date + '</td></tr>';
+                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#ff8a00;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#3dff9a;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
               });
               html += '</tbody></table></div>';
             }
@@ -1984,7 +2010,7 @@
     const menuReferralBtn = document.getElementById('menuReferralBtn');
     if (menuReferralBtn) {
       menuReferralBtn.addEventListener('click', function() {
-        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#ffcc00;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
+        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#ff8a00;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
       });
     }
 
@@ -2080,82 +2106,6 @@
     // ==========================================
     // FIN DU SCRIPT
     // ==========================================
-  </script>
-
-  <!-- =========================================================
-         FOND ANIMÉ – PARTICULES (canvas)
-         ========================================================= -->
-  <script>
-    (function initBackground() {
-      const canvas = document.getElementById('bgCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      let width, height;
-      const particles = [];
-      const NUM_PARTICLES = 150;
-      const MAX_SPEED = 0.3;
-      const MIN_RADIUS = 1.0;
-      const MAX_RADIUS = 2.5;
-
-      function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-      }
-
-      function createParticles() {
-        particles.length = 0;
-        for (let i = 0; i < NUM_PARTICLES; i++) {
-          particles.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            radius: MIN_RADIUS + Math.random() * (MAX_RADIUS - MIN_RADIUS),
-            dx: (Math.random() - 0.5) * MAX_SPEED * 2,
-            dy: (Math.random() - 0.5) * MAX_SPEED * 2,
-            opacity: 0.4 + Math.random() * 0.6,
-            twinkleSpeed: 0.005 + Math.random() * 0.015,
-            phase: Math.random() * Math.PI * 2
-          });
-        }
-      }
-
-      function updateParticles() {
-        for (const p of particles) {
-          p.x += p.dx;
-          p.y += p.dy;
-          if (p.x < 0 || p.x > width) p.dx = -p.dx;
-          if (p.y < 0 || p.y > height) p.dy = -p.dy;
-          p.phase += p.twinkleSpeed;
-        }
-      }
-
-      function drawParticles() {
-        ctx.clearRect(0, 0, width, height);
-        for (const p of particles) {
-          const alpha = p.opacity * (0.7 + 0.3 * Math.sin(p.phase));
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(255, 255, 255, ' + alpha + ')';
-          ctx.fill();
-          if (p.radius > 2.0) {
-            ctx.shadowColor = 'rgba(255, 215, 0, ' + (alpha * 0.15) + ')';
-            ctx.shadowBlur = 8;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-          }
-        }
-      }
-
-      function animate() {
-        updateParticles();
-        drawParticles();
-        requestAnimationFrame(animate);
-      }
-
-      window.addEventListener('resize', () => { resize(); createParticles(); });
-      resize();
-      createParticles();
-      animate();
-    })();
   </script>
 
 </body>
