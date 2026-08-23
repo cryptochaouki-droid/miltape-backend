@@ -1,4 +1,3 @@
-Vérifie si tout est bon pour la cagnotte
 /* =========================================================
 SCRIPT CLIENT MILTAPE – Version finale (multi-crypto + notifications + tableau de bord + Telegram + ticker)
 ========================================================= */
@@ -646,6 +645,14 @@ if (event.touches) {
     x = event.clientX - rect.left;  
     y = event.clientY - rect.top;  
 }  
+
+const floatText = document.createElement('div');  
+floatText.className = 'tap-float-text';  
+floatText.textContent = '+1';  
+floatText.style.left = (x - 10) + 'px';  
+floatText.style.top = (y - 10) + 'px';  
+btn.parentElement.appendChild(floatText);  
+setTimeout(() => floatText.remove(), 1000);  
 
 const colors = ['#ffd84d', '#ff9f1a', '#ff5b20', '#ff2fd2', '#8b2cff', '#3dff9a'];  
 for (let i = 0; i < 8; i++) {  
