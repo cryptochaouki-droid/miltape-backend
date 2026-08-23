@@ -1274,4 +1274,3 @@ if (data.nextDraw) {
 
 // Demander l'état initial dès que la page est chargée
 socket.emit("jackpot:get");
-Redonne le nouveau code complet corrigé
