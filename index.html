@@ -1166,13 +1166,12 @@
       <button id="tapButton" class="tap-button" type="button" disabled>
         <img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false">
         <span class="tap-glow"></span>
-        <small><span id="tapButtonCount">0</span></small>
+        <small id="tapTimerDisplay">10:00</small>
       </button>
     </section>
 
     <!-- RÈGLES -->
     <section class="rules">
-      <div class="rule"><span class="rule-icon">⏱️</span><strong>10 MINUTES</strong><small>PAR PARTIE</small></div>
       <div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div>
       <div class="rule"><span class="rule-icon">🪙</span><strong>TOKENS</strong><small>USDT / USDC / TUSD / TRX</small></div>
     </section>
@@ -1724,17 +1723,25 @@
 
     socket.on("player:score", (data) => {
       if (tapCount) { tapCount.innerText = data.taps; animateTapCount(); }
-      if (tapButtonCount) tapButtonCount.innerText = data.taps;
+      // Le compteur de taps sur le bouton a été supprimé → on ne met plus à jour tapButtonCount
     });
 
     // ==========================================
     // 16. CHRONO
     // ==========================================
     socket.on("timer:update", (data) => {
+      // Chrono en haut
       if (timerDisplay) {
         const m = Math.floor(data.remainingSeconds / 60);
         const s = data.remainingSeconds % 60;
         timerDisplay.innerText = m + ":" + s.toString().padStart(2,'0');
+      }
+      // Chrono en bas du bouton TAP
+      const tapTimerDisplay = document.getElementById('tapTimerDisplay');
+      if (tapTimerDisplay) {
+        const m = Math.floor(data.remainingSeconds / 60);
+        const s = data.remainingSeconds % 60;
+        tapTimerDisplay.innerText = m + ":" + s.toString().padStart(2,'0');
       }
     });
 
