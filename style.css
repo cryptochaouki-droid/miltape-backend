@@ -23,7 +23,8 @@
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     box-shadow: 0 0 40px rgba(255, 204, 0, 0.1);
-    will-change: transform;  /* ← évite tout décalage */
+    /* ⚡ Évite tout décalage latéral */
+    will-change: transform;
 }
 
 .tap-button:disabled {
@@ -31,7 +32,7 @@
     opacity: 0.6;
 }
 
-/* ✅ Pression propre (uniquement scale) */
+/* ✅ Effet de pression (propre, sans décalage) */
 .tap-button:active:not(:disabled) {
     transform: scale(0.92);
 }
@@ -41,7 +42,7 @@
     box-shadow: 0 0 80px rgba(255, 204, 0, 0.3);
 }
 
-/* ===== ONDE (ripple) ===== */
+/* Effet d'onde (ripple) */
 .tap-ripple {
     position: absolute;
     border-radius: 50%;
@@ -67,7 +68,7 @@
     }
 }
 
-/* ===== TEXTE "+1" FLOTTANT ===== */
+/* Particules (les +1 qui flottent) */
 .tap-float-text {
     position: absolute;
     font-size: 20px;
@@ -90,7 +91,6 @@
     }
 }
 
-/* ===== PARTICULES ===== */
 .tap-particle {
     position: absolute;
     border-radius: 50%;
