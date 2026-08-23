@@ -10,7 +10,8 @@
   <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne." />
   <title>Miltape World Challenge</title>
 
-  <!-- Google Fonts – Orbitron -->
+  <!-- Google Fonts – Poppins (principale) + Orbitron (pour les titres) -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
 
   <link rel="manifest" href="./manifest.json" />
@@ -61,11 +62,11 @@
        FOND BLANC ROYAL – Élégant et lumineux
        ============================================================ */
     body {
+      font-family: 'Poppins', sans-serif;
       background: linear-gradient(145deg, #f8f5f0 0%, #f0ece6 100%);
       min-height: 100vh;
       margin: 0;
       padding: 0;
-      font-family: 'Orbitron', sans-serif;
       overflow-x: hidden;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
@@ -111,12 +112,35 @@
       animation: fadeIn 0.6s ease-out;
     }
 
+    /* ===== COINS ARRONDIS (24px) ===== */
+    .hero-banner-container,
+    .glass-card,
+    .leaderboard,
+    .chat-messages,
+    .stat-box,
+    .rule,
+    .legal-content,
+    .main-play-button,
+    .spectator-button,
+    .chat-input-box input,
+    .chat-input-box button,
+    #tokenSelect,
+    #jackpotDisplay,
+    .side-menu,
+    .legal-modal .legal-content {
+      border-radius: 24px !important;
+    }
+
+    /* Le bouton TAP reste rond */
+    .tap-button {
+      border-radius: 50% !important;
+    }
+
     .glass-card {
       background: rgba(255, 255, 255, 0.65);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 16px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
     }
 
@@ -162,7 +186,6 @@
       position: relative;
       width: calc(100% - 24px);
       margin: 12px 12px 15px;
-      border-radius: 16px;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(12px);
@@ -184,38 +207,12 @@
       left: 10px;
       right: 10px;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       z-index: 10;
     }
-    .player-profile-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(8px);
-      padding: 4px 8px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 204, 0, 0.35);
-    }
-    .avatar-icon { font-size: 16px; }
-    .profile-text .p-name {
-      display: block;
-      font-size: 10px;
-      font-weight: 900;
-      color: #fff;
-    }
-    .profile-text .p-level {
-      display: block;
-      font-size: 8px;
-      background: #7b2cff;
-      color: #fff;
-      padding: 1px 4px;
-      border-radius: 4px;
-      width: fit-content;
-    }
 
-    /* Chrono en haut SUPPRIMÉ */
+    /* === LE BADGE MILTAPER A ÉTÉ SUPPRIMÉ === */
 
     .wallet-badge-top {
       background: rgba(0, 0, 0, 0.4);
@@ -304,7 +301,7 @@
       color: #222;
       border: 1px solid #ccc;
       box-sizing: border-box;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       font-size: 12px;
     }
     .menu-nav-btn {
@@ -321,7 +318,7 @@
       border-radius: 8px;
       text-decoration: none;
       box-sizing: border-box;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       transition: all 0.2s ease;
     }
     .menu-nav-btn:hover,
@@ -339,7 +336,7 @@
       border-radius: 6px;
       font-size: 12px;
       font-weight: bold;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
     .menu-overlay {
       position: fixed;
@@ -367,7 +364,6 @@
       background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(20px);
       border: 1px solid #b8942e;
-      border-radius: 16px;
       max-width: 500px;
       width: 100%;
       max-height: 90vh;
@@ -418,7 +414,7 @@
       min-width: 190px;
       min-height: 190px;
       border: none;
-      border-radius: 50%;
+      border-radius: 50% !important;
       background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(10px);
       overflow: visible;
@@ -475,6 +471,7 @@
       font-weight: 900;
       text-shadow: 0 2px 6px rgba(255, 255, 255, 0.7);
       pointer-events: none;
+      font-family: 'Orbitron', sans-serif;
     }
     .tap-button:active:not(:disabled) { transform: scale(.92); }
     .tap-button.tap-active {
@@ -497,7 +494,6 @@
       padding: 10px;
       margin-top: 10px;
       margin-bottom: 10px;
-      border-radius: 12px;
       background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.4);
@@ -531,21 +527,20 @@
       height: 44px;
       padding: 0 12px;
       border: 1px solid rgba(0, 0, 0, 0.12);
-      border-radius: 12px;
       outline: none;
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(5px);
       color: #222;
       font-size: 13px;
       box-sizing: border-box;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
     .chat-input-box button {
       width: 46px;
       height: 44px;
       min-width: 46px;
       border: none;
-      border-radius: 12px;
+      border-radius: 24px !important;
       background: linear-gradient(135deg, #d4a83a, #b8942e);
       color: #fff;
       font-size: 20px;
@@ -553,6 +548,7 @@
       cursor: pointer;
       box-shadow: 0 4px 0 #7a621f;
       touch-action: manipulation;
+      font-family: 'Poppins', sans-serif;
     }
 
     .main-play-button {
@@ -564,10 +560,9 @@
       background: linear-gradient(135deg, #d4a83a, #b8942e);
       color: #fff;
       border: none;
-      border-radius: 12px;
       font-size: 16px;
       font-weight: 900;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       cursor: pointer;
       box-shadow: 0 4px 0 #7a621f, 0 0 30px rgba(184, 148, 46, 0.25);
       transition: all 0.15s ease;
@@ -591,11 +586,10 @@
       padding: 12px 20px;
       background: rgba(139, 44, 255, 0.1);
       border: 2px solid rgba(139, 44, 255, 0.35);
-      border-radius: 12px;
       color: #6a1fb1;
       font-size: 14px;
       font-weight: 700;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       cursor: pointer;
       transition: all 0.3s ease;
       text-transform: uppercase;
@@ -621,7 +615,7 @@
       color: #333;
       padding: 10px 20px;
       margin: 5px auto;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       letter-spacing: 0.5px;
       background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(6px);
@@ -645,9 +639,8 @@
       background: rgba(255, 255, 255, 0.55);
       backdrop-filter: blur(8px);
       padding: 8px 14px;
-      border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.4);
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       font-size: 11px;
       color: #222;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
@@ -666,7 +659,6 @@
       background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.4);
-      border-radius: 12px;
       padding: 15px 20px;
       text-align: center;
       width: 100%;
@@ -677,7 +669,7 @@
       display: block;
       font-size: 10px;
       color: #555;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
     .stat-box strong {
       font-size: 28px;
@@ -724,11 +716,11 @@
       font-size: 10px;
       color: #2ecc71;
       font-weight: bold;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
     .wallet-box {
       text-align: right;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
     .wallet-box small {
       display: block;
@@ -746,7 +738,7 @@
       color: #222;
       padding: 6px 12px;
       font-size: 12px;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -764,7 +756,6 @@
       background: rgba(255, 255, 255, 0.45);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.4);
-      border-radius: 12px;
       padding: 15px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
@@ -773,7 +764,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       font-size: 12px;
       color: #222;
     }
@@ -792,6 +783,7 @@
       opacity: 0;
       animation: leaderboardSlide 0.5s ease-out forwards;
       color: #222;
+      font-family: 'Poppins', sans-serif;
     }
     .leaderboard-item:nth-child(1) { animation-delay: 0.05s; border-left: 3px solid #ffd700; }
     .leaderboard-item:nth-child(2) { animation-delay: 0.1s; border-left: 3px solid #c0c0c0; }
@@ -807,13 +799,20 @@
       text-align: center;
       padding: 20px 0;
       font-size: 12px;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
 
     /* Responsive */
     @media(max-width:430px) {
       .tap-button { width: 170px; height: 170px; min-width: 170px; min-height: 170px; }
       .tap-zone { min-height: 220px; }
+      .hero-banner-container,
+      .leaderboard,
+      .chat-messages,
+      .stat-box,
+      .rule {
+        border-radius: 18px !important;
+      }
     }
     @media(max-width:360px) {
       .tap-button { width: 165px; height: 165px; min-width: 165px; min-height: 165px; }
@@ -893,7 +892,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       font-size: 12px;
       color: #b8942e;
       padding: 0 10px;
@@ -909,7 +908,6 @@
     #tokenSelect {
       width: 140px;
       padding: 10px;
-      border-radius: 8px;
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(5px);
       color: #222;
@@ -917,7 +915,7 @@
       font-size: 14px;
       text-align: center;
       outline: none;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
@@ -930,7 +928,7 @@
       color: #222;
       font-weight: bold;
       font-size: 14px;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
     }
 
     @media(max-width:480px) {
@@ -997,9 +995,9 @@
           font-weight:bold;
           text-align:center;
           border:1px solid rgba(184,148,46,0.3);
-          font-family:'Orbitron', sans-serif;
+          font-family:'Poppins', sans-serif;
         ">🎮 ACTIVER MODE DÉMO</button>
-        <div id="demoStatus" style="font-size:10px; color:#555; margin-top:6px; font-family:'Orbitron', sans-serif;">🔒 Désactivé</div>
+        <div id="demoStatus" style="font-size:10px; color:#555; margin-top:6px; font-family:'Poppins', sans-serif;">🔒 Désactivé</div>
       </div>
 
       <!-- TOGGLE NOTIFICATIONS -->
@@ -1028,10 +1026,10 @@
       <!-- SUPPORT & CONFIANCE -->
       <div class="menu-block trust-contact-box">
         <h4>🛡️ Support & Confiance</h4>
-        <p style="font-size:12px;color:#444;font-family:'Orbitron', sans-serif;">Une question ? Un problème ?</p>
+        <p style="font-size:12px;color:#444;font-family:'Poppins', sans-serif;">Une question ? Un problème ?</p>
         <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
         <div style="margin-top:8px;font-size:12px;">
-          <a href="mailto:miltapesupport@gmail.com" style="color:#b8942e;text-decoration:none;font-family:'Orbitron', sans-serif;">📧 miltapesupport@gmail.com</a>
+          <a href="mailto:miltapesupport@gmail.com" style="color:#b8942e;text-decoration:none;font-family:'Poppins', sans-serif;">📧 miltapesupport@gmail.com</a>
         </div>
         <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
           <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="
@@ -1040,7 +1038,7 @@
             gap:8px;
             color:#b8942e;
             text-decoration:none;
-            font-family:'Orbitron', sans-serif;
+            font-family:'Poppins', sans-serif;
             font-size:11px;
             font-weight:700;
             transition:all 0.3s ease;
@@ -1086,13 +1084,12 @@
     <div id="jackpotDisplay" style="
       background: linear-gradient(135deg, rgba(184, 148, 46, 0.12), rgba(139, 44, 255, 0.08));
       border: 1px solid rgba(184, 148, 46, 0.3);
-      border-radius: 12px;
       padding: 8px 16px;
       margin: 8px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Poppins', sans-serif;
       backdrop-filter: blur(8px);
     ">
       <div>
@@ -1114,14 +1111,7 @@
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
       <div class="hero-header-overlay">
-        <div class="player-profile-badge">
-          <div class="avatar-icon">👤</div>
-          <div class="profile-text">
-            <span class="p-name">MILTAPER</span>
-            <span class="p-level">Level 12</span>
-          </div>
-        </div>
-        <!-- LE CHRONO EN HAUT A ÉTÉ SUPPRIMÉ -->
+        <!-- LE BADGE MILTAPER A ÉTÉ SUPPRIMÉ -->
         <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
           <div>
             <span class="wb-label">MISE</span>
@@ -1144,11 +1134,10 @@
         </select>
       </div>
       <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap;">
-        <label style="color:#222; font-weight:bold; font-size:14px; font-family:'Orbitron', sans-serif;">💰 MISE :</label>
+        <label style="color:#222; font-weight:bold; font-size:14px; font-family:'Poppins', sans-serif;">💰 MISE :</label>
         <input type="number" id="betInput" min="0.5" max="1000000" step="0.5" value="10" style="
           width:140px;
           padding:10px;
-          border-radius:8px;
           background:rgba(255,255,255,0.85);
           backdrop-filter:blur(5px);
           color:#222;
@@ -1156,14 +1145,14 @@
           font-size:16px;
           text-align:center;
           outline:none;
-          font-family:'Orbitron', sans-serif;
+          font-family:'Poppins', sans-serif;
         ">
       </div>
-      <span style="color:#555; font-size:11px; display:block; margin-top:4px; font-family:'Orbitron', sans-serif;">Min 0.50 – Max 1 000 000 (unité selon crypto choisie)</span>
+      <span style="color:#555; font-size:11px; display:block; margin-top:4px; font-family:'Poppins', sans-serif;">Min 0.50 – Max 1 000 000 (unité selon crypto choisie)</span>
     </div>
 
     <!-- BOUTON PAYER -->
-    <button id="payButton" style="display:none; background:#2ecc71; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #1a9c54; font-family:'Orbitron', sans-serif; text-transform:uppercase; font-size:12px;">
+    <button id="payButton" style="display:none; background:#2ecc71; color:#000; padding:12px 24px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #1a9c54; font-family:'Poppins', sans-serif; text-transform:uppercase; font-size:12px;">
       💳 PAYER MA MISE
     </button>
 
@@ -1187,7 +1176,7 @@
     <section class="rules">
       <div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div>
       <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
-      <div class="rule"><span class="rule-icon">🪙</span><strong>TOKENS</strong><small>USDT / USDC / TUSD / TRX</small></div>
+      <!-- LA LIGNE TOKENS A ÉTÉ SUPPRIMÉE -->
     </section>
 
     <!-- STATS TAPS -->
@@ -1270,7 +1259,7 @@
     const enterChallengeTop = document.getElementById('enterChallengeTop');
     const spectatorBtn = document.getElementById('spectatorMode');
     const tapMessage = document.getElementById('tapMessage');
-    const timerDisplay = document.getElementById('timer'); // ⚠️ plus utilisé (chrono en haut supprimé)
+    const timerDisplay = document.getElementById('timer'); // plus utilisé (chrono en haut supprimé)
     const onlineCount = document.getElementById('onlineCount');
     const leaderboardList = document.getElementById('leaderboardList');
     const chatInput = document.getElementById('chatInput');
@@ -1745,14 +1734,12 @@
     // 16. CHRONO – UNIQUEMENT DANS LES RÈGLES
     // ==========================================
     socket.on("timer:update", (data) => {
-      // Chrono dans la section des règles (remplacement de "10 MINUTES PAR PARTIE")
       const timerRuleValue = document.getElementById('timerRuleValue');
       if (timerRuleValue) {
         const m = Math.floor(data.remainingSeconds / 60);
         const s = data.remainingSeconds % 60;
         timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
       }
-      // Le chrono en haut (timerDisplay) n'est plus mis à jour car supprimé du HTML
     });
 
     // ==========================================
@@ -2114,10 +2101,6 @@
     });
 
     socket.emit("jackpot:get");
-
-    // ==========================================
-    // FIN DU SCRIPT
-    // ==========================================
   </script>
 
 </body>
