@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#f7c948" />
+  <meta name="theme-color" content="#f5f0eb" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -58,10 +58,10 @@
 
   <style>
     /* ============================================================
-       FOND COMIC – Dégradé lumineux + motif points
+       FOND BLANC ROYAL – Élégant et lumineux
        ============================================================ */
     body {
-      background: linear-gradient(145deg, #ffe893 0%, #ffb347 50%, #ff7eb3 100%);
+      background: linear-gradient(145deg, #f8f5f0 0%, #f0ece6 100%);
       min-height: 100vh;
       margin: 0;
       padding: 0;
@@ -73,16 +73,28 @@
       position: relative;
     }
 
-    /* Motif de points comic (overlay) */
+    /* Ronds décoratifs très légers */
     body::before {
       content: "";
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px);
-      background-size: 30px 30px;
+      top: -15%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 204, 0, 0.07), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      bottom: -10%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 44, 255, 0.06), transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -99,14 +111,13 @@
       animation: fadeIn 0.6s ease-out;
     }
 
-    /* On garde le glassmorphism mais avec un fond plus transparent pour voir le comic */
     .glass-card {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
     }
 
     /* Masquer les widgets flottants TonConnect */
@@ -133,13 +144,13 @@
       z-index: 3000;
       display: none;
       padding: 13px 20px;
-      border: 1px solid #ffcc00;
+      border: 1px solid #b8942e;
       border-radius: 999px;
       background: #120624;
-      color: #ffcc00;
+      color: #b8942e;
       font-size: 13px;
       font-weight: 900;
-      box-shadow: 0 0 15px rgba(255, 204, 0, .35);
+      box-shadow: 0 0 15px rgba(184, 148, 46, .25);
       cursor: pointer;
       white-space: nowrap;
       -webkit-tap-highlight-color: transparent;
@@ -153,18 +164,18 @@
       margin: 12px 12px 15px;
       border-radius: 16px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
       animation: slideUp 0.5s ease-out;
     }
     .hero-bg-image {
       width: 100%;
       display: block;
       height: auto;
-      opacity: 0.9;
+      opacity: 0.85;
       mix-blend-mode: multiply;
     }
     .hero-header-overlay {
@@ -181,11 +192,11 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.35);
       backdrop-filter: blur(8px);
       padding: 4px 8px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 204, 0, 0.5);
+      border: 1px solid rgba(255, 204, 0, 0.35);
     }
     .avatar-icon { font-size: 16px; }
     .profile-text .p-name {
@@ -207,9 +218,9 @@
     /* Chrono en haut SUPPRIMÉ */
 
     .wallet-badge-top {
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(193, 60, 255, 0.6);
+      border: 1px solid rgba(139, 44, 255, 0.4);
       padding: 4px 8px;
       border-radius: 12px;
       text-align: right;
@@ -244,10 +255,10 @@
       width: 280px;
       height: 100vh;
       height: 100dvh;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(255, 204, 0, .3);
+      border-right: 1px solid rgba(184, 148, 46, 0.2);
       z-index: 1000;
       transition: left .3s ease;
       padding: 20px;
@@ -266,7 +277,7 @@
     }
     .side-menu-content { margin-top: 40px; padding-bottom: 30px; }
     .side-menu-content h3 {
-      color: #ff8a00;
+      color: #b8942e;
       margin-bottom: 20px;
       font-size: 16px;
       letter-spacing: 1px;
@@ -276,13 +287,12 @@
       background: rgba(0, 0, 0, 0.03);
       padding: 12px;
       border-radius: 10px;
-      backdrop-filter: blur(5px);
     }
     .menu-block label,
     .menu-block h4 {
       display: block;
       font-size: 13px;
-      color: #ff8a00;
+      color: #b8942e;
       margin-bottom: 8px;
       font-weight: bold;
     }
@@ -316,8 +326,8 @@
     }
     .menu-nav-btn:hover,
     .menu-nav-btn:active {
-      background: rgba(255, 204, 0, .2);
-      color: #ff8a00;
+      background: rgba(184, 148, 46, 0.12);
+      color: #b8942e;
     }
     .trust-contact-box { border-left: 3px solid #2ecc71; }
     .support-link {
@@ -334,7 +344,7 @@
     .menu-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .5);
+      background: rgba(0, 0, 0, 0.35);
       display: none;
       z-index: 999;
     }
@@ -344,7 +354,7 @@
     .legal-modal {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .6);
+      background: rgba(0, 0, 0, 0.4);
       display: none;
       align-items: center;
       justify-content: center;
@@ -354,9 +364,9 @@
     }
     .legal-modal.show { display: flex; }
     .legal-content {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(20px);
-      border: 1px solid #ff8a00;
+      border: 1px solid #b8942e;
       border-radius: 16px;
       max-width: 500px;
       width: 100%;
@@ -370,7 +380,7 @@
       animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .legal-content h3 {
-      color: #ff8a00;
+      color: #b8942e;
       margin-top: 0;
     }
     .legal-content p,
@@ -409,8 +419,8 @@
       min-height: 190px;
       border: none;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(10px);
       overflow: visible;
       cursor: pointer;
       outline: none;
@@ -424,15 +434,15 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
-      box-shadow: 0 0 40px rgba(255, 204, 0, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 40px rgba(184, 148, 46, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.6);
     }
     .tap-button:disabled {
       cursor: not-allowed;
       opacity: 0.6;
     }
     .tap-button:not(:disabled):hover {
-      box-shadow: 0 0 60px rgba(255, 204, 0, 0.4);
+      box-shadow: 0 0 60px rgba(184, 148, 46, 0.25);
     }
     .tap-img-bg {
       position: absolute;
@@ -463,13 +473,13 @@
       font-size: 16px;
       color: #222;
       font-weight: 900;
-      text-shadow: 0 2px 6px rgba(255, 255, 255, 0.8);
+      text-shadow: 0 2px 6px rgba(255, 255, 255, 0.7);
       pointer-events: none;
     }
     .tap-button:active:not(:disabled) { transform: scale(.92); }
     .tap-button.tap-active {
       transform: scale(.94);
-      box-shadow: 0 0 80px rgba(255, 204, 0, 0.4);
+      box-shadow: 0 0 80px rgba(184, 148, 46, 0.3);
     }
 
     /* CHAT */
@@ -488,23 +498,23 @@
       margin-top: 10px;
       margin-bottom: 10px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       box-sizing: border-box;
     }
     .chat-message {
       margin-bottom: 8px;
       padding: 7px 8px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.35);
       font-size: 13px;
       color: #222;
       word-break: break-word;
       line-height: 1.35;
       animation: messageSlide 0.3s ease-out;
     }
-    .chat-message strong { color: #ff8a00; }
+    .chat-message strong { color: #b8942e; }
     .chat-input-box {
       position: relative;
       z-index: 30;
@@ -520,10 +530,10 @@
       min-width: 0;
       height: 44px;
       padding: 0 12px;
-      border: 1px solid rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 12px;
       outline: none;
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(5px);
       color: #222;
       font-size: 13px;
@@ -536,12 +546,12 @@
       min-width: 46px;
       border: none;
       border-radius: 12px;
-      background: linear-gradient(135deg, #ffcc00, #ff8a00);
-      color: #16051f;
+      background: linear-gradient(135deg, #d4a83a, #b8942e);
+      color: #fff;
       font-size: 20px;
       font-weight: 900;
       cursor: pointer;
-      box-shadow: 0 4px 0 #a84c00;
+      box-shadow: 0 4px 0 #7a621f;
       touch-action: manipulation;
     }
 
@@ -551,15 +561,15 @@
       max-width: 300px;
       margin: 10px auto;
       padding: 14px 20px;
-      background: linear-gradient(135deg, #ffcc00, #ff8a00);
-      color: #16051f;
+      background: linear-gradient(135deg, #d4a83a, #b8942e);
+      color: #fff;
       border: none;
       border-radius: 12px;
       font-size: 16px;
       font-weight: 900;
       font-family: 'Orbitron', sans-serif;
       cursor: pointer;
-      box-shadow: 0 4px 0 #a84c00, 0 0 30px rgba(255, 204, 0, 0.3);
+      box-shadow: 0 4px 0 #7a621f, 0 0 30px rgba(184, 148, 46, 0.25);
       transition: all 0.15s ease;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -567,10 +577,10 @@
     }
     .main-play-button:active {
       transform: translateY(3px);
-      box-shadow: 0 1px 0 #a84c00;
+      box-shadow: 0 1px 0 #7a621f;
     }
     .main-play-button:hover {
-      box-shadow: 0 4px 0 #a84c00, 0 0 50px rgba(255, 204, 0, 0.5);
+      box-shadow: 0 4px 0 #7a621f, 0 0 50px rgba(184, 148, 46, 0.35);
     }
 
     .spectator-button {
@@ -579,8 +589,8 @@
       max-width: 300px;
       margin: 5px auto;
       padding: 12px 20px;
-      background: rgba(139, 44, 255, 0.2);
-      border: 2px solid rgba(139, 44, 255, 0.6);
+      background: rgba(139, 44, 255, 0.1);
+      border: 2px solid rgba(139, 44, 255, 0.35);
       border-radius: 12px;
       color: #6a1fb1;
       font-size: 14px;
@@ -593,32 +603,31 @@
       animation: slideUp 0.6s ease-out 0.1s both;
     }
     .spectator-button:hover {
-      background: rgba(139, 44, 255, 0.3);
+      background: rgba(139, 44, 255, 0.2);
       border-color: #8b2cff;
-      box-shadow: 0 0 30px rgba(139, 44, 255, 0.2);
+      box-shadow: 0 0 30px rgba(139, 44, 255, 0.15);
       transform: scale(1.02);
     }
     .spectator-button:active { transform: scale(0.95); }
     .spectator-button.active {
-      background: rgba(139, 44, 255, 0.4);
+      background: rgba(139, 44, 255, 0.25);
       border-color: #8b2cff;
-      box-shadow: 0 0 40px rgba(139, 44, 255, 0.3);
+      box-shadow: 0 0 40px rgba(139, 44, 255, 0.2);
     }
 
     .tap-message {
       text-align: center;
       font-size: 13px;
-      color: #222;
+      color: #333;
       padding: 10px 20px;
-      margin: 5px 0;
+      margin: 5px auto;
       font-family: 'Orbitron', sans-serif;
       letter-spacing: 0.5px;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(4px);
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(6px);
       border-radius: 20px;
       display: inline-block;
-      margin-left: auto;
-      margin-right: auto;
+      max-width: 90%;
     }
 
     .rules {
@@ -633,17 +642,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(5px);
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(8px);
       padding: 8px 14px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       font-family: 'Orbitron', sans-serif;
       font-size: 11px;
       color: #222;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .rule .rule-icon { font-size: 18px; }
-    .rule strong { color: #ff8a00; font-size: 13px; }
+    .rule strong { color: #b8942e; font-size: 13px; }
     .rule small { color: #555; font-size: 9px; }
 
     .stats {
@@ -653,14 +663,15 @@
       animation: slideUp 0.9s ease-out 0.4s both;
     }
     .stat-box {
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 12px;
       padding: 15px 20px;
       text-align: center;
       width: 100%;
       max-width: 300px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .stat-box small {
       display: block;
@@ -670,7 +681,7 @@
     }
     .stat-box strong {
       font-size: 28px;
-      color: #ff8a00;
+      color: #b8942e;
       font-family: 'Orbitron', sans-serif;
     }
 
@@ -679,9 +690,9 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
       position: relative;
       overflow: hidden;
     }
@@ -692,7 +703,7 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
       animation: headerShine 6s ease-in-out infinite;
       pointer-events: none;
     }
@@ -726,11 +737,11 @@
     }
     .wallet-box strong {
       font-size: 14px;
-      color: #ff8a00;
+      color: #b8942e;
     }
     .wallet-button {
-      background: rgba(255, 204, 0, 0.2);
-      border: 1px solid rgba(255, 204, 0, 0.4);
+      background: rgba(184, 148, 46, 0.12);
+      border: 1px solid rgba(184, 148, 46, 0.25);
       border-radius: 10px;
       color: #222;
       padding: 6px 12px;
@@ -750,11 +761,12 @@
       animation: slideUp 1s ease-out 0.5s both;
     }
     .leaderboard {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 12px;
       padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .section-title {
       display: flex;
@@ -766,7 +778,7 @@
       color: #222;
     }
     .section-title span { color: #222; }
-    .section-title strong { color: #ff8a00; font-size: 14px; }
+    .section-title strong { color: #b8942e; font-size: 14px; }
     .leaderboard-list { min-height: 80px; }
     .leaderboard-item {
       display: grid;
@@ -776,7 +788,7 @@
       min-height: 50px;
       padding: 7px 9px;
       border-radius: 13px;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.3);
       opacity: 0;
       animation: leaderboardSlide 0.5s ease-out forwards;
       color: #222;
@@ -812,9 +824,9 @@
       body { padding: 20px 0 40px; }
       .app {
         border-radius: 30px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 0 80px rgba(0, 0, 0, 0.1);
-        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
+        background: rgba(255, 255, 255, 0.25);
         backdrop-filter: blur(10px);
       }
       .top-header {
@@ -853,10 +865,10 @@
       max-width: 480px;
       margin: 0 auto;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255, 216, 77, 0.2);
-      border-top: 1px solid rgba(255, 216, 77, 0.2);
+      border-bottom: 1px solid rgba(184, 148, 46, 0.15);
+      border-top: 1px solid rgba(184, 148, 46, 0.15);
       height: 36px;
       position: sticky;
       top: 68px;
@@ -883,14 +895,14 @@
       gap: 8px;
       font-family: 'Orbitron', sans-serif;
       font-size: 12px;
-      color: #ff8a00;
+      color: #b8942e;
       padding: 0 10px;
-      text-shadow: 0 0 20px rgba(255, 216, 77, 0.1);
+      text-shadow: 0 0 20px rgba(184, 148, 46, 0.05);
       flex-shrink: 0;
     }
     .ticker-item .trophy { font-size: 14px; }
     .ticker-item .name { color: #222; font-weight: 700; }
-    .ticker-item .amount { color: #3dff9a; font-weight: 700; }
+    .ticker-item .amount { color: #2ecc71; font-weight: 700; }
     #winnerTicker:hover #tickerTrack { animation-play-state: paused; }
 
     /* SÉLECTEUR DE CRYPTO */
@@ -898,10 +910,10 @@
       width: 140px;
       padding: 10px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(5px);
       color: #222;
-      border: 1px solid #ff8a00;
+      border: 1px solid #b8942e;
       font-size: 14px;
       text-align: center;
       outline: none;
@@ -909,7 +921,7 @@
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff8a00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b8942e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
     }
@@ -925,7 +937,7 @@
       #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; }
     }
 
-    /* Ajustement des couleurs pour les éléments texte sur fond clair */
+    /* Ajustements de couleurs */
     .wallet-box strong,
     .wallet-badge-top .wb-value,
     .online strong {
@@ -980,11 +992,11 @@
       <!-- MODE DÉMO -->
       <div class="menu-block" style="text-align:center;">
         <button id="demomodebtn" class="menu-nav-btn" type="button" style="
-          background:rgba(255,204,0,0.2);
-          color:#ff8a00;
+          background:rgba(184,148,46,0.15);
+          color:#b8942e;
           font-weight:bold;
           text-align:center;
-          border:1px solid rgba(255,204,0,.35);
+          border:1px solid rgba(184,148,46,0.3);
           font-family:'Orbitron', sans-serif;
         ">🎮 ACTIVER MODE DÉMO</button>
         <div id="demoStatus" style="font-size:10px; color:#555; margin-top:6px; font-family:'Orbitron', sans-serif;">🔒 Désactivé</div>
@@ -993,12 +1005,12 @@
       <!-- TOGGLE NOTIFICATIONS -->
       <div class="menu-block">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-          <span style="color:#ff8a00; font-weight:bold; font-size:13px;">🔔 Notifications</span>
+          <span style="color:#b8942e; font-weight:bold; font-size:13px;">🔔 Notifications</span>
           <input type="checkbox" id="notifToggle" checked style="
             width:40px;
             height:20px;
             cursor:pointer;
-            accent-color:#ff8a00;
+            accent-color:#b8942e;
             background:rgba(255,255,255,0.3);
             border-radius:10px;
           ">
@@ -1019,14 +1031,14 @@
         <p style="font-size:12px;color:#444;font-family:'Orbitron', sans-serif;">Une question ? Un problème ?</p>
         <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
         <div style="margin-top:8px;font-size:12px;">
-          <a href="mailto:miltapesupport@gmail.com" style="color:#ff8a00;text-decoration:none;font-family:'Orbitron', sans-serif;">📧 miltapesupport@gmail.com</a>
+          <a href="mailto:miltapesupport@gmail.com" style="color:#b8942e;text-decoration:none;font-family:'Orbitron', sans-serif;">📧 miltapesupport@gmail.com</a>
         </div>
         <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
           <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="
             display:inline-flex;
             align-items:center;
             gap:8px;
-            color:#ff8a00;
+            color:#b8942e;
             text-decoration:none;
             font-family:'Orbitron', sans-serif;
             font-size:11px;
@@ -1072,8 +1084,8 @@
 
     <!-- ====== CAGNOTTE DU SAMEDI ====== -->
     <div id="jackpotDisplay" style="
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(139, 44, 255, 0.15));
-      border: 1px solid #ffd84d;
+      background: linear-gradient(135deg, rgba(184, 148, 46, 0.12), rgba(139, 44, 255, 0.08));
+      border: 1px solid rgba(184, 148, 46, 0.3);
       border-radius: 12px;
       padding: 8px 16px;
       margin: 8px 12px;
@@ -1085,11 +1097,11 @@
     ">
       <div>
         <span style="font-size:10px; color:#555;">🎁 CAGNOTTE DU SAMEDI</span>
-        <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#ff8a00;">0 USDT</span>
+        <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#b8942e;">0 USDT</span>
       </div>
       <div style="text-align:right;">
         <span style="font-size:9px; color:#555;">Tirage dans</span>
-        <span id="jackpotCountdown" style="display:block; font-size:14px; font-weight:700; color:#3dff9a;">--</span>
+        <span id="jackpotCountdown" style="display:block; font-size:14px; font-weight:700; color:#2ecc71;">--</span>
       </div>
     </div>
 
@@ -1137,10 +1149,10 @@
           width:140px;
           padding:10px;
           border-radius:8px;
-          background:rgba(255,255,255,0.8);
+          background:rgba(255,255,255,0.85);
           backdrop-filter:blur(5px);
           color:#222;
-          border:1px solid #ff8a00;
+          border:1px solid #b8942e;
           font-size:16px;
           text-align:center;
           outline:none;
@@ -1151,7 +1163,7 @@
     </div>
 
     <!-- BOUTON PAYER -->
-    <button id="payButton" style="display:none; background:#00d2ff; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #0077aa; font-family:'Orbitron', sans-serif; text-transform:uppercase; font-size:12px;">
+    <button id="payButton" style="display:none; background:#2ecc71; color:#000; padding:12px 24px; border-radius:8px; font-weight:bold; border:none; cursor:pointer; margin: 5px auto; width:80%; max-width:300px; box-shadow:0 4px 0 #1a9c54; font-family:'Orbitron', sans-serif; text-transform:uppercase; font-size:12px;">
       💳 PAYER MA MISE
     </button>
 
@@ -1182,7 +1194,7 @@
     <section class="stats" style="display:flex;justify-content:center;">
       <div class="stat-box" style="width:100%;max-width:300px;">
         <small>TES TAPS</small>
-        <strong id="tapCount" style="font-size:28px;color:#ff8a00;">0</strong>
+        <strong id="tapCount" style="font-size:28px;color:#b8942e;">0</strong>
       </div>
     </section>
 
@@ -1311,12 +1323,12 @@
 
     function updateDemoUI() {
       if (demoMode) {
-        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#ff8a00"; }
-        if (demoBtn) { demoBtn.textContent = "🔬 DÉSACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(255,50,50,0.2)"; demoBtn.style.borderColor = "rgba(255,50,50,0.5)"; }
+        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#b8942e"; }
+        if (demoBtn) { demoBtn.textContent = "🔬 DÉSACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(255,50,50,0.15)"; demoBtn.style.borderColor = "rgba(255,50,50,0.4)"; }
         if (!isSpectator && tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
       } else {
         if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "#555"; }
-        if (demoBtn) { demoBtn.textContent = "🎮 ACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(255,204,0,0.2)"; demoBtn.style.borderColor = "rgba(255,204,0,0.35)"; }
+        if (demoBtn) { demoBtn.textContent = "🎮 ACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(184,148,46,0.15)"; demoBtn.style.borderColor = "rgba(184,148,46,0.3)"; }
         if (!isSpectator && tapMessage) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
       }
     }
@@ -1772,7 +1784,7 @@
         leaderboard.forEach(player => {
           const div = document.createElement('div');
           div.className = 'leaderboard-item';
-          div.innerHTML = '<span style="color:#ff8a00;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:13px;">' + player.name + '</span> <span style="color:#ff8a00;font-weight:900;font-size:13px;">' + player.taps + '</span>';
+          div.innerHTML = '<span style="color:#b8942e;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:13px;">' + player.name + '</span> <span style="color:#b8942e;font-weight:900;font-size:13px;">' + player.taps + '</span>';
           leaderboardList.appendChild(div);
         });
       }
@@ -1957,7 +1969,7 @@
     if (menuRankingsBtn) {
       menuRankingsBtn.addEventListener('click', function() {
         const score = tapCount ? tapCount.textContent : '0';
-        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#ff8a00;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
+        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#b8942e;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
       });
     }
 
@@ -1981,16 +1993,16 @@
             const p = data.player;
             const history = data.history;
             let html = '<div class="dashboard-stats" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-around;margin-bottom:15px;">' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#ff8a00;">' + p.totalGain + ' USDT</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#ff8a00;">' + p.gamesPlayed + '</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#ff8a00;">' + p.bestScore + ' taps</span></div></div>';
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#b8942e;">' + p.totalGain + ' USDT</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#b8942e;">' + p.gamesPlayed + '</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#b8942e;">' + p.bestScore + ' taps</span></div></div>';
             if (history.length === 0) {
               html += '<p class="no-data-message" style="color:#555;text-align:center;font-size:13px;padding:20px 0;">Aucune partie gagnée pour le moment.</p>';
             } else {
-              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#ff8a00;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
+              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#b8942e;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
               history.forEach((h, idx) => {
                 const date = new Date(h.createdAt).toLocaleDateString('fr-FR');
-                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#ff8a00;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#3dff9a;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
+                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#b8942e;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#2ecc71;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
               });
               html += '</tbody></table></div>';
             }
@@ -2010,7 +2022,7 @@
     const menuReferralBtn = document.getElementById('menuReferralBtn');
     if (menuReferralBtn) {
       menuReferralBtn.addEventListener('click', function() {
-        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#ff8a00;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
+        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#b8942e;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
       });
     }
 
