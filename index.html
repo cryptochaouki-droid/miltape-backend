@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#f5f0eb" />
+  <meta name="theme-color" content="#81d4fa" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -59,11 +59,11 @@
 
   <style>
     /* ============================================================
-       FOND BLANC ROYAL – Élégant et lumineux
+       FOND BLEU TURQUOISE CLAIR 🌊
        ============================================================ */
     body {
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(145deg, #f8f5f0 0%, #f0ece6 100%);
+      background: linear-gradient(145deg, #b3e5fc 0%, #81d4fa 50%, #4dd0e1 100%);
       min-height: 100vh;
       margin: 0;
       padding: 0;
@@ -74,7 +74,7 @@
       position: relative;
     }
 
-    /* Ronds décoratifs très légers */
+    /* Ronds décoratifs légers */
     body::before {
       content: "";
       position: fixed;
@@ -83,7 +83,7 @@
       width: 500px;
       height: 500px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 204, 0, 0.07), transparent 70%);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -95,7 +95,7 @@
       width: 400px;
       height: 400px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(139, 44, 255, 0.06), transparent 70%);
+      background: radial-gradient(circle, rgba(0, 150, 255, 0.12), transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -168,13 +168,13 @@
       z-index: 3000;
       display: none;
       padding: 13px 20px;
-      border: 1px solid #b8942e;
+      border: 1px solid #0088a9;
       border-radius: 999px;
       background: #120624;
-      color: #b8942e;
+      color: #0088a9;
       font-size: 13px;
       font-weight: 900;
-      box-shadow: 0 0 15px rgba(184, 148, 46, .25);
+      box-shadow: 0 0 15px rgba(0, 136, 169, .25);
       cursor: pointer;
       white-space: nowrap;
       -webkit-tap-highlight-color: transparent;
@@ -255,7 +255,7 @@
       background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(184, 148, 46, 0.2);
+      border-right: 1px solid rgba(0, 136, 169, 0.2);
       z-index: 1000;
       transition: left .3s ease;
       padding: 20px;
@@ -274,7 +274,7 @@
     }
     .side-menu-content { margin-top: 40px; padding-bottom: 30px; }
     .side-menu-content h3 {
-      color: #b8942e;
+      color: #0088a9;
       margin-bottom: 20px;
       font-size: 16px;
       letter-spacing: 1px;
@@ -289,7 +289,7 @@
     .menu-block h4 {
       display: block;
       font-size: 13px;
-      color: #b8942e;
+      color: #0088a9;
       margin-bottom: 8px;
       font-weight: bold;
     }
@@ -323,8 +323,8 @@
     }
     .menu-nav-btn:hover,
     .menu-nav-btn:active {
-      background: rgba(184, 148, 46, 0.12);
-      color: #b8942e;
+      background: rgba(0, 136, 169, 0.12);
+      color: #0088a9;
     }
     .trust-contact-box { border-left: 3px solid #2ecc71; }
     .support-link {
@@ -363,7 +363,7 @@
     .legal-content {
       background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(20px);
-      border: 1px solid #b8942e;
+      border: 1px solid #0088a9;
       max-width: 500px;
       width: 100%;
       max-height: 90vh;
@@ -376,7 +376,7 @@
       animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .legal-content h3 {
-      color: #b8942e;
+      color: #0088a9;
       margin-top: 0;
     }
     .legal-content p,
@@ -430,7 +430,7 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
-      box-shadow: 0 0 40px rgba(184, 148, 46, 0.15);
+      box-shadow: 0 0 40px rgba(0, 136, 169, 0.15);
       border: 2px solid rgba(255, 255, 255, 0.6);
     }
     .tap-button:disabled {
@@ -438,7 +438,7 @@
       opacity: 0.6;
     }
     .tap-button:not(:disabled):hover {
-      box-shadow: 0 0 60px rgba(184, 148, 46, 0.25);
+      box-shadow: 0 0 60px rgba(0, 136, 169, 0.25);
     }
     .tap-img-bg {
       position: absolute;
@@ -476,7 +476,7 @@
     .tap-button:active:not(:disabled) { transform: scale(.92); }
     .tap-button.tap-active {
       transform: scale(.94);
-      box-shadow: 0 0 80px rgba(184, 148, 46, 0.3);
+      box-shadow: 0 0 80px rgba(0, 136, 169, 0.3);
     }
 
     /* CHAT */
@@ -510,7 +510,7 @@
       line-height: 1.35;
       animation: messageSlide 0.3s ease-out;
     }
-    .chat-message strong { color: #b8942e; }
+    .chat-message strong { color: #0088a9; }
     .chat-input-box {
       position: relative;
       z-index: 30;
@@ -541,12 +541,12 @@
       min-width: 46px;
       border: none;
       border-radius: 24px !important;
-      background: linear-gradient(135deg, #d4a83a, #b8942e);
+      background: linear-gradient(135deg, #26c6da, #0088a9);
       color: #fff;
       font-size: 20px;
       font-weight: 900;
       cursor: pointer;
-      box-shadow: 0 4px 0 #7a621f;
+      box-shadow: 0 4px 0 #006080;
       touch-action: manipulation;
       font-family: 'Poppins', sans-serif;
     }
@@ -557,14 +557,14 @@
       max-width: 300px;
       margin: 10px auto;
       padding: 14px 20px;
-      background: linear-gradient(135deg, #d4a83a, #b8942e);
+      background: linear-gradient(135deg, #26c6da, #0088a9);
       color: #fff;
       border: none;
       font-size: 16px;
       font-weight: 900;
       font-family: 'Poppins', sans-serif;
       cursor: pointer;
-      box-shadow: 0 4px 0 #7a621f, 0 0 30px rgba(184, 148, 46, 0.25);
+      box-shadow: 0 4px 0 #006080, 0 0 30px rgba(0, 136, 169, 0.25);
       transition: all 0.15s ease;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -572,10 +572,10 @@
     }
     .main-play-button:active {
       transform: translateY(3px);
-      box-shadow: 0 1px 0 #7a621f;
+      box-shadow: 0 1px 0 #006080;
     }
     .main-play-button:hover {
-      box-shadow: 0 4px 0 #7a621f, 0 0 50px rgba(184, 148, 46, 0.35);
+      box-shadow: 0 4px 0 #006080, 0 0 50px rgba(0, 136, 169, 0.35);
     }
 
     .spectator-button {
@@ -612,7 +612,7 @@
     .tap-message {
       text-align: center;
       font-size: 13px;
-      color: #333;
+      color: #222;
       padding: 10px 20px;
       margin: 5px auto;
       font-family: 'Poppins', sans-serif;
@@ -646,7 +646,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .rule .rule-icon { font-size: 18px; }
-    .rule strong { color: #b8942e; font-size: 13px; }
+    .rule strong { color: #0088a9; font-size: 13px; }
     .rule small { color: #555; font-size: 9px; }
 
     .stats {
@@ -673,7 +673,7 @@
     }
     .stat-box strong {
       font-size: 28px;
-      color: #b8942e;
+      color: #0088a9;
       font-family: 'Orbitron', sans-serif;
     }
 
@@ -729,11 +729,11 @@
     }
     .wallet-box strong {
       font-size: 14px;
-      color: #b8942e;
+      color: #0088a9;
     }
     .wallet-button {
-      background: rgba(184, 148, 46, 0.12);
-      border: 1px solid rgba(184, 148, 46, 0.25);
+      background: rgba(0, 136, 169, 0.12);
+      border: 1px solid rgba(0, 136, 169, 0.25);
       border-radius: 10px;
       color: #222;
       padding: 6px 12px;
@@ -769,7 +769,7 @@
       color: #222;
     }
     .section-title span { color: #222; }
-    .section-title strong { color: #b8942e; font-size: 14px; }
+    .section-title strong { color: #0088a9; font-size: 14px; }
     .leaderboard-list { min-height: 80px; }
     .leaderboard-item {
       display: grid;
@@ -866,8 +866,8 @@
       overflow: hidden;
       background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(184, 148, 46, 0.15);
-      border-top: 1px solid rgba(184, 148, 46, 0.15);
+      border-bottom: 1px solid rgba(0, 136, 169, 0.15);
+      border-top: 1px solid rgba(0, 136, 169, 0.15);
       height: 36px;
       position: sticky;
       top: 68px;
@@ -894,9 +894,9 @@
       gap: 8px;
       font-family: 'Poppins', sans-serif;
       font-size: 12px;
-      color: #b8942e;
+      color: #0088a9;
       padding: 0 10px;
-      text-shadow: 0 0 20px rgba(184, 148, 46, 0.05);
+      text-shadow: 0 0 20px rgba(0, 136, 169, 0.05);
       flex-shrink: 0;
     }
     .ticker-item .trophy { font-size: 14px; }
@@ -911,7 +911,7 @@
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(5px);
       color: #222;
-      border: 1px solid #b8942e;
+      border: 1px solid #0088a9;
       font-size: 14px;
       text-align: center;
       outline: none;
@@ -919,7 +919,7 @@
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b8942e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230088a9' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
     }
@@ -990,11 +990,11 @@
       <!-- MODE DÉMO -->
       <div class="menu-block" style="text-align:center;">
         <button id="demomodebtn" class="menu-nav-btn" type="button" style="
-          background:rgba(184,148,46,0.15);
-          color:#b8942e;
+          background:rgba(0,136,169,0.15);
+          color:#0088a9;
           font-weight:bold;
           text-align:center;
-          border:1px solid rgba(184,148,46,0.3);
+          border:1px solid rgba(0,136,169,0.3);
           font-family:'Poppins', sans-serif;
         ">🎮 ACTIVER MODE DÉMO</button>
         <div id="demoStatus" style="font-size:10px; color:#555; margin-top:6px; font-family:'Poppins', sans-serif;">🔒 Désactivé</div>
@@ -1003,12 +1003,12 @@
       <!-- TOGGLE NOTIFICATIONS -->
       <div class="menu-block">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-          <span style="color:#b8942e; font-weight:bold; font-size:13px;">🔔 Notifications</span>
+          <span style="color:#0088a9; font-weight:bold; font-size:13px;">🔔 Notifications</span>
           <input type="checkbox" id="notifToggle" checked style="
             width:40px;
             height:20px;
             cursor:pointer;
-            accent-color:#b8942e;
+            accent-color:#0088a9;
             background:rgba(255,255,255,0.3);
             border-radius:10px;
           ">
@@ -1029,14 +1029,14 @@
         <p style="font-size:12px;color:#444;font-family:'Poppins', sans-serif;">Une question ? Un problème ?</p>
         <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
         <div style="margin-top:8px;font-size:12px;">
-          <a href="mailto:miltapesupport@gmail.com" style="color:#b8942e;text-decoration:none;font-family:'Poppins', sans-serif;">📧 miltapesupport@gmail.com</a>
+          <a href="mailto:miltapesupport@gmail.com" style="color:#0088a9;text-decoration:none;font-family:'Poppins', sans-serif;">📧 miltapesupport@gmail.com</a>
         </div>
         <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
           <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="
             display:inline-flex;
             align-items:center;
             gap:8px;
-            color:#b8942e;
+            color:#0088a9;
             text-decoration:none;
             font-family:'Poppins', sans-serif;
             font-size:11px;
@@ -1082,8 +1082,8 @@
 
     <!-- ====== CAGNOTTE DU SAMEDI ====== -->
     <div id="jackpotDisplay" style="
-      background: linear-gradient(135deg, rgba(184, 148, 46, 0.12), rgba(139, 44, 255, 0.08));
-      border: 1px solid rgba(184, 148, 46, 0.3);
+      background: linear-gradient(135deg, rgba(0, 136, 169, 0.12), rgba(139, 44, 255, 0.08));
+      border: 1px solid rgba(0, 136, 169, 0.3);
       padding: 8px 16px;
       margin: 8px 12px;
       display: flex;
@@ -1094,7 +1094,7 @@
     ">
       <div>
         <span style="font-size:10px; color:#555;">🎁 CAGNOTTE DU SAMEDI</span>
-        <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#b8942e;">0 USDT</span>
+        <span id="jackpotAmount" style="display:block; font-size:18px; font-weight:900; color:#0088a9;">0 USDT</span>
       </div>
       <div style="text-align:right;">
         <span style="font-size:9px; color:#555;">Tirage dans</span>
@@ -1141,7 +1141,7 @@
           background:rgba(255,255,255,0.85);
           backdrop-filter:blur(5px);
           color:#222;
-          border:1px solid #b8942e;
+          border:1px solid #0088a9;
           font-size:16px;
           text-align:center;
           outline:none;
@@ -1183,7 +1183,7 @@
     <section class="stats" style="display:flex;justify-content:center;">
       <div class="stat-box" style="width:100%;max-width:300px;">
         <small>TES TAPS</small>
-        <strong id="tapCount" style="font-size:28px;color:#b8942e;">0</strong>
+        <strong id="tapCount" style="font-size:28px;color:#0088a9;">0</strong>
       </div>
     </section>
 
@@ -1312,12 +1312,12 @@
 
     function updateDemoUI() {
       if (demoMode) {
-        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#b8942e"; }
+        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#0088a9"; }
         if (demoBtn) { demoBtn.textContent = "🔬 DÉSACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(255,50,50,0.15)"; demoBtn.style.borderColor = "rgba(255,50,50,0.4)"; }
         if (!isSpectator && tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
       } else {
         if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "#555"; }
-        if (demoBtn) { demoBtn.textContent = "🎮 ACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(184,148,46,0.15)"; demoBtn.style.borderColor = "rgba(184,148,46,0.3)"; }
+        if (demoBtn) { demoBtn.textContent = "🎮 ACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(0,136,169,0.15)"; demoBtn.style.borderColor = "rgba(0,136,169,0.3)"; }
         if (!isSpectator && tapMessage) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
       }
     }
@@ -1771,7 +1771,7 @@
         leaderboard.forEach(player => {
           const div = document.createElement('div');
           div.className = 'leaderboard-item';
-          div.innerHTML = '<span style="color:#b8942e;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:13px;">' + player.name + '</span> <span style="color:#b8942e;font-weight:900;font-size:13px;">' + player.taps + '</span>';
+          div.innerHTML = '<span style="color:#0088a9;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:13px;">' + player.name + '</span> <span style="color:#0088a9;font-weight:900;font-size:13px;">' + player.taps + '</span>';
           leaderboardList.appendChild(div);
         });
       }
@@ -1956,7 +1956,7 @@
     if (menuRankingsBtn) {
       menuRankingsBtn.addEventListener('click', function() {
         const score = tapCount ? tapCount.textContent : '0';
-        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#b8942e;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
+        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#0088a9;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
       });
     }
 
@@ -1980,16 +1980,16 @@
             const p = data.player;
             const history = data.history;
             let html = '<div class="dashboard-stats" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-around;margin-bottom:15px;">' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#b8942e;">' + p.totalGain + ' USDT</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#b8942e;">' + p.gamesPlayed + '</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#b8942e;">' + p.bestScore + ' taps</span></div></div>';
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#0088a9;">' + p.totalGain + ' USDT</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#0088a9;">' + p.gamesPlayed + '</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#0088a9;">' + p.bestScore + ' taps</span></div></div>';
             if (history.length === 0) {
               html += '<p class="no-data-message" style="color:#555;text-align:center;font-size:13px;padding:20px 0;">Aucune partie gagnée pour le moment.</p>';
             } else {
-              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#b8942e;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
+              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#0088a9;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
               history.forEach((h, idx) => {
                 const date = new Date(h.createdAt).toLocaleDateString('fr-FR');
-                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#b8942e;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#2ecc71;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
+                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#0088a9;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#2ecc71;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
               });
               html += '</tbody></table></div>';
             }
@@ -2009,7 +2009,7 @@
     const menuReferralBtn = document.getElementById('menuReferralBtn');
     if (menuReferralBtn) {
       menuReferralBtn.addEventListener('click', function() {
-        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#b8942e;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
+        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#0088a9;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
       });
     }
 
