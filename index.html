@@ -477,194 +477,114 @@
       box-shadow: 0 0 80px rgba(26, 111, 181, 0.5);
     }
 
-    /* CHAT */
-    .chat-section {
-      position: relative;
-      z-index: 20;
-      margin-bottom: 20px;
-      width: 100%;
-      pointer-events: auto;
-      isolation: isolate;
-    }
-    .chat-messages {
-      height: 170px;
-      overflow-y: auto;
-      padding: 10px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-      background: rgba(255, 255, 255, 0.20);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-sizing: border-box;
-    }
-    .chat-message {
-      margin-bottom: 8px;
-      padding: 7px 8px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.15);
-      font-size: 13px;
-      color: #fff;
-      word-break: break-word;
-      line-height: 1.35;
-      animation: messageSlide 0.3s ease-out;
-    }
-    .chat-message strong { color: #5ba3d9; }
-    .chat-input-box {
-      position: relative;
-      z-index: 30;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      pointer-events: auto;
-      box-sizing: border-box;
-    }
-    .chat-input-box input {
-      flex: 1;
-      min-width: 0;
-      height: 44px;
-      padding: 0 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      outline: none;
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(5px);
-      color: #fff;
-      font-size: 13px;
-      box-sizing: border-box;
-      font-family: 'Poppins', sans-serif;
-    }
-    .chat-input-box input::placeholder {
-      color: rgba(255, 255, 255, 0.6);
-    }
-    .chat-input-box button {
-      width: 46px;
-      height: 44px;
-      min-width: 46px;
-      border: none;
+    /* ============================================================
+       CLASSEMENT – FOND BLANC, TEXTE NOIR
+       ============================================================ */
+    .leaderboard {
+      background: #ffffff !important;
+      backdrop-filter: none !important;
+      border: 1px solid #e0e0e0 !important;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
       border-radius: 24px !important;
-      background: linear-gradient(135deg, #2a8fd4, #1a6fb5);
-      color: #fff;
-      font-size: 20px;
-      font-weight: 900;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #0a4b8c;
-      touch-action: manipulation;
-      font-family: 'Poppins', sans-serif;
+      padding: 15px !important;
     }
-
-    .main-play-button {
-      display: block;
-      width: 80%;
-      max-width: 300px;
-      margin: 10px auto;
-      padding: 14px 20px;
-      background: linear-gradient(135deg, #2a8fd4, #1a6fb5);
-      color: #fff;
-      border: none;
-      font-size: 16px;
-      font-weight: 900;
-      font-family: 'Poppins', sans-serif;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #0a4b8c, 0 0 30px rgba(26, 111, 181, 0.3);
-      transition: all 0.15s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      animation: slideUp 0.6s ease-out 0.1s both;
+    .leaderboard .section-title {
+      color: #222 !important;
     }
-    .main-play-button:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #0a4b8c;
+    .leaderboard .section-title span {
+      color: #222 !important;
     }
-    .main-play-button:hover {
-      box-shadow: 0 4px 0 #0a4b8c, 0 0 50px rgba(26, 111, 181, 0.4);
+    .leaderboard .section-title strong {
+      color: #1a6fb5 !important;
+      font-size: 15px !important;
     }
-
-    .spectator-button {
-      display: block;
-      width: 80%;
-      max-width: 300px;
-      margin: 5px auto;
-      padding: 12px 20px;
-      background: rgba(139, 44, 255, 0.15);
-      border: 2px solid rgba(139, 44, 255, 0.4);
-      color: #d4a0ff;
-      font-size: 14px;
-      font-weight: 700;
-      font-family: 'Poppins', sans-serif;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      animation: slideUp 0.6s ease-out 0.1s both;
+    .leaderboard-item {
+      background: #f5f7fa !important;
+      color: #222 !important;
+      font-size: 14px !important;
+      padding: 8px 12px !important;
+      border-radius: 12px !important;
+      border-left: 3px solid #1a6fb5 !important;
+      margin-bottom: 4px !important;
     }
-    .spectator-button:hover {
-      background: rgba(139, 44, 255, 0.25);
-      border-color: #8b2cff;
-      box-shadow: 0 0 30px rgba(139, 44, 255, 0.15);
-      transform: scale(1.02);
+    .leaderboard-item span:first-child {
+      color: #1a6fb5 !important;
     }
-    .spectator-button:active { transform: scale(0.95); }
-    .spectator-button.active {
-      background: rgba(139, 44, 255, 0.3);
-      border-color: #8b2cff;
-      box-shadow: 0 0 40px rgba(139, 44, 255, 0.2);
+    .leaderboard-item span:nth-child(2) {
+      color: #222 !important;
+      font-weight: 600 !important;
     }
-
-    #leaveSpectatorBtn {
-      display: none;
-      border-color: #ff4444 !important;
-      color: #ff4444 !important;
-      background: rgba(255, 68, 68, 0.1) !important;
+    .leaderboard-item span:last-child {
+      color: #1a6fb5 !important;
+      font-weight: 900 !important;
     }
-    #leaveSpectatorBtn:hover {
-      background: rgba(255, 68, 68, 0.2) !important;
-      border-color: #ff4444 !important;
+    .empty-ranking {
+      color: #888 !important;
+      font-size: 13px !important;
     }
-
-    .tap-message {
-      text-align: center;
-      font-size: 14px;
-      color: #fff;
-      padding: 10px 20px;
-      margin: 5px auto;
-      font-family: 'Poppins', sans-serif;
-      letter-spacing: 0.5px;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(6px);
-      border-radius: 20px;
-      display: inline-block;
-      max-width: 90%;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-weight: 600;
-    }
-
-    .rules {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      padding: 15px;
-      flex-wrap: wrap;
-      animation: slideUp 0.8s ease-out 0.3s both;
-    }
-    .rule {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      padding: 8px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      font-family: 'Poppins', sans-serif;
-      font-size: 11px;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .rule .rule-icon { font-size: 18px; }
-    .rule strong { color: #5ba3d9; font-size: 13px; }
-    .rule small { color: rgba(255,255,255,0.7); font-size: 9px; }
 
     /* ============================================================
-       CHRONO – AMÉLIORATION DE VISIBILITÉ
+       CHAT – FOND BLANC, TEXTE NOIR
+       ============================================================ */
+    .chat-messages {
+      background: #ffffff !important;
+      backdrop-filter: none !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 24px !important;
+      padding: 12px !important;
+      height: 180px !important;
+    }
+    .chat-message {
+      background: #f5f7fa !important;
+      color: #222 !important;
+      font-size: 14px !important;
+      padding: 8px 12px !important;
+      border-radius: 10px !important;
+      margin-bottom: 6px !important;
+    }
+    .chat-message strong {
+      color: #1a6fb5 !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+    }
+
+    /* Champ de saisie du chat */
+    .chat-input-box {
+      margin-top: 8px !important;
+    }
+    .chat-input-box input {
+      background: #ffffff !important;
+      color: #222 !important;
+      border: 1px solid #ccc !important;
+      border-radius: 12px !important;
+      font-size: 14px !important;
+      height: 46px !important;
+    }
+    .chat-input-box input::placeholder {
+      color: #999 !important;
+    }
+    .chat-input-box button {
+      border-radius: 12px !important;
+      height: 46px !important;
+      width: 46px !important;
+    }
+
+    /* Titres des sections (classement et chat) */
+    .section-title {
+      font-size: 13px !important;
+      color: #222 !important;
+      margin-bottom: 12px !important;
+    }
+    .section-title span {
+      color: #222 !important;
+    }
+    .section-title strong {
+      color: #1a6fb5 !important;
+      font-size: 15px !important;
+    }
+
+    /* ============================================================
+       CHRONO – VISIBILITÉ AMÉLIORÉE
        ============================================================ */
     #timerRule {
       background: rgba(255, 204, 0, 0.12) !important;
@@ -696,6 +616,7 @@
       border: 1px solid rgba(255, 204, 0, 0.15) !important;
       padding: 20px !important;
       box-shadow: 0 0 40px rgba(255, 204, 0, 0.04) !important;
+      border-radius: 24px !important;
     }
     .stat-box small {
       display: block;
@@ -795,54 +716,89 @@
       padding: 0 16px;
       animation: slideUp 1s ease-out 0.5s both;
     }
-    .leaderboard {
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .section-title {
+
+    .rules {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      font-family: 'Poppins', sans-serif;
-      font-size: 12px;
-      color: #fff;
+      justify-content: center;
+      gap: 20px;
+      padding: 15px;
+      flex-wrap: wrap;
+      animation: slideUp 0.8s ease-out 0.3s both;
     }
-    .section-title span { color: #fff; }
-    .section-title strong { color: #5ba3d9; font-size: 14px; }
-    .leaderboard-list { min-height: 80px; }
-    .leaderboard-item {
-      display: grid;
-      grid-template-columns: 35px 1fr auto;
+    .rule {
+      display: flex;
       align-items: center;
       gap: 8px;
-      min-height: 50px;
-      padding: 7px 9px;
-      border-radius: 13px;
-      background: rgba(255, 255, 255, 0.08);
-      opacity: 0;
-      animation: leaderboardSlide 0.5s ease-out forwards;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 8px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-family: 'Poppins', sans-serif;
+      font-size: 11px;
       color: #fff;
-      font-family: 'Poppins', sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .leaderboard-item:nth-child(1) { animation-delay: 0.05s; border-left: 3px solid #ffd700; }
-    .leaderboard-item:nth-child(2) { animation-delay: 0.1s; border-left: 3px solid #c0c0c0; }
-    .leaderboard-item:nth-child(3) { animation-delay: 0.15s; border-left: 3px solid #cd7f32; }
-    .leaderboard-item:nth-child(4) { animation-delay: 0.2s; }
-    .leaderboard-item:nth-child(5) { animation-delay: 0.25s; }
-    @keyframes leaderboardSlide {
-      from { opacity: 0; transform: translateX(-20px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-    .empty-ranking {
-      color: rgba(255,255,255,0.6);
+    .rule .rule-icon { font-size: 18px; }
+    .rule strong { color: #5ba3d9; font-size: 13px; }
+    .rule small { color: rgba(255,255,255,0.7); font-size: 9px; }
+
+    .tap-message {
       text-align: center;
-      padding: 20px 0;
-      font-size: 12px;
+      font-size: 14px;
+      color: #fff;
+      padding: 10px 20px;
+      margin: 5px auto;
       font-family: 'Poppins', sans-serif;
+      letter-spacing: 0.5px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(6px);
+      border-radius: 20px;
+      display: inline-block;
+      max-width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: 600;
+    }
+
+    .spectator-button {
+      display: block;
+      width: 80%;
+      max-width: 300px;
+      margin: 5px auto;
+      padding: 12px 20px;
+      background: rgba(139, 44, 255, 0.15);
+      border: 2px solid rgba(139, 44, 255, 0.4);
+      color: #d4a0ff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      animation: slideUp 0.6s ease-out 0.1s both;
+    }
+    .spectator-button:hover {
+      background: rgba(139, 44, 255, 0.25);
+      border-color: #8b2cff;
+      box-shadow: 0 0 30px rgba(139, 44, 255, 0.15);
+      transform: scale(1.02);
+    }
+    .spectator-button:active { transform: scale(0.95); }
+    .spectator-button.active {
+      background: rgba(139, 44, 255, 0.3);
+      border-color: #8b2cff;
+      box-shadow: 0 0 40px rgba(139, 44, 255, 0.2);
+    }
+
+    #leaveSpectatorBtn {
+      display: none;
+      border-color: #ff4444 !important;
+      color: #ff4444 !important;
+      background: rgba(255, 68, 68, 0.1) !important;
+    }
+    #leaveSpectatorBtn:hover {
+      background: rgba(255, 68, 68, 0.2) !important;
+      border-color: #ff4444 !important;
     }
 
     /* Responsive */
@@ -865,7 +821,7 @@
     }
     @media(max-width:360px) {
       .tap-button { width: 165px; height: 165px; min-width: 165px; min-height: 165px; }
-      .chat-input-box input { font-size: 12px; }
+      .chat-input-box input { font-size: 12px !important; }
       .chat-input-box button { width: 42px; min-width: 42px; }
       #timerRuleValue {
         font-size: 18px !important;
@@ -1419,7 +1375,7 @@
       <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
     </section>
 
-    <!-- STATS TAPS – COMPTEUR AMÉLIORÉ -->
+    <!-- STATS TAPS -->
     <section class="stats" style="display:flex;justify-content:center;">
       <div class="stat-box" style="width:100%;max-width:300px;">
         <small>TES TAPS</small>
@@ -2055,7 +2011,7 @@
         leaderboard.forEach(player => {
           const div = document.createElement('div');
           div.className = 'leaderboard-item';
-          div.innerHTML = '<span style="color:#5ba3d9;font-weight:900;">#' + player.rank + '</span> <span style="color:#fff;font-size:13px;">' + player.name + '</span> <span style="color:#5ba3d9;font-weight:900;font-size:13px;">' + player.taps + '</span>';
+          div.innerHTML = '<span style="color:#1a6fb5;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:14px;font-weight:600;">' + player.name + '</span> <span style="color:#1a6fb5;font-weight:900;font-size:14px;">' + player.taps + '</span>';
           leaderboardList.appendChild(div);
         });
       }
@@ -2239,7 +2195,7 @@
     if (menuRankingsBtn) {
       menuRankingsBtn.addEventListener('click', function() {
         const score = tapCount ? tapCount.textContent : '0';
-        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#5ba3d9;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
+        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#1a6fb5;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
       });
     }
 
@@ -2263,16 +2219,16 @@
             const p = data.player;
             const history = data.history;
             let html = '<div class="dashboard-stats" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-around;margin-bottom:15px;">' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#5ba3d9;">' + p.totalGain + ' USDT</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#5ba3d9;">' + p.gamesPlayed + '</span></div>' +
-              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#5ba3d9;">' + p.bestScore + ' taps</span></div></div>';
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#1a6fb5;">' + p.totalGain + ' USDT</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#1a6fb5;">' + p.gamesPlayed + '</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#1a6fb5;">' + p.bestScore + ' taps</span></div></div>';
             if (history.length === 0) {
               html += '<p class="no-data-message" style="color:#555;text-align:center;font-size:13px;padding:20px 0;">Aucune partie gagnée pour le moment.</p>';
             } else {
-              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#5ba3d9;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
+              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#1a6fb5;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
               history.forEach((h, idx) => {
                 const date = new Date(h.createdAt).toLocaleDateString('fr-FR');
-                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#5ba3d9;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#2ecc71;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
+                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#1a6fb5;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#2ecc71;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
               });
               html += '</tbody></table></div>';
             }
@@ -2292,7 +2248,7 @@
     const menuReferralBtn = document.getElementById('menuReferralBtn');
     if (menuReferralBtn) {
       menuReferralBtn.addEventListener('click', function() {
-        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#5ba3d9;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
+        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#1a6fb5;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
       });
     }
 
