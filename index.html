@@ -479,7 +479,7 @@
     }
 
     /* ============================================================
-       CLASSEMENT – FOND BLANC, TEXTE NOIR
+       CLASSEMENT – FOND BLANC, TEXTE NOIR, PASTILLES DE RANG
        ============================================================ */
     .leaderboard {
       background: #ffffff !important;
@@ -507,18 +507,63 @@
       border-radius: 12px !important;
       border-left: 3px solid #1a6fb5 !important;
       margin-bottom: 4px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
     }
-    .leaderboard-item span:first-child {
-      color: #1a6fb5 !important;
+
+    /* Pastille de rang */
+    .rank-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      border-radius: 50% !important;
+      font-size: 14px !important;
+      font-weight: 900 !important;
+      color: #fff !important;
+      background: #1a6fb5 !important;
+      flex-shrink: 0 !important;
     }
-    .leaderboard-item span:nth-child(2) {
+    /* Couleurs par rang */
+    .leaderboard-item:nth-child(1) .rank-badge {
+      background: #ffd700 !important;
+      color: #000 !important;
+      box-shadow: 0 0 20px rgba(255,215,0,0.4) !important;
+    }
+    .leaderboard-item:nth-child(2) .rank-badge {
+      background: #c0c0c0 !important;
+      color: #000 !important;
+      box-shadow: 0 0 15px rgba(192,192,192,0.3) !important;
+    }
+    .leaderboard-item:nth-child(3) .rank-badge {
+      background: #cd7f32 !important;
+      color: #fff !important;
+      box-shadow: 0 0 15px rgba(205,127,50,0.3) !important;
+    }
+    .leaderboard-item:nth-child(4) .rank-badge {
+      background: #1a6fb5 !important;
+      color: #fff !important;
+    }
+    .leaderboard-item:nth-child(5) .rank-badge {
+      background: #1a6fb5 !important;
+      color: #fff !important;
+    }
+
+    .leaderboard-item .player-name {
       color: #222 !important;
       font-weight: 600 !important;
+      font-size: 14px !important;
+      flex: 1 !important;
     }
-    .leaderboard-item span:last-child {
+    .leaderboard-item .player-score {
       color: #1a6fb5 !important;
       font-weight: 900 !important;
+      font-size: 14px !important;
     }
+
     .empty-ranking {
       color: #888 !important;
       font-size: 13px !important;
@@ -819,6 +864,12 @@
       .stat-box strong {
         font-size: 44px !important;
       }
+      .rank-badge {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        font-size: 12px !important;
+      }
     }
     @media(max-width:360px) {
       .tap-button { width: 145px; height: 145px; min-width: 145px; min-height: 145px; }
@@ -829,6 +880,12 @@
       }
       .stat-box strong {
         font-size: 38px !important;
+      }
+      .rank-badge {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        font-size: 11px !important;
       }
     }
     @media(min-width:600px) {
@@ -1897,16 +1954,14 @@
     }
 
     // ==========================================
-    // 15. GESTION DES TAPS (VERSION ÉPURÉE – SANS EFFETS FLOTTANTS)
+    // 15. GESTION DES TAPS (VERSION ÉPURÉE)
     // ==========================================
     function animateTapCount() {
       if (tapCount) { tapCount.classList.remove('tap-count-pop'); void tapCount.offsetWidth; tapCount.classList.add('tap-count-pop'); }
     }
 
-    // Fonction tapEffects simplifiée (uniquement l'effet de pression)
     function tapEffects(event) {
       if (!tapButton) return;
-      // Effet de pression uniquement
       tapButton.classList.add('tap-active');
       setTimeout(() => tapButton.classList.remove('tap-active'), 100);
       hapticLight();
@@ -1968,6 +2023,9 @@
       }
     });
 
+    // ==========================================
+    // LEADERBOARD – AVEC PASTILLES DE RANG
+    // ==========================================
     socket.on("leaderboard:update", (leaderboard) => {
       if (leaderboardList) {
         leaderboardList.innerHTML = "";
@@ -1978,7 +2036,10 @@
         leaderboard.forEach(player => {
           const div = document.createElement('div');
           div.className = 'leaderboard-item';
-          div.innerHTML = '<span style="color:#1a6fb5;font-weight:900;">#' + player.rank + '</span> <span style="color:#222;font-size:14px;font-weight:600;">' + player.name + '</span> <span style="color:#1a6fb5;font-weight:900;font-size:14px;">' + player.taps + '</span>';
+          div.innerHTML =
+            '<span class="rank-badge">' + player.rank + '</span>' +
+            '<span class="player-name">' + player.name + '</span>' +
+            '<span class="player-score">' + player.taps + '</span>';
           leaderboardList.appendChild(div);
         });
       }
