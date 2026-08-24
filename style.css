@@ -1,163 +1,79 @@
-/* ===== CONTENEUR DE LA ZONE TAP ===== */
-.tap-zone {
-    width: 100%;
-    min-height: 245px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding-bottom: 10px;
-    /* Évite tout réajustement */
-    will-change: contents;
+/* ============================================================
+   CLASSEMENT – FOND BLANC, TEXTE NOIR
+   ============================================================ */
+.leaderboard {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  border: 1px solid #e0e0e0 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+}
+.leaderboard .section-title {
+  color: #222 !important;
+}
+.leaderboard .section-title span {
+  color: #222 !important;
+}
+.leaderboard .section-title strong {
+  color: #1a6fb5 !important;
+  font-size: 15px !important;
+}
+.leaderboard-item {
+  background: #f5f7fa !important;
+  color: #222 !important;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+}
+.leaderboard-item span:first-child {
+  color: #1a6fb5 !important;
+}
+.leaderboard-item span:nth-child(2) {
+  color: #222 !important;
+}
+.leaderboard-item span:last-child {
+  color: #1a6fb5 !important;
+}
+.empty-ranking {
+  color: #888 !important;
 }
 
-/* ===== BOUTON TAP STABILISÉ ===== */
-.tap-button {
-    position: relative;
-    width: 190px;
-    height: 190px;
-    min-width: 190px;
-    min-height: 190px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 204, 0, 0.05);
-    backdrop-filter: blur(5px);
-    overflow: visible;
-    cursor: pointer;
-    outline: none;
-    transition: transform 0.08s ease-in-out;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    padding: 0;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    box-shadow: 0 0 40px rgba(255, 204, 0, 0.1);
-    /* ✅ Centrage absolu */
-    transform: scale(1);
-    transform-origin: center center;
-    will-change: transform;
-    /* ✅ Empêche tout rétrécissement / décalage */
-    flex-shrink: 0;
+/* ============================================================
+   CHAT – FOND BLANC, TEXTE NOIR
+   ============================================================ */
+.chat-messages {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  border: 1px solid #e0e0e0 !important;
+}
+.chat-message {
+  background: #f5f7fa !important;
+  color: #222 !important;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+}
+.chat-message strong {
+  color: #1a6fb5 !important;
+  font-size: 14px !important;
 }
 
-.tap-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
+/* Champ de saisie du chat */
+.chat-input-box input {
+  background: #ffffff !important;
+  color: #222 !important;
+  border: 1px solid #ccc !important;
+}
+.chat-input-box input::placeholder {
+  color: #999 !important;
 }
 
-/* ✅ Effet de pression (propre, sans décalage) */
-.tap-button:active:not(:disabled) {
-    transform: scale(0.92) !important;
+/* Titres des sections */
+.section-title {
+  font-size: 13px !important;
+  color: #222 !important;
 }
-
-.tap-button.tap-active {
-    transform: scale(0.94) !important;
-    box-shadow: 0 0 80px rgba(255, 204, 0, 0.3);
+.section-title span {
+  color: #222 !important;
 }
-
-/* ===== IMAGE À L'INTÉRIEUR ===== */
-.tap-img-bg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    pointer-events: none;
-    z-index: 0;
-    display: block;
-    border-radius: 50%;
-    /* ✅ Fixe l'image */
-    transform: scale(1);
-    will-change: auto;
-}
-
-/* ===== TEXTE EN BAS (TAP NOW) ===== */
-.tap-button small {
-    position: absolute;
-    bottom: 14px;
-    left: 0;
-    right: 0;
-    z-index: 3;
-    text-align: center;
-    font-size: 16px;
-    color: #ffcc00;
-    font-weight: bold;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, .9);
-    pointer-events: none;
-    transform: translateZ(0);
-}
-
-/* ===== ONDE (ripple) ===== */
-.tap-ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 204, 0, 0.3);
-    width: 10px;
-    height: 10px;
-    pointer-events: none;
-    animation: rippleAnim 0.8s ease-out forwards;
-    transform: translate(-50%, -50%);
-    z-index: 5;
-}
-
-@keyframes rippleAnim {
-    0% {
-        width: 10px;
-        height: 10px;
-        opacity: 0.8;
-    }
-    100% {
-        width: 200px;
-        height: 200px;
-        opacity: 0;
-    }
-}
-
-/* ===== TEXTE "+1" FLOTTANT ===== */
-.tap-float-text {
-    position: absolute;
-    font-size: 20px;
-    font-weight: 900;
-    color: #ffcc00;
-    pointer-events: none;
-    animation: floatUp 1s ease-out forwards;
-    z-index: 10;
-    text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
-    transform: translateZ(0);
-}
-
-@keyframes floatUp {
-    0% {
-        opacity: 1;
-        transform: translateY(0) scale(0.5);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-80px) scale(1.2);
-    }
-}
-
-/* ===== PARTICULES ===== */
-.tap-particle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    animation: particleFly 0.9s ease-out forwards;
-    z-index: 6;
-    transform: translateZ(0);
-}
-
-@keyframes particleFly {
-    0% {
-        opacity: 1;
-        transform: translate(0, 0) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(var(--tx), var(--ty)) scale(0);
-    }
+.section-title strong {
+  color: #1a6fb5 !important;
+  font-size: 15px !important;
 }
