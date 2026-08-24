@@ -663,32 +663,61 @@
     .rule strong { color: #5ba3d9; font-size: 13px; }
     .rule small { color: rgba(255,255,255,0.7); font-size: 9px; }
 
-    .stats {
-      display: flex;
-      justify-content: center;
-      padding: 10px 0;
-      animation: slideUp 0.9s ease-out 0.4s both;
+    /* ============================================================
+       CHRONO – AMÉLIORATION DE VISIBILITÉ
+       ============================================================ */
+    #timerRule {
+      background: rgba(255, 204, 0, 0.12) !important;
+      border: 1px solid rgba(255, 204, 0, 0.35) !important;
+      padding: 8px 18px !important;
+      box-shadow: 0 0 30px rgba(255, 204, 0, 0.05) !important;
     }
+    #timerRule .rule-icon {
+      font-size: 20px !important;
+    }
+    #timerRuleValue {
+      font-size: 24px !important;
+      font-weight: 900 !important;
+      color: #ffcc00 !important;
+      text-shadow: 0 0 25px rgba(255, 204, 0, 0.35), 0 0 60px rgba(255, 204, 0, 0.10) !important;
+      font-family: 'Orbitron', sans-serif !important;
+    }
+    #timerRule small {
+      font-size: 11px !important;
+      color: rgba(255, 255, 255, 0.8) !important;
+      font-weight: 600 !important;
+    }
+
+    /* ============================================================
+       STATS – COMPTEUR TAPS AMÉLIORÉ
+       ============================================================ */
     .stat-box {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 15px 20px;
-      text-align: center;
-      width: 100%;
-      max-width: 300px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      background: rgba(255, 204, 0, 0.06) !important;
+      border: 1px solid rgba(255, 204, 0, 0.15) !important;
+      padding: 20px !important;
+      box-shadow: 0 0 40px rgba(255, 204, 0, 0.04) !important;
     }
     .stat-box small {
       display: block;
-      font-size: 10px;
-      color: rgba(255,255,255,0.7);
+      font-size: 14px !important;
+      color: rgba(255, 255, 255, 0.8) !important;
       font-family: 'Poppins', sans-serif;
+      letter-spacing: 2px !important;
+      font-weight: 700 !important;
     }
     .stat-box strong {
-      font-size: 28px;
-      color: #5ba3d9;
-      font-family: 'Orbitron', sans-serif;
+      font-size: 56px !important;
+      font-weight: 900 !important;
+      color: #ffcc00 !important;
+      font-family: 'Orbitron', sans-serif !important;
+      text-shadow: 0 0 30px rgba(255, 204, 0, 0.25), 0 0 60px rgba(255, 204, 0, 0.08) !important;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      padding: 10px 0 5px;
+      animation: slideUp 0.9s ease-out 0.4s both;
     }
 
     .top-header {
@@ -827,11 +856,23 @@
       .rule {
         border-radius: 18px !important;
       }
+      #timerRuleValue {
+        font-size: 20px !important;
+      }
+      .stat-box strong {
+        font-size: 44px !important;
+      }
     }
     @media(max-width:360px) {
       .tap-button { width: 165px; height: 165px; min-width: 165px; min-height: 165px; }
       .chat-input-box input { font-size: 12px; }
       .chat-input-box button { width: 42px; min-width: 42px; }
+      #timerRuleValue {
+        font-size: 18px !important;
+      }
+      .stat-box strong {
+        font-size: 38px !important;
+      }
     }
     @media(min-width:600px) {
       body { padding: 20px 0 40px; }
@@ -1378,11 +1419,11 @@
       <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
     </section>
 
-    <!-- STATS TAPS -->
+    <!-- STATS TAPS – COMPTEUR AMÉLIORÉ -->
     <section class="stats" style="display:flex;justify-content:center;">
       <div class="stat-box" style="width:100%;max-width:300px;">
         <small>TES TAPS</small>
-        <strong id="tapCount" style="font-size:28px;color:#5ba3d9;">0</strong>
+        <strong id="tapCount" style="font-size:56px;color:#ffcc00;">0</strong>
       </div>
     </section>
 
@@ -1978,7 +2019,6 @@
         const s = data.remainingSeconds % 60;
         timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
       }
-      // Mise à jour du message d'état avec le temps restant (si le joueur est en train de taper)
       if (isPaid && isPlaying && !isSpectator && tapMessage) {
         const m = Math.floor(data.remainingSeconds / 60);
         const s = data.remainingSeconds % 60;
