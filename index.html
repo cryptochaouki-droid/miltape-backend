@@ -473,13 +473,18 @@
     }
     .leaderboard .section-title {
       color: #222 !important;
+      font-size: 14px !important;
+      letter-spacing: 0.5px !important;
+      margin-bottom: 14px !important;
     }
     .leaderboard .section-title span {
       color: #222 !important;
+      font-size: 14px !important;
     }
     .leaderboard .section-title strong {
       color: #1a6fb5 !important;
-      font-size: 15px !important;
+      font-size: 16px !important;
+      margin-left: 6px !important;
     }
     .leaderboard-item {
       background: #f5f7fa !important;
@@ -584,17 +589,22 @@
       height: 46px !important;
       width: 46px !important;
     }
+
+    /* ===== TITRES DES SECTIONS (classement + chat) ===== */
     .section-title {
-      font-size: 13px !important;
+      font-size: 14px !important;
       color: #222 !important;
-      margin-bottom: 12px !important;
+      letter-spacing: 0.5px !important;
+      margin-bottom: 14px !important;
     }
     .section-title span {
       color: #222 !important;
+      font-size: 14px !important;
     }
     .section-title strong {
       color: #1a6fb5 !important;
-      font-size: 15px !important;
+      font-size: 16px !important;
+      margin-left: 6px !important;
     }
 
     /* ===== CHRONO ===== */
@@ -721,7 +731,7 @@
     .leaderboard-chat-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 25px !important;
       padding: 0 16px;
       animation: slideUp 1s ease-out 0.5s both;
     }
@@ -751,16 +761,17 @@
     .rule strong { color: #5ba3d9; font-size: 13px; }
     .rule small { color: rgba(255,255,255,0.7); font-size: 9px; }
 
-    /* ===== AJOUT : Masquer "TOP 5 SEULEMENT" (premier élément) ===== */
+    /* Masquer "TOP 5 SEULEMENT" */
     .rules .rule:first-child {
       display: none !important;
     }
 
+    /* ===== MESSAGE D'ÉTAT – PLUS VISIBLE ===== */
     .tap-message {
       text-align: center;
-      font-size: 14px;
+      font-size: 15px !important;
       color: #fff;
-      padding: 10px 20px;
+      padding: 12px 20px !important;
       margin: 5px auto;
       font-family: 'Poppins', sans-serif;
       letter-spacing: 0.5px;
@@ -770,7 +781,7 @@
       display: inline-block;
       max-width: 90%;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      font-weight: 600;
+      font-weight: 700 !important;
     }
 
     .main-play-button {
@@ -800,7 +811,7 @@
       box-shadow: 0 4px 0 #0a4b8c, 0 0 50px rgba(26, 111, 181, 0.4);
     }
 
-    /* ===== BOUTON NOUVELLE PARTIE (dans le menu) ===== */
+    /* ===== BOUTON NOUVELLE PARTIE ===== */
     #resetGameBtn {
       background: rgba(255, 50, 50, 0.12) !important;
       color: #ff4444 !important;
@@ -808,6 +819,167 @@
     }
     #resetGameBtn:hover {
       background: rgba(255, 50, 50, 0.2) !important;
+    }
+
+    /* ===== GUIDE DES ÉTAPES – PLUS ESPACÉ ===== */
+    .steps-guide {
+      display: flex;
+      justify-content: center;
+      gap: 12px !important;
+      padding: 12px 16px !important;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      flex-wrap: wrap;
+      text-align: center;
+      font-size: 11px !important;
+      font-family: 'Poppins', sans-serif;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .step-number {
+      background: #ffcc00;
+      color: #000;
+      border-radius: 50%;
+      width: 20px !important;
+      height: 20px !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 12px !important;
+      flex-shrink: 0;
+    }
+    .step-arrow {
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ===== WALLET SERVEUR – PLUS VISIBLE ===== */
+    .server-wallet-box {
+      text-align: center;
+      margin: 10px 12px !important;
+      padding: 12px !important;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    .server-wallet-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .server-wallet-address {
+      font-size: 15px !important;
+      font-weight: 700;
+      color: #ffcc00 !important;
+      word-break: break-all;
+      font-family: 'Poppins', sans-serif;
+      background: rgba(0, 0, 0, 0.2) !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      display: inline-block !important;
+    }
+    .server-wallet-link {
+      font-size: 10px;
+      color: #5ba3d9;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    /* ===== ENCART CONFIANCE ===== */
+    .trust-footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      font-family: 'Poppins', sans-serif;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 20px;
+    }
+    .trust-footer a {
+      color: #5ba3d9;
+      text-decoration: none;
+    }
+
+    /* ===== MODALE DE BIENVENUE ===== */
+    #welcomeModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    #welcomeModal .welcome-content {
+      background: linear-gradient(145deg, #0a4b8c, #1a6fb5);
+      border-radius: 24px;
+      max-width: 400px;
+      width: 100%;
+      padding: 30px 24px;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: modalPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #welcomeModal .welcome-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    #welcomeModal .welcome-title {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+    #welcomeModal .welcome-sub {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+      margin: 0 0 20px;
+    }
+    #welcomeModal .welcome-steps {
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.8;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    #welcomeModal .welcome-steps div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #welcomeModal .welcome-steps strong {
+      color: #ffcc00;
+    }
+    #welcomeModal .welcome-secure {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 16px;
+    }
+    #welcomeModal .welcome-btn {
+      background: #ffcc00;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      font-family: 'Poppins', sans-serif;
+      transition: transform 0.15s ease;
+    }
+    #welcomeModal .welcome-btn:active {
+      transform: scale(0.96);
     }
 
     @media(max-width:430px) {
@@ -823,6 +995,7 @@
       #timerRuleValue { font-size: 20px !important; }
       .stat-box strong { font-size: 44px !important; }
       .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; }
+      .server-wallet-address { font-size: 13px !important; }
     }
     @media(max-width:360px) {
       .tap-button { width: 145px; height: 145px; min-width: 145px; min-height: 145px; }
@@ -831,6 +1004,7 @@
       #timerRuleValue { font-size: 18px !important; }
       .stat-box strong { font-size: 38px !important; }
       .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; }
+      .server-wallet-address { font-size: 12px !important; }
     }
     @media(min-width:600px) {
       body { padding: 20px 0 40px; }
@@ -955,157 +1129,6 @@
     }
     .wallet-button {
       color: #fff;
-    }
-
-    .steps-guide {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      flex-wrap: wrap;
-      text-align: center;
-      font-size: 10px;
-      font-family: 'Poppins', sans-serif;
-      color: rgba(255, 255, 255, 0.7);
-    }
-    .step-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .step-number {
-      background: #ffcc00;
-      color: #000;
-      border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
-    .step-arrow {
-      color: rgba(255, 255, 255, 0.2);
-    }
-
-    .server-wallet-box {
-      text-align: center;
-      margin: 8px 12px;
-      padding: 10px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .server-wallet-label {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
-    }
-    .server-wallet-address {
-      font-size: 13px;
-      font-weight: 700;
-      color: #5ba3d9;
-      word-break: break-all;
-      font-family: 'Poppins', sans-serif;
-    }
-    .server-wallet-link {
-      font-size: 10px;
-      color: #5ba3d9;
-      text-decoration: none;
-    }
-
-    .trust-footer {
-      text-align: center;
-      padding: 12px;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.4);
-      font-family: 'Poppins', sans-serif;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      margin-top: 20px;
-    }
-    .trust-footer a {
-      color: #5ba3d9;
-      text-decoration: none;
-    }
-
-    #welcomeModal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      backdrop-filter: blur(10px);
-    }
-    #welcomeModal .welcome-content {
-      background: linear-gradient(145deg, #0a4b8c, #1a6fb5);
-      border-radius: 24px;
-      max-width: 400px;
-      width: 100%;
-      padding: 30px 24px;
-      color: #fff;
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-      animation: modalPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    #welcomeModal .welcome-icon {
-      font-size: 48px;
-      margin-bottom: 10px;
-    }
-    #welcomeModal .welcome-title {
-      margin: 0 0 8px;
-      font-size: 22px;
-    }
-    #welcomeModal .welcome-sub {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.8);
-      margin: 0 0 20px;
-    }
-    #welcomeModal .welcome-steps {
-      text-align: left;
-      font-size: 14px;
-      line-height: 1.8;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 20px;
-    }
-    #welcomeModal .welcome-steps div {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    #welcomeModal .welcome-steps strong {
-      color: #ffcc00;
-    }
-    #welcomeModal .welcome-secure {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 16px;
-    }
-    #welcomeModal .welcome-btn {
-      background: #ffcc00;
-      color: #000;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      font-family: 'Poppins', sans-serif;
-      transition: transform 0.15s ease;
-    }
-    #welcomeModal .welcome-btn:active {
-      transform: scale(0.96);
     }
   </style>
 </head>
@@ -1379,7 +1402,7 @@
       </button>
     </section>
 
-    <!-- RÈGLES (seul le chrono est visible, TOP 5 caché) -->
+    <!-- RÈGLES (seul le chrono est visible) -->
     <section class="rules">
       <div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div>
       <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
@@ -1393,17 +1416,17 @@
       </div>
     </section>
 
-    <!-- CLASSEMENT + CHAT -->
+    <!-- CLASSEMENT + CHAT (titres espacés) -->
     <div class="leaderboard-chat-wrapper">
       <section class="leaderboard">
-        <div class="section-title"><span>🏆 CLASSEMENT</span><strong>TOP 5</strong></div>
+        <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
         <div id="leaderboardList" class="leaderboard-list">
           <div class="empty-ranking">Aucun joueur pour le moment</div>
         </div>
       </section>
 
       <section class="chat-section" id="globalChat">
-        <div class="section-title"><span>💬 CHAT GLOBAL</span><strong>LIVE</strong></div>
+        <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
         <div id="chatMessages" class="chat-messages">
           <div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>
         </div>
@@ -1453,7 +1476,7 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL – AVEC BOUTON "NOUVELLE PARTIE"
+         SCRIPT PRINCIPAL
          ========================================================= -->
   <script>
     // =========================================================
