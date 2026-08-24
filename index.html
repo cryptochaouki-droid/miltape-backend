@@ -590,7 +590,7 @@
       width: 46px !important;
     }
 
-    /* ===== TITRES DES SECTIONS (classement + chat) ===== */
+    /* ===== TITRES DES SECTIONS ===== */
     .section-title {
       font-size: 14px !important;
       color: #222 !important;
@@ -766,7 +766,7 @@
       display: none !important;
     }
 
-    /* ===== MESSAGE D'ÉTAT – PLUS VISIBLE ===== */
+    /* ===== MESSAGE D'ÉTAT ===== */
     .tap-message {
       text-align: center;
       font-size: 15px !important;
@@ -811,7 +811,6 @@
       box-shadow: 0 4px 0 #0a4b8c, 0 0 50px rgba(26, 111, 181, 0.4);
     }
 
-    /* ===== BOUTON NOUVELLE PARTIE ===== */
     #resetGameBtn {
       background: rgba(255, 50, 50, 0.12) !important;
       color: #ff4444 !important;
@@ -821,7 +820,6 @@
       background: rgba(255, 50, 50, 0.2) !important;
     }
 
-    /* ===== GUIDE DES ÉTAPES – PLUS ESPACÉ ===== */
     .steps-guide {
       display: flex;
       justify-content: center;
@@ -858,7 +856,6 @@
       color: rgba(255, 255, 255, 0.2);
     }
 
-    /* ===== WALLET SERVEUR – PLUS VISIBLE ===== */
     .server-wallet-box {
       text-align: center;
       margin: 10px 12px !important;
@@ -890,7 +887,6 @@
       margin-top: 4px;
     }
 
-    /* ===== ENCART CONFIANCE ===== */
     .trust-footer {
       text-align: center;
       padding: 12px;
@@ -905,7 +901,6 @@
       text-decoration: none;
     }
 
-    /* ===== MODALE DE BIENVENUE ===== */
     #welcomeModal {
       position: fixed;
       inset: 0;
@@ -1187,7 +1182,7 @@
         <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
       </div>
 
-      <!-- MODE DÉMO – TOGGLE SANS MOT DE PASSE -->
+      <!-- MODE DÉMO – TOGGLE -->
       <div class="menu-block" style="text-align:center;">
         <button id="demomodebtn" class="menu-nav-btn" type="button" style="
           background:rgba(91,163,217,0.15);
@@ -1402,7 +1397,7 @@
       </button>
     </section>
 
-    <!-- RÈGLES (seul le chrono est visible) -->
+    <!-- RÈGLES -->
     <section class="rules">
       <div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div>
       <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
@@ -1416,7 +1411,7 @@
       </div>
     </section>
 
-    <!-- CLASSEMENT + CHAT (titres espacés) -->
+    <!-- CLASSEMENT + CHAT -->
     <div class="leaderboard-chat-wrapper">
       <section class="leaderboard">
         <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
@@ -1476,11 +1471,11 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL
+         SCRIPT PRINCIPAL – OPTION 2 : Wallet unique en mode démo
          ========================================================= -->
   <script>
     // =========================================================
-    // SCRIPT CLIENT MILTAPE – Version finale (avec retour auto + reset)
+    // SCRIPT CLIENT MILTAPE – Version finale (Option 2)
     // =========================================================
 
     // 1. Connexion Socket.IO
@@ -1579,7 +1574,7 @@
     updateDemoUI();
 
     // ==========================================
-    // 5. RESTAURER LA SESSION (améliorée)
+    // 5. RESTAURER LA SESSION
     // ==========================================
     async function restoreSession() {
       const playerId = localStorage.getItem("miltape_player_id");
@@ -1637,7 +1632,6 @@
       if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur.";
     });
 
-    // Détection retour sur la page
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         console.log('👀 Page de nouveau visible – restauration de la session');
@@ -1648,15 +1642,20 @@
     });
 
     // ==========================================
-    // 7. REJOINDRE LA PARTIE
+    // 7. REJOINDRE LA PARTIE – OPTION 2 (wallet unique en mode démo)
     // ==========================================
     function joinGame() {
       const telegramName = getTelegramUser();
       let name = telegramName || prompt("Entre ton pseudo pour le classement :");
       if (!name) return;
 
-      let wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";
-      if (!demoMode) {
+      let wallet;
+      if (demoMode) {
+        // Générer un wallet unique pour chaque session
+        const randomId = Math.random().toString(36).substring(2, 10);
+        wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb" + randomId;
+        console.log("🔬 Mode démo – Wallet unique généré :", wallet);
+      } else {
         wallet = prompt("Entre ton adresse TRON (ex: T...) :");
         if (!wallet) return;
       }
@@ -2225,7 +2224,6 @@
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
         if (confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")) {
-          // Effacer tout le localStorage lié à Miltape
           localStorage.removeItem("miltape_player_id");
           localStorage.removeItem("miltape_player_wallet");
           localStorage.removeItem("miltape_player_name");
@@ -2233,7 +2231,6 @@
           localStorage.removeItem("miltape_player_token");
           localStorage.removeItem("miltape_spectator");
           localStorage.removeItem("miltape_demo");
-          // Recharger la page
           window.location.reload();
         }
       });
@@ -2313,7 +2310,7 @@
 
     socket.emit("jackpot:get");
 
-    console.log("✅ Script Miltape chargé avec gestion de retour et bouton 'Nouvelle partie'.");
+    console.log("✅ Script Miltape chargé (Option 2 – wallet unique en mode démo)");
   </script>
 
 </body>
