@@ -612,6 +612,18 @@
       box-shadow: 0 0 40px rgba(139, 44, 255, 0.2);
     }
 
+    /* === BOUTON QUITTER LE MODE SPECTATEUR === */
+    #leaveSpectatorBtn {
+      display: none;
+      border-color: #ff4444 !important;
+      color: #ff4444 !important;
+      background: rgba(255, 68, 68, 0.1) !important;
+    }
+    #leaveSpectatorBtn:hover {
+      background: rgba(255, 68, 68, 0.2) !important;
+      border-color: #ff4444 !important;
+    }
+
     .tap-message {
       text-align: center;
       font-size: 13px;
@@ -1164,6 +1176,9 @@
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
     <button id="spectatorMode" class="spectator-button" type="button">👁️ REGARDER EN DIRECT (Spectateur)</button>
 
+    <!-- === BOUTON QUITTER LE MODE SPECTATEUR === -->
+    <button id="leaveSpectatorBtn" class="spectator-button" type="button">✕ QUITTER LE MODE SPECTATEUR</button>
+
     <!-- MESSAGE D'ÉTAT -->
     <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ CHOISIS TA MISE ET CONNECTE TON WALLET</div>
 
@@ -1261,6 +1276,7 @@
     const enterChallenge = document.getElementById('enterChallenge');
     const enterChallengeTop = document.getElementById('enterChallengeTop');
     const spectatorBtn = document.getElementById('spectatorMode');
+    const leaveSpectatorBtn = document.getElementById('leaveSpectatorBtn'); // ← AJOUT
     const tapMessage = document.getElementById('tapMessage');
     const timerDisplay = document.getElementById('timer'); // plus utilisé (chrono en haut supprimé)
     const onlineCount = document.getElementById('onlineCount');
@@ -1378,11 +1394,40 @@
       if (spectatorBtn) { spectatorBtn.classList.add('active'); spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF'; }
       if (payButton) payButton.style.display = 'none';
       if (betInput) betInput.disabled = true;
+      // Afficher le bouton quitter
+      if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'block';
       socket.emit("spectator:join", { name });
       hapticMedium();
     }
     if (spectatorBtn) {
       spectatorBtn.addEventListener('click', joinSpectator);
+    }
+
+    // ==========================================
+    // 5b. QUITTER LE MODE SPECTATEUR
+    // ==========================================
+    function leaveSpectator() {
+      isSpectator = false;
+      isPlaying = false;
+      isPaid = false;
+      if (tapButton) tapButton.disabled = true;
+      if (enterChallenge) enterChallenge.style.display = 'block';
+      if (spectatorBtn) {
+        spectatorBtn.classList.remove('active');
+        spectatorBtn.textContent = '👁️ REGARDER EN DIRECT (Spectateur)';
+      }
+      if (payButton) payButton.style.display = 'none';
+      if (betInput) betInput.disabled = false;
+      if (tapMessage) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
+      if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'none';
+      localStorage.removeItem("miltape_spectator");
+      localStorage.removeItem("miltape_player_name");
+      if (tapCount) tapCount.innerText = "0";
+      if (tapButtonCount) tapButtonCount.innerText = "0";
+      console.log("👁️ Mode spectateur quitté");
+    }
+    if (leaveSpectatorBtn) {
+      leaveSpectatorBtn.addEventListener('click', leaveSpectator);
     }
 
     // ==========================================
@@ -1402,6 +1447,7 @@
         if (spectatorBtn) { spectatorBtn.classList.add('active'); spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF'; }
         if (payButton) payButton.style.display = 'none';
         if (betInput) betInput.disabled = true;
+        if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'block';
         return true;
       }
       if (!playerId || !wallet || !name) { console.log("🔍 Aucune session trouvée."); return false; }
@@ -1530,6 +1576,8 @@
         if (betInput) betInput.disabled = true;
         localStorage.setItem("miltape_spectator", "true");
         localStorage.setItem("miltape_player_name", data.name);
+        // Afficher le bouton quitter
+        if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'block';
       }
     });
 
@@ -1603,6 +1651,7 @@
       if (tapButtonCount) tapButtonCount.innerText = "0";
       isPlaying = false; isPaid = false;
       if (tapButton) tapButton.disabled = true;
+      if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'none'; // ← AJOUT
 
       if (!isSpectator) {
         let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n" + "═".repeat(30) + "\n\n";
