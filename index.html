@@ -212,8 +212,6 @@
       z-index: 10;
     }
 
-    /* === LE BADGE MILTAPER A ÉTÉ SUPPRIMÉ === */
-
     .wallet-badge-top {
       background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(8px);
@@ -612,7 +610,6 @@
       box-shadow: 0 0 40px rgba(139, 44, 255, 0.2);
     }
 
-    /* === BOUTON QUITTER LE MODE SPECTATEUR === */
     #leaveSpectatorBtn {
       display: none;
       border-color: #ff4444 !important;
@@ -626,7 +623,7 @@
 
     .tap-message {
       text-align: center;
-      font-size: 13px;
+      font-size: 14px;
       color: #fff;
       padding: 10px 20px;
       margin: 5px auto;
@@ -638,6 +635,7 @@
       display: inline-block;
       max-width: 90%;
       border: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: 600;
     }
 
     .rules {
@@ -951,7 +949,6 @@
       #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; }
     }
 
-    /* Ajustements de couleurs sur fond saphir */
     .wallet-box strong,
     .wallet-badge-top .wb-value,
     .online strong {
@@ -963,10 +960,182 @@
     .wallet-button {
       color: #fff;
     }
+
+    /* ===== GUIDE DES ÉTAPES ===== */
+    .steps-guide {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      flex-wrap: wrap;
+      text-align: center;
+      font-size: 10px;
+      font-family: 'Poppins', sans-serif;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .step-number {
+      background: #ffcc00;
+      color: #000;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .step-arrow {
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ===== WALLET SERVEUR ===== */
+    .server-wallet-box {
+      text-align: center;
+      margin: 8px 12px;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .server-wallet-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .server-wallet-address {
+      font-size: 13px;
+      font-weight: 700;
+      color: #5ba3d9;
+      word-break: break-all;
+      font-family: 'Poppins', sans-serif;
+    }
+    .server-wallet-link {
+      font-size: 10px;
+      color: #5ba3d9;
+      text-decoration: none;
+    }
+
+    /* ===== ENCART CONFIANCE ===== */
+    .trust-footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      font-family: 'Poppins', sans-serif;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 20px;
+    }
+    .trust-footer a {
+      color: #5ba3d9;
+      text-decoration: none;
+    }
+
+    /* ===== MODALE DE BIENVENUE ===== */
+    #welcomeModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    #welcomeModal .welcome-content {
+      background: linear-gradient(145deg, #0a4b8c, #1a6fb5);
+      border-radius: 24px;
+      max-width: 400px;
+      width: 100%;
+      padding: 30px 24px;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: modalPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #welcomeModal .welcome-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    #welcomeModal .welcome-title {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+    #welcomeModal .welcome-sub {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+      margin: 0 0 20px;
+    }
+    #welcomeModal .welcome-steps {
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.8;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    #welcomeModal .welcome-steps div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #welcomeModal .welcome-steps strong {
+      color: #ffcc00;
+    }
+    #welcomeModal .welcome-secure {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 16px;
+    }
+    #welcomeModal .welcome-btn {
+      background: #ffcc00;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      font-family: 'Poppins', sans-serif;
+      transition: transform 0.15s ease;
+    }
+    #welcomeModal .welcome-btn:active {
+      transform: scale(0.96);
+    }
   </style>
 </head>
 
 <body>
+
+  <!-- ====== MODALE DE BIENVENUE ====== -->
+  <div id="welcomeModal">
+    <div class="welcome-content">
+      <div class="welcome-icon">🎮</div>
+      <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
+      <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
+      <div class="welcome-steps">
+        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
+        <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet</div>
+        <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
+        <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
+      </div>
+      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
+      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
+    </div>
+  </div>
 
   <!-- ====== CONTENEUR NOTIFICATIONS ====== -->
   <div id="notificationContainer" style="
@@ -1003,7 +1172,6 @@
         <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
       </div>
 
-      <!-- MODE DÉMO -->
       <div class="menu-block" style="text-align:center;">
         <button id="demomodebtn" class="menu-nav-btn" type="button" style="
           background:rgba(91,163,217,0.2);
@@ -1016,7 +1184,6 @@
         <div id="demoStatus" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:6px; font-family:'Poppins', sans-serif;">🔒 Désactivé</div>
       </div>
 
-      <!-- TOGGLE NOTIFICATIONS -->
       <div class="menu-block">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
           <span style="color:#5ba3d9; font-weight:bold; font-size:13px;">🔔 Notifications</span>
@@ -1039,7 +1206,6 @@
         </select>
       </div>
 
-      <!-- SUPPORT & CONFIANCE -->
       <div class="menu-block trust-contact-box">
         <h4>🛡️ Support & Confiance</h4>
         <p style="font-size:12px;color:#444;font-family:'Poppins', sans-serif;">Une question ? Un problème ?</p>
@@ -1077,6 +1243,17 @@
 
   <!-- ====== APPLICATION ====== -->
   <main class="app">
+
+    <!-- GUIDE 4 ÉTAPES -->
+    <div class="steps-guide">
+      <span class="step-item"><span class="step-number">1</span> Rejoins</span>
+      <span class="step-arrow">→</span>
+      <span class="step-item"><span class="step-number">2</span> Paie</span>
+      <span class="step-arrow">→</span>
+      <span class="step-item"><span class="step-number">3</span> Tape</span>
+      <span class="step-arrow">→</span>
+      <span class="step-item"><span class="step-number">4</span> Gagne ×2</span>
+    </div>
 
     <!-- HEADER -->
     <header class="top-header">
@@ -1127,7 +1304,6 @@
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
       <div class="hero-header-overlay">
-        <!-- LE BADGE MILTAPER A ÉTÉ SUPPRIMÉ -->
         <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
           <div>
             <span class="wb-label">MISE</span>
@@ -1137,6 +1313,13 @@
         </div>
       </div>
     </section>
+
+    <!-- ====== WALLET SERVEUR (visible à tout moment) ====== -->
+    <div class="server-wallet-box">
+      <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
+      <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
+      <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
+    </div>
 
     <!-- ====== SÉLECTEUR CRYPTO + MISE + PAIEMENT ====== -->
     <div style="text-align:center; margin: 15px 0;">
@@ -1175,12 +1358,10 @@
     <!-- JOUER / SPECTATEUR -->
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
     <button id="spectatorMode" class="spectator-button" type="button">👁️ REGARDER EN DIRECT (Spectateur)</button>
-
-    <!-- === BOUTON QUITTER LE MODE SPECTATEUR === -->
     <button id="leaveSpectatorBtn" class="spectator-button" type="button">✕ QUITTER LE MODE SPECTATEUR</button>
 
     <!-- MESSAGE D'ÉTAT -->
-    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ CHOISIS TA MISE ET CONNECTE TON WALLET</div>
+    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
 
     <!-- ZONE TAP -->
     <section class="tap-zone" aria-label="Zone de tap">
@@ -1224,6 +1405,12 @@
           <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
         </div>
       </section>
+    </div>
+
+    <!-- ENCART CONFIANCE & SÉCURITÉ -->
+    <div class="trust-footer">
+      🔒 Toutes les transactions sont vérifiables sur la blockchain TRON.
+      <a href="./conditions.html" target="_blank">Conditions d'utilisation</a>
     </div>
 
     <div style="width:100%; height:40px;"></div>
@@ -1276,9 +1463,8 @@
     const enterChallenge = document.getElementById('enterChallenge');
     const enterChallengeTop = document.getElementById('enterChallengeTop');
     const spectatorBtn = document.getElementById('spectatorMode');
-    const leaveSpectatorBtn = document.getElementById('leaveSpectatorBtn'); // ← AJOUT
+    const leaveSpectatorBtn = document.getElementById('leaveSpectatorBtn');
     const tapMessage = document.getElementById('tapMessage');
-    const timerDisplay = document.getElementById('timer'); // plus utilisé (chrono en haut supprimé)
     const onlineCount = document.getElementById('onlineCount');
     const leaderboardList = document.getElementById('leaderboardList');
     const chatInput = document.getElementById('chatInput');
@@ -1337,7 +1523,7 @@
       } else {
         if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "rgba(255,255,255,0.5)"; }
         if (demoBtn) { demoBtn.textContent = "🎮 ACTIVER MODE DÉMO"; demoBtn.style.background = "rgba(91,163,217,0.15)"; demoBtn.style.borderColor = "rgba(91,163,217,0.3)"; }
-        if (!isSpectator && tapMessage) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
+        if (!isSpectator && tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       }
     }
     updateDemoUI();
@@ -1394,7 +1580,6 @@
       if (spectatorBtn) { spectatorBtn.classList.add('active'); spectatorBtn.textContent = '👁️ SPECTATEUR ACTIF'; }
       if (payButton) payButton.style.display = 'none';
       if (betInput) betInput.disabled = true;
-      // Afficher le bouton quitter
       if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'block';
       socket.emit("spectator:join", { name });
       hapticMedium();
@@ -1418,7 +1603,7 @@
       }
       if (payButton) payButton.style.display = 'none';
       if (betInput) betInput.disabled = false;
-      if (tapMessage) tapMessage.innerText = "⚡ CHOISIS TA MISE ET CONNECTE TON WALLET";
+      if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'none';
       localStorage.removeItem("miltape_spectator");
       localStorage.removeItem("miltape_player_name");
@@ -1523,7 +1708,7 @@
         myPlayerId = data.player.id;
         myToken = data.player.token || 'USDT';
         if (tapButton) tapButton.disabled = true;
-        if (tapMessage) tapMessage.innerText = "💰 " + data.player.name + ", paie ta mise pour taper !";
+        if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
@@ -1538,7 +1723,7 @@
         if (demoMode) {
           isPaid = true;
           if (tapButton) tapButton.disabled = false;
-          if (tapMessage) tapMessage.innerText = "🔬 Mode démo : " + data.player.name + ", tape !";
+          if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
           fetch(API_URL + "/api/payment/verify", {
             method: 'POST',
@@ -1576,7 +1761,6 @@
         if (betInput) betInput.disabled = true;
         localStorage.setItem("miltape_spectator", "true");
         localStorage.setItem("miltape_player_name", data.name);
-        // Afficher le bouton quitter
         if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'block';
       }
     });
@@ -1599,7 +1783,7 @@
         } else {
           isPaid = false;
           if (tapButton) tapButton.disabled = true;
-          if (tapMessage) tapMessage.innerText = "💰 " + data.player.name + ", paie ta mise pour continuer à taper !";
+          if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
           if (payButton) {
             payButton.style.display = 'block';
             payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
@@ -1624,7 +1808,7 @@
         localStorage.removeItem("miltape_player_token");
         localStorage.removeItem("miltape_spectator");
         if (enterChallenge) enterChallenge.style.display = 'block';
-        if (tapMessage) tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       }
     });
 
@@ -1636,8 +1820,11 @@
         isPaid = true;
         if (tapButton) tapButton.disabled = false;
         hapticSuccess();
-        if (data.automatic) { if (tapMessage) tapMessage.innerText = "✅ Paiement automatique détecté ! Tape maintenant !"; }
-        else { if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Tape maintenant !"; }
+        if (data.automatic) {
+          if (tapMessage) tapMessage.innerText = "✅ Paiement automatique détecté ! ÉTAPE 3 : Tape maintenant !";
+        } else {
+          if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! ÉTAPE 3 : Tape maintenant !";
+        }
         if (payButton) payButton.style.display = 'none';
       }
     });
@@ -1651,7 +1838,7 @@
       if (tapButtonCount) tapButtonCount.innerText = "0";
       isPlaying = false; isPaid = false;
       if (tapButton) tapButton.disabled = true;
-      if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'none'; // ← AJOUT
+      if (leaveSpectatorBtn) leaveSpectatorBtn.style.display = 'none';
 
       if (!isSpectator) {
         let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n" + "═".repeat(30) + "\n\n";
@@ -1765,7 +1952,7 @@
           if (!isPaid && !isSpectator && tapMessage) {
             tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
             hapticError();
-            setTimeout(() => { if (tapMessage) tapMessage.innerText = "💰 Paie ta mise pour taper !"; }, 3000);
+            setTimeout(() => { if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !"; }, 3000);
           }
           return;
         }
@@ -1776,7 +1963,6 @@
       });
     }
 
-    // ---- Écouteur score ----
     socket.on("player:score", (data) => {
       if (tapCount) { tapCount.innerText = data.taps; animateTapCount(); }
       if (tapButtonCount) tapButtonCount.innerText = data.taps;
@@ -1791,6 +1977,12 @@
         const m = Math.floor(data.remainingSeconds / 60);
         const s = data.remainingSeconds % 60;
         timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+      }
+      // Mise à jour du message d'état avec le temps restant (si le joueur est en train de taper)
+      if (isPaid && isPlaying && !isSpectator && tapMessage) {
+        const m = Math.floor(data.remainingSeconds / 60);
+        const s = data.remainingSeconds % 60;
+        tapMessage.innerText = "👆 ÉTAPE 3 : Tape maintenant ! (" + m + ":" + s.toString().padStart(2, '0') + " restant)";
       }
     });
 
@@ -1882,7 +2074,7 @@
         localStorage.removeItem("miltape_player_token");
         localStorage.removeItem("miltape_spectator");
         if (enterChallenge) enterChallenge.style.display = 'block';
-        if (tapMessage) tapMessage.innerText = "⏳ Rejoins la nouvelle partie !";
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
         return;
       }
       hapticError();
@@ -1996,7 +2188,6 @@
       });
     }
 
-    // Boutons du menu
     const menuGamesBtn = document.getElementById('menuGamesBtn');
     if (menuGamesBtn) {
       menuGamesBtn.addEventListener('click', function() {
