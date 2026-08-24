@@ -131,11 +131,6 @@
       border-radius: 24px !important;
     }
 
-    /* Le bouton TAP reste rond */
-    .tap-button {
-      border-radius: 50% !important;
-    }
-
     .glass-card {
       background: rgba(255, 255, 255, 0.20);
       backdrop-filter: blur(16px);
@@ -394,33 +389,35 @@
       cursor: pointer;
     }
 
-    /* ZONE TAP */
+    /* ============================================================
+       ZONE TAP – STABLE (CORRECTION DU DÉCALAGE)
+       ============================================================ */
     .tap-zone {
       width: 100%;
-      min-height: 245px;
+      min-height: 220px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      padding-bottom: 10px;
-      animation: slideUp 0.7s ease-out 0.2s both;
+      padding: 10px 0;
     }
+
+    /* ===== BOUTON TAP – FIXE ET CENTRÉ ===== */
     .tap-button {
       position: relative;
-      width: 190px;
-      height: 190px;
-      min-width: 190px;
-      min-height: 190px;
+      width: 180px;
+      height: 180px;
+      min-width: 180px;
+      min-height: 180px;
       border: none;
-      border-radius: 50% !important;
-      background: rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(10px);
-      overflow: visible;
+      overflow: hidden;
       cursor: pointer;
       outline: none;
-      transition: transform .08s ease-in-out, box-shadow 0.3s ease;
+      transition: transform 0.08s ease-in-out, box-shadow 0.2s ease;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       margin: 0 auto;
@@ -430,51 +427,55 @@
       user-select: none;
       box-shadow: 0 0 40px rgba(26, 111, 181, 0.3);
       border: 2px solid rgba(255, 255, 255, 0.3);
+      flex-shrink: 0;
     }
+
     .tap-button:disabled {
       cursor: not-allowed;
       opacity: 0.6;
     }
-    .tap-button:not(:disabled):hover {
-      box-shadow: 0 0 60px rgba(26, 111, 181, 0.4);
+
+    .tap-button:active:not(:disabled) {
+      transform: scale(0.92);
     }
+
+    .tap-button.tap-active {
+      transform: scale(0.94);
+      box-shadow: 0 0 80px rgba(26, 111, 181, 0.5);
+    }
+
     .tap-img-bg {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       pointer-events: none;
       z-index: 0;
       display: block;
-      border-radius: 50%;
-      mix-blend-mode: screen;
     }
-    .tap-button strong,
-    .tap-button small,
-    .tap-button .tap-glow {
-      position: relative;
-      z-index: 2;
-    }
-    .tap-button strong { display: none; }
+
     .tap-button small {
       position: absolute;
       bottom: 14px;
       left: 0;
       right: 0;
-      z-index: 3;
+      z-index: 2;
       text-align: center;
       font-size: 16px;
       color: #fff;
       font-weight: 900;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
       pointer-events: none;
       font-family: 'Orbitron', sans-serif;
     }
-    .tap-button:active:not(:disabled) { transform: scale(.92); }
-    .tap-button.tap-active {
-      transform: scale(.94);
-      box-shadow: 0 0 80px rgba(26, 111, 181, 0.5);
+
+    /* ===== ON SUPPRIME LES PARTICULES ET EFFETS FLOTTANTS ===== */
+    .tap-float-text,
+    .tap-particle,
+    .tap-ripple,
+    .tap-glow {
+      display: none !important;
     }
 
     /* ============================================================
@@ -803,8 +804,8 @@
 
     /* Responsive */
     @media(max-width:430px) {
-      .tap-button { width: 170px; height: 170px; min-width: 170px; min-height: 170px; }
-      .tap-zone { min-height: 220px; }
+      .tap-button { width: 160px; height: 160px; min-width: 160px; min-height: 160px; }
+      .tap-zone { min-height: 200px; }
       .hero-banner-container,
       .leaderboard,
       .chat-messages,
@@ -820,7 +821,7 @@
       }
     }
     @media(max-width:360px) {
-      .tap-button { width: 165px; height: 165px; min-width: 165px; min-height: 165px; }
+      .tap-button { width: 145px; height: 145px; min-width: 145px; min-height: 145px; }
       .chat-input-box input { font-size: 12px !important; }
       .chat-input-box button { width: 42px; min-width: 42px; }
       #timerRuleValue {
@@ -1360,11 +1361,10 @@
     <!-- MESSAGE D'ÉTAT -->
     <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
 
-    <!-- ZONE TAP -->
+    <!-- ZONE TAP (STABILISÉE) -->
     <section class="tap-zone" aria-label="Zone de tap">
       <button id="tapButton" class="tap-button" type="button" disabled>
         <img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false">
-        <span class="tap-glow"></span>
         <small><span id="tapButtonCount">0</span></small>
       </button>
     </section>
@@ -1443,7 +1443,7 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL (client.js) – corrigé
+         SCRIPT PRINCIPAL (client.js) – corrigé (tapEffects simplifié)
          ========================================================= -->
   <script>
     // =========================================================
@@ -1897,49 +1897,18 @@
     }
 
     // ==========================================
-    // 15. GESTION DES TAPS
+    // 15. GESTION DES TAPS (VERSION ÉPURÉE – SANS EFFETS FLOTTANTS)
     // ==========================================
     function animateTapCount() {
       if (tapCount) { tapCount.classList.remove('tap-count-pop'); void tapCount.offsetWidth; tapCount.classList.add('tap-count-pop'); }
     }
 
+    // Fonction tapEffects simplifiée (uniquement l'effet de pression)
     function tapEffects(event) {
       if (!tapButton) return;
-      const rect = tapButton.getBoundingClientRect();
-      let x, y;
-      if (event.touches) { x = event.touches[0].clientX - rect.left; y = event.touches[0].clientY - rect.top; }
-      else { x = event.clientX - rect.left; y = event.clientY - rect.top; }
-
-      const float = document.createElement('div');
-      float.className = 'tap-float-text';
-      float.textContent = '+1';
-      float.style.left = (x-10)+'px';
-      float.style.top = (y-10)+'px';
-      tapButton.parentElement.appendChild(float);
-      setTimeout(() => float.remove(), 1000);
-
-      const colors = ['#ffd84d','#ff9f1a','#ff5b20','#ff2fd2','#8b2cff','#3dff9a'];
-      for (let i = 0; i < 8; i++) {
-        const p = document.createElement('div');
-        p.className = 'tap-particle';
-        const size = 3 + Math.random() * 8;
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 25 + Math.random() * 65;
-        p.style.width = size+'px'; p.style.height = size+'px';
-        p.style.left = (x-size/2)+'px'; p.style.top = (y-size/2)+'px';
-        p.style.background = colors[Math.floor(Math.random()*colors.length)];
-        p.style.setProperty('--tx', Math.cos(angle)*dist+'px');
-        p.style.setProperty('--ty', Math.sin(angle)*dist+'px');
-        tapButton.parentElement.appendChild(p);
-        setTimeout(() => p.remove(), 900);
-      }
-
-      const ripple = document.createElement('div');
-      ripple.className = 'tap-ripple';
-      ripple.style.left = x+'px';
-      ripple.style.top = y+'px';
-      tapButton.parentElement.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 800);
+      // Effet de pression uniquement
+      tapButton.classList.add('tap-active');
+      setTimeout(() => tapButton.classList.remove('tap-active'), 100);
       hapticLight();
     }
 
@@ -1954,8 +1923,6 @@
           return;
         }
         tapEffects(event);
-        tapButton.classList.add('tap-active');
-        setTimeout(() => tapButton.classList.remove('tap-active'), 100);
         socket.emit("player:tap");
       });
     }
