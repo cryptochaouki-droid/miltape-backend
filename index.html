@@ -800,6 +800,16 @@
       box-shadow: 0 4px 0 #0a4b8c, 0 0 50px rgba(26, 111, 181, 0.4);
     }
 
+    /* ===== BOUTON NOUVELLE PARTIE (dans le menu) ===== */
+    #resetGameBtn {
+      background: rgba(255, 50, 50, 0.12) !important;
+      color: #ff4444 !important;
+      border: 1px solid rgba(255, 50, 50, 0.25) !important;
+    }
+    #resetGameBtn:hover {
+      background: rgba(255, 50, 50, 0.2) !important;
+    }
+
     @media(max-width:430px) {
       .tap-button { width: 160px; height: 160px; min-width: 160px; min-height: 160px; }
       .tap-zone { min-height: 200px; }
@@ -1170,6 +1180,20 @@
         <div id="demoStatus" style="font-size:10px; color:rgba(255,255,255,0.5); margin-top:6px; font-family:'Poppins', sans-serif;">🔒 Mode démo désactivé</div>
       </div>
 
+      <!-- BOUTON NOUVELLE PARTIE -->
+      <div class="menu-block" style="text-align:center;">
+        <button id="resetGameBtn" class="menu-nav-btn" type="button" style="
+          background:rgba(255,50,50,0.12);
+          color:#ff4444;
+          border:1px solid rgba(255,50,50,0.25);
+          font-family:'Poppins', sans-serif;
+          transition:all 0.3s ease;
+        ">
+          🔄 NOUVELLE PARTIE
+        </button>
+        <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-top:4px; font-family:'Poppins', sans-serif;">Efface tes données locales</div>
+      </div>
+
       <div class="menu-block">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
           <span style="color:#5ba3d9; font-weight:bold; font-size:13px;">🔔 Notifications</span>
@@ -1429,11 +1453,11 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL (version avec gestion retour)
+         SCRIPT PRINCIPAL – AVEC BOUTON "NOUVELLE PARTIE"
          ========================================================= -->
   <script>
     // =========================================================
-    // SCRIPT CLIENT MILTAPE – Version finale (avec gestion retour)
+    // SCRIPT CLIENT MILTAPE – Version finale (avec retour auto + reset)
     // =========================================================
 
     // 1. Connexion Socket.IO
@@ -1461,6 +1485,7 @@
     const sideMenu = document.getElementById('sideMenu');
     const closeMenu = document.getElementById('closeMenu');
     const menuOverlay = document.getElementById('menuOverlay');
+    const resetGameBtn = document.getElementById('resetGameBtn');
 
     let isPlaying = false;
     let isPaid = false;
@@ -2172,7 +2197,27 @@
     if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
 
     // ==========================================
-    // 24. TELEGRAM BACK BUTTON
+    // 24. BOUTON "NOUVELLE PARTIE"
+    // ==========================================
+    if (resetGameBtn) {
+      resetGameBtn.addEventListener('click', function() {
+        if (confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")) {
+          // Effacer tout le localStorage lié à Miltape
+          localStorage.removeItem("miltape_player_id");
+          localStorage.removeItem("miltape_player_wallet");
+          localStorage.removeItem("miltape_player_name");
+          localStorage.removeItem("miltape_player_bet");
+          localStorage.removeItem("miltape_player_token");
+          localStorage.removeItem("miltape_spectator");
+          localStorage.removeItem("miltape_demo");
+          // Recharger la page
+          window.location.reload();
+        }
+      });
+    }
+
+    // ==========================================
+    // 25. TELEGRAM BACK BUTTON
     // ==========================================
     (function initTelegramBackButton() {
       try {
@@ -2189,7 +2234,7 @@
     })();
 
     // ==========================================
-    // 25. TELEGRAM USER
+    // 26. TELEGRAM USER
     // ==========================================
     function getTelegramUser() {
       try {
@@ -2205,7 +2250,7 @@
     }
 
     // ==========================================
-    // 26. CAGNOTTE
+    // 27. CAGNOTTE
     // ==========================================
     let jackpotCountdownInterval = null;
 
@@ -2245,7 +2290,7 @@
 
     socket.emit("jackpot:get");
 
-    console.log("✅ Script Miltape chargé avec gestion de retour automatique.");
+    console.log("✅ Script Miltape chargé avec gestion de retour et bouton 'Nouvelle partie'.");
   </script>
 
 </body>
