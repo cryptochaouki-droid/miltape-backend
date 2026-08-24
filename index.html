@@ -751,6 +751,11 @@
     .rule strong { color: #5ba3d9; font-size: 13px; }
     .rule small { color: rgba(255,255,255,0.7); font-size: 9px; }
 
+    /* ===== AJOUT : Masquer "TOP 5 SEULEMENT" (premier élément) ===== */
+    .rules .rule:first-child {
+      display: none !important;
+    }
+
     .tap-message {
       text-align: center;
       font-size: 14px;
@@ -1350,7 +1355,7 @@
       </button>
     </section>
 
-    <!-- RÈGLES -->
+    <!-- RÈGLES (seul le chrono est visible, TOP 5 caché) -->
     <section class="rules">
       <div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div>
       <div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div>
@@ -1424,11 +1429,11 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL – MODE DÉMO GRATUIT, PAS DE SPECTATEUR
+         SCRIPT PRINCIPAL (version avec gestion retour)
          ========================================================= -->
   <script>
     // =========================================================
-    // SCRIPT CLIENT MILTAPE – Version finale (sans spectateur)
+    // SCRIPT CLIENT MILTAPE – Version finale (avec gestion retour)
     // =========================================================
 
     // 1. Connexion Socket.IO
@@ -1526,7 +1531,7 @@
     updateDemoUI();
 
     // ==========================================
-    // 5. RESTAURER LA SESSION
+    // 5. RESTAURER LA SESSION (améliorée)
     // ==========================================
     async function restoreSession() {
       const playerId = localStorage.getItem("miltape_player_id");
@@ -1537,6 +1542,7 @@
         console.log("🔍 Aucune session trouvée.");
         return false;
       }
+
       try {
         const res = await fetch(API_URL + "/api/status");
         const data = await res.json();
@@ -1552,31 +1558,49 @@
         console.error("❌ Erreur vérification statut :", error);
         return false;
       }
+
       socket.emit("player:restore", { playerId, wallet });
       console.log("🔄 Demande de restauration envoyée...");
       return true;
     }
 
     // ==========================================
-    // 6. CONNEXION SOCKET
+    // 6. CONNEXION SOCKET + GESTION RETOUR
     // ==========================================
     socket.on('connect', async () => {
       console.log('✅ Socket connecté avec ID :', socket.id);
       if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";
       await restoreSession();
     });
+
+    socket.on('reconnect', async () => {
+      console.log('🔄 Socket reconnecté !');
+      await restoreSession();
+    });
+
     socket.on('connect_error', (err) => {
       console.error('❌ Erreur de connexion Socket :', err.message);
       hapticError();
       if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur.";
     });
+
     socket.on('disconnect', (reason) => {
       console.log('🔴 Socket déconnecté :', reason);
       if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur.";
     });
 
+    // Détection retour sur la page
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        console.log('👀 Page de nouveau visible – restauration de la session');
+        if (localStorage.getItem("miltape_player_id")) {
+          restoreSession();
+        }
+      }
+    });
+
     // ==========================================
-    // 7. REJOINDRE LA PARTIE (avec mode démo)
+    // 7. REJOINDRE LA PARTIE
     // ==========================================
     function joinGame() {
       const telegramName = getTelegramUser();
@@ -1668,27 +1692,35 @@
         myWallet = data.player.wallet;
         myBet = data.player.bet || 10;
         myToken = data.player.token || 'USDT';
+
         if (demoMode) {
           isPaid = true;
           if (tapButton) tapButton.disabled = false;
           if (tapMessage) tapMessage.innerText = "🔬 Mode démo : bon retour " + data.player.name + " !";
         } else {
-          isPaid = false;
-          if (tapButton) tapButton.disabled = true;
-          if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
+          isPaid = data.player.paid || false;
+          if (tapButton) tapButton.disabled = !isPaid;
+          if (tapMessage) tapMessage.innerText = isPaid ? "✅ Revenu ! ÉTAPE 3 : Tape maintenant !" : "💰 ÉTAPE 2 : Paie ta mise pour taper !";
           if (payButton) {
-            payButton.style.display = 'block';
-            payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
+            if (!isPaid) {
+              payButton.style.display = 'block';
+              payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
+            } else {
+              payButton.style.display = 'none';
+            }
           }
         }
+
         if (enterChallenge) enterChallenge.style.display = "none";
         if (tapCount) tapCount.innerText = data.player.taps;
         if (tapButtonCount) tapButtonCount.innerText = data.player.taps;
+
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
+
         console.log("✅ Session restaurée avec succès !");
         hapticMedium();
       } else {
@@ -1792,7 +1824,7 @@
       if (tapCount) { tapCount.classList.remove('tap-count-pop'); void tapCount.offsetWidth; tapCount.classList.add('tap-count-pop'); }
     }
 
-    function tapEffects(event) {
+    function tapEffects() {
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
       setTimeout(() => tapButton.classList.remove('tap-active'), 100);
@@ -1809,7 +1841,7 @@
           }
           return;
         }
-        tapEffects(event);
+        tapEffects();
         socket.emit("player:tap");
       });
     }
@@ -2212,6 +2244,8 @@
     });
 
     socket.emit("jackpot:get");
+
+    console.log("✅ Script Miltape chargé avec gestion de retour automatique.");
   </script>
 
 </body>
