@@ -100,6 +100,25 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .tap-zone #timerRule .rule-icon { font-size: 16px; color: #0d47a1; }
 .tap-zone #timerRule strong { font-size: 20px; color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); font-family: 'Orbitron', sans-serif; }
 .tap-zone #timerRule small { font-size: 10px; color: #000000 !important; font-weight: 800; }
+
+/* ========================================================== */
+/* ============ URGENCE CHRONO (10 DERNIÈRES SECONDES) ======= */
+/* ========================================================== */
+#timerRule.urgent {
+    animation: heartbeat 0.6s ease-in-out infinite;
+    border-color: #ff0000;
+    background: rgba(255, 0, 0, 0.25) !important;
+}
+#timerRule.urgent strong {
+    color: #ff0000 !important;
+    font-size: 24px;
+}
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.15); }
+    60% { transform: scale(1); }
+    100% { transform: scale(1); }
+}
 /* ========================================================== */
 
 /* ========================================================== */
@@ -595,6 +614,67 @@ function hapticMedium(){try{if(window.Telegram&&window.Telegram.WebApp)window.Te
 function hapticHeavy(){try{if(window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy')}catch(e){}}
 function hapticSuccess(){try{if(window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.HapticFeedback.notificationOccurred('success')}catch(e){}}
 function hapticError(){try{if(window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.HapticFeedback.notificationOccurred('error')}catch(e){}}
+
+// ==========================================================
+// AUDIO & MUSIQUE DYNAMIQUE
+// ==========================================================
+let audioCtx;
+function playBeep(freq = 800, duration = 0.1, type = 'sine', volume = 0.1) {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch (e) {}
+}
+
+// Musique de fond procédurale (générée par code)
+let bgMusicInterval = null;
+let bgMusicTempo = 0; // Batements par minute (BPM)
+let bgMusicPulse = false;
+function startBackgroundMusic() {
+    if (bgMusicInterval) clearInterval(bgMusicInterval);
+    bgMusicTempo = 90; // Démarre lent
+    bgMusicPulse = true;
+    bgMusicInterval = setInterval(() => {
+        playBeep(180, 0.3, 'sawtooth', 0.03); // Batterie basse
+        setTimeout(() => playBeep(220, 0.2, 'square', 0.02), 150); // Percussion
+    }, 60000 / bgMusicTempo);
+}
+function updateBackgroundMusic(remainingSeconds) {
+    if (!bgMusicPulse) return;
+    // Augmente le tempo à mesure que le temps baisse (max 180 BPM)
+    let newTempo = Math.max(90, Math.min(180, 90 + (600 - remainingSeconds) * 0.15));
+    if (newTempo !== bgMusicTempo) {
+        bgMusicTempo = newTempo;
+        clearInterval(bgMusicInterval);
+        bgMusicInterval = setInterval(() => {
+            playBeep(180, 0.3, 'sawtooth', 0.03);
+            setTimeout(() => playBeep(220, 0.2, 'square', 0.02), 150);
+        }, 60000 / bgMusicTempo);
+    }
+}
+function stopBackgroundMusic() {
+    bgMusicPulse = false;
+    if (bgMusicInterval) { clearInterval(bgMusicInterval); bgMusicInterval = null; }
+}
+
+// Cœur qui bat en fin de partie
+function playHeartBeat() {
+    if (!isPlaying) return;
+    playBeep(120, 0.2, 'sine', 0.15); // Boum (plus grave)
+    setTimeout(() => playBeep(100, 0.15, 'sine', 0.10), 150); // Boum (léger écho)
+}
+
+// ==========================================================
+
 let demoMode=localStorage.getItem("miltape_demo")==="true"||!1;
 function updateDemoUI(){if(demoMode){if(demoStatus){demoStatus.textContent="🔬 Mode démo ACTIVÉ (paiements simulés)";demoStatus.style.color="#64b5f6"}if(demoBtn){demoBtn.style.background="rgba(100,181,246,0.2)";demoBtn.style.borderColor="rgba(100,181,246,0.4)";demoBtn.style.color="#64b5f6"}if(demoToggleLabel)demoToggleLabel.textContent="ON";if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !"}else{if(demoStatus){demoStatus.textContent="🔒 Mode démo désactivé";demoStatus.style.color="rgba(255,255,255,0.4)"}if(demoBtn){demoBtn.style.background="rgba(100,181,246,0.12)";demoBtn.style.borderColor="rgba(100,181,246,0.2)";demoBtn.style.color="#64b5f6"}if(demoToggleLabel)demoToggleLabel.textContent="OFF";if(tapMessage)tapMessage.innerText="⚡ ÉTAPE 1 : Rejoins la partie !"}}
 function toggleDemoMode(){
@@ -639,31 +719,80 @@ function joinGame(){
     myBet=bet;myWallet=wallet;myToken=token;
     if(tapMessage)tapMessage.innerText="Connexion au serveur en cours...";
     socket.emit("player:join",{name, wallet, bet, token, deviceId});
-    hapticMedium()
+    hapticMedium();
+    playBeep(400, 0.2, 'triangle', 0.1); // Son de confirmation
 }
 if(enterChallenge)enterChallenge.addEventListener('click',joinGame);
 if(enterChallengeTop)enterChallengeTop.addEventListener('click',joinGame);
-socket.on("player:joined",(data)=>{if(data.success){isPlaying=!0;isPaid=!1;myPlayerId=data.player.id;myToken=data.player.token||'USDT';if(tapButton)tapButton.disabled=!0;if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !";if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO : "+data.player.name+", tape !";if(payButton)payButton.style.display='none';fetch(API_URL+"/api/payment/verify",{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({txId:"DEMO_"+Date.now()+"_"+Math.random().toString(36).substring(2,8),wallet:data.player.wallet,amount:data.player.bet,playerId:data.player.id,token:myToken})}).then(res=>res.json()).then(data=>{if(data.verified)console.log("✅ Mode démo : paiement simulé avec succès");else console.warn("⚠️ Mode démo : la simulation a échoué, mais le jeu continue.")}).catch(err=>console.error("Erreur mode démo :",err))}else{if(payButton){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}}hapticMedium()}});
-socket.on("player:restored",(data)=>{if(data.success){isPlaying=!0;myPlayerId=data.player.id;myWallet=data.player.wallet;myBet=data.player.bet||10;myToken=data.player.token||'USDT';if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 Mode démo : bon retour "+data.player.name+" !"}else{isPaid=data.player.paid||!1;if(tapButton)tapButton.disabled=!isPaid;if(tapMessage)tapMessage.innerText=isPaid?"✅ Revenu ! ÉTAPE 3 : Tape maintenant !":"💰 ÉTAPE 2 : Paie ta mise pour taper !";if(payButton){if(!isPaid){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}else payButton.style.display='none'}}if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);console.log("✅ Session restaurée avec succès !");hapticMedium()}else{console.warn("⚠️ Restauration échouée :",data.message);localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");if(enterChallenge)enterChallenge.style.display='block';if(tapMessage)tapMessage.innerText="⚡ ÉTAPE 1 : Rejoins la partie !"}});
-socket.on("payment:verified",(data)=>{if(data.verified){isPaid=!0;if(tapButton)tapButton.disabled=!1;hapticSuccess();if(data.automatic){if(tapMessage)tapMessage.innerText="✅ Paiement automatique détecté ! ÉTAPE 3 : Tape maintenant !"}else{if(tapMessage)tapMessage.innerText="✅ Paiement vérifié ! ÉTAPE 3 : Tape maintenant !"}if(payButton)payButton.style.display='none'}});
 
 // ==========================================================
-// CORRECTION XSS: Construction du contenu en DOM PUR
+// AJOUT DU SON DE TAP (VIBRATION + BEEP)
+// ==========================================================
+function tapEffects(){
+    if(!tapButton)return;
+    tapButton.classList.add('tap-active');
+    setTimeout(()=>tapButton.classList.remove('tap-active'),100);
+    playBeep(750, 0.05, 'square', 0.1); // Son clair et court
+    if (navigator.vibrate) navigator.vibrate(15);
+    hapticLight();
+}
+
+let lastTapTime=0;const MIN_TAP_INTERVAL_MS=50;
+if(tapButton){tapButton.addEventListener('click',function(e){if(!isPlaying||tapButton.disabled||!isPaid){if(!isPaid&&tapMessage){tapMessage.innerText="⏳ Tu dois payer ta mise avant de taper !";hapticError();setTimeout(()=>{if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !"},3000)}return}const now=Date.now();if(now-lastTapTime<MIN_TAP_INTERVAL_MS)return;lastTapTime=now;tapEffects();socket.emit("player:tap")})}
+
+socket.on("player:joined",(data)=>{if(data.success){isPlaying=!0;isPaid=!1;myPlayerId=data.player.id;myToken=data.player.token||'USDT';if(tapButton)tapButton.disabled=!0;if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !";if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO : "+data.player.name+", tape !";if(payButton)payButton.style.display='none';fetch(API_URL+"/api/payment/verify",{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({txId:"DEMO_"+Date.now()+"_"+Math.random().toString(36).substring(2,8),wallet:data.player.wallet,amount:data.player.bet,playerId:data.player.id,token:myToken})}).then(res=>res.json()).then(data=>{if(data.verified)console.log("✅ Mode démo : paiement simulé avec succès");else console.warn("⚠️ Mode démo : la simulation a échoué, mais le jeu continue.")}).catch(err=>console.error("Erreur mode démo :",err))}else{if(payButton){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}}hapticMedium()}});
+socket.on("player:restored",(data)=>{if(data.success){isPlaying=!0;myPlayerId=data.player.id;myWallet=data.player.wallet;myBet=data.player.bet||10;myToken=data.player.token||'USDT';if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 Mode démo : bon retour "+data.player.name+" !"}else{isPaid=data.player.paid||!1;if(tapButton)tapButton.disabled=!isPaid;if(tapMessage)tapMessage.innerText=isPaid?"✅ Revenu ! ÉTAPE 3 : Tape maintenant !":"💰 ÉTAPE 2 : Paie ta mise pour taper !";if(payButton){if(!isPaid){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}else payButton.style.display='none'}}if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);console.log("✅ Session restaurée avec succès !");hapticMedium()}});
+
+socket.on("payment:verified",(data)=>{if(data.verified){isPaid=!0;if(tapButton)tapButton.disabled=!1;hapticSuccess();playBeep(1200, 0.15, 'sine', 0.1); // Son de réussite
+    if(data.automatic){if(tapMessage)tapMessage.innerText="✅ Paiement automatique détecté ! ÉTAPE 3 : Tape maintenant !"}else{if(tapMessage)tapMessage.innerText="✅ Paiement vérifié ! ÉTAPE 3 : Tape maintenant !"}if(payButton)payButton.style.display='none'}});
+
+// ==========================================================
+// CHRONO DYNAMIQUE + MUSIQUE + CŒUR
+// ==========================================================
+socket.on("timer:update",(data)=>{
+    const timerRuleValue=document.getElementById('timerRuleValue');
+    const timerRule=document.getElementById('timerRule');
+    const remaining = data.remainingSeconds;
+    
+    if(timerRuleValue){
+        const m=Math.floor(remaining/60), s=remaining%60;
+        timerRuleValue.innerText=m+":"+s.toString().padStart(2,'0');
+
+        // Dernières 10 secondes : chrono rouge + battement de cœur
+        if(isPaid && isPlaying && remaining <= 10) {
+            timerRule.classList.add('urgent');
+            playHeartBeat(); // Le cœur bat chaque seconde
+        } else {
+            timerRule.classList.remove('urgent');
+        }
+    }
+    
+    // Musique de fond (elle s'accélère)
+    if(isPlaying) updateBackgroundMusic(remaining);
+
+    if(isPaid&&isPlaying&&tapMessage){
+        const m=Math.floor(remaining/60), s=remaining%60;
+        tapMessage.innerText="👆 ÉTAPE 3 : Tape maintenant ! ("+m+":"+s.toString().padStart(2,'0')+" restant)";
+    }
+});
+
+// ==========================================================
+// ARRÊT MUSIQUE ET RÉSULTATS
 // ==========================================================
 socket.on("game:finished",(data)=>{
-    console.log("🏁 Partie terminée !",data);
+    stopBackgroundMusic(); // Stop la musique de fond
+    
     if(tapButtonCount)tapButtonCount.innerText="0";
     isPlaying=!1;isPaid=!1;
     if(tapButton)tapButton.disabled=!0;
 
-    // Construction du contenu en DOM (aucun innerHTML avec des données dynamiques)
     const modal = document.getElementById('dynamicModal');
     const modalTitle = document.getElementById('dynamicModalTitle');
     const modalBody = document.getElementById('dynamicModalBody');
 
     if(modal && modalTitle && modalBody) {
         modalTitle.textContent = "🏁 Résultats de la partie";
-        modalBody.innerHTML = ''; // On vide le contenu précédent
+        modalBody.innerHTML = ''; 
 
         const header = document.createElement('p');
         header.style.fontWeight = 'bold';
@@ -696,6 +825,9 @@ socket.on("game:finished",(data)=>{
 
         modal.classList.add('show');
         hapticHeavy();
+        playBeep(523, 0.1, 'sine');
+        setTimeout(() => playBeep(659, 0.1, 'sine'), 100);
+        setTimeout(() => playBeep(783, 0.2, 'sine'), 200);
     }
 
     launchConfetti();
@@ -713,11 +845,7 @@ socket.on("game:finished",(data)=>{
 });
 
 function launchConfetti(){const colors=['#64b5f6','#ffd700','#2ecc71','#42a5f5','#ff6b6b','#ffd93d','#6c5ce7','#fd79a8'];for(let i=0;i<60;i++){const c=document.createElement('div'),size=6+Math.random()*10,isCircle=Math.random()>.5;c.style.cssText='position:fixed;width:'+size+'px;height:'+(isCircle?size:size*.4)+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(isCircle?'50%':'2px')+';top:-10px;left:'+(Math.random()*100)+'%;z-index:9999;pointer-events:none;animation:confettiFall '+(2+Math.random()*2)+'s linear forwards;animation-delay:'+(Math.random()*.8)+'s;transform:rotate('+(Math.random()*360)+'deg);box-shadow:0 0 6px rgba(255,255,255,0.1)';document.body.appendChild(c);setTimeout(()=>c.remove(),4000)}}
-function tapEffects(){if(!tapButton)return;tapButton.classList.add('tap-active');setTimeout(()=>tapButton.classList.remove('tap-active'),100);hapticLight()}
-let lastTapTime=0;const MIN_TAP_INTERVAL_MS=50;
-if(tapButton){tapButton.addEventListener('click',function(e){if(!isPlaying||tapButton.disabled||!isPaid){if(!isPaid&&tapMessage){tapMessage.innerText="⏳ Tu dois payer ta mise avant de taper !";hapticError();setTimeout(()=>{if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !"},3000)}return}const now=Date.now();if(now-lastTapTime<MIN_TAP_INTERVAL_MS)return;lastTapTime=now;tapEffects();socket.emit("player:tap")})}
 socket.on("player:score",(data)=>{if(tapButtonCount)tapButtonCount.innerText=data.taps});
-socket.on("timer:update",(data)=>{const timerRuleValue=document.getElementById('timerRuleValue');if(timerRuleValue){const m=Math.floor(data.remainingSeconds/60),s=data.remainingSeconds%60;timerRuleValue.innerText=m+":"+s.toString().padStart(2,'0')}if(isPaid&&isPlaying&&tapMessage){const m=Math.floor(data.remainingSeconds/60),s=data.remainingSeconds%60;tapMessage.innerText="👆 ÉTAPE 3 : Tape maintenant ! ("+m+":"+s.toString().padStart(2,'0')+" restant)"}});
 socket.on("totalStakes:update",(data)=>{const displayBet=document.getElementById('displayBet'),displayBetTop=document.getElementById('displayBetTop');if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);if(displayBetTop)displayBetTop.textContent="$"+formatAmount(data.totalStakes)});
 socket.on("online:count",(count)=>{if(onlineCount){onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>'+count+' EN LIGNE</span>'}});
 socket.on("leaderboard:update",(leaderboard)=>{if(leaderboardList){leaderboardList.innerHTML="";if(leaderboard.length===0){leaderboardList.innerHTML='<div class="empty-ranking">Aucun joueur pour le moment</div>';return}leaderboard.forEach(player=>{const div=document.createElement('div');div.className='leaderboard-item';const rankSpan=document.createElement('span');rankSpan.className='rank-badge';rankSpan.textContent=player.rank;const nameSpan=document.createElement('span');nameSpan.className='player-name';nameSpan.textContent=player.name;const scoreSpan=document.createElement('span');scoreSpan.className='player-score';scoreSpan.textContent=player.taps;div.appendChild(rankSpan);div.appendChild(nameSpan);div.appendChild(scoreSpan);leaderboardList.appendChild(div)})}});
@@ -729,25 +857,13 @@ function initiatePayment(wallet,amount){const token=tokenSelect?tokenSelect.valu
 socket.on("error",(err)=>{if(err.message==="Joueur introuvable."){console.log("🔍 Session expirée, nettoyage automatique...");localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");if(enterChallenge)enterChallenge.style.display='block';if(tapMessage)tapMessage.innerText="⚡ ÉTAPE 1 : Rejoins la partie !";return}hapticError();alert("⚠️ Erreur : "+err.message)});
 let notificationsEnabled=localStorage.getItem("miltape_notifications")!=="false";const notifToggle=document.getElementById('notifToggle');if(notifToggle){notifToggle.checked=notificationsEnabled;notifToggle.addEventListener('change',function(){notificationsEnabled=this.checked;localStorage.setItem("miltape_notifications",this.checked.toString())})}
 
-function playBeep() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = 800;
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.3);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.3);
-    } catch (e) { console.log("Impossible de jouer le son.", e); }
+function playBeepForNotification(){
+    playBeep(1000, 0.2, 'sine', 0.1);
 }
 
 function getNotifIcon(type){const icons={info:'📢',success:'✅',warning:'⏱️',alert:'🔔',champion:'🏆'};return icons[type]||'📢'}
 function showNotification(type,message,data={}){
-    playBeep();
+    playBeepForNotification();
     if(!notificationsEnabled)return;
     const container=document.getElementById('notificationContainer');
     if(!container)return;
@@ -764,7 +880,6 @@ function showNotification(type,message,data={}){
     else hapticLight();
     setTimeout(()=>{if(notif.parentNode){notif.classList.add('hiding');setTimeout(()=>{if(notif.parentNode)notif.remove()},300)}},4000)
 }
-
 socket.on("notification:new",(data)=>{showNotification(data.type,data.message,data.data);if(data.type==='champion'){const match=data.message.match(/#\d+\s+(\S+)\s+→\s+(\d+\.?\d*)/);if(match)addWinnerToTicker(match[1],formatAmount(match[2]),data.data?.winner?.rank||1)}});
 const winnerTicker=document.getElementById('winnerTicker'),tickerTrack=document.getElementById('tickerTrack');let tickerItems=[];const MAX_TICKER_ITEMS=20;
 function addWinnerToTicker(name,amount,rank){if(!name)return;const existing=tickerItems.find(item=>item.name===name);if(existing){existing.amount=amount;updateTickerDisplay();return}const emoji=rank===1?'🏆':rank===2?'🥈':rank===3?'🥉':'🏅';tickerItems.push({name,amount,rank,emoji});if(tickerItems.length>MAX_TICKER_ITEMS)tickerItems.shift();updateTickerDisplay();showTicker()}
@@ -772,23 +887,15 @@ function buildTickerItemEl(item){const span=document.createElement('span');span.
 function updateTickerDisplay(){if(!tickerTrack)return;tickerTrack.innerHTML="";const doubled=[...tickerItems,...tickerItems],frag=document.createDocumentFragment();doubled.forEach(item=>frag.appendChild(buildTickerItemEl(item)));tickerTrack.appendChild(frag);tickerTrack.style.animation='none';void tickerTrack.offsetWidth;tickerTrack.style.animation='tickerScroll 20s linear infinite'}
 function showTicker(){if(winnerTicker)winnerTicker.classList.add('show')}
 function hideTicker(){if(winnerTicker&&tickerItems.length===0)winnerTicker.classList.remove('show')}
-
-// ==========================================================
-// FONCTION MODALE : RETOUR À INNERHTML (OPTION 1)
-// Ces contenus sont statiques ou déjà sécurisés (formatAmount, toLocaleDateString).
-// La sécurité XSS est gérée séparément dans game:finished (DOM pur).
-// ==========================================================
 function showMenuMessage(title, content) {
     const modal=document.getElementById('dynamicModal'), modalTitle=document.getElementById('dynamicModalTitle'), modalBody=document.getElementById('dynamicModalBody');
     if(modal && modalTitle && modalBody) {
         modalTitle.textContent = title;
-        modalBody.innerHTML = content; // Autorise le HTML pour les menus statiques
+        modalBody.innerHTML = content;
         modal.classList.add('show');
         hapticLight();
     }
 }
-// ==========================================================
-
 const closeModalBtn=document.getElementById('closeDynamicModal');if(closeModalBtn){closeModalBtn.addEventListener('click',function(){const modal=document.getElementById('dynamicModal');if(modal)modal.classList.remove('show')})}
 const modalOverlayEl=document.getElementById('dynamicModal');if(modalOverlayEl){modalOverlayEl.addEventListener('click',function(e){if(e.target===this)this.classList.remove('show')})}
 const menuGamesBtn=document.getElementById('menuGamesBtn');if(menuGamesBtn){menuGamesBtn.addEventListener('click',function(){showMenuMessage('🎮 Mes parties','<p>Tu n\'as pas encore de parties enregistrées.</p><p style="color:#888;font-size:12px;">Rejoins une partie pour commencer !</p>')})}
