@@ -24,7 +24,7 @@ const SUPPORTED_TOKENS = {
 const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
 const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
 const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; // Pas de fallback
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 
 if (!ADMIN_PASSWORD) {
@@ -182,6 +182,10 @@ const Payment = mongoose.model("Payment", paymentSchema);
 const History = mongoose.model("History", historySchema);
 const Jackpot = mongoose.model("Jackpot", jackpotSchema);
 
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log("✅ MongoDB connecté."))
+    .catch((error) => { console.error("❌ MongoDB erreur :", error.message); process.exit(1); });
+
 // ============================================================
 // UTILITAIRES
 // ============================================================
@@ -191,9 +195,6 @@ function sameWallet(a, b) { return normalizeWallet(a) === normalizeWallet(b); }
 function generateGameId() { return "GAME-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).substring(2, 8).toUpperCase(); }
 function getRemainingSeconds() { if (game.status !== "running" || !game.endsAt) return 0; return Math.max(0, Math.ceil((game.endsAt - Date.now()) / 1000)); }
 
-// ============================================================
-// FONCTION DE GÉNÉRATION UNIQUE (ANTI-COLLISION)
-// ============================================================
 async function assignUniqueDepositAmount(baseBet, gameId) {
     let uniqueAmount;
     for (let i = 0; i < 5; i++) {
@@ -205,7 +206,7 @@ async function assignUniqueDepositAmount(baseBet, gameId) {
         }
     }
     if (!uniqueAmount) {
-        uniqueAmount = Number((baseBet + 0.000999).toFixed(6)); // Fallback ultime (quasi impossible)
+        uniqueAmount = Number((baseBet + 0.000999).toFixed(6));
     }
     return uniqueAmount;
 }
@@ -277,13 +278,17 @@ async function checkPendingPayments() {
         const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } });
         if (unpaidPlayers.length === 0) return;
 
-        // Récupérer transactions TRX (transferts classiques)
-        const trxTransactions = await tronWeb.trx.getTransactions(MILTAPE_WALLET, { limit: 30, onlyConfirmed: true });
+        // ==========================================
+        // CORRECTION CRITIQUE : Utilisation de getTransactionsToAddress
+        // ==========================================
+        // Cette méthode retourne les transactions vers l'adresse (TRX natif)
+        // Signature réelle : getTransactionsToAddress(address, limit, offset)
+        const trxTransactions = await tronWeb.trx.getTransactionsToAddress(MILTAPE_WALLET, 30, 0);
         
         // Récupérer transactions TRC20 via l'API dédiée de TronGrid
         const trc20Transactions = await getIncomingTrc20Transactions(MILTAPE_WALLET);
         
-        const allTransactions = [...trxTransactions, ...trc20Transactions];
+        const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
 
         for (const tx of allTransactions) {
             const txId = tx.transaction_id || tx.txID;
