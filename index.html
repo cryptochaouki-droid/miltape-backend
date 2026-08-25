@@ -276,7 +276,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 (function initTonConnect(){try{if(typeof TON_CONNECT_UI==="undefined"||!TON_CONNECT_UI.TonConnectUI){console.warn("⚠️ TON Connect UI indisponible.");return}window.tonConnectUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:"https://miltape.vercel.app/tonconnect-manifest.json",buttonRootId:"ton-connect-button"});if(window.tonConnectUI&&typeof window.tonConnectUI.onStatusChange==="function"){window.tonConnectUI.onStatusChange(function(w){if(w&&w.account){console.log("✅ Wallet TON connecté :",w.account.address)}})}console.log("✅ TON Connect initialisé.")}catch(e){console.error("❌ Erreur TON Connect :",e);window.tonConnectUI=null}})();
 </script>
 <script>
-// ⚠️⚠️⚠️ CORRECTION FINALE : LE SERVEUR EST SUR RENDER, PAS SUR RAILWAY ⚠️⚠️⚠️
+// ⚠️⚠️⚠️ URL FINALE : LE SERVEUR EST SUR RENDER, PAS SUR RAILWAY ⚠️⚠️⚠️
 const BACKEND_URL = "https://miltape-backend.onrender.com"; 
 const socket=io(BACKEND_URL);
 const API_URL=BACKEND_URL;
@@ -318,9 +318,7 @@ socket.on("player:joined",(data)=>{if(data.success){isPlaying=true;isPaid=false;
 socket.on("player:restored",(data)=>{if(data.success){isPlaying=true;myPlayerId=data.player.id;myWallet=data.player.wallet;myBet=data.player.bet||10;myToken=data.player.token||'USDT';myDepositAmount=data.player.depositAmount||data.player.bet;if(demoMode){isPaid=true;if(tapButton)tapButton.disabled=false;if(tapMessage)tapMessage.innerText="🔬 Mode démo : bon retour "+data.player.name+" !"}else{isPaid=data.player.paid||false;if(tapButton)tapButton.disabled=!isPaid;if(tapMessage)tapMessage.innerText=isPaid?"✅ Revenu ! ÉTAPE 3 : Tape maintenant !":"💰 ÉTAPE 2 : Paie ta mise pour taper !";if(payButton){if(!isPaid){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet)}else payButton.style.display='none'}}if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;if(liveTapsCount)liveTapsCount.innerText=data.player.taps;if(betInput){betInput.value=formatAmount(myDepositAmount);betInput.disabled=true}localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);hapticMedium()}});
 socket.on("payment:verified",(data)=>{if(data.verified){isPaid=true;if(tapButton)tapButton.disabled=false;hapticSuccess();playBeep(1200,0.15,'sine',0.1);if(data.automatic){if(tapMessage)tapMessage.innerText="✅ Paiement automatique détecté ! ÉTAPE 3 : Tape maintenant !"}else{if(tapMessage)tapMessage.innerText="✅ Paiement vérifié ! ÉTAPE 3 : Tape maintenant !"}if(payButton)payButton.style.display='none'}});
 
-// ✅✅✅ CORRECTION MAJEURE : Le backend envoie "game:state" (qui contient le chrono, le classement, et les joueurs en ligne) ✅✅✅
 socket.on("game:state",(data)=>{
-    // Mise à jour du Chrono
     const timerRuleValue=document.getElementById('timerRuleValue');
     const timerRule=document.getElementById('timerRule');
     if(timerRuleValue && data.game){
@@ -331,8 +329,6 @@ socket.on("game:state",(data)=>{
         if (isPaid && isPlaying && remaining <= 10) timerRule.classList.add('urgent');
         else timerRule.classList.remove('urgent');
     }
-
-    // Mise à jour du Classement
     if(data.players){
         const leaderboardList = document.getElementById('leaderboardList');
         if(leaderboardList){
@@ -351,7 +347,6 @@ socket.on("game:state",(data)=>{
                 });
             }
         }
-        // Mise à jour du nombre de personnes en ligne
         const onlineCount = document.getElementById('onlineCount');
         if(onlineCount){
             onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>'+data.players.length+' EN LIGNE</span>';
@@ -359,7 +354,6 @@ socket.on("game:state",(data)=>{
     }
 });
 
-// ✅✅✅ CORRECTION MAJEURE : Le backend envoie "player:update" quand on tape ✅✅✅
 socket.on("player:update",(data)=>{
     if(data.id === myPlayerId){
         if(tapButtonCount) tapButtonCount.innerText = data.taps;
