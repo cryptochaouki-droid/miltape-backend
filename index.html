@@ -83,13 +83,11 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   left: 12px;
   margin: 0;
   z-index: 20;
-  /* Fond blanc translucide / cristal */
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  /* Bordure lumineuse */
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 0 15px rgba(100,181,246,0.5), inset 0 0 10px rgba(255,255,255,0.5);
   border-radius: 16px;
   padding: 5px 14px;
   display: flex !important;
@@ -99,10 +97,9 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   white-space: nowrap;
   font-size: 12px;
 }
-.tap-zone #timerRule .rule-icon { font-size: 16px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
-/* Couleur du texte pour lisibilité sur fond clair */
-.tap-zone #timerRule strong { font-size: 20px; color: #0a2a5c !important; text-shadow: 0 0 8px rgba(255,255,255,0.8); }
-.tap-zone #timerRule small { font-size: 10px; color: #0a2a5c !important; font-weight: 700; }
+.tap-zone #timerRule .rule-icon { font-size: 16px; color: #0d47a1; }
+.tap-zone #timerRule strong { font-size: 20px; color: #00b0ff !important; text-shadow: 0 0 8px #00b0ff; font-family: 'Orbitron', sans-serif; }
+.tap-zone #timerRule small { font-size: 10px; color: #0d47a1; font-weight: 700; }
 /* ========================================================== */
 
 /* ========================================================== */
@@ -121,7 +118,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     font-weight: 900;
     font-family: 'Poppins', sans-serif;
     cursor: pointer;
-    /* Effet glossy + Lueur rouge */
     box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255,255,255,0.4);
     border-radius: 24px !important;
     text-transform: uppercase;
@@ -131,7 +127,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     user-select: none;
     position: relative;
 }
-/* Effet brillant (Glossy) */
 .main-play-button::after{
     content: "";
     position: absolute;
@@ -152,13 +147,13 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 /* ============ ESPACEMENT BOUTON TAP NOW ==================== */
 /* ========================================================== */
 .tap-button{
-    margin-top: 55px; /* Espace visuel clair sous le chrono */
+    margin-top: 30px;
 }
 @media(max-width: 430px){
-    .tap-button{ margin-top: 45px; }
+    .tap-button{ margin-top: 25px; }
 }
 @media(max-width: 360px){
-    .tap-button{ margin-top: 40px; }
+    .tap-button{ margin-top: 20px; }
 }
 /* ========================================================== */
 
@@ -201,11 +196,10 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .section-title{font-size:14px!important;color:#222!important;letter-spacing:.5px!important;margin-bottom:14px!important}
 .section-title span{color:#222!important;font-size:14px!important}
 .section-title strong{color:#0d47a1!important;font-size:16px!important;margin-left:6px!important}
-/* Garde les styles génériques pour compatibilité */
-#timerRule{background:rgba(255,255,255,.25)!important;border:1px solid rgba(255,255,255,.6)!important;padding:6px 16px!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important}
-#timerRule .rule-icon{font-size:20px!important;color:#fff}
-#timerRuleValue{font-size:22px!important;font-weight:900!important;color:#0a2a5c!important;text-shadow:0 0 8px rgba(255,255,255,0.8)!important;font-family:'Orbitron',sans-serif!important}
-#timerRule small{font-size:10px!important;color:#0a2a5c!important;font-weight:700!important}
+#timerRule{background:rgba(255,255,255,.85)!important;border:1px solid rgba(255,255,255,.8)!important;padding:6px 16px!important;box-shadow:0 0 15px rgba(100,181,246,0.5)!important}
+#timerRule .rule-icon{font-size:20px!important;color:#0d47a1}
+#timerRuleValue{font-size:22px!important;font-weight:900!important;color:#00b0ff!important;text-shadow:0 0 8px #00b0ff!important;font-family:'Orbitron',sans-serif!important}
+#timerRule small{font-size:10px!important;color:#0d47a1!important;font-weight:700!important}
 .stat-box{background:rgba(100,181,246,.06)!important;border:1px solid rgba(100,181,246,.12)!important;padding:20px!important;box-shadow:0 0 40px rgba(100,181,246,.04)!important;border-radius:24px!important}
 .stat-box small{display:block;font-size:14px!important;color:rgba(255,255,255,.8)!important;font-family:'Poppins',sans-serif;letter-spacing:2px!important;font-weight:700!important}
 .stat-box strong{font-size:56px!important;font-weight:900!important;color:#64b5f6!important;font-family:'Orbitron',sans-serif!important;text-shadow:0 0 30px rgba(100,181,246,.25),0 0 60px rgba(100,181,246,.08)!important}
@@ -248,8 +242,8 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 #welcomeModal .welcome-secure{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px}
 #welcomeModal .welcome-btn{background:#64b5f6;color:#051230;border:none;padding:12px 24px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;width:100%;font-family:'Poppins',sans-serif;transition:transform .15s ease}
 #welcomeModal .welcome-btn:active{transform:scale(.96)}
-@media(max-width:430px){.tap-button{width:160px;height:160px;min-width:160px;min-height:160px;margin-top:45px}.tap-zone{min-height:200px}.hero-banner-container,.leaderboard,.chat-messages,.stat-box,.rule{border-radius:18px!important}#timerRuleValue{font-size:20px!important}.stat-box strong{font-size:44px!important}.rank-badge{width:28px!important;height:28px!important;min-width:28px!important;font-size:12px!important}.server-wallet-address{font-size:13px!important}}
-@media(max-width:360px){.tap-button{width:145px;height:145px;min-width:145px;min-height:145px;margin-top:40px}.chat-input-box input{font-size:12px!important}.chat-input-box button{width:42px;min-width:42px}#timerRuleValue{font-size:18px!important}.stat-box strong{font-size:38px!important}.rank-badge{width:24px!important;height:24px!important;min-width:24px!important;font-size:11px!important}.server-wallet-address{font-size:12px!important}}
+@media(max-width:430px){.tap-button{width:160px;height:160px;min-width:160px;min-height:160px;margin-top:25px}.tap-zone{min-height:200px}.hero-banner-container,.leaderboard,.chat-messages,.stat-box,.rule{border-radius:18px!important}#timerRuleValue{font-size:20px!important}.stat-box strong{font-size:44px!important}.rank-badge{width:28px!important;height:28px!important;min-width:28px!important;font-size:12px!important}.server-wallet-address{font-size:13px!important}}
+@media(max-width:360px){.tap-button{width:145px;height:145px;min-width:145px;min-height:145px;margin-top:20px}.chat-input-box input{font-size:12px!important}.chat-input-box button{width:42px;min-width:42px}#timerRuleValue{font-size:18px!important}.stat-box strong{font-size:38px!important}.rank-badge{width:24px!important;height:24px!important;min-width:24px!important;font-size:11px!important}.server-wallet-address{font-size:12px!important}}
 @media(min-width:600px){body{padding:20px 0 40px}.app{border-radius:30px;border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 40px rgba(0,0,0,.3);background:rgba(0,0,0,.15);backdrop-filter:blur(10px)}.top-header{position:sticky;top:0;z-index:500;border-radius:30px 30px 0 0}}
 @keyframes fadeIn{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{0%{opacity:0;transform:translateY(30px)scale(.95)}100%{opacity:1;transform:translateY(0)scale(1)}}
@@ -274,7 +268,9 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .wallet-button{color:#fff}
 </style>
 
-<!-- NOUVEAU STYLE POUR LA CAGNOTTE PREMIUM -->
+<!-- ====================================================== -->
+<!-- ============ CAGNOTTE PREMIUM ROUGE ================== -->
+<!-- ====================================================== -->
 <style>
 #jackpotDisplay{
     position: relative;
@@ -282,9 +278,9 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     margin: 12px auto;
     padding: 20px 16px;
     border-radius: 20px;
-    background: linear-gradient(145deg, rgba(13, 71, 161, 0.9) 0%, rgba(10, 42, 92, 0.95) 50%, rgba(5, 18, 48, 0.98) 100%);
-    border: 1px solid rgba(100, 181, 246, 0.4);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(100, 181, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+    background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%);
+    border: 1px solid rgba(255, 80, 80, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     overflow: hidden;
@@ -299,20 +295,20 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     left: -20%;
     width: 140%;
     height: 200%;
-    background: radial-gradient(circle, rgba(0, 188, 212, 0.15) 0%, rgba(100, 181, 246, 0.05) 40%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, rgba(255, 30, 30, 0.05) 40%, transparent 70%);
     pointer-events: none;
     z-index: -1;
 }
 @keyframes jackpotHaloPulse {
-    0% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 15px rgba(100,181,246,0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
-    100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(100,181,246,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+    0% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 15px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.2); }
+    100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(255,30,30,0.7), inset 0 1px 0 rgba(255,255,255,0.2); }
 }
 .jackpot-badge{
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 215, 0, 0.15);
-    border: 1px solid rgba(255, 215, 0, 0.3);
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid rgba(255, 215, 0, 0.5);
     color: #ffd700;
     font-size: 11px;
     font-weight: 700;
@@ -327,10 +323,10 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     font-family: 'Orbitron', sans-serif;
     font-size: 24px;
     font-weight: 900;
-    color: #fff;
+    color: #ffd700;
     letter-spacing: 2px;
     margin-bottom: 15px;
-    text-shadow: 0 0 15px rgba(100, 181, 246, 0.8);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.8);
 }
 .jackpot-main-row{
     display: flex;
@@ -350,46 +346,48 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .jackpot-divider{
     width: 2px;
     height: 60px;
-    background: rgba(100, 181, 246, 0.3);
+    background: rgba(255, 215, 0, 0.5);
     border-radius: 2px;
-    box-shadow: 0 0 8px rgba(100, 181, 246, 0.5);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 .jackpot-label{
     font-size: 10px;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255,255,255,0.9);
     letter-spacing: 1px;
     text-transform: uppercase;
     font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 #jackpotAmount{
     font-family: 'Orbitron', sans-serif;
     font-size: 32px;
     font-weight: 900;
     color: #fff;
-    text-shadow: 0 0 20px rgba(100, 181, 246, 0.9);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.8);
     line-height: 1.2;
     transition: transform 0.2s ease;
     animation: amountGlow 2s ease-in-out infinite alternate;
 }
 @keyframes amountGlow {
-    0% { text-shadow: 0 0 10px rgba(100, 181, 246, 0.5); transform: scale(1); }
-    100% { text-shadow: 0 0 25px rgba(100, 181, 246, 1); transform: scale(1.02); }
+    0% { text-shadow: 0 0 10px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1); }
+    100% { text-shadow: 0 0 25px rgba(255,255,255,1), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1.02); }
 }
 #jackpotCountdown{
     font-family: 'Orbitron', sans-serif;
     font-size: 24px;
     font-weight: 700;
     color: #2ecc71;
-    text-shadow: 0 0 15px rgba(46, 204, 113, 0.8);
+    text-shadow: 0 0 15px rgba(46, 204, 113, 0.8), 0 2px 4px rgba(0,0,0,0.8);
     line-height: 1.2;
 }
 .jackpot-schedule{
     font-size: 10px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.7);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600;
     margin-top: 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 @media (max-width: 430px) {
     #jackpotAmount { font-size: 26px; }
@@ -416,7 +414,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <main class="app">
 <header class="top-header"><button class="menu-button" id="menuButton" type="button">☰</button><div class="online"><strong id="onlineCount"><span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>1 EN LIGNE</span></strong></div><div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div><button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button></header>
 
-<!-- ===== CAGNOTTE PREMIUM ===== -->
+<!-- ===== CAGNOTTE PREMIUM ROUGE ===== -->
 <div id="jackpotDisplay">
     <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
     <div class="jackpot-title">🏆 JACKPOT</div>
