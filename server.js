@@ -146,7 +146,8 @@ const playerSchema = new mongoose.Schema(
     {
         gameId: { type: String, required: true, index: true },
         name: { type: String, required: true, trim: true, maxlength: 30 },
-        wallet: { type: String, required: true, trim: true, index: true },
+        wallet: { type: String, trim: true, index: true }, // Wallet pour affichage/paiement
+        deviceId: { type: String, trim: true, index: true }, // <-- CLÉ PRIMAIRE DE SESSION
         taps: { type: Number, default: 0, min: 0 },
         bet: { type: Number, default: 0, min: 0 },
         paid: { type: Boolean, default: false },
@@ -811,6 +812,7 @@ io.on("connection", async (socket) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
             const wallet = normalizeWallet(data?.wallet);
+            const deviceId = normalizeWallet(data?.deviceId); // <-- NOUVEAU
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim();
 
@@ -820,19 +822,28 @@ io.on("connection", async (socket) => {
             if (!SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Token non supporté." });
             if (game.status !== "running") return socket.emit("error", { message: "La partie n'est pas ouverte." });
 
-            let player = await Player.findOne({ gameId: game.id, wallet });
+            // Logique modifiée pour utiliser deviceId comme clé primaire
+            let player;
+            if (deviceId) {
+                player = await Player.findOne({ gameId: game.id, deviceId });
+            } else {
+                player = await Player.findOne({ gameId: game.id, wallet });
+            }
+
             if (!player) {
-                player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false, token });
+                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, bet, paid: false, token });
             } else {
                 player.name = name;
                 player.bet = bet;
                 player.token = token;
+                if (wallet) player.wallet = wallet;
                 await player.save();
             }
 
             socket.data.playerId = player._id.toString();
             socket.data.gameId = game.id;
             socket.data.wallet = wallet;
+            socket.data.deviceId = deviceId;
             socket.data.name = name;
             socket.data.isSpectator = false;
 
@@ -894,10 +905,12 @@ io.on("connection", async (socket) => {
         try {
             const playerId = data?.playerId;
             const wallet = normalizeWallet(data?.wallet);
-            if (!playerId && !wallet) return socket.emit("error", { message: "playerId ou wallet requis." });
+            const deviceId = normalizeWallet(data?.deviceId); // <-- NOUVEAU
+            if (!playerId && !wallet && !deviceId) return socket.emit("error", { message: "playerId, wallet ou deviceId requis." });
 
             const query = { gameId: game.id };
             if (playerId) query._id = playerId;
+            else if (deviceId) query.deviceId = deviceId;
             else query.wallet = wallet;
 
             const player = await Player.findOne(query);
@@ -906,6 +919,7 @@ io.on("connection", async (socket) => {
             socket.data.playerId = player._id.toString();
             socket.data.gameId = game.id;
             socket.data.wallet = player.wallet;
+            socket.data.deviceId = player.deviceId;
             socket.data.name = player.name;
             socket.data.isSpectator = false;
 
@@ -1085,6 +1099,7 @@ app.post("/api/join", async (req, res) => {
     try {
         const name = String(req.body?.name || "").trim().substring(0, 30);
         const wallet = normalizeWallet(req.body?.wallet);
+        const deviceId = normalizeWallet(req.body?.deviceId); // <-- NOUVEAU
         const bet = Number(req.body?.bet);
         const token = String(req.body?.token || "USDT").trim();
 
@@ -1094,13 +1109,20 @@ app.post("/api/join", async (req, res) => {
         if (!SUPPORTED_TOKENS[token]) return res.status(400).json({ success: false, message: "Token non supporté." });
         if (game.status !== "running") return res.status(400).json({ success: false, message: "La partie n'est pas ouverte." });
 
-        let player = await Player.findOne({ gameId: game.id, wallet });
+        let player;
+        if (deviceId) {
+            player = await Player.findOne({ gameId: game.id, deviceId });
+        } else {
+            player = await Player.findOne({ gameId: game.id, wallet });
+        }
+        
         if (!player) {
-            player = await Player.create({ gameId: game.id, name, wallet, taps: 0, bet, paid: false, token });
+            player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, bet, paid: false, token });
         } else {
             player.name = name;
             player.bet = bet;
             player.token = token;
+            if (wallet) player.wallet = wallet;
             await player.save();
         }
 
@@ -1133,10 +1155,12 @@ app.get("/api/player/status", async (req, res) => {
     try {
         const playerId = String(req.query?.playerId || "").trim();
         const wallet = normalizeWallet(req.query?.wallet);
-        if (!playerId && !wallet) return res.status(400).json({ success: false, message: "playerId ou wallet requis." });
+        const deviceId = normalizeWallet(req.query?.deviceId); // <-- NOUVEAU
+        if (!playerId && !wallet && !deviceId) return res.status(400).json({ success: false, message: "playerId, wallet ou deviceId requis." });
 
         const query = { gameId: game.id };
         if (playerId) query._id = playerId;
+        else if (deviceId) query.deviceId = deviceId;
         else query.wallet = wallet;
 
         const player = await Player.findOne(query);
@@ -1313,12 +1337,14 @@ app.get("/api/player/history", async (req, res) => {
     try {
         const playerId = String(req.query?.playerId || "").trim();
         const wallet = normalizeWallet(req.query?.wallet);
+        const deviceId = normalizeWallet(req.query?.deviceId); // <-- NOUVEAU
 
-        if (!playerId && !wallet) return res.status(400).json({ success: false, message: "playerId ou wallet requis." });
+        if (!playerId && !wallet && !deviceId) return res.status(400).json({ success: false, message: "playerId, wallet ou deviceId requis." });
 
-        // Trouver le joueur (soit par son ID stocké en localStorage, soit par son wallet)
+        // Trouver le joueur (soit par son ID stocké en localStorage, soit par son deviceId, soit par son wallet)
         const query = {};
         if (playerId) query._id = playerId;
+        else if (deviceId) query.deviceId = deviceId;
         else query.wallet = wallet;
 
         // On cherche dans la collection History qui enregistre les gains
