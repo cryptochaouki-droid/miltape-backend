@@ -292,9 +292,45 @@ async function checkPendingPayments() {
 }
 
 // ============================================================
-// [CORRECTION] LOGIQUE DU JEU (Fonctions complètes)
+// [AJOUT CRUCIAL] FONCTIONS BROADCAST ET JACKPOT
 // ============================================================
+async function broadcastGameState() {
+    try {
+        const players = await Player.find({ gameId: game.id }).select('name taps wallet bet paid token depositAmount').sort({ taps: -1 }).limit(50);
+        const remainingSeconds = getRemainingSeconds();
+        
+        io.emit("game:state", {
+            game: {
+                id: game.id,
+                status: game.status,
+                startsAt: game.startedAt,
+                endsAt: game.endsAt,
+                remainingSeconds: remainingSeconds
+            },
+            players: players
+        });
+    } catch (error) {
+        console.error("Erreur broadcastGameState:", error.message);
+    }
+}
 
+async function emitJackpotUpdate() {
+    try {
+        const weekStart = new Date();
+        weekStart.setHours(0, 0, 0, 0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+        const jackpot = await Jackpot.findOne({ weekStart });
+        const prize = jackpot ? jackpot.accumulatedFund : 0;
+        io.emit("jackpot:update", { prize: prize });
+    } catch (error) {
+        console.error("Erreur emitJackpotUpdate:", error.message);
+    }
+}
+
+// ============================================================
+// LOGIQUE DU JEU (Fonctions complètes)
+// ============================================================
 async function startGame() {
     console.log("🎮 Démarrage de la partie...");
     game.id = generateGameId();
@@ -305,7 +341,6 @@ async function startGame() {
 
     io.emit("game:started", { gameId: game.id, endsAt: game.endsAt, duration: GAME_DURATION_SECONDS });
 
-    // Programme la fin de partie
     if (gameTimer) clearTimeout(gameTimer);
     gameTimer = setTimeout(async () => {
         await finishGame();
@@ -345,7 +380,6 @@ async function finishGame() {
             });
         }
 
-        // Mise à jour du Jackpot
         const weekStart = new Date();
         weekStart.setHours(0,0,0,0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -359,7 +393,6 @@ async function finishGame() {
 
     io.emit("game:finished", { gameId: game.id, winners: players.slice(0, 3).map(p => ({ name: p.name, taps: p.taps, bet: p.bet })) });
 
-    // Réinitialise le jeu et planifie la prochaine partie
     game.status = "waiting";
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
     nextGameTimeout = setTimeout(() => startGame(), 10000); // Nouvelle partie dans 10 secondes
@@ -371,7 +404,8 @@ async function finishGame() {
 
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
-    await broadcastGameState();
+    // Ces fonctions sont désormais définies plus haut
+    await broadcastGameState(); 
     await emitJackpotUpdate();
 
     socket.on("player:join", async (data) => {
@@ -429,10 +463,9 @@ io.on("connection", async (socket) => {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
 
-            const taps = Math.max(0, Math.min(10, Number(data?.taps) || 1)); // Limite de taps par requête
+            const taps = Math.max(0, Math.min(10, Number(data?.taps) || 1));
             await Player.updateOne({ _id: playerId }, { $inc: { taps: taps } });
             
-            // Mise à jour en temps réel pour les autres joueurs
             const player = await Player.findById(playerId).select('name taps');
             io.emit("player:update", { id: playerId, name: player.name, taps: player.taps });
         } catch (error) {
