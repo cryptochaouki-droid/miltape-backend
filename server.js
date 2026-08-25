@@ -65,9 +65,9 @@ const server = http.createServer(app);
 app.use(helmet());
 app.set('trust proxy', 1);
 
-// Autorise TOUTES les origines
-const FRONTEND_ORIGINS = ["*"]; 
-app.use(cors({ origin: FRONTEND_ORIGINS, credentials: true }));
+// ✂️✂️✂️ CORRECTION CRUCIALE DU CORS (Ne plus utiliser les crochets ni credentials) ✂️✂️✂️
+const FRONTEND_ORIGINS = "*"; 
+app.use(cors({ origin: FRONTEND_ORIGINS }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
@@ -82,7 +82,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 const io = new Server(server, {
-    cors: { origin: FRONTEND_ORIGINS, methods: ["GET", "POST"], credentials: true }
+    cors: { origin: FRONTEND_ORIGINS, methods: ["GET", "POST"] }
 });
 
 mongoose.set("strictQuery", true);
@@ -252,7 +252,6 @@ async function checkPendingPayments() {
         const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
 
         for (const tx of allTransactions) {
-            // ✅ Protéger chaque transaction contre les erreurs de format imprévues
             try {
                 const txId = tx.transaction_id || tx.txID;
                 let token = null;
