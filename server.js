@@ -209,6 +209,15 @@ async function verifyOnChain(txId, expectedAmount, token = 'USDT') {
     return false;
 }
 
+// FONCTION AJOUTÉE : Récupération des transactions TRX via l'API REST
+async function getIncomingTrxTransactions(address) {
+    const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=30&only_confirmed=true`;
+    const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
+    const res = await fetch(url, { headers });
+    const data = await res.json();
+    return data.data || [];
+}
+
 async function getIncomingTrc20Transactions(address) {
     const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=30&only_confirmed=true`;
     const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
@@ -217,13 +226,14 @@ async function getIncomingTrc20Transactions(address) {
     return data.data || [];
 }
 
+// CORRECTION ICI : Utilisation de l'API REST pour le TRX
 async function checkPendingPayments() {
     if (game.status !== "running") return;
     try {
         const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } });
         if (unpaidPlayers.length === 0) return;
 
-        const trxTransactions = await tronWeb.trx.getTransactionsRelated(MILTAPE_WALLET, 'in', 30, 0);
+        const trxTransactions = await getIncomingTrxTransactions(MILTAPE_WALLET);
         const trc20Transactions = await getIncomingTrc20Transactions(MILTAPE_WALLET);
         const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
 
@@ -320,7 +330,6 @@ async function startGame() {
     console.log(`✅ Partie ${game.id} lancée. Fin dans ${GAME_DURATION_SECONDS} secondes.`);
 }
 
-// CORRECTION MAJEURE ICI : Protection complète contre le crash
 async function finishGame() {
     console.log("🏁 Fin de la partie en cours...");
     game.status = "finished";
@@ -358,10 +367,8 @@ async function finishGame() {
         io.emit("game:finished", { gameId: game.id, winners: players.slice(0, 3).map(p => ({ name: p.name, taps: p.taps, bet: p.bet })) });
 
     } catch (error) {
-        // On attrape l'erreur au lieu de laisser le serveur planter
         console.error("❌ Erreur dans finishGame :", error.message);
     } finally {
-        // On planifie TOUJOURS la prochaine partie, même en cas d'erreur
         game.status = "waiting";
         if (nextGameTimeout) clearTimeout(nextGameTimeout);
         nextGameTimeout = setTimeout(() => startGame(), 10000);
