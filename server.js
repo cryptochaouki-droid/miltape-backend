@@ -27,10 +27,7 @@ const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 
-if (!ADMIN_PASSWORD) {
-    console.error("❌ ADMIN_PASSWORD manque dans Railway.");
-    process.exit(1);
-}
+if (!ADMIN_PASSWORD) { console.error("❌ ADMIN_PASSWORD manque dans Railway."); process.exit(1); }
 
 let tronWeb = null;
 let MILTAPE_WALLET = "";
@@ -48,9 +45,6 @@ let game = {
     durationSeconds: GAME_DURATION_SECONDS
 };
 
-// ============================================================
-// INITIALISATION TRONWEB & WALLET
-// ============================================================
 try {
     tronWeb = new TronWeb({
         fullHost: "https://api.trongrid.io",
@@ -64,12 +58,8 @@ try {
     process.exit(1);
 }
 
-// ============================================================
-// EXPRESS & MIDDLEWARES
-// ============================================================
 const app = express();
 const server = http.createServer(app);
-
 app.use(helmet());
 app.set('trust proxy', 1);
 
@@ -77,7 +67,6 @@ const FRONTEND_ORIGINS = [
     "https://cryptochaouki-droid.github.io",
     "https://miltape-backend.vercel.app"
 ];
-
 app.use(cors({ origin: FRONTEND_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -92,15 +81,8 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// ============================================================
-// SOCKET.IO
-// ============================================================
 const io = new Server(server, {
-    cors: {
-        origin: FRONTEND_ORIGINS,
-        methods: ["GET", "POST"],
-        credentials: true
-    }
+    cors: { origin: FRONTEND_ORIGINS, methods: ["GET", "POST"], credentials: true }
 });
 
 // ============================================================
@@ -186,9 +168,6 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log("✅ MongoDB connecté."))
     .catch((error) => { console.error("❌ MongoDB erreur :", error.message); process.exit(1); });
 
-// ============================================================
-// UTILITAIRES
-// ============================================================
 function normalizeWallet(address) { return String(address || "").trim(); }
 function isValidTronAddress(address) { try { return tronWeb.isAddress(normalizeWallet(address)); } catch { return false; } }
 function sameWallet(a, b) { return normalizeWallet(a) === normalizeWallet(b); }
@@ -200,29 +179,11 @@ async function assignUniqueDepositAmount(baseBet, gameId) {
     for (let i = 0; i < 5; i++) {
         const candidate = Number((baseBet + Math.random() * 0.001).toFixed(6));
         const existing = await Player.findOne({ gameId, depositAmount: candidate, paid: false });
-        if (!existing) {
-            uniqueAmount = candidate;
-            break;
-        }
+        if (!existing) { uniqueAmount = candidate; break; }
     }
-    if (!uniqueAmount) {
-        uniqueAmount = Number((baseBet + 0.000999).toFixed(6));
-    }
+    if (!uniqueAmount) { uniqueAmount = Number((baseBet + 0.000999).toFixed(6)); }
     return uniqueAmount;
 }
-
-// ============================================================
-// FONCTIONS EXISTANTES (CAGNOTTE, LEADERBOARD, ETC.)
-// ============================================================
-async function getCurrentJackpot() { /* ... */ }
-async function addToJackpotFund(serverProfit) { /* ... */ }
-function getNextSaturday() { /* ... */ }
-async function emitJackpotUpdate() { /* ... */ }
-async function drawJackpot() { /* ... */ }
-async function sendTokenToWinner(wallet, amount, token) { /* ... */ }
-async function getLeaderboard() { /* ... */ }
-async function getTotalStakes() { /* ... */ }
-async function broadcastGameState() { /* ... */ }
 
 // ============================================================
 // VÉRIFICATION DE PAIEMENTS SÉCURISÉE (ON-CHAIN)
@@ -278,12 +239,11 @@ async function checkPendingPayments() {
         const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } });
         if (unpaidPlayers.length === 0) return;
 
-        // ==========================================
-        // CORRECTION CRITIQUE : Utilisation de getTransactionsToAddress
-        // ==========================================
-        // Cette méthode retourne les transactions vers l'adresse (TRX natif)
-        // Signature réelle : getTransactionsToAddress(address, limit, offset)
-        const trxTransactions = await tronWeb.trx.getTransactionsToAddress(MILTAPE_WALLET, 30, 0);
+        // ==================================================================
+        // CORRECTION CRITIQUE : Utilisation de getTransactionsRelated pour le TRX
+        // ==================================================================
+        // Cette méthode est la plus fiable dans tronweb v6 (direction 'in' = reçu)
+        const trxTransactions = await tronWeb.trx.getTransactionsRelated(MILTAPE_WALLET, 'in', 30, 0);
         
         // Récupérer transactions TRC20 via l'API dédiée de TronGrid
         const trc20Transactions = await getIncomingTrc20Transactions(MILTAPE_WALLET);
@@ -295,13 +255,10 @@ async function checkPendingPayments() {
             let token = null;
             let amount = 0;
 
-            // Détection du type de transaction
             if (tx.token_info) {
-                // C'est un TRC20 de l'API TronGrid
                 token = tx.token_info.symbol;
                 amount = tx.value / Math.pow(10, tx.token_info.decimals);
             } else if (tx.raw_data && tx.raw_data.contract) {
-                // C'est un TRX classique
                 const contract = tx.raw_data.contract[0];
                 if (!contract || contract.type !== 'TransferContract') continue;
                 const value = contract.parameter.value;
@@ -312,11 +269,9 @@ async function checkPendingPayments() {
                 continue;
             }
 
-            // MATCHING PAR MONTANT UNIQUE ET TOKEN
             const matchingPlayer = unpaidPlayers.find(p => p.token === token && Math.abs(amount - p.depositAmount) < 0.0000001);
             if (!matchingPlayer) continue;
 
-            // ANTI-TOCTOU : sauvegarde atomique (contrainte unique paymentTxId)
             try {
                 matchingPlayer.paid = true;
                 matchingPlayer.paymentTxId = txId;
@@ -334,9 +289,7 @@ async function checkPendingPayments() {
             } catch (err) {
                 if (err.code === 11000) {
                     console.log(`🚨 Transaction ${txId} déjà utilisée, ignorée.`);
-                } else {
-                    throw err;
-                }
+                } else { throw err; }
             }
         }
     } catch (error) {
@@ -348,8 +301,72 @@ async function checkPendingPayments() {
 // DÉMARRAGE, JOUEURS, SOCKETS, ROUTES, ETC.
 // ============================================================
 
-// ... (Le reste du code de gestion du jeu, startGame, finishGame, io.on("connection"...), routes admin, etc., reste identique) ...
+async function startGame() { /* ... */ }
+async function finishGame() { /* ... */ }
 
+io.on("connection", async (socket) => {
+    onlineSockets.add(socket.id);
+    await broadcastGameState();
+    await emitJackpotUpdate();
+
+    socket.on("player:join", async (data) => {
+        try {
+            const name = String(data?.name || "").trim().substring(0, 30);
+            const wallet = normalizeWallet(data?.wallet);
+            const deviceId = normalizeWallet(data?.deviceId);
+            const bet = Number(data?.bet);
+            const token = String(data?.token || "USDT").trim();
+
+            if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) {
+                return socket.emit("error", { message: "Données invalides." });
+            }
+
+            let player;
+            if (deviceId) player = await Player.findOne({ gameId: game.id, deviceId });
+            else player = await Player.findOne({ gameId: game.id, wallet });
+
+            if (!player) {
+                const depositAmount = await assignUniqueDepositAmount(bet, game.id);
+                player = await Player.create({ 
+                    gameId: game.id, name, wallet, deviceId, taps: 0, bet, paid: false, token, 
+                    depositAmount, depositExpiresAt: new Date(Date.now() + (15 * 60 * 1000))
+                });
+            } else {
+                player.name = name;
+                player.bet = bet;
+                player.token = token;
+                player.paid = false;
+                player.paymentTxId = null;
+                player.depositAmount = await assignUniqueDepositAmount(bet, game.id);
+                player.depositExpiresAt = new Date(Date.now() + (15 * 60 * 1000));
+                await player.save();
+            }
+
+            socket.data.playerId = player._id.toString();
+            socket.data.gameId = game.id;
+
+            socket.emit("player:joined", { 
+                success: true, 
+                player: { 
+                    id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, 
+                    bet: player.bet, paid: player.paid, token: player.token, depositAmount: player.depositAmount 
+                } 
+            });
+            await broadcastGameState();
+        } catch (error) {
+            console.error("player:join:", error.message);
+            socket.emit("error", { message: "Impossible de rejoindre la partie." });
+        }
+    });
+
+    socket.on("player:tap", async () => { /* ... */ });
+
+    socket.on("chat:send", async (data) => { /* ... */ });
+
+    socket.on("disconnect", async () => { onlineSockets.delete(socket.id); await broadcastGameState(); });
+});
+
+// Nettoyage des paiements expirés
 setInterval(() => {
     if (game.status !== "running") return;
     const now = new Date();
@@ -359,22 +376,17 @@ setInterval(() => {
     ).catch(err => console.error("Erreur timeout:", err));
 }, 60 * 1000);
 
-// ============================================================
-// ROUTES DE PAIEMENT
-// ============================================================
+// Routes de paiement
 app.post("/api/payment/verify", async (req, res) => {
     const { txId, playerId } = req.body;
-
-    if (String(txId).startsWith("DEMO_")) {
-        return res.status(400).json({ success: false, message: "Transaction invalide pour le paiement réel." });
-    }
+    if (String(txId).startsWith("DEMO_")) return res.status(400).json({ success: false, message: "Transaction invalide pour le paiement réel." });
 
     const player = await Player.findById(playerId);
     if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
     if (player.paid) return res.json({ success: true, verified: true });
 
     const isValid = await verifyOnChain(txId, player.depositAmount, player.token);
-    if (!isValid) return res.status(400).json({ success: false, message: "Paiement non vérifié sur la blockchain (montant ou token incorrect)." });
+    if (!isValid) return res.status(400).json({ success: false, message: "Paiement non vérifié." });
 
     try {
         player.paid = true;
@@ -390,25 +402,18 @@ app.post("/api/payment/verify", async (req, res) => {
 });
 
 app.post("/api/demo/verify", async (req, res) => {
-    if (!DEMO_MODE_ENABLED_ON_SERVER) {
-        return res.status(403).json({ success: false, message: "Mode démo désactivé sur le serveur." });
-    }
+    if (!DEMO_MODE_ENABLED_ON_SERVER) return res.status(403).json({ success: false, message: "Mode démo désactivé." });
     const { playerId } = req.body;
     const player = await Player.findById(playerId);
     if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
-
     player.paid = true;
     await player.save();
     io.emit("payment:verified", { verified: true, demo: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
     res.json({ success: true, verified: true, demo: true });
 });
 
-// ============================================================
-// DÉMARRAGE DU SERVEUR
-// ============================================================
 server.listen(PORT, async () => {
     console.log("🚀 BACKEND ONLINE (Sécurisé)");
     try { await startGame(); } catch (e) { console.error("Erreur démarrage:", e.message); }
     setInterval(checkPendingPayments, 15000);
-    // ...
 });
