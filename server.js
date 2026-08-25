@@ -556,7 +556,8 @@ async function checkPendingPayments() {
         });
         if (unpaidPlayers.length === 0) return;
 
-        const transactions = await tronWeb.trx.getAccountTransactions(MILTAPE_WALLET, { limit: 30, onlyConfirmed: true });
+        // CORRECTION : Remplacement de getAccountTransactions par getTransactions
+        const transactions = await tronWeb.trx.getTransactions(MILTAPE_WALLET, { limit: 30, onlyConfirmed: true });
         if (!transactions || transactions.length === 0) return;
 
         for (const tx of transactions) {
