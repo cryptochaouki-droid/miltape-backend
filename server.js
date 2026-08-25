@@ -8,6 +8,14 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
 
+// ✅✅✅ GARDE-FOUS ULTIMES (Empêche le serveur de planter sur SIGTERM) ✅✅✅
+process.on('uncaughtException', (err) => {
+    console.error('❌ Erreur non gérée interceptée (le serveur continue) :', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('❌ Rejet non géré intercepté (le serveur continue) :', reason);
+});
+
 const GAME_DURATION_SECONDS = 10 * 60;
 
 const SUPPORTED_TOKENS = {
@@ -57,7 +65,7 @@ const server = http.createServer(app);
 app.use(helmet());
 app.set('trust proxy', 1);
 
-// ✂️ CORRECTION FINALE ICI : Autorise TOUTES les origines (pour tester sur mobile)
+// Autorise TOUTES les origines
 const FRONTEND_ORIGINS = ["*"]; 
 app.use(cors({ origin: FRONTEND_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
@@ -208,19 +216,29 @@ async function verifyOnChain(txId, expectedAmount, token = 'USDT') {
 }
 
 async function getIncomingTrxTransactions(address) {
-    const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=30&only_confirmed=true`;
-    const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
-    const res = await fetch(url, { headers });
-    const data = await res.json();
-    return data.data || [];
+    try {
+        const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=30&only_confirmed=true`;
+        const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
+        const res = await fetch(url, { headers });
+        const data = await res.json();
+        return data.data || [];
+    } catch (e) {
+        console.log("Erreur API TRX (ignorée) :", e.message);
+        return [];
+    }
 }
 
 async function getIncomingTrc20Transactions(address) {
-    const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=30&only_confirmed=true`;
-    const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
-    const res = await fetch(url, { headers });
-    const data = await res.json();
-    return data.data || [];
+    try {
+        const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=30&only_confirmed=true`;
+        const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
+        const res = await fetch(url, { headers });
+        const data = await res.json();
+        return data.data || [];
+    } catch (e) {
+        console.log("Erreur API TRC20 (ignorée) :", e.message);
+        return [];
+    }
 }
 
 async function checkPendingPayments() {
@@ -234,28 +252,29 @@ async function checkPendingPayments() {
         const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
 
         for (const tx of allTransactions) {
-            const txId = tx.transaction_id || tx.txID;
-            let token = null;
-            let amount = 0;
-
-            if (tx.token_info) {
-                token = tx.token_info.symbol;
-                amount = tx.value / Math.pow(10, tx.token_info.decimals);
-            } else if (tx.raw_data && tx.raw_data.contract) {
-                const contract = tx.raw_data.contract[0];
-                if (!contract || contract.type !== 'TransferContract') continue;
-                const value = contract.parameter.value;
-                if (tronWeb.address.fromHex(value.to_address) !== MILTAPE_WALLET) continue;
-                token = 'TRX';
-                amount = value.amount / 1e6;
-            } else {
-                continue;
-            }
-
-            const matchingPlayer = unpaidPlayers.find(p => p.token === token && Math.abs(amount - p.depositAmount) < 0.0000001);
-            if (!matchingPlayer) continue;
-
+            // ✅ Protéger chaque transaction contre les erreurs de format imprévues
             try {
+                const txId = tx.transaction_id || tx.txID;
+                let token = null;
+                let amount = 0;
+
+                if (tx.token_info) {
+                    token = tx.token_info.symbol;
+                    amount = tx.value / Math.pow(10, tx.token_info.decimals);
+                } else if (tx.raw_data && tx.raw_data.contract && tx.raw_data.contract[0]) {
+                    const contract = tx.raw_data.contract[0];
+                    if (!contract || contract.type !== 'TransferContract') continue;
+                    const value = contract.parameter.value;
+                    if (tronWeb.address.fromHex(value.to_address) !== MILTAPE_WALLET) continue;
+                    token = 'TRX';
+                    amount = value.amount / 1e6;
+                } else {
+                    continue;
+                }
+
+                const matchingPlayer = unpaidPlayers.find(p => p.token === token && Math.abs(amount - p.depositAmount) < 0.0000001);
+                if (!matchingPlayer) continue;
+
                 matchingPlayer.paid = true;
                 matchingPlayer.paymentTxId = txId;
                 matchingPlayer.depositAmount = null;
@@ -272,7 +291,9 @@ async function checkPendingPayments() {
             } catch (err) {
                 if (err.code === 11000) {
                     console.log(`🚨 Transaction ${txId} déjà utilisée, ignorée.`);
-                } else { throw err; }
+                } else {
+                    console.log("Transaction ignorée (format inattendu) :", err.message);
+                }
             }
         }
     } catch (error) {
