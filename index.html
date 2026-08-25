@@ -98,8 +98,9 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   font-size: 12px;
 }
 .tap-zone #timerRule .rule-icon { font-size: 16px; color: #0d47a1; }
-.tap-zone #timerRule strong { font-size: 20px; color: #00b0ff !important; text-shadow: 0 0 8px #00b0ff; font-family: 'Orbitron', sans-serif; }
-.tap-zone #timerRule small { font-size: 10px; color: #0d47a1; font-weight: 700; }
+/* Correction de la couleur pour une meilleure visibilité */
+.tap-zone #timerRule strong { font-size: 20px; color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); font-family: 'Orbitron', sans-serif; }
+.tap-zone #timerRule small { font-size: 10px; color: #000000 !important; font-weight: 800; }
 /* ========================================================== */
 
 /* ========================================================== */
@@ -231,8 +232,8 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .section-title strong{color:#0d47a1!important;font-size:16px!important;margin-left:6px!important}
 #timerRule{background:rgba(255,255,255,.85)!important;border:1px solid rgba(255,255,255,.8)!important;padding:6px 16px!important;box-shadow:0 0 15px rgba(100,181,246,0.5)!important}
 #timerRule .rule-icon{font-size:20px!important;color:#0d47a1}
-#timerRuleValue{font-size:22px!important;font-weight:900!important;color:#00b0ff!important;text-shadow:0 0 8px #00b0ff!important;font-family:'Orbitron',sans-serif!important}
-#timerRule small{font-size:10px!important;color:#0d47a1!important;font-weight:700!important}
+#timerRuleValue{font-size:22px!important;font-weight:900!important;color:#0d47a1!important;text-shadow:1px 1px 2px rgba(255,255,255,0.8)!important;font-family:'Orbitron',sans-serif!important}
+#timerRule small{font-size:10px!important;color:#000000!important;font-weight:800!important}
 .stat-box{background:rgba(100,181,246,.06)!important;border:1px solid rgba(100,181,246,.12)!important;padding:20px!important;box-shadow:0 0 40px rgba(100,181,246,.04)!important;border-radius:24px!important}
 .stat-box small{display:block;font-size:14px!important;color:rgba(255,255,255,.8)!important;font-family:'Poppins',sans-serif;letter-spacing:2px!important;font-weight:700!important}
 .stat-box strong{font-size:56px!important;font-weight:900!important;color:#64b5f6!important;font-family:'Orbitron',sans-serif!important;text-shadow:0 0 30px rgba(100,181,246,.25),0 0 60px rgba(100,181,246,.08)!important}
@@ -520,7 +521,18 @@ function hapticSuccess(){try{if(window.Telegram&&window.Telegram.WebApp)window.T
 function hapticError(){try{if(window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.HapticFeedback.notificationOccurred('error')}catch(e){}}
 let demoMode=localStorage.getItem("miltape_demo")==="true"||!1;
 function updateDemoUI(){if(demoMode){if(demoStatus){demoStatus.textContent="🔬 Mode démo ACTIVÉ (paiements simulés)";demoStatus.style.color="#64b5f6"}if(demoBtn){demoBtn.style.background="rgba(100,181,246,0.2)";demoBtn.style.borderColor="rgba(100,181,246,0.4)";demoBtn.style.color="#64b5f6"}if(demoToggleLabel)demoToggleLabel.textContent="ON";if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !"}else{if(demoStatus){demoStatus.textContent="🔒 Mode démo désactivé";demoStatus.style.color="rgba(255,255,255,0.4)"}if(demoBtn){demoBtn.style.background="rgba(100,181,246,0.12)";demoBtn.style.borderColor="rgba(100,181,246,0.2)";demoBtn.style.color="#64b5f6"}if(demoToggleLabel)demoToggleLabel.textContent="OFF";if(tapMessage)tapMessage.innerText="⚡ ÉTAPE 1 : Rejoins la partie !"}}
-function toggleDemoMode(){demoMode=!demoMode;localStorage.setItem("miltape_demo",String(demoMode));updateDemoUI();hapticMedium();alert(demoMode?"🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !":"🔒 Mode démo désactivé.")}
+function toggleDemoMode(){
+    demoMode = !demoMode;
+    localStorage.setItem("miltape_demo", String(demoMode));
+    updateDemoUI();
+    hapticMedium();
+    // Fix : Si on quitte le mode démo, on remet le bouton "JOUER MAINTENANT" visible
+    if (!demoMode) {
+        if (enterChallenge) enterChallenge.style.display = 'block';
+        if (payButton) payButton.style.display = 'none';
+    }
+    alert(demoMode ? "🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !" : "🔒 Mode démo désactivé.");
+}
 if(demoBtn)demoBtn.addEventListener('click',toggleDemoMode);
 updateDemoUI();
 async function restoreSession(){const playerId=localStorage.getItem("miltape_player_id"),wallet=localStorage.getItem("miltape_player_wallet"),name=localStorage.getItem("miltape_player_name");if(!playerId||!wallet||!name){console.log("🔍 Aucune session trouvée.");return!1}try{const res=await fetch(API_URL+"/api/status"),data=await res.json();if(data.status!=="running"){console.log("⏰ La partie est terminée, pas de restauration.");localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");return!1}}catch(error){console.error("❌ Erreur vérification statut :",error);return!1}socket.emit("player:restore",{playerId,wallet});console.log("🔄 Demande de restauration envoyée...");return!0}
