@@ -74,8 +74,9 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .legal-content p,.legal-content li{font-size:13px;color:#b8b8b8;line-height:1.5}
 .legal-close{position:absolute;top:12px;right:15px;background:0 0;border:none;color:#e0e0e0;font-size:24px;cursor:pointer}
 .tap-zone{width:100%;min-height:310px;display:flex;align-items:center;justify-content:center;position:relative;padding:10px 0}
+
 /* ========================================================== */
-/* ============ CHRONO & SCORE EN DIRECT (CRISTAL) ========== */
+/* ============ CHRONO & SCORE EN DIRECT (ALIGNÉS) ========== */
 /* ========================================================== */
 .tap-zone #timerRule, .tap-zone #liveTapsRule {
   position: absolute;
@@ -88,11 +89,13 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   border: 1px solid rgba(255,255,255,0.8);
   box-shadow: 0 0 15px rgba(100,181,246,0.5), inset 0 0 10px rgba(255,255,255,0.5);
   border-radius: 16px;
-  padding: 5px 14px;
+  padding: 0 12px;
+  height: 44px; /* Hauteur identique pour les deux */
   display: flex !important;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  max-width: 140px;
+  max-width: 160px;
   white-space: nowrap;
   font-size: 12px;
 }
@@ -761,7 +764,6 @@ socket.on("player:joined",(data)=>{
         if(tapButton)tapButton.disabled=!0;
         if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if(enterChallenge)enterChallenge.style.display="none";
-        // Mise à jour du Score en haut à droite
         if(tapButtonCount)tapButtonCount.innerText=data.player.taps;
         if(liveTapsCount)liveTapsCount.innerText=data.player.taps;
         
@@ -801,7 +803,6 @@ socket.on("player:restored",(data)=>{
             }
         }
         if(enterChallenge)enterChallenge.style.display="none";
-        // Mise à jour du Score en haut à droite
         if(tapButtonCount)tapButtonCount.innerText=data.player.taps;
         if(liveTapsCount)liveTapsCount.innerText=data.player.taps;
 
@@ -845,7 +846,6 @@ socket.on("timer:update",(data)=>{
 
 socket.on("game:finished",(data)=>{
     stopBackgroundMusic();
-    // Remise à zéro du Score en haut à droite
     if(tapButtonCount)tapButtonCount.innerText="0";
     if(liveTapsCount)liveTapsCount.innerText="0";
 
@@ -913,13 +913,12 @@ socket.on("game:finished",(data)=>{
 function launchConfetti(){const colors=['#64b5f6','#ffd700','#2ecc71','#42a5f5','#ff6b6b','#ffd93d','#6c5ce7','#fd79a8'];for(let i=0;i<60;i++){const c=document.createElement('div'),size=6+Math.random()*10,isCircle=Math.random()>.5;c.style.cssText='position:fixed;width:'+size+'px;height:'+(isCircle?size:size*.4)+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(isCircle?'50%':'2px')+';top:-10px;left:'+(Math.random()*100)+'%;z-index:9999;pointer-events:none;animation:confettiFall '+(2+Math.random()*2)+'s linear forwards;animation-delay:'+(Math.random()*.8)+'s;transform:rotate('+(Math.random()*360)+'deg);box-shadow:0 0 6px rgba(255,255,255,0.1)';document.body.appendChild(c);setTimeout(()=>c.remove(),4000)}}
 
 socket.on("player:score",(data)=>{
-    // Mise à jour du compteur sur le bouton ET en haut à droite
     if(tapButtonCount)tapButtonCount.innerText=data.taps;
     if(liveTapsCount)liveTapsCount.innerText=data.taps;
 });
 
 socket.on("totalStakes:update",(data)=>{const displayBet=document.getElementById('displayBet'),displayBetTop=document.getElementById('displayBetTop');if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);if(displayBetTop)displayBetTop.textContent="$"+formatAmount(data.totalStakes)});
-socket.on("online:count",(count)=>{if(onlineCount){onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>'+count+' EN LIGNE</span>'}});
+socket.on("online:count",(count)=>{if(onlineCount){onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>'+count+' EN LIGNE</span>'}});
 socket.on("leaderboard:update",(leaderboard)=>{if(leaderboardList){leaderboardList.innerHTML="";if(leaderboard.length===0){leaderboardList.innerHTML='<div class="empty-ranking">Aucun joueur pour le moment</div>';return}leaderboard.forEach(player=>{const div=document.createElement('div');div.className='leaderboard-item';const rankSpan=document.createElement('span');rankSpan.className='rank-badge';rankSpan.textContent=player.rank;const nameSpan=document.createElement('span');nameSpan.className='player-name';nameSpan.textContent=player.name;const scoreSpan=document.createElement('span');scoreSpan.className='player-score';scoreSpan.textContent=player.taps;div.appendChild(rankSpan);div.appendChild(nameSpan);div.appendChild(scoreSpan);leaderboardList.appendChild(div)})}});
 function sendMessage(){if(!chatInput)return;const text=chatInput.value.trim();if(text){if(text.length>500){alert("Message trop long (500 caractères max) !");return;}if(text.includes('<')||text.includes('>')){alert("Les balises HTML ne sont pas autorisées !");return;}socket.emit("chat:send",{message:text});chatInput.value=""}}
 if(chatSend)chatSend.addEventListener('click',sendMessage);
@@ -984,8 +983,9 @@ if(menuOverlay)menuOverlay.addEventListener('click',toggleMenu);
 if(resetGameBtn){resetGameBtn.addEventListener('click',function(){if(confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")){localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");localStorage.removeItem("miltape_spectator");localStorage.removeItem("miltape_demo");localStorage.removeItem("miltape_device_id");window.location.reload()}})}
 (function initTelegramBackButton(){try{if(window.Telegram&&window.Telegram.WebApp){const w=window.Telegram.WebApp;w.expand();w.BackButton.show();w.BackButton.onClick(function(){w.close()});console.log("✅ Telegram WebApp bouton retour initialisé")}}catch(e){console.log("ℹ️ Pas de Telegram WebApp détecté")}})();
 function getTelegramUser(){try{if(window.Telegram&&window.Telegram.WebApp){const user=window.Telegram.WebApp.initDataUnsafe?.user;if(user&&user.username)return user.username;if(user&&user.first_name)return user.first_name}return null}catch(e){return null}}
+
 // ==========================================
-// 28. CAGNOTTE – CHRONO CORRIGÉ
+// 28. CAGNOTTE – CHRONO CORRIGÉ (FONCTIONNEL)
 // ==========================================
 let jackpotCountdownInterval=null;
 function updateJackpotCountdown(nextDrawTime){
