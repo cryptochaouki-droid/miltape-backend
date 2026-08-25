@@ -504,6 +504,27 @@ const tapButton=document.getElementById('tapButton'),tapCount=document.getElemen
 let isPlaying=false,isPaid=false,myPlayerId=null,myBet=10,myWallet=null,myToken='USDT';
 const API_URL="https://miltape-backend-production.up.railway.app";
 
+// ==========================================================
+// NOUVELLE LOGIQUE ROBUSTE : GÉNÉRATION DU DEVICE ID
+// ==========================================================
+function getDeviceId() {
+    let deviceId = localStorage.getItem("miltape_device_id");
+    if (!deviceId) {
+        if (crypto.randomUUID) {
+            deviceId = crypto.randomUUID();
+        } else {
+            deviceId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        localStorage.setItem("miltape_device_id", deviceId);
+    }
+    return deviceId;
+}
+const deviceId = getDeviceId();
+// ==========================================================
+
 // Nettoyage initial du chat pour éviter les spams de code au chargement
 if(chatMessages) chatMessages.innerHTML = '<div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>';
 
@@ -526,7 +547,6 @@ function toggleDemoMode(){
     localStorage.setItem("miltape_demo", String(demoMode));
     updateDemoUI();
     hapticMedium();
-    // Fix : Si on quitte le mode démo, on remet le bouton "JOUER MAINTENANT" visible
     if (!demoMode) {
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (payButton) payButton.style.display = 'none';
@@ -535,16 +555,39 @@ function toggleDemoMode(){
 }
 if(demoBtn)demoBtn.addEventListener('click',toggleDemoMode);
 updateDemoUI();
-async function restoreSession(){const playerId=localStorage.getItem("miltape_player_id"),wallet=localStorage.getItem("miltape_player_wallet"),name=localStorage.getItem("miltape_player_name");if(!playerId||!wallet||!name){console.log("🔍 Aucune session trouvée.");return!1}try{const res=await fetch(API_URL+"/api/status"),data=await res.json();if(data.status!=="running"){console.log("⏰ La partie est terminée, pas de restauration.");localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");return!1}}catch(error){console.error("❌ Erreur vérification statut :",error);return!1}socket.emit("player:restore",{playerId,wallet});console.log("🔄 Demande de restauration envoyée...");return!0}
+async function restoreSession(){
+    const playerId=localStorage.getItem("miltape_player_id"),
+    wallet=localStorage.getItem("miltape_player_wallet"),
+    name=localStorage.getItem("miltape_player_name");
+    if(!playerId||!wallet||!name){console.log("🔍 Aucune session trouvée.");return!1}
+    try{const res=await fetch(API_URL+"/api/status"),data=await res.json();
+    if(data.status!=="running"){console.log("⏰ La partie est terminée, pas de restauration.");localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");return!1}}
+    catch(error){console.error("❌ Erreur vérification statut :",error);return!1}
+    // Ajout du deviceId
+    socket.emit("player:restore",{playerId, wallet, deviceId});
+    console.log("🔄 Demande de restauration envoyée...");return!0
+}
 socket.on('connect',async()=>{console.log('✅ Socket connecté avec ID :',socket.id);if(!demoMode&&tapMessage)tapMessage.innerText="✅ Connecté au serveur !";await restoreSession()});
 socket.on('reconnect',async()=>{console.log('🔄 Socket reconnecté !');await restoreSession()});
 socket.on('connect_error',(err)=>{console.error('❌ Erreur de connexion Socket :',err.message);hapticError();if(tapMessage)tapMessage.innerText="⚠️ Erreur de connexion au serveur."});
 socket.on('disconnect',(reason)=>{console.log('🔴 Socket déconnecté :',reason);if(tapMessage)tapMessage.innerText="🔴 Déconnecté du serveur."});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){console.log('👀 Page de nouveau visible – restauration de la session');if(localStorage.getItem("miltape_player_id"))restoreSession()}});
-function joinGame(){const telegramName=getTelegramUser();let name=telegramName||prompt("Entre ton pseudo pour le classement :");if(!name)return;let wallet;if(demoMode){try{if(typeof tronWeb!=='undefined'&&tronWeb&&tronWeb.createAccount){const account=tronWeb.createAccount();wallet=account.address.base58;console.log("🔬 Mode démo – Wallet valide généré :",wallet)}else{wallet="T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";console.warn("⚠️ TronWeb non disponible, utilisation du wallet par défaut.")}}catch(e){console.error("Erreur génération wallet démo :",e);wallet="T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"}}else{wallet=prompt("Entre ton adresse TRON (ex: T...) :");if(!wallet)return}const token=tokenSelect?tokenSelect.value:'USDT';let bet=10;
-// MODIFICATION : Gestion de la virgule et de la mise libre (0 à 1 Billion)
-if(betInput){const rawBet=parseFloat(String(betInput.value).replace(',', '.'));if(!isNaN(rawBet)&&rawBet>=0&&rawBet<=1000000000000){bet=rawBet}else{bet=10}}
-myBet=bet;myWallet=wallet;myToken=token;if(tapMessage)tapMessage.innerText="Connexion au serveur en cours...";socket.emit("player:join",{name,wallet,bet,token});hapticMedium()}
+function joinGame(){
+    const telegramName=getTelegramUser();
+    let name=telegramName||prompt("Entre ton pseudo pour le classement :");
+    if(!name)return;
+    let wallet;
+    if(demoMode){try{if(typeof tronWeb!=='undefined'&&tronWeb&&tronWeb.createAccount){const account=tronWeb.createAccount();wallet=account.address.base58;console.log("🔬 Mode démo – Wallet valide généré :",wallet)}else{wallet="T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";console.warn("⚠️ TronWeb non disponible, utilisation du wallet par défaut.")}}catch(e){console.error("Erreur génération wallet démo :",e);wallet="T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"}}
+    else{wallet=prompt("Entre ton adresse TRON (ex: T...) :");if(!wallet)return}
+    const token=tokenSelect?tokenSelect.value:'USDT';
+    let bet=10;
+    if(betInput){const rawBet=parseFloat(String(betInput.value).replace(',', '.'));if(!isNaN(rawBet)&&rawBet>=0&&rawBet<=1000000000000){bet=rawBet}else{bet=10}}
+    myBet=bet;myWallet=wallet;myToken=token;
+    if(tapMessage)tapMessage.innerText="Connexion au serveur en cours...";
+    // Ajout du deviceId dans l'émission de la partie
+    socket.emit("player:join",{name, wallet, bet, token, deviceId});
+    hapticMedium()
+}
 if(enterChallenge)enterChallenge.addEventListener('click',joinGame);
 if(enterChallengeTop)enterChallengeTop.addEventListener('click',joinGame);
 socket.on("player:joined",(data)=>{if(data.success){isPlaying=!0;isPaid=!1;myPlayerId=data.player.id;myToken=data.player.token||'USDT';if(tapButton)tapButton.disabled=!0;if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !";if(enterChallenge)enterChallenge.style.display="none";if(tapCount)tapCount.innerText=data.player.taps;if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO : "+data.player.name+", tape !";if(payButton)payButton.style.display='none';fetch(API_URL+"/api/payment/verify",{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({txId:"DEMO_"+Date.now()+"_"+Math.random().toString(36).substring(2,8),wallet:data.player.wallet,amount:data.player.bet,playerId:data.player.id,token:myToken})}).then(res=>res.json()).then(data=>{if(data.verified)console.log("✅ Mode démo : paiement simulé avec succès");else console.warn("⚠️ Mode démo : la simulation a échoué, mais le jeu continue.")}).catch(err=>console.error("Erreur mode démo :",err))}else{if(payButton){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}}hapticMedium()}});
@@ -561,7 +604,6 @@ socket.on("timer:update",(data)=>{const timerRuleValue=document.getElementById('
 socket.on("totalStakes:update",(data)=>{const displayBet=document.getElementById('displayBet'),displayBetTop=document.getElementById('displayBetTop');if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);if(displayBetTop)displayBetTop.textContent="$"+formatAmount(data.totalStakes)});
 socket.on("online:count",(count)=>{if(onlineCount){onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>'+count+' EN LIGNE</span>'}});
 socket.on("leaderboard:update",(leaderboard)=>{if(leaderboardList){leaderboardList.innerHTML="";if(leaderboard.length===0){leaderboardList.innerHTML='<div class="empty-ranking">Aucun joueur pour le moment</div>';return}leaderboard.forEach(player=>{const div=document.createElement('div');div.className='leaderboard-item';const rankSpan=document.createElement('span');rankSpan.className='rank-badge';rankSpan.textContent=player.rank;const nameSpan=document.createElement('span');nameSpan.className='player-name';nameSpan.textContent=player.name;const scoreSpan=document.createElement('span');scoreSpan.className='player-score';scoreSpan.textContent=player.taps;div.appendChild(rankSpan);div.appendChild(nameSpan);div.appendChild(scoreSpan);leaderboardList.appendChild(div)})}});
-// MODIFICATION : Sécurisation du chat (blocage du HTML et limite de longueur)
 function sendMessage(){
     if(!chatInput) return;
     let text = chatInput.value.trim();
@@ -600,7 +642,7 @@ function toggleMenu(){if(sideMenu&&menuOverlay){sideMenu.classList.toggle('show'
 if(menuButton)menuButton.addEventListener('click',toggleMenu);
 if(closeMenu)closeMenu.addEventListener('click',toggleMenu);
 if(menuOverlay)menuOverlay.addEventListener('click',toggleMenu);
-if(resetGameBtn){resetGameBtn.addEventListener('click',function(){if(confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")){localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");localStorage.removeItem("miltape_spectator");localStorage.removeItem("miltape_demo");window.location.reload()}})}
+if(resetGameBtn){resetGameBtn.addEventListener('click',function(){if(confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")){localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");localStorage.removeItem("miltape_spectator");localStorage.removeItem("miltape_demo");localStorage.removeItem("miltape_device_id");window.location.reload()}})}
 (function initTelegramBackButton(){try{if(window.Telegram&&window.Telegram.WebApp){const w=window.Telegram.WebApp;w.expand();w.BackButton.show();w.BackButton.onClick(function(){w.close()});console.log("✅ Telegram WebApp bouton retour initialisé")}}catch(e){console.log("ℹ️ Pas de Telegram WebApp détecté")}})();
 function getTelegramUser(){try{if(window.Telegram&&window.Telegram.WebApp){const user=window.Telegram.WebApp.initDataUnsafe?.user;if(user&&user.username)return user.username;if(user&&user.first_name)return user.first_name}return null}catch(e){return null}}
 // ==========================================
