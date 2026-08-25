@@ -205,33 +205,138 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .wallet-box strong,.wallet-badge-top .wb-value,.online strong{color:#fff}
 .online strong span:last-child{color:#fff}
 .wallet-button{color:#fff}
+</style>
 
-/* ===== NOUVEAU STYLE CAGNOTTE EMBELLIE ===== */
-#jackpotDisplay {
-    background: linear-gradient(135deg, rgba(13, 71, 161, 0.9) 0%, rgba(0, 188, 212, 0.4) 100%);
-    border: 1px solid rgba(100, 181, 246, 0.5);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(100, 181, 246, 0.2);
-    border-radius: 16px;
-    padding: 12px 16px;
-    margin: 12px;
-    backdrop-filter: blur(10px);
+<!-- NOUVEAU STYLE POUR LA CAGNOTTE PREMIUM -->
+<style>
+#jackpotDisplay{
     position: relative;
+    width: calc(100% - 24px);
+    margin: 12px auto;
+    padding: 20px 16px;
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(13, 71, 161, 0.9) 0%, rgba(10, 42, 92, 0.95) 50%, rgba(5, 18, 48, 0.98) 100%);
+    border: 1px solid rgba(100, 181, 246, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(100, 181, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     overflow: hidden;
-    animation: jackpotGlow 3s ease-in-out infinite alternate;
+    text-align: center;
+    animation: jackpotHaloPulse 3s ease-in-out infinite alternate;
+    z-index: 1;
 }
-@keyframes jackpotGlow {
-    0% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(100, 181, 246, 0.2); }
-    100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(100, 181, 246, 0.5); }
+#jackpotDisplay::before{
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -20%;
+    width: 140%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0, 188, 212, 0.15) 0%, rgba(100, 181, 246, 0.05) 40%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
 }
-#jackpotAmount { 
-    text-shadow: 0 0 20px rgba(100, 181, 246, 0.8); 
+@keyframes jackpotHaloPulse {
+    0% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 15px rgba(100,181,246,0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
+    100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(100,181,246,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+}
+.jackpot-badge{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+.jackpot-title{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
     font-weight: 900;
+    color: #fff;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 15px rgba(100, 181, 246, 0.8);
 }
-#jackpotCountdown {
-    text-shadow: 0 0 10px rgba(46, 204, 113, 0.6);
-    font-weight: 800;
+.jackpot-main-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.jackpot-left, .jackpot-right{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+}
+.jackpot-divider{
+    width: 2px;
+    height: 60px;
+    background: rgba(100, 181, 246, 0.3);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(100, 181, 246, 0.5);
+}
+.jackpot-label{
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+#jackpotAmount{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(100, 181, 246, 0.9);
+    line-height: 1.2;
+    transition: transform 0.2s ease;
+    animation: amountGlow 2s ease-in-out infinite alternate;
+}
+@keyframes amountGlow {
+    0% { text-shadow: 0 0 10px rgba(100, 181, 246, 0.5); transform: scale(1); }
+    100% { text-shadow: 0 0 25px rgba(100, 181, 246, 1); transform: scale(1.02); }
+}
+#jackpotCountdown{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #2ecc71;
+    text-shadow: 0 0 15px rgba(46, 204, 113, 0.8);
+    line-height: 1.2;
+}
+.jackpot-schedule{
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+@media (max-width: 430px) {
+    #jackpotAmount { font-size: 26px; }
+    #jackpotCountdown { font-size: 20px; }
+    .jackpot-title { font-size: 20px; }
+}
+@media (max-width: 360px) {
+    .jackpot-main-row { flex-direction: column; gap: 10px; }
+    .jackpot-divider { width: 60%; height: 2px; }
+    #jackpotAmount { font-size: 28px; }
+    #jackpotCountdown { font-size: 18px; }
 }
 </style>
+
 </head>
 <body>
 <div class="gem-sparkle"></div><div class="gem-sparkle"></div><div class="gem-sparkle"></div><div class="gem-sparkle"></div><div class="gem-sparkle"></div><div class="gem-sparkle"></div><div class="gem-sparkle"></div><div class="gem-sparkle"></div>
@@ -244,16 +349,26 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <main class="app">
 <div class="steps-guide"><span class="step-item"><span class="step-number">1</span> Rejoins</span><span class="step-arrow">→</span><span class="step-item"><span class="step-number">2</span> Paie</span><span class="step-arrow">→</span><span class="step-item"><span class="step-number">3</span> Tape</span><span class="step-arrow">→</span><span class="step-item"><span class="step-number">4</span> Gagne ×2</span></div>
 <header class="top-header"><button class="menu-button" id="menuButton" type="button">☰</button><div class="online"><strong id="onlineCount"><span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>1 EN LIGNE</span></strong></div><div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div><button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button></header>
+
+<!-- ===== CAGNOTTE PREMIUM ===== -->
 <div id="jackpotDisplay">
-    <div>
-        <span style="font-size:10px;color:rgba(255,255,255,.7)">🎁 CAGNOTTE DU SAMEDI</span>
-        <span id="jackpotAmount" style="display:block;font-size:18px;color:#fff">0 USDT</span>
-    </div>
-    <div style="text-align:right">
-        <span style="font-size:9px;color:rgba(255,255,255,.7)">Tirage dans</span>
-        <span id="jackpotCountdown" style="display:block;font-size:14px;color:#2ecc71">--</span>
+    <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
+    <div class="jackpot-title">🏆 JACKPOT</div>
+    <div class="jackpot-main-row">
+        <div class="jackpot-left">
+            <span class="jackpot-label">💰 MONTANT</span>
+            <span id="jackpotAmount">0 USDT</span>
+        </div>
+        <div class="jackpot-divider"></div>
+        <div class="jackpot-right">
+            <span class="jackpot-label">⏳ TIRAGE DANS</span>
+            <span id="jackpotCountdown">--</span>
+            <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
+        </div>
     </div>
 </div>
+<!-- ================== -->
+
 <div id="winnerTicker"><div id="tickerTrack"></div></div>
 <section class="hero-banner-container"><img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image"><div class="hero-header-overlay"><div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise"><div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div><div class="wallet-icon">👛</div></div></div></section>
 <div class="server-wallet-box"><div class="server-wallet-label">🛡️ Envoie ta mise vers</div><div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div><a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a></div>
