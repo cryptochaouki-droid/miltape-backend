@@ -503,7 +503,7 @@
       display: none !important;
     }
 
-    /* ===== CLASSEMENT – FOND BLANC (conservé) ===== */
+    /* ===== CLASSEMENT – FOND BLANC ===== */
     .leaderboard {
       background: rgba(255, 255, 255, 0.92) !important;
       backdrop-filter: none !important;
@@ -589,7 +589,7 @@
       font-size: 13px !important;
     }
 
-    /* ===== CHAT – FOND BLANC (conservé) ===== */
+    /* ===== CHAT – FOND BLANC ===== */
     .chat-messages {
       background: rgba(255, 255, 255, 0.92) !important;
       backdrop-filter: none !important;
@@ -1525,11 +1525,11 @@
   </script>
 
   <!-- =========================================================
-         SCRIPT PRINCIPAL – MODE DÉMO AVEC WALLET VALIDE
+         SCRIPT PRINCIPAL – CORRECTIONS DE SÉCURITÉ (XSS)
          ========================================================= -->
   <script>
     // =========================================================
-    // SCRIPT CLIENT MILTAPE – Version finale (Mode démo corrigé)
+    // SCRIPT CLIENT MILTAPE – Version finale corrigée (XSS)
     // =========================================================
 
     // 1. Connexion Socket.IO
@@ -1997,6 +1997,9 @@
       }
     });
 
+    // ==========================================
+    // LEADERBOARD – CORRECTION XSS (textContent pour le nom)
+    // ==========================================
     socket.on("leaderboard:update", (leaderboard) => {
       if (leaderboardList) {
         leaderboardList.innerHTML = "";
@@ -2007,38 +2010,67 @@
         leaderboard.forEach(player => {
           const div = document.createElement('div');
           div.className = 'leaderboard-item';
-          div.innerHTML =
-            '<span class="rank-badge">' + player.rank + '</span>' +
-            '<span class="player-name">' + player.name + '</span>' +
-            '<span class="player-score">' + player.taps + '</span>';
+
+          // Créer les éléments de manière sécurisée
+          const rankSpan = document.createElement('span');
+          rankSpan.className = 'rank-badge';
+          rankSpan.textContent = player.rank; // sécurisé
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'player-name';
+          nameSpan.textContent = player.name; // sécurisé (textContent)
+
+          const scoreSpan = document.createElement('span');
+          scoreSpan.className = 'player-score';
+          scoreSpan.textContent = player.taps; // sécurisé
+
+          div.appendChild(rankSpan);
+          div.appendChild(nameSpan);
+          div.appendChild(scoreSpan);
+
           leaderboardList.appendChild(div);
         });
       }
     });
 
     // ==========================================
-    // 17. CHAT
+    // 18. CHAT – CORRECTION XSS (textContent pour nom et message)
     // ==========================================
     function sendMessage() {
       if (!chatInput) return;
       const text = chatInput.value.trim();
-      if (text) { socket.emit("chat:send", { message: text }); chatInput.value = ""; }
+      if (text) {
+        socket.emit("chat:send", { message: text });
+        chatInput.value = "";
+      }
     }
+
     if (chatSend) chatSend.addEventListener('click', sendMessage);
-    if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    if (chatInput) chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
 
     socket.on("chat:message", (data) => {
       if (chatMessages) {
-        const msg = document.createElement('div');
-        msg.className = 'chat-message';
-        msg.innerHTML = '<strong>' + data.name + ' :</strong> ' + data.message;
-        chatMessages.appendChild(msg);
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-message';
+
+        // Créer les éléments avec textContent pour éviter XSS
+        const strong = document.createElement('strong');
+        strong.textContent = data.name + ' :';
+
+        const textNode = document.createTextNode(' ' + data.message);
+
+        msgDiv.appendChild(strong);
+        msgDiv.appendChild(textNode);
+
+        chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
     });
 
     // ==========================================
-    // 18. PAIEMENT
+    // 19. PAIEMENT
     // ==========================================
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
@@ -2057,7 +2089,7 @@
     }
 
     // ==========================================
-    // 19. ERREURS SOCKET
+    // 20. ERREURS SOCKET
     // ==========================================
     socket.on("error", (err) => {
       if (err.message === "Joueur introuvable.") {
@@ -2076,7 +2108,7 @@
     });
 
     // ==========================================
-    // 20. NOTIFICATIONS
+    // 21. NOTIFICATIONS
     // ==========================================
     let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
     const notifToggle = document.getElementById('notifToggle');
@@ -2118,7 +2150,7 @@
     });
 
     // ==========================================
-    // 21. BANDEAU DES GAGNANTS (TICKER)
+    // 22. BANDEAU DES GAGNANTS (TICKER)
     // ==========================================
     const winnerTicker = document.getElementById('winnerTicker');
     const tickerTrack = document.getElementById('tickerTrack');
@@ -2154,7 +2186,7 @@
     function hideTicker() { if (winnerTicker && tickerItems.length === 0) winnerTicker.classList.remove('show'); }
 
     // ==========================================
-    // 22. MENU LATÉRAL + MODALES
+    // 23. MENU LATÉRAL + MODALES
     // ==========================================
     function showMenuMessage(title, content) {
       const modal = document.getElementById('dynamicModal');
@@ -2269,7 +2301,7 @@
     }
 
     // ==========================================
-    // 23. MENU
+    // 24. MENU
     // ==========================================
     function toggleMenu() {
       if (sideMenu && menuOverlay) {
@@ -2282,7 +2314,7 @@
     if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
 
     // ==========================================
-    // 24. BOUTON "NOUVELLE PARTIE"
+    // 25. BOUTON "NOUVELLE PARTIE"
     // ==========================================
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
@@ -2300,7 +2332,7 @@
     }
 
     // ==========================================
-    // 25. TELEGRAM BACK BUTTON
+    // 26. TELEGRAM BACK BUTTON
     // ==========================================
     (function initTelegramBackButton() {
       try {
@@ -2317,7 +2349,7 @@
     })();
 
     // ==========================================
-    // 26. TELEGRAM USER
+    // 27. TELEGRAM USER
     // ==========================================
     function getTelegramUser() {
       try {
@@ -2333,7 +2365,7 @@
     }
 
     // ==========================================
-    // 27. CAGNOTTE
+    // 28. CAGNOTTE
     // ==========================================
     let jackpotCountdownInterval = null;
 
@@ -2373,7 +2405,7 @@
 
     socket.emit("jackpot:get");
 
-    console.log("✅ Script Miltape chargé – Fond Bleu Saphir HD 💎");
+    console.log("✅ Script Miltape chargé – XSS corrigé (chat et classement)");
   </script>
 
 </body>
