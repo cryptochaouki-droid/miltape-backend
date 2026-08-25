@@ -75,12 +75,11 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .legal-close{position:absolute;top:12px;right:15px;background:0 0;border:none;color:#e0e0e0;font-size:24px;cursor:pointer}
 .tap-zone{width:100%;min-height:310px;display:flex;align-items:center;justify-content:center;position:relative;padding:10px 0}
 /* ========================================================== */
-/* ============ NOUVEAU DESIGN CHRONOMÈTRE (CRISTAL) ========= */
+/* ============ CHRONO & SCORE EN DIRECT (CRISTAL) ========== */
 /* ========================================================== */
-.tap-zone #timerRule {
+.tap-zone #timerRule, .tap-zone #liveTapsRule {
   position: absolute;
   top: 12px;
-  left: 12px;
   margin: 0;
   z-index: 20;
   background: rgba(255,255,255,0.85);
@@ -97,9 +96,11 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   white-space: nowrap;
   font-size: 12px;
 }
-.tap-zone #timerRule .rule-icon { font-size: 16px; color: #0d47a1; }
-.tap-zone #timerRule strong { font-size: 20px; color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); font-family: 'Orbitron', sans-serif; }
-.tap-zone #timerRule small { font-size: 10px; color: #000000 !important; font-weight: 800; }
+.tap-zone #timerRule { left: 12px; }
+.tap-zone #liveTapsRule { right: 12px; }
+.tap-zone #timerRule .rule-icon, .tap-zone #liveTapsRule .rule-icon { font-size: 16px; color: #0d47a1; }
+.tap-zone #timerRule strong, .tap-zone #liveTapsRule strong { font-size: 20px; color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); font-family: 'Orbitron', sans-serif; }
+.tap-zone #timerRule small, .tap-zone #liveTapsRule small { font-size: 10px; color: #000000 !important; font-weight: 800; }
 
 /* ========================================================== */
 /* ============ URGENCE CHRONO (10 DERNIÈRES SECONDES) ======= */
@@ -518,8 +519,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <div id="welcomeModal"><div class="welcome-content"><div class="welcome-icon">🎮</div><h2 class="welcome-title">Bienvenue sur Miltape !</h2><p class="welcome-sub">Voici comment ça marche en 4 étapes :</p><div class="welcome-steps"><div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div><div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet</div><div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div><div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div></div><div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div><button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button></div></div>
 <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
 <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
-<!-- BOUTON SON FLOTTANT -->
-<button id="soundToggle" style="position:fixed;top:15px;right:15px;z-index:99999;background:rgba(0,0,0,0.5);border:1px solid #64b5f6;border-radius:50%;width:45px;height:45px;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;">🔊</button>
 <aside id="sideMenu" class="side-menu"><button id="closeMenu" class="close-menu" type="button">×</button><div class="side-menu-content"><h3>🧭 Menu Miltape</h3><div class="menu-block"><button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button><button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button><button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button><button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button><button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button><button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button><button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button><a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a></div><div class="menu-block" style="text-align:center"><button id="demomodebtn" class="menu-nav-btn" type="button" style="background:rgba(100,181,246,.12);color:#64b5f6;font-weight:700;text-align:center;border:1px solid rgba(100,181,246,.2);font-family:'Poppins',sans-serif;transition:all .3s ease">🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span></button><div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;font-family:'Poppins',sans-serif">🔒 Mode démo désactivé</div></div><div class="menu-block" style="text-align:center"><button id="resetGameBtn" class="menu-nav-btn" type="button" style="background:rgba(255,50,50,.12);color:#ff4444;border:1px solid rgba(255,50,50,.25);font-family:'Poppins',sans-serif;transition:all .3s ease">🔄 NOUVELLE PARTIE</button><div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;font-family:'Poppins',sans-serif">Efface tes données locales</div></div><div class="menu-block"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><span style="color:#64b5f6;font-weight:700;font-size:13px">🔔 Notifications</span><input type="checkbox" id="notifToggle" checked style="width:40px;height:20px;cursor:pointer;accent-color:#64b5f6;background:rgba(255,255,255,.1);border-radius:10px"></label></div><div class="menu-block"><label for="languageSelect">🌐 Langue</label><select id="languageSelect"><option value="fr">Français</option><option value="en">English</option></select></div><div class="menu-block trust-contact-box"><h4>🛡️ Support & Confiance</h4><p style="font-size:12px;color:#b8b8b8;font-family:'Poppins',sans-serif">Une question ? Un problème ?</p><a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a><div style="margin-top:8px;font-size:12px"><a href="mailto:miltapesupport@gmail.com" style="color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif">📧 miltapesupport@gmail.com</a></div><div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)"><a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;transition:all .3s ease">🔍 Voir toutes les transactions sur TronScan</a></div></div></div></aside>
 <div id="menuOverlay" class="menu-overlay"></div>
 <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true"><div class="legal-content"><button id="closeDynamicModal" class="legal-close" type="button">×</button><h3 id="dynamicModalTitle">Miltape</h3><div id="dynamicModalBody"></div></div></div>
@@ -560,8 +559,13 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     <strong id="timerRuleValue">10:00</strong>
     <small>EN DIRECT</small>
   </div>
+  <!-- ===== SCORE EN DIRECT EN HAUT À DROITE ===== -->
+  <div class="rule" id="liveTapsRule">
+    <span class="rule-icon">👆</span>
+    <strong id="liveTapsCount">0</strong>
+    <small>TES TAPS</small>
+  </div>
   <!-- ========================================= -->
-  <!-- Modification du lien de l'image du bouton TAP vers tape.png -->
   <button id="tapButton" class="tap-button" type="button" disabled><img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false"><small style="display:none"><span id="tapButtonCount">0</span></small></button>
 </section>
 <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
@@ -579,7 +583,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 // =========================================================
 const socket=io("https://miltape-backend-production.up.railway.app");
 
-const tapButton=document.getElementById('tapButton'),tapButtonCount=document.getElementById('tapButtonCount'),enterChallenge=document.getElementById('enterChallenge'),enterChallengeTop=document.getElementById('enterChallengeTop'),tapMessage=document.getElementById('tapMessage'),onlineCount=document.getElementById('onlineCount'),leaderboardList=document.getElementById('leaderboardList'),chatInput=document.getElementById('chatInput'),chatSend=document.getElementById('chatSend'),chatMessages=document.getElementById('chatMessages'),betInput=document.getElementById('betInput'),payButton=document.getElementById('payButton'),tokenSelect=document.getElementById('tokenSelect'),demoBtn=document.getElementById('demomodebtn'),demoStatus=document.getElementById('demoStatus'),demoToggleLabel=document.getElementById('demoToggleLabel'),menuButton=document.getElementById('menuButton'),sideMenu=document.getElementById('sideMenu'),closeMenu=document.getElementById('closeMenu'),menuOverlay=document.getElementById('menuOverlay'),resetGameBtn=document.getElementById('resetGameBtn'),soundToggle=document.getElementById('soundToggle');
+const tapButton=document.getElementById('tapButton'),tapButtonCount=document.getElementById('tapButtonCount'),liveTapsCount=document.getElementById('liveTapsCount'),enterChallenge=document.getElementById('enterChallenge'),enterChallengeTop=document.getElementById('enterChallengeTop'),tapMessage=document.getElementById('tapMessage'),onlineCount=document.getElementById('onlineCount'),leaderboardList=document.getElementById('leaderboardList'),chatInput=document.getElementById('chatInput'),chatSend=document.getElementById('chatSend'),chatMessages=document.getElementById('chatMessages'),betInput=document.getElementById('betInput'),payButton=document.getElementById('payButton'),tokenSelect=document.getElementById('tokenSelect'),demoBtn=document.getElementById('demomodebtn'),demoStatus=document.getElementById('demoStatus'),demoToggleLabel=document.getElementById('demoToggleLabel'),menuButton=document.getElementById('menuButton'),sideMenu=document.getElementById('sideMenu'),closeMenu=document.getElementById('closeMenu'),menuOverlay=document.getElementById('menuOverlay'),resetGameBtn=document.getElementById('resetGameBtn');
 let isPlaying=false,isPaid=false,myPlayerId=null,myBet=10,myWallet=null,myToken='USDT';
 const API_URL="https://miltape-backend-production.up.railway.app";
 
@@ -628,7 +632,6 @@ function initAudio() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-// Débloque l'audio dès le premier toucher n'importe où sur l'écran
 document.addEventListener('touchstart', initAudio, { once: true });
 document.addEventListener('click', initAudio, { once: true });
 
@@ -649,7 +652,6 @@ function playBeep(freq = 800, duration = 0.1, type = 'sine', volume = 0.1) {
     } catch (e) {}
 }
 
-// Musique de fond procédurale (générée par code)
 let bgMusicInterval = null;
 let bgMusicTempo = 0; 
 let bgMusicPulse = false;
@@ -660,8 +662,8 @@ function startBackgroundMusic() {
     bgMusicTempo = 90; 
     bgMusicPulse = true;
     bgMusicInterval = setInterval(() => {
-        playBeep(220, 0.3, 'sawtooth', 0.08); // Basse plus audible
-        setTimeout(() => playBeep(330, 0.2, 'square', 0.05), 150); // Percussion plus audible
+        playBeep(220, 0.3, 'sawtooth', 0.08);
+        setTimeout(() => playBeep(330, 0.2, 'square', 0.05), 150);
     }, 60000 / bgMusicTempo);
 }
 function updateBackgroundMusic(remainingSeconds) {
@@ -681,22 +683,11 @@ function stopBackgroundMusic() {
     if (bgMusicInterval) { clearInterval(bgMusicInterval); bgMusicInterval = null; }
 }
 
-// Cœur qui bat en fin de partie
 function playHeartBeat() {
     if (!isPlaying || !soundEnabled) return;
     initAudio();
     playBeep(120, 0.2, 'sine', 0.15); 
     setTimeout(() => playBeep(100, 0.15, 'sine', 0.10), 150); 
-}
-
-// Bouton Son (Muet/Activer)
-if(soundToggle) {
-    soundToggle.addEventListener('click', () => {
-        soundEnabled = !soundEnabled;
-        soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
-        if(!soundEnabled) stopBackgroundMusic();
-        else if (isPlaying) startBackgroundMusic();
-    });
 }
 
 // ==========================================================
@@ -733,7 +724,7 @@ socket.on('connect_error',(err)=>{console.error('❌ Erreur de connexion Socket 
 socket.on('disconnect',(reason)=>{console.log('🔴 Socket déconnecté :',reason);if(tapMessage)tapMessage.innerText="🔴 Déconnecté du serveur."});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){console.log('👀 Page de nouveau visible – restauration de la session');if(localStorage.getItem("miltape_player_id"))restoreSession()}});
 function joinGame(){
-    initAudio(); // Déverrouille l'audio avec le clic
+    initAudio();
     const telegramName=getTelegramUser();
     let name=telegramName||prompt("Entre ton pseudo pour le classement :");
     if(!name)return;
@@ -747,7 +738,7 @@ function joinGame(){
     if(tapMessage)tapMessage.innerText="Connexion au serveur en cours...";
     socket.emit("player:join",{name, wallet, bet, token, deviceId});
     hapticMedium();
-    startBackgroundMusic(); // Lancement de la musique au clic !
+    startBackgroundMusic();
 }
 if(enterChallenge)enterChallenge.addEventListener('click',joinGame);
 if(enterChallengeTop)enterChallengeTop.addEventListener('click',joinGame);
@@ -764,11 +755,71 @@ function tapEffects(){
 let lastTapTime=0;const MIN_TAP_INTERVAL_MS=50;
 if(tapButton){tapButton.addEventListener('click',function(e){if(!isPlaying||tapButton.disabled||!isPaid){if(!isPaid&&tapMessage){tapMessage.innerText="⏳ Tu dois payer ta mise avant de taper !";hapticError();setTimeout(()=>{if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !"},3000)}return}const now=Date.now();if(now-lastTapTime<MIN_TAP_INTERVAL_MS)return;lastTapTime=now;tapEffects();socket.emit("player:tap")})}
 
-socket.on("player:joined",(data)=>{if(data.success){isPlaying=!0;isPaid=!1;myPlayerId=data.player.id;myToken=data.player.token||'USDT';if(tapButton)tapButton.disabled=!0;if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !";if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO : "+data.player.name+", tape !";if(payButton)payButton.style.display='none';fetch(API_URL+"/api/payment/verify",{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({txId:"DEMO_"+Date.now()+"_"+Math.random().toString(36).substring(2,8),wallet:data.player.wallet,amount:data.player.bet,playerId:data.player.id,token:myToken})}).then(res=>res.json()).then(data=>{if(data.verified)console.log("✅ Mode démo : paiement simulé avec succès");else console.warn("⚠️ Mode démo : la simulation a échoué, mais le jeu continue.")}).catch(err=>console.error("Erreur mode démo :",err))}else{if(payButton){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}}hapticMedium()}});
-socket.on("player:restored",(data)=>{if(data.success){isPlaying=!0;myPlayerId=data.player.id;myWallet=data.player.wallet;myBet=data.player.bet||10;myToken=data.player.token||'USDT';if(demoMode){isPaid=!0;if(tapButton)tapButton.disabled=!1;if(tapMessage)tapMessage.innerText="🔬 Mode démo : bon retour "+data.player.name+" !"}else{isPaid=data.player.paid||!1;if(tapButton)tapButton.disabled=!isPaid;if(tapMessage)tapMessage.innerText=isPaid?"✅ Revenu ! ÉTAPE 3 : Tape maintenant !":"💰 ÉTAPE 2 : Paie ta mise pour taper !";if(payButton){if(!isPaid){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}else payButton.style.display='none'}}if(enterChallenge)enterChallenge.style.display="none";if(tapButtonCount)tapButtonCount.innerText=data.player.taps;localStorage.setItem("miltape_player_id",data.player.id);localStorage.setItem("miltape_player_wallet",data.player.wallet);localStorage.setItem("miltape_player_name",data.player.name);localStorage.setItem("miltape_player_bet",data.player.bet.toString());localStorage.setItem("miltape_player_token",myToken);console.log("✅ Session restaurée avec succès !");hapticMedium()}});
+socket.on("player:joined",(data)=>{
+    if(data.success){
+        isPlaying=!0;isPaid=!1;myPlayerId=data.player.id;myToken=data.player.token||'USDT';
+        if(tapButton)tapButton.disabled=!0;
+        if(tapMessage)tapMessage.innerText="💰 ÉTAPE 2 : Paie ta mise pour taper !";
+        if(enterChallenge)enterChallenge.style.display="none";
+        // Mise à jour du Score en haut à droite
+        if(tapButtonCount)tapButtonCount.innerText=data.player.taps;
+        if(liveTapsCount)liveTapsCount.innerText=data.player.taps;
+        
+        localStorage.setItem("miltape_player_id",data.player.id);
+        localStorage.setItem("miltape_player_wallet",data.player.wallet);
+        localStorage.setItem("miltape_player_name",data.player.name);
+        localStorage.setItem("miltape_player_bet",data.player.bet.toString());
+        localStorage.setItem("miltape_player_token",myToken);
+        
+        if(demoMode){
+            isPaid=!0;
+            if(tapButton)tapButton.disabled=!1;
+            if(tapMessage)tapMessage.innerText="🔬 MODE DÉMO : "+data.player.name+", tape !";
+            if(payButton)payButton.style.display='none';
+            fetch(API_URL+"/api/payment/verify",{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({txId:"DEMO_"+Date.now()+"_"+Math.random().toString(36).substring(2,8),wallet:data.player.wallet,amount:data.player.bet,playerId:data.player.id,token:myToken})}).then(res=>res.json()).then(data=>{if(data.verified)console.log("✅ Mode démo : paiement simulé avec succès");else console.warn("⚠️ Mode démo : la simulation a échoué, mais le jeu continue.")}).catch(err=>console.error("Erreur mode démo :",err))
+        } else {
+            if(payButton){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}
+        }
+        hapticMedium();
+    }
+});
 
-socket.on("payment:verified",(data)=>{if(data.verified){isPaid=!0;if(tapButton)tapButton.disabled=!1;hapticSuccess();playBeep(1200, 0.15, 'sine', 0.1);
-    if(data.automatic){if(tapMessage)tapMessage.innerText="✅ Paiement automatique détecté ! ÉTAPE 3 : Tape maintenant !"}else{if(tapMessage)tapMessage.innerText="✅ Paiement vérifié ! ÉTAPE 3 : Tape maintenant !"}if(payButton)payButton.style.display='none'}});
+socket.on("player:restored",(data)=>{
+    if(data.success){
+        isPlaying=!0;myPlayerId=data.player.id;myWallet=data.player.wallet;myBet=data.player.bet||10;myToken=data.player.token||'USDT';
+        if(demoMode){
+            isPaid=!0;
+            if(tapButton)tapButton.disabled=!1;
+            if(tapMessage)tapMessage.innerText="🔬 Mode démo : bon retour "+data.player.name+" !";
+        } else {
+            isPaid=data.player.paid||!1;
+            if(tapButton)tapButton.disabled=!isPaid;
+            if(tapMessage)tapMessage.innerText=isPaid?"✅ Revenu ! ÉTAPE 3 : Tape maintenant !":"💰 ÉTAPE 2 : Paie ta mise pour taper !";
+            if(payButton){
+                if(!isPaid){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}
+                else payButton.style.display='none';
+            }
+        }
+        if(enterChallenge)enterChallenge.style.display="none";
+        // Mise à jour du Score en haut à droite
+        if(tapButtonCount)tapButtonCount.innerText=data.player.taps;
+        if(liveTapsCount)liveTapsCount.innerText=data.player.taps;
+
+        localStorage.setItem("miltape_player_id",data.player.id);
+        localStorage.setItem("miltape_player_wallet",data.player.wallet);
+        localStorage.setItem("miltape_player_name",data.player.name);
+        localStorage.setItem("miltape_player_bet",data.player.bet.toString());
+        localStorage.setItem("miltape_player_token",myToken);
+        console.log("✅ Session restaurée avec succès !");hapticMedium();
+    }
+});
+
+socket.on("payment:verified",(data)=>{if(data.verified){
+    isPaid=!0;if(tapButton)tapButton.disabled=!1;hapticSuccess();playBeep(1200, 0.15, 'sine', 0.1);
+    if(data.automatic){if(tapMessage)tapMessage.innerText="✅ Paiement automatique détecté ! ÉTAPE 3 : Tape maintenant !"}
+    else{if(tapMessage)tapMessage.innerText="✅ Paiement vérifié ! ÉTAPE 3 : Tape maintenant !"}
+    if(payButton)payButton.style.display='none';
+}});
 
 socket.on("timer:update",(data)=>{
     const timerRuleValue=document.getElementById('timerRuleValue');
@@ -778,7 +829,6 @@ socket.on("timer:update",(data)=>{
     if(timerRuleValue){
         const m=Math.floor(remaining/60), s=remaining%60;
         timerRuleValue.innerText=m+":"+s.toString().padStart(2,'0');
-
         if(isPaid && isPlaying && remaining <= 10) {
             timerRule.classList.add('urgent');
             playHeartBeat();
@@ -786,9 +836,7 @@ socket.on("timer:update",(data)=>{
             timerRule.classList.remove('urgent');
         }
     }
-    
     if(isPlaying) updateBackgroundMusic(remaining);
-
     if(isPaid&&isPlaying&&tapMessage){
         const m=Math.floor(remaining/60), s=remaining%60;
         tapMessage.innerText="👆 ÉTAPE 3 : Tape maintenant ! ("+m+":"+s.toString().padStart(2,'0')+" restant)";
@@ -797,8 +845,10 @@ socket.on("timer:update",(data)=>{
 
 socket.on("game:finished",(data)=>{
     stopBackgroundMusic();
-    
+    // Remise à zéro du Score en haut à droite
     if(tapButtonCount)tapButtonCount.innerText="0";
+    if(liveTapsCount)liveTapsCount.innerText="0";
+
     isPlaying=!1;isPaid=!1;
     if(tapButton)tapButton.disabled=!0;
 
@@ -861,7 +911,13 @@ socket.on("game:finished",(data)=>{
 });
 
 function launchConfetti(){const colors=['#64b5f6','#ffd700','#2ecc71','#42a5f5','#ff6b6b','#ffd93d','#6c5ce7','#fd79a8'];for(let i=0;i<60;i++){const c=document.createElement('div'),size=6+Math.random()*10,isCircle=Math.random()>.5;c.style.cssText='position:fixed;width:'+size+'px;height:'+(isCircle?size:size*.4)+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(isCircle?'50%':'2px')+';top:-10px;left:'+(Math.random()*100)+'%;z-index:9999;pointer-events:none;animation:confettiFall '+(2+Math.random()*2)+'s linear forwards;animation-delay:'+(Math.random()*.8)+'s;transform:rotate('+(Math.random()*360)+'deg);box-shadow:0 0 6px rgba(255,255,255,0.1)';document.body.appendChild(c);setTimeout(()=>c.remove(),4000)}}
-socket.on("player:score",(data)=>{if(tapButtonCount)tapButtonCount.innerText=data.taps});
+
+socket.on("player:score",(data)=>{
+    // Mise à jour du compteur sur le bouton ET en haut à droite
+    if(tapButtonCount)tapButtonCount.innerText=data.taps;
+    if(liveTapsCount)liveTapsCount.innerText=data.taps;
+});
+
 socket.on("totalStakes:update",(data)=>{const displayBet=document.getElementById('displayBet'),displayBetTop=document.getElementById('displayBetTop');if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);if(displayBetTop)displayBetTop.textContent="$"+formatAmount(data.totalStakes)});
 socket.on("online:count",(count)=>{if(onlineCount){onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>'+count+' EN LIGNE</span>'}});
 socket.on("leaderboard:update",(leaderboard)=>{if(leaderboardList){leaderboardList.innerHTML="";if(leaderboard.length===0){leaderboardList.innerHTML='<div class="empty-ranking">Aucun joueur pour le moment</div>';return}leaderboard.forEach(player=>{const div=document.createElement('div');div.className='leaderboard-item';const rankSpan=document.createElement('span');rankSpan.className='rank-badge';rankSpan.textContent=player.rank;const nameSpan=document.createElement('span');nameSpan.className='player-name';nameSpan.textContent=player.name;const scoreSpan=document.createElement('span');scoreSpan.className='player-score';scoreSpan.textContent=player.taps;div.appendChild(rankSpan);div.appendChild(nameSpan);div.appendChild(scoreSpan);leaderboardList.appendChild(div)})}});
