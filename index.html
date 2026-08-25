@@ -90,14 +90,16 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   box-shadow: 0 0 15px rgba(100,181,246,0.5), inset 0 0 10px rgba(255,255,255,0.5);
   border-radius: 16px;
   padding: 0 12px;
-  height: 44px; /* Hauteur identique pour les deux */
+  height: 44px; /* Hauteur IDENTIQUE pour les deux */
+  width: 140px; /* Largeur IDENTIQUE pour les deux */
+  box-sizing: border-box;
   display: flex !important;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  max-width: 160px;
   white-space: nowrap;
   font-size: 12px;
+  overflow: hidden;
 }
 .tap-zone #timerRule { left: 12px; }
 .tap-zone #liveTapsRule { right: 12px; }
@@ -167,10 +169,16 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 /* ========================================================== */
 
 /* ========================================================== */
-/* ============ ESPACEMENT BOUTON TAP NOW ==================== */
+/* ============ BOUTON TAP FLUIDE (SPRING) =================== */
 /* ========================================================== */
 .tap-button{
     margin-top: 30px;
+    /* Animation fluide de type "spring" */
+    transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tap-button.tap-active{
+    transform: scale(0.94); /* Le bouton "s'enfonce" doucement */
+    transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @media(max-width: 430px){
     .tap-button{ margin-top: 25px; }
@@ -287,10 +295,8 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 /* ========================================================== */
 
 /* Styles existants préservés */
-.tap-button{position:relative;width:220px;height:220px;min-width:220px;min-height:220px;border:none;border-radius:50%;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);overflow:hidden;cursor:pointer;outline:0;transition:transform .08s ease-in-out,box-shadow .2s ease;display:flex;align-items:center;justify-content:center;margin-left:auto;margin-right:auto;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 0 50px rgba(100,181,246,.15);border:2px solid rgba(100,181,246,.2);flex-shrink:0}
+.tap-button{position:relative;width:220px;height:220px;min-width:220px;min-height:220px;border:none;border-radius:50%;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);overflow:hidden;cursor:pointer;outline:0;display:flex;align-items:center;justify-content:center;margin-left:auto;margin-right:auto;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 0 50px rgba(100,181,246,.15);border:2px solid rgba(100,181,246,.2);flex-shrink:0}
 .tap-button:disabled{cursor:not-allowed;opacity:.6}
-.tap-button:active:not(:disabled){transform:scale(.92)}
-.tap-button.tap-active{transform:scale(.94);box-shadow:0 0 80px rgba(100,181,246,.3)}
 .tap-img-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;z-index:0;display:block;mix-blend-mode:screen;opacity:.85}
 .tap-button small{position:absolute;bottom:14px;left:0;right:0;z-index:2;text-align:center;font-size:16px;color:#fff;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.9);pointer-events:none;font-family:'Orbitron',sans-serif}
 .tap-float-text,.tap-particle,.tap-ripple,.tap-glow{display:none!important}
@@ -310,7 +316,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .section-title{font-size:14px!important;color:#222!important;letter-spacing:.5px!important;margin-bottom:14px!important}
 .section-title span{color:#222!important;font-size:14px!important}
 .section-title strong{color:#0d47a1!important;font-size:16px!important;margin-left:6px!important}
-#timerRule{background:rgba(255,255,255,.85)!important;border:1px solid rgba(255,255,255,.8)!important;padding:6px 16px!important;box-shadow:0 0 15px rgba(100,181,246,0.5)!important}
+#timerRule{background:rgba(255,255,255,.85)!important;border:1px solid rgba(255,255,255,.8)!important;box-shadow:0 0 15px rgba(100,181,246,0.5)!important}
 #timerRule .rule-icon{font-size:20px!important;color:#0d47a1}
 #timerRuleValue{font-size:22px!important;font-weight:900!important;color:#0d47a1!important;text-shadow:1px 1px 2px rgba(255,255,255,0.8)!important;font-family:'Orbitron',sans-serif!important}
 #timerRule small{font-size:10px!important;color:#000000!important;font-weight:800!important}
@@ -625,7 +631,7 @@ function hapticSuccess(){try{if(window.Telegram&&window.Telegram.WebApp)window.T
 function hapticError(){try{if(window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.HapticFeedback.notificationOccurred('error')}catch(e){}}
 
 // ==========================================================
-// AUDIO DÉBLOQUÉ AU PREMIER TOUCHER (CORRECTION MOBILE)
+// AUDIO DÉBLOQUÉ AU PREMIER TOUCHER
 // ==========================================================
 let audioCtx;
 let soundEnabled = true;
@@ -655,43 +661,37 @@ function playBeep(freq = 800, duration = 0.1, type = 'sine', volume = 0.1) {
     } catch (e) {}
 }
 
-let bgMusicInterval = null;
-let bgMusicTempo = 0; 
-let bgMusicPulse = false;
-
-function startBackgroundMusic() {
+// ===== NOUVELLE FANFARE DE GUERRE (TROMPETTE) =====
+function playWarTrumpet() {
     initAudio();
-    if (bgMusicInterval) clearInterval(bgMusicInterval);
-    bgMusicTempo = 90; 
-    bgMusicPulse = true;
-    bgMusicInterval = setInterval(() => {
-        playBeep(220, 0.3, 'sawtooth', 0.08);
-        setTimeout(() => playBeep(330, 0.2, 'square', 0.05), 150);
-    }, 60000 / bgMusicTempo);
-}
-function updateBackgroundMusic(remainingSeconds) {
-    if (!bgMusicPulse) return;
-    let newTempo = Math.max(90, Math.min(180, 90 + (600 - remainingSeconds) * 0.15));
-    if (newTempo !== bgMusicTempo) {
-        bgMusicTempo = newTempo;
-        clearInterval(bgMusicInterval);
-        bgMusicInterval = setInterval(() => {
-            playBeep(220, 0.3, 'sawtooth', 0.08);
-            setTimeout(() => playBeep(330, 0.2, 'square', 0.05), 150);
-        }, 60000 / bgMusicTempo);
-    }
-}
-function stopBackgroundMusic() {
-    bgMusicPulse = false;
-    if (bgMusicInterval) { clearInterval(bgMusicInterval); bgMusicInterval = null; }
+    let notes = [523, 659, 784, 1046];
+    notes.forEach((freq, i) => {
+        setTimeout(() => playBeep(freq, 0.5, 'sawtooth', 0.15), i * 250);
+    });
 }
 
-function playHeartBeat() {
-    if (!isPlaying || !soundEnabled) return;
-    initAudio();
-    playBeep(120, 0.2, 'sine', 0.15); 
-    setTimeout(() => playBeep(100, 0.15, 'sine', 0.10), 150); 
+// ===== VOIX FÉMININE "LET'S GO" (SYNTHÈSE VOCALE) =====
+function playLetsGoVoice() {
+    try {
+        if ('speechSynthesis' in window) {
+            let u = new SpeechSynthesisUtterance("Let's go !");
+            u.lang = 'en-US'; // Voix anglaise
+            u.rate = 1.1;
+            u.pitch = 1.2; // Pitch élevé = voix plus féminine
+            let voices = speechSynthesis.getVoices();
+            let femaleVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female')) || voices[0];
+            if (femaleVoice) u.voice = femaleVoice;
+            speechSynthesis.speak(u);
+            // Backup sonore si la voix est bloquée
+            setTimeout(() => playBeep(1000, 0.1, 'square'), 150);
+        } else {
+            playBeep(1000, 0.1, 'square');
+        }
+    } catch (e) { playBeep(1000, 0.1, 'square'); }
 }
+
+// Suppression de la musique de fond continue
+function stopAllMusic() { /* Fonction vide car musique supprimée */ }
 
 // ==========================================================
 
@@ -741,11 +741,13 @@ function joinGame(){
     if(tapMessage)tapMessage.innerText="Connexion au serveur en cours...";
     socket.emit("player:join",{name, wallet, bet, token, deviceId});
     hapticMedium();
-    startBackgroundMusic();
 }
 if(enterChallenge)enterChallenge.addEventListener('click',joinGame);
 if(enterChallengeTop)enterChallengeTop.addEventListener('click',joinGame);
 
+// ==========================================================
+// BOUTON TAP FLUIDE ET ANIMÉ
+// ==========================================================
 function tapEffects(){
     if(!tapButton)return;
     tapButton.classList.add('tap-active');
@@ -783,6 +785,10 @@ socket.on("player:joined",(data)=>{
             if(payButton){payButton.style.display='block';payButton.onclick=()=>initiatePayment(data.player.wallet,data.player.bet)}
         }
         hapticMedium();
+        
+        // ===== DÉCLENCHEMENT DES SONS AU DÉBUT =====
+        playLetsGoVoice();
+        playWarTrumpet();
     }
 });
 
@@ -832,12 +838,19 @@ socket.on("timer:update",(data)=>{
         timerRuleValue.innerText=m+":"+s.toString().padStart(2,'0');
         if(isPaid && isPlaying && remaining <= 10) {
             timerRule.classList.add('urgent');
-            playHeartBeat();
+            // Petit battement de cœur sonore dans les 10 dernières secondes
+            if (soundEnabled) {
+                try {
+                    initAudio();
+                    playBeep(120, 0.2, 'sine', 0.15); 
+                    setTimeout(() => playBeep(100, 0.15, 'sine', 0.10), 150); 
+                } catch(e) {}
+            }
         } else {
             timerRule.classList.remove('urgent');
         }
     }
-    if(isPlaying) updateBackgroundMusic(remaining);
+
     if(isPaid&&isPlaying&&tapMessage){
         const m=Math.floor(remaining/60), s=remaining%60;
         tapMessage.innerText="👆 ÉTAPE 3 : Tape maintenant ! ("+m+":"+s.toString().padStart(2,'0')+" restant)";
@@ -845,7 +858,7 @@ socket.on("timer:update",(data)=>{
 });
 
 socket.on("game:finished",(data)=>{
-    stopBackgroundMusic();
+    stopAllMusic();
     if(tapButtonCount)tapButtonCount.innerText="0";
     if(liveTapsCount)liveTapsCount.innerText="0";
 
@@ -983,9 +996,8 @@ if(menuOverlay)menuOverlay.addEventListener('click',toggleMenu);
 if(resetGameBtn){resetGameBtn.addEventListener('click',function(){if(confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")){localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");localStorage.removeItem("miltape_spectator");localStorage.removeItem("miltape_demo");localStorage.removeItem("miltape_device_id");window.location.reload()}})}
 (function initTelegramBackButton(){try{if(window.Telegram&&window.Telegram.WebApp){const w=window.Telegram.WebApp;w.expand();w.BackButton.show();w.BackButton.onClick(function(){w.close()});console.log("✅ Telegram WebApp bouton retour initialisé")}}catch(e){console.log("ℹ️ Pas de Telegram WebApp détecté")}})();
 function getTelegramUser(){try{if(window.Telegram&&window.Telegram.WebApp){const user=window.Telegram.WebApp.initDataUnsafe?.user;if(user&&user.username)return user.username;if(user&&user.first_name)return user.first_name}return null}catch(e){return null}}
-
 // ==========================================
-// 28. CAGNOTTE – CHRONO CORRIGÉ (FONCTIONNEL)
+// 28. CAGNOTTE – CHRONO CORRIGÉ
 // ==========================================
 let jackpotCountdownInterval=null;
 function updateJackpotCountdown(nextDrawTime){
