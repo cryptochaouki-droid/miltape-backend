@@ -284,8 +284,38 @@ if(menuOverlay)menuOverlay.addEventListener('click',toggleMenu);
 if(resetGameBtn){resetGameBtn.addEventListener('click',function(){if(confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")){localStorage.removeItem("miltape_player_id");localStorage.removeItem("miltape_player_wallet");localStorage.removeItem("miltape_player_name");localStorage.removeItem("miltape_player_bet");localStorage.removeItem("miltape_player_token");localStorage.removeItem("miltape_spectator");localStorage.removeItem("miltape_demo");window.location.reload()}})}
 (function initTelegramBackButton(){try{if(window.Telegram&&window.Telegram.WebApp){const w=window.Telegram.WebApp;w.expand();w.BackButton.show();w.BackButton.onClick(function(){w.close()});console.log("✅ Telegram WebApp bouton retour initialisé")}}catch(e){console.log("ℹ️ Pas de Telegram WebApp détecté")}})();
 function getTelegramUser(){try{if(window.Telegram&&window.Telegram.WebApp){const user=window.Telegram.WebApp.initDataUnsafe?.user;if(user&&user.username)return user.username;if(user&&user.first_name)return user.first_name}return null}catch(e){return null}}
+// ==========================================
+// 28. CAGNOTTE – CHRONO CORRIGÉ
+// ==========================================
 let jackpotCountdownInterval=null;
-function updateJackpotCountdown(nextDrawTime){const countdownElement=document.getElementById('jackpotCountdown');if(!countdownElement)return;if(!nextDrawTime){countdownElement.textContent="--";return}if(jackpotCountdownInterval)clearInterval(jackpotCountdownInterval);jackpotCountdownInterval=setInterval(()=>{const now=Date.now(),diff=nextDrawTime-now;if(diff<=0){countdownElement.textContent="Tirage en cours...";clearInterval(jackpotCountdownInterval);socket.emit("jackpot:get");return}const days=Math.floor(diff/(1e3*60*60*24)),hours=Math.floor(diff%(1e3*60*60*24)/(1e3*60*60)),minutes=Math.floor(diff%(1e3*60*60)/(1e3*60)),seconds=Math.floor(diff%1e3/1e3);let display="";if(days>0)display+=days+"j ";if(hours>0||days>0)display+=hours+"h ";if(minutes>0||hours>0||days>0)display+=minutes+"m ";display+=seconds+"s";countdownElement.textContent=display},1e3)}
+function updateJackpotCountdown(nextDrawTime){
+const el=document.getElementById('jackpotCountdown');
+if(!el)return;
+if(!nextDrawTime||typeof nextDrawTime!=='number'||nextDrawTime<=Date.now()){
+el.textContent="Tirage en cours...";
+if(jackpotCountdownInterval){clearInterval(jackpotCountdownInterval);jackpotCountdownInterval=null}
+socket.emit("jackpot:get");
+return
+}
+if(jackpotCountdownInterval){clearInterval(jackpotCountdownInterval);jackpotCountdownInterval=null}
+function update(){
+const now=Date.now();
+let diff=nextDrawTime-now;
+if(diff<=0){el.textContent="Tirage en cours...";clearInterval(jackpotCountdownInterval);jackpotCountdownInterval=null;socket.emit("jackpot:get");return}
+const days=Math.floor(diff/(1e3*60*60*24));
+const hours=Math.floor((diff%(1e3*60*60*24))/(1e3*60*60));
+const minutes=Math.floor((diff%(1e3*60*60))/(1e3*60));
+const seconds=Math.floor((diff%1e3)/1e3);
+let display="";
+if(days>0)display+=days+"j ";
+if(hours>0||days>0)display+=hours+"h ";
+if(minutes>0||hours>0||days>0)display+=minutes+"m ";
+display+=seconds+"s";
+el.textContent=display
+}
+update();
+jackpotCountdownInterval=setInterval(update,1e3)
+}
 socket.on("jackpot:update",(data)=>{const prizeElement=document.getElementById('jackpotAmount');if(prizeElement)prizeElement.textContent=data.prize+" USDT";if(data.nextDraw)updateJackpotCountdown(data.nextDraw);else{const countdownElement=document.getElementById('jackpotCountdown');if(countdownElement)countdownElement.textContent="--"}});
 socket.emit("jackpot:get");
 console.log("✅ Script Miltape chargé – version optimisée");
