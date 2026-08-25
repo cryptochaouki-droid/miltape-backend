@@ -8,10 +8,10 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
 
-const GAME_DURATION_SECONDS = 10 * 60;
+const GAME_DURATION_SECONDS = 10 * 60; // 10 minutes
 
 // ============================================================
-// TOKENS SUPPORTÉS (Adresses corrigées et vérifiées)
+// TOKENS SUPPORTÉS
 // ============================================================
 const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
@@ -239,13 +239,7 @@ async function checkPendingPayments() {
         const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } });
         if (unpaidPlayers.length === 0) return;
 
-        // ==================================================================
-        // CORRECTION CRITIQUE : Utilisation de getTransactionsRelated pour le TRX
-        // ==================================================================
-        // Cette méthode est la plus fiable dans tronweb v6 (direction 'in' = reçu)
         const trxTransactions = await tronWeb.trx.getTransactionsRelated(MILTAPE_WALLET, 'in', 30, 0);
-        
-        // Récupérer transactions TRC20 via l'API dédiée de TronGrid
         const trc20Transactions = await getIncomingTrc20Transactions(MILTAPE_WALLET);
         
         const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
@@ -298,11 +292,82 @@ async function checkPendingPayments() {
 }
 
 // ============================================================
-// DÉMARRAGE, JOUEURS, SOCKETS, ROUTES, ETC.
+// [CORRECTION] LOGIQUE DU JEU (Fonctions complètes)
 // ============================================================
 
-async function startGame() { /* ... */ }
-async function finishGame() { /* ... */ }
+async function startGame() {
+    console.log("🎮 Démarrage de la partie...");
+    game.id = generateGameId();
+    game.status = "running";
+    game.startedAt = new Date();
+    game.endsAt = new Date(Date.now() + GAME_DURATION_SECONDS * 1000);
+    game.durationSeconds = GAME_DURATION_SECONDS;
+
+    io.emit("game:started", { gameId: game.id, endsAt: game.endsAt, duration: GAME_DURATION_SECONDS });
+
+    // Programme la fin de partie
+    if (gameTimer) clearTimeout(gameTimer);
+    gameTimer = setTimeout(async () => {
+        await finishGame();
+    }, GAME_DURATION_SECONDS * 1000);
+    
+    console.log(`✅ Partie ${game.id} lancée. Fin dans ${GAME_DURATION_SECONDS} secondes.`);
+}
+
+async function finishGame() {
+    console.log("🏁 Fin de la partie en cours...");
+    game.status = "finished";
+
+    const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
+
+    if (players.length > 0) {
+        const totalPot = players.reduce((sum, p) => sum + p.bet, 0);
+        const prizes = [
+            { share: 0.80 }, // 1er : 80%
+            { share: 0.15 }, // 2e : 15%
+            { share: 0.05 }  // 3e : 5%
+        ];
+
+        for (let i = 0; i < players.length && i < prizes.length; i++) {
+            const player = players[i];
+            const gain = Number((totalPot * prizes[i].share).toFixed(6));
+
+            await History.create({
+                playerId: player._id,
+                playerName: player.name,
+                wallet: player.wallet,
+                gameId: game.id,
+                rank: i + 1,
+                bet: player.bet,
+                gain: gain,
+                taps: player.taps,
+                token: player.token
+            });
+        }
+
+        // Mise à jour du Jackpot
+        const weekStart = new Date();
+        weekStart.setHours(0,0,0,0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        let jackpot = await Jackpot.findOne({ weekStart });
+        if (!jackpot) {
+            jackpot = await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) });
+        }
+        jackpot.accumulatedFund += totalPot;
+        await jackpot.save();
+    }
+
+    io.emit("game:finished", { gameId: game.id, winners: players.slice(0, 3).map(p => ({ name: p.name, taps: p.taps, bet: p.bet })) });
+
+    // Réinitialise le jeu et planifie la prochaine partie
+    game.status = "waiting";
+    if (nextGameTimeout) clearTimeout(nextGameTimeout);
+    nextGameTimeout = setTimeout(() => startGame(), 10000); // Nouvelle partie dans 10 secondes
+}
+
+// ============================================================
+// SOCKETS ET ROUTES
+// ============================================================
 
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
@@ -359,11 +424,39 @@ io.on("connection", async (socket) => {
         }
     });
 
-    socket.on("player:tap", async () => { /* ... */ });
+    socket.on("player:tap", async (data) => {
+        try {
+            const playerId = socket.data.playerId;
+            if (!playerId || game.status !== "running") return;
 
-    socket.on("chat:send", async (data) => { /* ... */ });
+            const taps = Math.max(0, Math.min(10, Number(data?.taps) || 1)); // Limite de taps par requête
+            await Player.updateOne({ _id: playerId }, { $inc: { taps: taps } });
+            
+            // Mise à jour en temps réel pour les autres joueurs
+            const player = await Player.findById(playerId).select('name taps');
+            io.emit("player:update", { id: playerId, name: player.name, taps: player.taps });
+        } catch (error) {
+            console.error("player:tap:", error.message);
+        }
+    });
 
-    socket.on("disconnect", async () => { onlineSockets.delete(socket.id); await broadcastGameState(); });
+    socket.on("chat:send", async (data) => {
+        try {
+            const name = String(data?.name || "Anonyme").trim().substring(0, 30);
+            const message = String(data?.message || "").trim().substring(0, 300);
+            if (!message) return;
+
+            const msg = await Message.create({ name, message, gameId: game.id });
+            io.emit("chat:message", { id: msg._id, name, message, createdAt: msg.createdAt });
+        } catch (error) {
+            console.error("chat:send:", error.message);
+        }
+    });
+
+    socket.on("disconnect", async () => { 
+        onlineSockets.delete(socket.id); 
+        await broadcastGameState(); 
+    });
 });
 
 // Nettoyage des paiements expirés
@@ -414,6 +507,10 @@ app.post("/api/demo/verify", async (req, res) => {
 
 server.listen(PORT, async () => {
     console.log("🚀 BACKEND ONLINE (Sécurisé)");
-    try { await startGame(); } catch (e) { console.error("Erreur démarrage:", e.message); }
+    try { 
+        await startGame(); 
+    } catch (e) { 
+        console.error("Erreur démarrage:", e.message); 
+    }
     setInterval(checkPendingPayments, 15000);
 });
