@@ -414,7 +414,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <div id="menuOverlay" class="menu-overlay"></div>
 <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true"><div class="legal-content"><button id="closeDynamicModal" class="legal-close" type="button">×</button><h3 id="dynamicModalTitle">Miltape</h3><div id="dynamicModalBody"></div></div></div>
 <main class="app">
-<!-- SUPPRESSION DE LA BARRE D'ÉTAPES (steps-guide) -->
 <header class="top-header"><button class="menu-button" id="menuButton" type="button">☰</button><div class="online"><strong id="onlineCount"><span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>1 EN LIGNE</span></strong></div><div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div><button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button></header>
 
 <!-- ===== CAGNOTTE PREMIUM ===== -->
@@ -457,7 +456,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 </section>
 <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
 <!-- SUPPRESSION DE LA SECTION "TES TAPS" -->
-<div class="leaderboard-chat-wrapper"><section class="leaderboard"><div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div><div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div></section><section class="chat-section" id="globalChat"><div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div><div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div><div class="chat-input-box" id="chatInputBox"><input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="200" autocomplete="off" enterkeyhint="send" inputmode="text"><button id="chatSend" type="button" aria-label="Envoyer le message">➤</button></div></section></div>
+<div class="leaderboard-chat-wrapper"><section class="leaderboard"><div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div><div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div></section><section class="chat-section" id="globalChat"><div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div><div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div><div class="chat-input-box" id="chatInputBox"><input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text"><button id="chatSend" type="button" aria-label="Envoyer le message">➤</button></div></section></div>
 <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
 <div style="width:100%;height:40px"></div>
 </main>
@@ -472,6 +471,9 @@ const socket=io("https://miltape-backend-production.up.railway.app");
 const tapButton=document.getElementById('tapButton'),tapCount=document.getElementById('tapCount'),tapButtonCount=document.getElementById('tapButtonCount'),enterChallenge=document.getElementById('enterChallenge'),enterChallengeTop=document.getElementById('enterChallengeTop'),tapMessage=document.getElementById('tapMessage'),onlineCount=document.getElementById('onlineCount'),leaderboardList=document.getElementById('leaderboardList'),chatInput=document.getElementById('chatInput'),chatSend=document.getElementById('chatSend'),chatMessages=document.getElementById('chatMessages'),betInput=document.getElementById('betInput'),payButton=document.getElementById('payButton'),tokenSelect=document.getElementById('tokenSelect'),demoBtn=document.getElementById('demomodebtn'),demoStatus=document.getElementById('demoStatus'),demoToggleLabel=document.getElementById('demoToggleLabel'),menuButton=document.getElementById('menuButton'),sideMenu=document.getElementById('sideMenu'),closeMenu=document.getElementById('closeMenu'),menuOverlay=document.getElementById('menuOverlay'),resetGameBtn=document.getElementById('resetGameBtn');
 let isPlaying=false,isPaid=false,myPlayerId=null,myBet=10,myWallet=null,myToken='USDT';
 const API_URL="https://miltape-backend-production.up.railway.app";
+
+// Nettoyage initial du chat pour éviter les spams de code au chargement
+if(chatMessages) chatMessages.innerHTML = '<div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>';
 
 // ===== FONCTION ANTI-ERREUR FLOTTANTE =====
 function formatAmount(value) {
@@ -516,7 +518,16 @@ socket.on("timer:update",(data)=>{const timerRuleValue=document.getElementById('
 socket.on("totalStakes:update",(data)=>{const displayBet=document.getElementById('displayBet'),displayBetTop=document.getElementById('displayBetTop');if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);if(displayBetTop)displayBetTop.textContent="$"+formatAmount(data.totalStakes)});
 socket.on("online:count",(count)=>{if(onlineCount){onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>'+count+' EN LIGNE</span>'}});
 socket.on("leaderboard:update",(leaderboard)=>{if(leaderboardList){leaderboardList.innerHTML="";if(leaderboard.length===0){leaderboardList.innerHTML='<div class="empty-ranking">Aucun joueur pour le moment</div>';return}leaderboard.forEach(player=>{const div=document.createElement('div');div.className='leaderboard-item';const rankSpan=document.createElement('span');rankSpan.className='rank-badge';rankSpan.textContent=player.rank;const nameSpan=document.createElement('span');nameSpan.className='player-name';nameSpan.textContent=player.name;const scoreSpan=document.createElement('span');scoreSpan.className='player-score';scoreSpan.textContent=player.taps;div.appendChild(rankSpan);div.appendChild(nameSpan);div.appendChild(scoreSpan);leaderboardList.appendChild(div)})}});
-function sendMessage(){if(!chatInput)return;const text=chatInput.value.trim();if(text){socket.emit("chat:send",{message:text});chatInput.value=""}}
+// MODIFICATION : Sécurisation du chat (blocage du HTML et limite de longueur)
+function sendMessage(){
+    if(!chatInput) return;
+    let text = chatInput.value.trim();
+    if(!text) return;
+    if(text.length > 500) { alert("Message trop long (500 caractères max) !"); return; }
+    if(text.includes('<') || text.includes('>')) { alert("Les balises HTML ne sont pas autorisées dans le chat."); return; }
+    socket.emit("chat:send",{message:text});
+    chatInput.value="";
+}
 if(chatSend)chatSend.addEventListener('click',sendMessage);
 if(chatInput)chatInput.addEventListener('keypress',(e)=>{if(e.key==='Enter')sendMessage()});
 socket.on("chat:message",(data)=>{if(chatMessages){const msgDiv=document.createElement('div');msgDiv.className='chat-message';const strong=document.createElement('strong');strong.textContent=data.name+' :';const textNode=document.createTextNode(' '+data.message);msgDiv.appendChild(strong);msgDiv.appendChild(textNode);chatMessages.appendChild(msgDiv);chatMessages.scrollTop=chatMessages.scrollHeight}});
