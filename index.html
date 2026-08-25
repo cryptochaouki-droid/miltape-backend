@@ -1529,7 +1529,8 @@
          ========================================================= -->
   <script>
     // =========================================================
-    // SCRIPT CLIENT MILTAPE – Version finale corrigée (XSS)
+    // SCRIPT CLIENT MILTAPE – Version corrigée (XSS notifications
+    // + ticker gagnants + URL de paiement Telegram Wallet)
     // =========================================================
 
     // 1. Connexion Socket.IO
@@ -1928,7 +1929,7 @@
     }
 
     // ==========================================
-    // 13. GESTION DES TAPS
+    // 13. GESTION DES TAPS (avec throttle anti-spam client)
     // ==========================================
     function animateTapCount() {
       if (tapCount) { tapCount.classList.remove('tap-count-pop'); void tapCount.offsetWidth; tapCount.classList.add('tap-count-pop'); }
@@ -1941,6 +1942,11 @@
       hapticLight();
     }
 
+    // Anti-spam client : limite le débit d'envoi des taps (protection basique,
+    // ne remplace pas un rate-limiting côté serveur qui reste indispensable)
+    let lastTapTime = 0;
+    const MIN_TAP_INTERVAL_MS = 50;
+
     if (tapButton) {
       tapButton.addEventListener('click', function(event) {
         if (!isPlaying || tapButton.disabled || !isPaid) {
@@ -1951,6 +1957,9 @@
           }
           return;
         }
+        const now = Date.now();
+        if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
+        lastTapTime = now;
         tapEffects();
         socket.emit("player:tap");
       });
@@ -1998,7 +2007,7 @@
     });
 
     // ==========================================
-    // LEADERBOARD – CORRECTION XSS (textContent pour le nom)
+    // LEADERBOARD – sécurisé (textContent pour le nom)
     // ==========================================
     socket.on("leaderboard:update", (leaderboard) => {
       if (leaderboardList) {
@@ -2034,7 +2043,7 @@
     });
 
     // ==========================================
-    // 18. CHAT – CORRECTION XSS (textContent pour nom et message)
+    // 18. CHAT – sécurisé (textContent pour nom et message)
     // ==========================================
     function sendMessage() {
       if (!chatInput) return;
@@ -2070,7 +2079,7 @@
     });
 
     // ==========================================
-    // 19. PAIEMENT
+    // 19. PAIEMENT (URL corrigée – un seul paramètre "start")
     // ==========================================
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
@@ -2079,7 +2088,12 @@
         .then(data => {
           if (data.success) {
             const serverWallet = data.wallet;
-            const paymentUrl = 'https://t.me/wallet?start=transfer?to=' + serverWallet + '&amount=' + amount + '&token=' + token;
+            // ⚠️ Corrigé : l'ancienne URL contenait deux "?" ("start=transfer?to=...")
+            // ce qui rendait le second "?to=" invalide comme séparateur de query-string.
+            // Le paramètre "start" du bot Telegram Wallet doit être une chaîne unique
+            // (généralement encodée), pas un mini query-string imbriqué.
+            const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + amount + '-' + token);
+            const paymentUrl = 'https://t.me/wallet?start=' + startParam;
             window.open(paymentUrl, '_blank');
             hapticMedium();
             alert("💰 Envoie " + amount + " " + token + " (TRC20) vers :\n" + serverWallet + "\n\n✅ Le paiement sera détecté automatiquement !");
@@ -2108,7 +2122,7 @@
     });
 
     // ==========================================
-    // 21. NOTIFICATIONS
+    // 21. NOTIFICATIONS – sécurisé (textContent au lieu d'innerHTML)
     // ==========================================
     let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
     const notifToggle = document.getElementById('notifToggle');
@@ -2129,10 +2143,27 @@
       if (!notificationsEnabled) return;
       const container = document.getElementById('notificationContainer');
       if (!container) return;
+
+      // Construction sécurisée du DOM (au lieu d'innerHTML avec "message" non fiable)
       const notif = document.createElement('div');
       notif.className = 'notification ' + type;
-      notif.innerHTML = '<span style="display:flex;align-items:center;gap:8px;"><span class="notif-icon">' + getNotifIcon(type) + '</span><span class="notif-text">' + message + '</span></span>';
+
+      const wrapper = document.createElement('span');
+      wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'notif-icon';
+      iconSpan.textContent = getNotifIcon(type);
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'notif-text';
+      textSpan.textContent = message; // sécurisé : jamais interprété comme HTML
+
+      wrapper.appendChild(iconSpan);
+      wrapper.appendChild(textSpan);
+      notif.appendChild(wrapper);
       container.appendChild(notif);
+
       if (type === 'champion') hapticHeavy();
       else if (type === 'success') hapticMedium();
       else hapticLight();
@@ -2150,7 +2181,7 @@
     });
 
     // ==========================================
-    // 22. BANDEAU DES GAGNANTS (TICKER)
+    // 22. BANDEAU DES GAGNANTS (TICKER) – sécurisé (textContent au lieu d'innerHTML)
     // ==========================================
     const winnerTicker = document.getElementById('winnerTicker');
     const tickerTrack = document.getElementById('tickerTrack');
@@ -2168,15 +2199,39 @@
       showTicker();
     }
 
+    function buildTickerItemEl(item) {
+      const span = document.createElement('span');
+      span.className = 'ticker-item';
+
+      const trophy = document.createElement('span');
+      trophy.className = 'trophy';
+      trophy.textContent = item.emoji;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = item.name; // sécurisé : pseudo joueur jamais interprété comme HTML
+
+      const arrow = document.createElement('span');
+      arrow.textContent = '→';
+
+      const amountSpan = document.createElement('span');
+      amountSpan.className = 'amount';
+      amountSpan.textContent = (typeof item.amount === 'number' ? item.amount + ' USDT' : item.amount);
+
+      span.appendChild(trophy);
+      span.appendChild(nameSpan);
+      span.appendChild(arrow);
+      span.appendChild(amountSpan);
+      return span;
+    }
+
     function updateTickerDisplay() {
       if (!tickerTrack) return;
-      let html = '';
+      tickerTrack.innerHTML = ""; // reset sûr, on ne réinjecte que des éléments créés via createElement
       const doubled = [...tickerItems, ...tickerItems];
-      for (const item of doubled) {
-        const amt = typeof item.amount === 'number' ? item.amount + ' USDT' : item.amount;
-        html += '<span class="ticker-item"><span class="trophy">' + item.emoji + '</span><span class="name">' + item.name + '</span><span>→</span><span class="amount">' + amt + '</span></span>';
-      }
-      tickerTrack.innerHTML = html;
+      const frag = document.createDocumentFragment();
+      doubled.forEach(item => frag.appendChild(buildTickerItemEl(item)));
+      tickerTrack.appendChild(frag);
       tickerTrack.style.animation = 'none';
       void tickerTrack.offsetWidth;
       tickerTrack.style.animation = 'tickerScroll 20s linear infinite';
@@ -2405,7 +2460,7 @@
 
     socket.emit("jackpot:get");
 
-    console.log("✅ Script Miltape chargé – XSS corrigé (chat et classement)");
+    console.log("✅ Script Miltape chargé – XSS corrigé (chat, classement, notifications, ticker)");
   </script>
 
 </body>
