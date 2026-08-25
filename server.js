@@ -44,6 +44,52 @@ const spectatorSockets = new Set();
 // ============================================================
 let processedTxIds = new Set();
 
+// ============================================================
+// ANTI-TRICHE – ANALYSE COMPORTEMENTALE DES TAPS
+// ============================================================
+const tapHistory = {}; // Stocke les timestamps des taps par joueur
+const playerStrikes = {}; // Compte les infractions
+
+function isBotTap(playerId, timestamp) {
+    if (!tapHistory[playerId]) tapHistory[playerId] = [];
+    
+    // Garde uniquement les 20 derniers taps
+    tapHistory[playerId].push(timestamp);
+    if (tapHistory[playerId].length > 20) {
+        tapHistory[playerId].shift();
+    }
+    
+    const history = tapHistory[playerId];
+    
+    // 1. Détection de vitesse supra-humaine (plus de 15 taps en 1 seconde)
+    if (history.length >= 10) {
+        const timeSpan = history[history.length - 1] - history[0];
+        if (timeSpan < 1000 && history.length > 15) {
+            return true; // Bot (clique trop vite)
+        }
+    }
+    
+    // 2. Détection de régularité parfaite (écart-type < 8ms)
+    if (history.length >= 5) {
+        const deltas = [];
+        for (let i = 1; i < history.length; i++) {
+            deltas.push(history[i] - history[i - 1]);
+        }
+        
+        const mean = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+        const variance = deltas.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / deltas.length;
+        const stdDev = Math.sqrt(variance);
+        
+        // Un humain a rarement un écart type inférieur à 10ms sur la durée
+        if (stdDev < 8 && deltas.length >= 5) {
+            return true; // Bot (clique parfaitement régulier)
+        }
+    }
+    
+    return false; // Comportement humain normal
+}
+// ============================================================
+
 let game = {
     id: null,
     status: "waiting",
@@ -951,7 +997,7 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // ---- Tap ----
+    // ---- Tap (avec ANTI-TRICHE) ----
     socket.on("player:tap", async () => {
         try {
             if (game.status !== "running" || getRemainingSeconds() <= 0 || !socket.data.playerId) return;
@@ -959,6 +1005,29 @@ io.on("connection", async (socket) => {
 
             const player = await Player.findById(socket.data.playerId);
             if (!player || player.gameId !== game.id) return;
+
+            // === NOUVELLE PROTECTION ANTI-TRICHE ===
+            const playerIdStr = player._id.toString();
+            const tapTime = Date.now();
+            
+            if (isBotTap(playerIdStr, tapTime)) {
+                // On incrémente le compteur de triche
+                playerStrikes[playerIdStr] = (playerStrikes[playerIdStr] || 0) + 1;
+                
+                // Si 3 infractions -> Kick temporaire
+                if (playerStrikes[playerIdStr] >= 3) {
+                    console.warn(`🚨 Joueur banni temporairement pour triche : ${player.name}`);
+                    playerStrikes[playerIdStr] = 0;
+                    socket.emit("error", { message: "Triche détectée. Vous avez été déconnecté (5 min)." });
+                    socket.disconnect(true);
+                    return;
+                }
+                
+                // On ignore le tap (il n'est pas compté)
+                socket.emit("player:score", { taps: player.taps, cheatWarning: true });
+                return; // Ne pas incrémenter le score
+            }
+            // =========================================
 
             const oldTaps = player.taps;
             player.taps += 1;
@@ -1314,10 +1383,12 @@ app.post("/api/payment/verify", async (req, res) => {
 
         if (!playerId) return res.status(400).json({ success: false, message: "playerId manquant." });
 
+        // En mode démo, on marque simplement le joueur comme payé
         const player = await Player.findByIdAndUpdate(playerId, { paid: true, paymentTxId: "DEMO_" + Date.now() }, { new: true });
         
         if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
 
+        // Émettre l'événement pour débloquer le bouton taper côté client
         io.emit("payment:verified", {
             verified: true,
             wallet: player.wallet,
@@ -1343,13 +1414,16 @@ app.get("/api/player/history", async (req, res) => {
 
         if (!playerId && !wallet && !deviceId) return res.status(400).json({ success: false, message: "playerId, wallet ou deviceId requis." });
 
+        // Trouver le joueur (soit par son ID stocké en localStorage, soit par son deviceId, soit par son wallet)
         const query = {};
         if (playerId) query._id = playerId;
         else if (deviceId) query.deviceId = deviceId;
         else query.wallet = wallet;
 
+        // On cherche dans la collection History qui enregistre les gains
         const history = await History.find(query).sort({ createdAt: -1 }).limit(50).lean();
 
+        // Statistiques globales pour le dashboard
         const totalGain = history.reduce((sum, h) => sum + h.gain, 0);
         const gamesPlayed = history.length;
         const bestScore = history.length > 0 ? Math.max(...history.map(h => h.taps)) : 0;
@@ -1404,6 +1478,7 @@ server.listen(PORT, async () => {
     console.log("💬 Chat actif");
     console.log("👁️ Mode spectateur activé");
     console.log("💸 Surveillance automatique des paiements activée (15s)");
+    console.log("🛡️ Anti-triche comportementale activée");
     console.log(`🎁 Cagnotte du samedi (${JACKPOT_PERCENT}% du bénéfice) – Tirage à ${JACKPOT_HOUR}h`);
     console.log("==============================================");
 
@@ -1415,6 +1490,7 @@ server.listen(PORT, async () => {
 
     setInterval(checkPendingPayments, 15000);
 
+    // Vérification du tirage toutes les minutes
     setInterval(async () => {
         const now = new Date();
         if (now.getDay() === 6 && now.getHours() === JACKPOT_HOUR && now.getMinutes() === 0) {
