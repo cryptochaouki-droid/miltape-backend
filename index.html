@@ -234,11 +234,11 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
     <small>EN DIRECT</small>
   </div>
   <!-- ========================================= -->
-  <button id="tapButton" class="tap-button" type="button" disabled><img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false"><small><span id="tapButtonCount">0</span></small></button>
+  <!-- Modification : Masquage du petit compteur sur le bouton via style="display:none" -->
+  <button id="tapButton" class="tap-button" type="button" disabled><img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false"><small style="display:none"><span id="tapButtonCount">0</span></small></button>
 </section>
 <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
 <!-- SUPPRESSION DE LA SECTION "TES TAPS" -->
-<!-- <section class="stats" style="display:flex;justify-content:center"><div class="stat-box" style="width:100%;max-width:300px"><small>TES TAPS</small><strong id="tapCount" style="font-size:56px;color:#64b5f6">0</strong></div></section> -->
 <div class="leaderboard-chat-wrapper"><section class="leaderboard"><div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div><div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div></section><section class="chat-section" id="globalChat"><div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div><div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div><div class="chat-input-box" id="chatInputBox"><input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="200" autocomplete="off" enterkeyhint="send" inputmode="text"><button id="chatSend" type="button" aria-label="Envoyer le message">➤</button></div></section></div>
 <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
 <div style="width:100%;height:40px"></div>
