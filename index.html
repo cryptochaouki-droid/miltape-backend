@@ -73,7 +73,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .legal-content h3{color:#64b5f6;margin-top:0}
 .legal-content p,.legal-content li{font-size:13px;color:#b8b8b8;line-height:1.5}
 .legal-close{position:absolute;top:12px;right:15px;background:0 0;border:none;color:#e0e0e0;font-size:24px;cursor:pointer}
-.tap-zone{width:100%;min-height:220px;display:flex;align-items:center;justify-content:center;position:relative;padding:10px 0}
+.tap-zone{width:100%;min-height:310px;display:flex;align-items:center;justify-content:center;position:relative;padding:10px 0}
 /* ========================================================== */
 /* ============ NOUVEAU DESIGN CHRONOMÈTRE (CRISTAL) ========= */
 /* ========================================================== */
@@ -165,8 +165,48 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 }
 /* ========================================================== */
 
+/* ========================================================== */
+/* ============ CORRECTION DU DÉBORDEMENT DU CHAT ============ */
+/* ========================================================== */
+.chat-messages{
+    background:rgba(255,255,255,.92)!important;
+    backdrop-filter:none!important;
+    border:1px solid rgba(255,255,255,.2)!important;
+    border-radius:24px!important;
+    padding:12px!important;
+    height:180px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-start!important;
+    word-break:break-word!important;
+    overflow-wrap:break-word!important;
+    white-space:normal!important;
+}
+.chat-message{
+    background:#f5f7fa!important;
+    color:#222!important;
+    font-size:14px!important;
+    padding:8px 12px!important;
+    border-radius:10px!important;
+    margin-bottom:6px!important;
+    word-break:break-word!important;
+    overflow-wrap:break-word!important;
+    white-space:normal!important;
+}
+.chat-input-box{
+    position: relative;
+    z-index: 10;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    padding: 5px;
+}
+/* ========================================================== */
+
 /* Styles existants préservés */
-.tap-button{position:relative;width:180px;height:180px;min-width:180px;min-height:180px;border:none;border-radius:50%;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);overflow:hidden;cursor:pointer;outline:0;transition:transform .08s ease-in-out,box-shadow .2s ease;display:flex;align-items:center;justify-content:center;margin-left:auto;margin-right:auto;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 0 50px rgba(100,181,246,.15);border:2px solid rgba(100,181,246,.2);flex-shrink:0}
+/* ===== BOUTON TAP AGRANDI ===== */
+.tap-button{position:relative;width:220px;height:220px;min-width:220px;min-height:220px;border:none;border-radius:50%;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);overflow:hidden;cursor:pointer;outline:0;transition:transform .08s ease-in-out,box-shadow .2s ease;display:flex;align-items:center;justify-content:center;margin-left:auto;margin-right:auto;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 0 50px rgba(100,181,246,.15);border:2px solid rgba(100,181,246,.2);flex-shrink:0}
 .tap-button:disabled{cursor:not-allowed;opacity:.6}
 .tap-button:active:not(:disabled){transform:scale(.92)}
 .tap-button.tap-active{transform:scale(.94);box-shadow:0 0 80px rgba(100,181,246,.3)}
@@ -186,13 +226,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .leaderboard-item .player-name{color:#222!important;font-weight:600!important;font-size:14px!important;flex:1!important}
 .leaderboard-item .player-score{color:#0d47a1!important;font-weight:900!important;font-size:14px!important}
 .empty-ranking{color:#888!important;font-size:13px!important}
-.chat-messages{background:rgba(255,255,255,.92)!important;backdrop-filter:none!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:24px!important;padding:12px!important;height:180px!important}
-.chat-message{background:#f5f7fa!important;color:#222!important;font-size:14px!important;padding:8px 12px!important;border-radius:10px!important;margin-bottom:6px!important}
-.chat-message strong{color:#0d47a1!important;font-size:14px!important;font-weight:700!important}
-.chat-input-box{margin-top:8px!important}
-.chat-input-box input{background:rgba(255,255,255,.92)!important;color:#222!important;border:1px solid #ccc!important;border-radius:12px!important;font-size:14px!important;height:46px!important}
-.chat-input-box input::placeholder{color:#999!important}
-.chat-input-box button{border-radius:12px!important;height:46px!important;width:46px!important;background:linear-gradient(135deg,#42a5f5,#0d47a1)!important;color:#fff!important}
 .section-title{font-size:14px!important;color:#222!important;letter-spacing:.5px!important;margin-bottom:14px!important}
 .section-title span{color:#222!important;font-size:14px!important}
 .section-title strong{color:#0d47a1!important;font-size:16px!important;margin-left:6px!important}
@@ -242,8 +275,8 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 #welcomeModal .welcome-secure{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px}
 #welcomeModal .welcome-btn{background:#64b5f6;color:#051230;border:none;padding:12px 24px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;width:100%;font-family:'Poppins',sans-serif;transition:transform .15s ease}
 #welcomeModal .welcome-btn:active{transform:scale(.96)}
-@media(max-width:430px){.tap-button{width:160px;height:160px;min-width:160px;min-height:160px;margin-top:25px}.tap-zone{min-height:200px}.hero-banner-container,.leaderboard,.chat-messages,.stat-box,.rule{border-radius:18px!important}#timerRuleValue{font-size:20px!important}.stat-box strong{font-size:44px!important}.rank-badge{width:28px!important;height:28px!important;min-width:28px!important;font-size:12px!important}.server-wallet-address{font-size:13px!important}}
-@media(max-width:360px){.tap-button{width:145px;height:145px;min-width:145px;min-height:145px;margin-top:20px}.chat-input-box input{font-size:12px!important}.chat-input-box button{width:42px;min-width:42px}#timerRuleValue{font-size:18px!important}.stat-box strong{font-size:38px!important}.rank-badge{width:24px!important;height:24px!important;min-width:24px!important;font-size:11px!important}.server-wallet-address{font-size:12px!important}}
+@media(max-width:430px){.tap-button{width:190px;height:190px;min-width:190px;min-height:190px;margin-top:25px}.tap-zone{min-height:280px}.hero-banner-container,.leaderboard,.chat-messages,.stat-box,.rule{border-radius:18px!important}#timerRuleValue{font-size:20px!important}.stat-box strong{font-size:44px!important}.rank-badge{width:28px!important;height:28px!important;min-width:28px!important;font-size:12px!important}.server-wallet-address{font-size:13px!important}}
+@media(max-width:360px){.tap-button{width:170px;height:170px;min-width:170px;min-height:170px;margin-top:20px}.tap-zone{min-height:260px}.chat-input-box input{font-size:12px!important}.chat-input-box button{width:42px;min-width:42px}#timerRuleValue{font-size:18px!important}.stat-box strong{font-size:38px!important}.rank-badge{width:24px!important;height:24px!important;min-width:24px!important;font-size:11px!important}.server-wallet-address{font-size:12px!important}}
 @media(min-width:600px){body{padding:20px 0 40px}.app{border-radius:30px;border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 40px rgba(0,0,0,.3);background:rgba(0,0,0,.15);backdrop-filter:blur(10px)}.top-header{position:sticky;top:0;z-index:500;border-radius:30px 30px 0 0}}
 @keyframes fadeIn{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{0%{opacity:0;transform:translateY(30px)scale(.95)}100%{opacity:1;transform:translateY(0)scale(1)}}
