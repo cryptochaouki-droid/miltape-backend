@@ -616,12 +616,17 @@ function hapticSuccess(){try{if(window.Telegram&&window.Telegram.WebApp)window.T
 function hapticError(){try{if(window.Telegram&&window.Telegram.WebApp)window.Telegram.WebApp.HapticFeedback.notificationOccurred('error')}catch(e){}}
 
 // ==========================================================
-// AUDIO & MUSIQUE DYNAMIQUE
+// AUDIO & MUSIQUE DYNAMIQUE (CORRIGÉ)
 // ==========================================================
 let audioCtx;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume(); // Débloque le son (important !)
+}
+
 function playBeep(freq = 800, duration = 0.1, type = 'sine', volume = 0.1) {
     try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        initAudio();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;
@@ -640,12 +645,13 @@ let bgMusicInterval = null;
 let bgMusicTempo = 0; // Batements par minute (BPM)
 let bgMusicPulse = false;
 function startBackgroundMusic() {
+    initAudio(); // Déverrouille l'audio
     if (bgMusicInterval) clearInterval(bgMusicInterval);
     bgMusicTempo = 90; // Démarre lent
     bgMusicPulse = true;
     bgMusicInterval = setInterval(() => {
-        playBeep(180, 0.3, 'sawtooth', 0.03); // Batterie basse
-        setTimeout(() => playBeep(220, 0.2, 'square', 0.02), 150); // Percussion
+        playBeep(180, 0.3, 'sawtooth', 0.05); // Batterie basse (plus audible)
+        setTimeout(() => playBeep(220, 0.2, 'square', 0.03), 150); // Percussion
     }, 60000 / bgMusicTempo);
 }
 function updateBackgroundMusic(remainingSeconds) {
@@ -656,8 +662,8 @@ function updateBackgroundMusic(remainingSeconds) {
         bgMusicTempo = newTempo;
         clearInterval(bgMusicInterval);
         bgMusicInterval = setInterval(() => {
-            playBeep(180, 0.3, 'sawtooth', 0.03);
-            setTimeout(() => playBeep(220, 0.2, 'square', 0.02), 150);
+            playBeep(180, 0.3, 'sawtooth', 0.05);
+            setTimeout(() => playBeep(220, 0.2, 'square', 0.03), 150);
         }, 60000 / bgMusicTempo);
     }
 }
@@ -669,6 +675,7 @@ function stopBackgroundMusic() {
 // Cœur qui bat en fin de partie
 function playHeartBeat() {
     if (!isPlaying) return;
+    initAudio();
     playBeep(120, 0.2, 'sine', 0.15); // Boum (plus grave)
     setTimeout(() => playBeep(100, 0.15, 'sine', 0.10), 150); // Boum (léger écho)
 }
@@ -707,6 +714,7 @@ socket.on('connect_error',(err)=>{console.error('❌ Erreur de connexion Socket 
 socket.on('disconnect',(reason)=>{console.log('🔴 Socket déconnecté :',reason);if(tapMessage)tapMessage.innerText="🔴 Déconnecté du serveur."});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){console.log('👀 Page de nouveau visible – restauration de la session');if(localStorage.getItem("miltape_player_id"))restoreSession()}});
 function joinGame(){
+    initAudio(); // Débloque l'audio dès le clic sur "JOUER MAINTENANT" !
     const telegramName=getTelegramUser();
     let name=telegramName||prompt("Entre ton pseudo pour le classement :");
     if(!name)return;
