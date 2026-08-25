@@ -57,10 +57,8 @@ const server = http.createServer(app);
 app.use(helmet());
 app.set('trust proxy', 1);
 
-const FRONTEND_ORIGINS = [
-    "https://cryptochaouki-droid.github.io",
-    "https://miltape-backend.vercel.app"
-];
+// ✂️ CORRECTION FINALE ICI : Autorise TOUTES les origines (pour tester sur mobile)
+const FRONTEND_ORIGINS = ["*"]; 
 app.use(cors({ origin: FRONTEND_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -209,7 +207,6 @@ async function verifyOnChain(txId, expectedAmount, token = 'USDT') {
     return false;
 }
 
-// FONCTION AJOUTÉE : Récupération des transactions TRX via l'API REST
 async function getIncomingTrxTransactions(address) {
     const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=30&only_confirmed=true`;
     const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
@@ -226,7 +223,6 @@ async function getIncomingTrc20Transactions(address) {
     return data.data || [];
 }
 
-// CORRECTION ICI : Utilisation de l'API REST pour le TRX
 async function checkPendingPayments() {
     if (game.status !== "running") return;
     try {
