@@ -106,6 +106,7 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(helmet());
+app.set('trust proxy', 1); // <-- AJOUTÉ POUR CORRIGER L'ERREUR X-Forwarded-For
 
 const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
 app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
