@@ -86,6 +86,49 @@ const io = new Server(server, {
 });
 
 // ============================================================
+// [AJOUT] FONCTIONS UTILITAIRES GLOBALES (pour éviter le crash)
+// ============================================================
+// Nécessaire pour envoyer des notifications au frontend
+function sendNotification(type, message, data = {}) {
+    io.emit("notification", { type, message, data });
+}
+
+async function broadcastGameState() {
+    try {
+        const players = await Player.find({ gameId: game.id }).select('name taps wallet bet paid token depositAmount').sort({ taps: -1 }).limit(50);
+        const remainingSeconds = getRemainingSeconds();
+        
+        io.emit("game:state", {
+            game: {
+                id: game.id,
+                status: game.status,
+                startsAt: game.startedAt,
+                endsAt: game.endsAt,
+                remainingSeconds: remainingSeconds
+            },
+            players: players
+        });
+    } catch (error) {
+        console.error("Erreur broadcastGameState:", error.message);
+    }
+}
+
+async function emitJackpotUpdate() {
+    try {
+        const weekStart = new Date();
+        weekStart.setHours(0, 0, 0, 0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+        const jackpot = await Jackpot.findOne({ weekStart });
+        const prize = jackpot ? jackpot.accumulatedFund : 0;
+        io.emit("jackpot:update", { prize: prize });
+    } catch (error) {
+        console.error("Erreur emitJackpotUpdate:", error.message);
+    }
+}
+// ============================================================
+
+// ============================================================
 // MONGOOSE & SCHEMAS
 // ============================================================
 mongoose.set("strictQuery", true);
@@ -292,43 +335,6 @@ async function checkPendingPayments() {
 }
 
 // ============================================================
-// [AJOUT CRUCIAL] FONCTIONS BROADCAST ET JACKPOT
-// ============================================================
-async function broadcastGameState() {
-    try {
-        const players = await Player.find({ gameId: game.id }).select('name taps wallet bet paid token depositAmount').sort({ taps: -1 }).limit(50);
-        const remainingSeconds = getRemainingSeconds();
-        
-        io.emit("game:state", {
-            game: {
-                id: game.id,
-                status: game.status,
-                startsAt: game.startedAt,
-                endsAt: game.endsAt,
-                remainingSeconds: remainingSeconds
-            },
-            players: players
-        });
-    } catch (error) {
-        console.error("Erreur broadcastGameState:", error.message);
-    }
-}
-
-async function emitJackpotUpdate() {
-    try {
-        const weekStart = new Date();
-        weekStart.setHours(0, 0, 0, 0);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
-        const jackpot = await Jackpot.findOne({ weekStart });
-        const prize = jackpot ? jackpot.accumulatedFund : 0;
-        io.emit("jackpot:update", { prize: prize });
-    } catch (error) {
-        console.error("Erreur emitJackpotUpdate:", error.message);
-    }
-}
-
-// ============================================================
 // LOGIQUE DU JEU (Fonctions complètes)
 // ============================================================
 async function startGame() {
@@ -404,7 +410,6 @@ async function finishGame() {
 
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
-    // Ces fonctions sont désormais définies plus haut
     await broadcastGameState(); 
     await emitJackpotUpdate();
 
