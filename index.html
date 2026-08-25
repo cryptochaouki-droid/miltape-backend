@@ -276,8 +276,8 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 (function initTonConnect(){try{if(typeof TON_CONNECT_UI==="undefined"||!TON_CONNECT_UI.TonConnectUI){console.warn("⚠️ TON Connect UI indisponible.");return}window.tonConnectUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:"https://miltape.vercel.app/tonconnect-manifest.json",buttonRootId:"ton-connect-button"});if(window.tonConnectUI&&typeof window.tonConnectUI.onStatusChange==="function"){window.tonConnectUI.onStatusChange(function(w){if(w&&w.account){console.log("✅ Wallet TON connecté :",w.account.address)}})}console.log("✅ TON Connect initialisé.")}catch(e){console.error("❌ Erreur TON Connect :",e);window.tonConnectUI=null}})();
 </script>
 <script>
-// ⚠️⚠️⚠️ ATTENTION ! REMPLACEZ L'URL CI-DESSOUS PAR CELLE DE VOTRE SERVICE RAILWAY (PAS CELLE DE RENDER) ⚠️⚠️⚠️
-const BACKEND_URL = "https://thorough-gratitude-production.up.railway.app"; 
+// ⚠️⚠️⚠️ CORRECTION FINALE : L'URL POINTE MAINTENANT VERS RENDER ⚠️⚠️⚠️
+const BACKEND_URL = "https://miltape-backend.onrender.com"; 
 const socket=io(BACKEND_URL);
 const API_URL=BACKEND_URL;
 
