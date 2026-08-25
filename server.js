@@ -100,16 +100,20 @@ console.log("==============================================");
 console.log("");
 
 // ============================================================
-// EXPRESS
+// EXPRESS (CORRECTION CORS POUR GITHUB PAGES ET VERCEL)
 // ============================================================
 const app = express();
 const server = http.createServer(app);
 
 app.use(helmet());
-app.set('trust proxy', 1); // <-- AJOUTÉ POUR CORRIGER L'ERREUR X-Forwarded-For
+app.set('trust proxy', 1); // AJOUTÉ POUR CORRIGER L'ERREUR X-Forwarded-For
 
-const FRONTEND_ORIGIN = "https://cryptochaouki-droid.github.io";
-app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+const FRONTEND_ORIGINS = [
+    "https://cryptochaouki-droid.github.io",
+    "https://miltape-backend.vercel.app"
+];
+
+app.use(cors({ origin: FRONTEND_ORIGINS, credentials: true }));
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -125,11 +129,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 // ============================================================
-// SOCKET.IO
+// SOCKET.IO (CORRECTION CORS)
 // ============================================================
 const io = new Server(server, {
     cors: {
-        origin: FRONTEND_ORIGIN,
+        origin: FRONTEND_ORIGINS,
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -489,7 +493,6 @@ async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token 
     if (!isValidTronAddress(cleanFrom)) throw new Error("Adresse TRON invalide.");
     if (!Number.isFinite(requiredAmount) || requiredAmount <= 0) throw new Error("Montant invalide.");
 
-    // --- TRX ---
     if (token === 'TRX') {
         const transaction = await tronWeb.trx.getTransaction(cleanTxId);
         if (!transaction || !transaction.txID) throw new Error("Transaction introuvable.");
@@ -506,7 +509,6 @@ async function verifyTokenTransaction(txId, expectedFrom, expectedAmount, token 
         return { txId: cleanTxId, from: owner, to: recipient, amount, confirmed: true };
     }
 
-    // --- TRC20 ---
     const contractAddress = tokenInfo.contract;
     const decimals = tokenInfo.decimals;
 
@@ -1312,12 +1314,10 @@ app.post("/api/payment/verify", async (req, res) => {
 
         if (!playerId) return res.status(400).json({ success: false, message: "playerId manquant." });
 
-        // En mode démo, on marque simplement le joueur comme payé
         const player = await Player.findByIdAndUpdate(playerId, { paid: true, paymentTxId: "DEMO_" + Date.now() }, { new: true });
         
         if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
 
-        // Émettre l'événement pour débloquer le bouton taper côté client
         io.emit("payment:verified", {
             verified: true,
             wallet: player.wallet,
@@ -1343,16 +1343,13 @@ app.get("/api/player/history", async (req, res) => {
 
         if (!playerId && !wallet && !deviceId) return res.status(400).json({ success: false, message: "playerId, wallet ou deviceId requis." });
 
-        // Trouver le joueur (soit par son ID stocké en localStorage, soit par son deviceId, soit par son wallet)
         const query = {};
         if (playerId) query._id = playerId;
         else if (deviceId) query.deviceId = deviceId;
         else query.wallet = wallet;
 
-        // On cherche dans la collection History qui enregistre les gains
         const history = await History.find(query).sort({ createdAt: -1 }).limit(50).lean();
 
-        // Statistiques globales pour le dashboard
         const totalGain = history.reduce((sum, h) => sum + h.gain, 0);
         const gamesPlayed = history.length;
         const bestScore = history.length > 0 ? Math.max(...history.map(h => h.taps)) : 0;
@@ -1418,7 +1415,6 @@ server.listen(PORT, async () => {
 
     setInterval(checkPendingPayments, 15000);
 
-    // Vérification du tirage toutes les minutes
     setInterval(async () => {
         const now = new Date();
         if (now.getDay() === 6 && now.getHours() === JACKPOT_HOUR && now.getMinutes() === 0) {
