@@ -8,12 +8,12 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
 
-// ✅✅✅ GARDE-FOUS ULTIMES (Empêche le serveur de planter sur SIGTERM) ✅✅✅
+// ✅✅✅ GARDE-FOUS ULTIMES ✅✅✅
 process.on('uncaughtException', (err) => {
-    console.error('❌ Erreur non gérée interceptée (le serveur continue) :', err.message);
+    console.error('❌ Erreur non gérée interceptée :', err.message);
 });
 process.on('unhandledRejection', (reason) => {
-    console.error('❌ Rejet non géré intercepté (le serveur continue) :', reason);
+    console.error('❌ Rejet non géré intercepté :', reason);
 });
 
 const GAME_DURATION_SECONDS = 10 * 60;
@@ -39,13 +39,7 @@ let gameTimer = null;
 let nextGameTimeout = null;
 const onlineSockets = new Set();
 
-let game = {
-    id: null,
-    status: "waiting",
-    startedAt: null,
-    endsAt: null,
-    durationSeconds: GAME_DURATION_SECONDS
-};
+let game = { id: null, status: "waiting", startedAt: null, endsAt: null, durationSeconds: GAME_DURATION_SECONDS };
 
 try {
     tronWeb = new TronWeb({
@@ -65,7 +59,7 @@ const server = http.createServer(app);
 app.use(helmet());
 app.set('trust proxy', 1);
 
-// ✂️✂️✂️ CORRECTION CRUCIALE DU CORS (Ne plus utiliser les crochets ni credentials) ✂️✂️✂️
+// ✂️✂️✂️ CORRECTION CRUCIALE DU CORS ✂️✂️✂️
 const FRONTEND_ORIGINS = "*"; 
 app.use(cors({ origin: FRONTEND_ORIGINS }));
 app.use(express.json({ limit: "1mb" }));
@@ -81,79 +75,21 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-const io = new Server(server, {
-    cors: { origin: FRONTEND_ORIGINS, methods: ["GET", "POST"] }
+const io = new Server(server, { cors: { origin: FRONTEND_ORIGINS, methods: ["GET", "POST"] } });
+
+// ⭐⭐⭐ AJOUT DE LA ROUTE POUR LE HEALTHCHECK DE RAILWAY ⭐⭐⭐
+app.get('/api/status', (req, res) => {
+    res.json({ status: 'running' });
 });
+// ⭐⭐⭐ FIN DE L'AJOUT ⭐⭐⭐
 
 mongoose.set("strictQuery", true);
 
-const playerSchema = new mongoose.Schema(
-    {
-        gameId: { type: String, required: true, index: true },
-        name: { type: String, required: true, trim: true, maxlength: 30 },
-        wallet: { type: String, trim: true, index: true },
-        deviceId: { type: String, trim: true, index: true },
-        taps: { type: Number, default: 0, min: 0 },
-        bet: { type: Number, default: 0, min: 0 },
-        paid: { type: Boolean, default: false },
-        paymentTxId: { type: String, default: null, unique: true, sparse: true },
-        token: { type: String, default: 'USDT' },
-        depositAmount: { type: Number, default: null },
-        depositExpiresAt: { type: Date, default: null }
-    },
-    { timestamps: true }
-);
-
-const messageSchema = new mongoose.Schema(
-    {
-        name: { type: String, required: true, trim: true, maxlength: 30 },
-        message: { type: String, required: true, trim: true, maxlength: 300 },
-        gameId: { type: String, default: null }
-    },
-    { timestamps: true }
-);
-
-const paymentSchema = new mongoose.Schema(
-    {
-        txId: { type: String, required: true, unique: true, index: true },
-        from: { type: String, required: true },
-        to: { type: String, required: true },
-        amount: { type: Number, required: true },
-        verified: { type: Boolean, default: false },
-        gameId: { type: String, default: null },
-        token: { type: String, default: 'USDT' }
-    },
-    { timestamps: true }
-);
-
-const historySchema = new mongoose.Schema(
-    {
-        playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true },
-        playerName: { type: String, required: true },
-        wallet: { type: String, required: true },
-        gameId: { type: String, required: true },
-        rank: { type: Number, required: true },
-        bet: { type: Number, required: true },
-        gain: { type: Number, required: true },
-        taps: { type: Number, required: true },
-        token: { type: String, default: 'USDT' },
-        createdAt: { type: Date, default: Date.now }
-    },
-    { timestamps: true }
-);
-
-const jackpotSchema = new mongoose.Schema(
-    {
-        weekStart: { type: Date, required: true },
-        weekEnd: { type: Date, required: true },
-        prize: { type: Number, default: 0 },
-        accumulatedFund: { type: Number, default: 0 },
-        winner: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', default: null },
-        drawn: { type: Boolean, default: false },
-        participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Player' }]
-    },
-    { timestamps: true }
-);
+const playerSchema = new mongoose.Schema({ gameId: String, name: String, wallet: String, deviceId: String, taps: Number, bet: Number, paid: Boolean, paymentTxId: String, token: String, depositAmount: Number, depositExpiresAt: Date }, { timestamps: true });
+const messageSchema = new mongoose.Schema({ name: String, message: String, gameId: String }, { timestamps: true });
+const paymentSchema = new mongoose.Schema({ txId: String, from: String, to: String, amount: Number, verified: Boolean, gameId: String, token: String }, { timestamps: true });
+const historySchema = new mongoose.Schema({ playerId: mongoose.Schema.Types.ObjectId, playerName: String, wallet: String, gameId: String, rank: Number, bet: Number, gain: Number, taps: Number, token: String }, { timestamps: true });
+const jackpotSchema = new mongoose.Schema({ weekStart: Date, weekEnd: Date, prize: Number, accumulatedFund: Number, winner: mongoose.Schema.Types.ObjectId, drawn: Boolean, participants: [mongoose.Schema.Types.ObjectId] }, { timestamps: true });
 
 const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
@@ -185,14 +121,11 @@ async function assignUniqueDepositAmount(baseBet, gameId) {
 async function verifyOnChain(txId, expectedAmount, token = 'USDT') {
     const tokenInfo = SUPPORTED_TOKENS[token];
     if (!tokenInfo) throw new Error("Token non supporté");
-
     const tx = await tronWeb.trx.getTransaction(txId);
     if (!tx) return false;
     const contract = tx.raw_data?.contract[0];
     if (!contract) return false;
-
     let amount = 0;
-
     if (token === 'TRX') {
         if (contract.type !== 'TransferContract') return false;
         const value = contract.parameter.value;
@@ -207,10 +140,8 @@ async function verifyOnChain(txId, expectedAmount, token = 'USDT') {
         const rawAmount = BigInt("0x" + String(value.data).substring(72, 136));
         amount = Number(rawAmount) / Math.pow(10, tokenInfo.decimals);
     }
-
     const txInfo = await tronWeb.trx.getTransactionInfo(txId);
     if (!txInfo || txInfo.receipt.result !== 'SUCCESS' || !txInfo.blockNumber) return false;
-
     if (Math.abs(amount - expectedAmount) < 0.0000001) return true;
     return false;
 }
@@ -222,10 +153,7 @@ async function getIncomingTrxTransactions(address) {
         const res = await fetch(url, { headers });
         const data = await res.json();
         return data.data || [];
-    } catch (e) {
-        console.log("Erreur API TRX (ignorée) :", e.message);
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
 async function getIncomingTrc20Transactions(address) {
@@ -235,10 +163,7 @@ async function getIncomingTrc20Transactions(address) {
         const res = await fetch(url, { headers });
         const data = await res.json();
         return data.data || [];
-    } catch (e) {
-        console.log("Erreur API TRC20 (ignorée) :", e.message);
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
 async function checkPendingPayments() {
@@ -246,17 +171,14 @@ async function checkPendingPayments() {
     try {
         const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } });
         if (unpaidPlayers.length === 0) return;
-
         const trxTransactions = await getIncomingTrxTransactions(MILTAPE_WALLET);
         const trc20Transactions = await getIncomingTrc20Transactions(MILTAPE_WALLET);
         const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
-
         for (const tx of allTransactions) {
             try {
                 const txId = tx.transaction_id || tx.txID;
                 let token = null;
                 let amount = 0;
-
                 if (tx.token_info) {
                     token = tx.token_info.symbol;
                     amount = tx.value / Math.pow(10, tx.token_info.decimals);
@@ -267,9 +189,7 @@ async function checkPendingPayments() {
                     if (tronWeb.address.fromHex(value.to_address) !== MILTAPE_WALLET) continue;
                     token = 'TRX';
                     amount = value.amount / 1e6;
-                } else {
-                    continue;
-                }
+                } else continue;
 
                 const matchingPlayer = unpaidPlayers.find(p => p.token === token && Math.abs(amount - p.depositAmount) < 0.0000001);
                 if (!matchingPlayer) continue;
@@ -279,20 +199,15 @@ async function checkPendingPayments() {
                 matchingPlayer.depositAmount = null;
                 matchingPlayer.depositExpiresAt = null;
                 await matchingPlayer.save();
-
                 await Payment.create({ txId, from: "Paiement anonyme", to: MILTAPE_WALLET, amount, verified: true, gameId: game.id, token });
 
                 io.emit("payment:verified", { verified: true, wallet: matchingPlayer.wallet, amount: matchingPlayer.bet, playerName: matchingPlayer.name, token });
                 io.emit("chat:message", { name: "🟢 Système", message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} (auto-détecté)`, createdAt: new Date() });
                 sendNotification('success', `💰 ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} !`, { playerName: matchingPlayer.name, amount: matchingPlayer.bet, token });
                 console.log(`💰 Paiement sécurisé détecté : ${matchingPlayer.name} (${matchingPlayer.bet} ${token}) - TX: ${txId}`);
-
             } catch (err) {
-                if (err.code === 11000) {
-                    console.log(`🚨 Transaction ${txId} déjà utilisée, ignorée.`);
-                } else {
-                    console.log("Transaction ignorée (format inattendu) :", err.message);
-                }
+                if (err.code === 11000) console.log(`🚨 Transaction ${txId} déjà utilisée, ignorée.`);
+                else console.log("Transaction ignorée :", err.message);
             }
         }
     } catch (error) {
@@ -300,34 +215,22 @@ async function checkPendingPayments() {
     }
 }
 
-function sendNotification(type, message, data = {}) {
-    io.emit("notification", { type, message, data });
-}
+function sendNotification(type, message, data = {}) { io.emit("notification", { type, message, data }); }
 
 async function broadcastGameState() {
     try {
         const players = await Player.find({ gameId: game.id }).select('name taps wallet bet paid token depositAmount').sort({ taps: -1 }).limit(50);
         const remainingSeconds = getRemainingSeconds();
-        io.emit("game:state", {
-            game: { id: game.id, status: game.status, startsAt: game.startedAt, endsAt: game.endsAt, remainingSeconds },
-            players: players
-        });
-    } catch (error) {
-        console.error("Erreur broadcastGameState:", error.message);
-    }
+        io.emit("game:state", { game: { id: game.id, status: game.status, startsAt: game.startedAt, endsAt: game.endsAt, remainingSeconds }, players: players });
+    } catch (error) { console.error("Erreur broadcastGameState:", error.message); }
 }
 
 async function emitJackpotUpdate() {
     try {
-        const weekStart = new Date();
-        weekStart.setHours(0, 0, 0, 0);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const jackpot = await Jackpot.findOne({ weekStart });
-        const prize = jackpot ? jackpot.accumulatedFund : 0;
-        io.emit("jackpot:update", { prize: prize });
-    } catch (error) {
-        console.error("Erreur emitJackpotUpdate:", error.message);
-    }
+        io.emit("jackpot:update", { prize: jackpot ? jackpot.accumulatedFund : 0 });
+    } catch (error) { console.error("Erreur emitJackpotUpdate:", error.message); }
 }
 
 async function startGame() {
@@ -337,54 +240,33 @@ async function startGame() {
     game.startedAt = new Date();
     game.endsAt = new Date(Date.now() + GAME_DURATION_SECONDS * 1000);
     game.durationSeconds = GAME_DURATION_SECONDS;
-
     io.emit("game:started", { gameId: game.id, endsAt: game.endsAt, duration: GAME_DURATION_SECONDS });
-
     if (gameTimer) clearTimeout(gameTimer);
     gameTimer = setTimeout(() => finishGame(), GAME_DURATION_SECONDS * 1000);
-    
     console.log(`✅ Partie ${game.id} lancée. Fin dans ${GAME_DURATION_SECONDS} secondes.`);
 }
 
 async function finishGame() {
     console.log("🏁 Fin de la partie en cours...");
     game.status = "finished";
-
     try {
         const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
-
         if (players.length > 0) {
             const totalPot = players.reduce((sum, p) => sum + p.bet, 0);
-            const prizes = [
-                { share: 0.80 }, { share: 0.15 }, { share: 0.05 }
-            ];
-
+            const prizes = [{ share: 0.80 }, { share: 0.15 }, { share: 0.05 }];
             for (let i = 0; i < players.length && i < prizes.length; i++) {
                 const player = players[i];
                 const gain = Number((totalPot * prizes[i].share).toFixed(6));
-                await History.create({
-                    playerId: player._id, playerName: player.name, wallet: player.wallet,
-                    gameId: game.id, rank: i + 1, bet: player.bet, gain: gain,
-                    taps: player.taps, token: player.token
-                });
+                await History.create({ playerId: player._id, playerName: player.name, wallet: player.wallet, gameId: game.id, rank: i + 1, bet: player.bet, gain: gain, taps: player.taps, token: player.token });
             }
-
-            const weekStart = new Date();
-            weekStart.setHours(0,0,0,0);
-            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            const weekStart = new Date(); weekStart.setHours(0,0,0,0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
             let jackpot = await Jackpot.findOne({ weekStart });
-            if (!jackpot) {
-                jackpot = await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) });
-            }
-            jackpot.accumulatedFund += totalPot;
-            await jackpot.save();
+            if (!jackpot) jackpot = await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) });
+            jackpot.accumulatedFund += totalPot; await jackpot.save();
         }
-
         io.emit("game:finished", { gameId: game.id, winners: players.slice(0, 3).map(p => ({ name: p.name, taps: p.taps, bet: p.bet })) });
-
-    } catch (error) {
-        console.error("❌ Erreur dans finishGame :", error.message);
-    } finally {
+    } catch (error) { console.error("❌ Erreur dans finishGame :", error.message); }
+    finally {
         game.status = "waiting";
         if (nextGameTimeout) clearTimeout(nextGameTimeout);
         nextGameTimeout = setTimeout(() => startGame(), 10000);
@@ -395,7 +277,6 @@ io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     await broadcastGameState(); 
     await emitJackpotUpdate();
-
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
@@ -403,110 +284,63 @@ io.on("connection", async (socket) => {
             const deviceId = normalizeWallet(data?.deviceId);
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim();
-
-            if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) {
-                return socket.emit("error", { message: "Données invalides." });
-            }
-
+            if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
             let player;
             if (deviceId) player = await Player.findOne({ gameId: game.id, deviceId });
             else player = await Player.findOne({ gameId: game.id, wallet });
-
             if (!player) {
                 const depositAmount = await assignUniqueDepositAmount(bet, game.id);
-                player = await Player.create({ 
-                    gameId: game.id, name, wallet, deviceId, taps: 0, bet, paid: false, token, 
-                    depositAmount, depositExpiresAt: new Date(Date.now() + (15 * 60 * 1000))
-                });
+                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, bet, paid: false, token, depositAmount, depositExpiresAt: new Date(Date.now() + (15 * 60 * 1000)) });
             } else {
-                player.name = name;
-                player.bet = bet;
-                player.token = token;
-                player.paid = false;
-                player.paymentTxId = null;
+                player.name = name; player.bet = bet; player.token = token; player.paid = false; player.paymentTxId = null;
                 player.depositAmount = await assignUniqueDepositAmount(bet, game.id);
-                player.depositExpiresAt = new Date(Date.now() + (15 * 60 * 1000));
-                await player.save();
+                player.depositExpiresAt = new Date(Date.now() + (15 * 60 * 1000)); await player.save();
             }
-
             socket.data.playerId = player._id.toString();
             socket.data.gameId = game.id;
-
-            socket.emit("player:joined", { 
-                success: true, 
-                player: { 
-                    id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, 
-                    bet: player.bet, paid: player.paid, token: player.token, depositAmount: player.depositAmount 
-                } 
-            });
+            socket.emit("player:joined", { success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid, token: player.token, depositAmount: player.depositAmount } });
             await broadcastGameState();
-        } catch (error) {
-            console.error("player:join:", error.message);
-            socket.emit("error", { message: "Impossible de rejoindre la partie." });
-        }
+        } catch (error) { console.error("player:join:", error.message); socket.emit("error", { message: "Impossible de rejoindre la partie." }); }
     });
-
     socket.on("player:tap", async (data) => {
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
-
             const taps = Math.max(0, Math.min(10, Number(data?.taps) || 1));
             await Player.updateOne({ _id: playerId }, { $inc: { taps: taps } });
-            
             const player = await Player.findById(playerId).select('name taps');
             io.emit("player:update", { id: playerId, name: player.name, taps: player.taps });
-        } catch (error) {
-            console.error("player:tap:", error.message);
-        }
+        } catch (error) { console.error("player:tap:", error.message); }
     });
-
     socket.on("chat:send", async (data) => {
         try {
             const name = String(data?.name || "Anonyme").trim().substring(0, 30);
             const message = String(data?.message || "").trim().substring(0, 300);
             if (!message) return;
-
             const msg = await Message.create({ name, message, gameId: game.id });
             io.emit("chat:message", { id: msg._id, name, message, createdAt: msg.createdAt });
-        } catch (error) {
-            console.error("chat:send:", error.message);
-        }
+        } catch (error) { console.error("chat:send:", error.message); }
     });
-
-    socket.on("disconnect", async () => { 
-        onlineSockets.delete(socket.id); 
-        await broadcastGameState(); 
-    });
+    socket.on("disconnect", async () => { onlineSockets.delete(socket.id); await broadcastGameState(); });
 });
 
 setInterval(() => {
     if (game.status !== "running") return;
     const now = new Date();
-    Player.updateMany(
-        { gameId: game.id, paid: false, depositExpiresAt: { $lt: now } },
-        { $set: { depositExpiresAt: null, depositAmount: null, bet: 0 } }
-    ).catch(err => console.error("Erreur timeout:", err));
+    Player.updateMany({ gameId: game.id, paid: false, depositExpiresAt: { $lt: now } }, { $set: { depositExpiresAt: null, depositAmount: null, bet: 0 } }).catch(err => console.error("Erreur timeout:", err));
 }, 60 * 1000);
 
 app.post("/api/payment/verify", async (req, res) => {
     const { txId, playerId } = req.body;
     if (String(txId).startsWith("DEMO_")) return res.status(400).json({ success: false, message: "Transaction invalide pour le paiement réel." });
-
     const player = await Player.findById(playerId);
     if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
     if (player.paid) return res.json({ success: true, verified: true });
-
     const isValid = await verifyOnChain(txId, player.depositAmount, player.token);
     if (!isValid) return res.status(400).json({ success: false, message: "Paiement non vérifié." });
-
     try {
-        player.paid = true;
-        player.paymentTxId = txId;
-        player.depositAmount = null;
-        player.depositExpiresAt = null;
-        await player.save();
-        res.json({ success: true, verified: true });
+        player.paid = true; player.paymentTxId = txId; player.depositAmount = null; player.depositExpiresAt = null;
+        await player.save(); res.json({ success: true, verified: true });
     } catch (err) {
         if (err.code === 11000) return res.status(400).json({ success: false, message: "Transaction déjà utilisée." });
         throw err;
@@ -518,18 +352,13 @@ app.post("/api/demo/verify", async (req, res) => {
     const { playerId } = req.body;
     const player = await Player.findById(playerId);
     if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
-    player.paid = true;
-    await player.save();
+    player.paid = true; await player.save();
     io.emit("payment:verified", { verified: true, demo: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
     res.json({ success: true, verified: true, demo: true });
 });
 
 server.listen(PORT, async () => {
     console.log("🚀 BACKEND ONLINE (Sécurisé)");
-    try { 
-        await startGame(); 
-    } catch (e) { 
-        console.error("Erreur démarrage:", e.message); 
-    }
+    try { await startGame(); } catch (e) { console.error("Erreur démarrage:", e.message); }
     setInterval(checkPendingPayments, 15000);
 });
