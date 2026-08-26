@@ -74,31 +74,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .legal-content p,.legal-content li{font-size:13px;color:#b8b8b8;line-height:1.5}
 .legal-close{position:absolute;top:12px;right:15px;background:0 0;border:none;color:#e0e0e0;font-size:24px;cursor:pointer}
 .tap-zone{width:100%;min-height:220px;display:flex;align-items:center;justify-content:center;position:relative;padding:10px 0}
-/* ===== CHRONO EN HAUT À GAUCHE (NE TOUCHE PAS LE CERCLE) ===== */
-.tap-zone #timerRule {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  margin: 0;
-  z-index: 20;
-  background: rgba(5, 18, 48, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  padding: 4px 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-  box-shadow: 0 0 30px rgba(100, 181, 246, 0.1);
-  display: flex !important;
-  align-items: center;
-  gap: 6px;
-  max-width: 120px;
-  white-space: nowrap;
-  font-size: 12px;
-}
-.tap-zone #timerRule .rule-icon { font-size: 16px; }
-.tap-zone #timerRule strong { font-size: 18px; color: #64b5f6; }
-.tap-zone #timerRule small { font-size: 10px; color: rgba(255,255,255,0.8); }
-/* ==================================================== */
 .tap-button{position:relative;width:180px;height:180px;min-width:180px;min-height:180px;border:none;border-radius:50%;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);overflow:hidden;cursor:pointer;outline:0;transition:transform .08s ease-in-out,box-shadow .2s ease;display:flex;align-items:center;justify-content:center;margin:0 auto;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 0 50px rgba(100,181,246,.15);border:2px solid rgba(100,181,246,.2);flex-shrink:0}
 .tap-button:disabled{cursor:not-allowed;opacity:.6}
 .tap-button:active:not(:disabled){transform:scale(.92)}
@@ -129,7 +104,6 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .section-title{font-size:14px!important;color:#222!important;letter-spacing:.5px!important;margin-bottom:14px!important}
 .section-title span{color:#222!important;font-size:14px!important}
 .section-title strong{color:#0d47a1!important;font-size:16px!important;margin-left:6px!important}
-/* Garde les styles génériques pour compatibilité */
 #timerRule{background:rgba(100,181,246,.10)!important;border:1px solid rgba(100,181,246,.30)!important;padding:8px 18px!important;box-shadow:0 0 30px rgba(100,181,246,.05)!important}
 #timerRule .rule-icon{font-size:20px!important}
 #timerRuleValue{font-size:24px!important;font-weight:900!important;color:#64b5f6!important;text-shadow:0 0 25px rgba(100,181,246,.35),0 0 60px rgba(100,181,246,.10)!important;font-family:'Orbitron',sans-serif!important}
@@ -226,17 +200,8 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
 <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
-<section class="tap-zone" aria-label="Zone de tap">
-  <!-- ===== CHRONO DÉPLACÉ EN HAUT À GAUCHE ===== -->
-  <div class="rule" id="timerRule">
-    <span class="rule-icon">⏱️</span>
-    <strong id="timerRuleValue">10:00</strong>
-    <small>EN DIRECT</small>
-  </div>
-  <!-- ========================================= -->
-  <button id="tapButton" class="tap-button" type="button" disabled><img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false"><small><span id="tapButtonCount">0</span></small></button>
-</section>
-<section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
+<section class="tap-zone" aria-label="Zone de tap"><button id="tapButton" class="tap-button" type="button" disabled><img src="./icon-192~2.jpg" alt="TAP NOW" class="tap-img-bg" draggable="false"><small><span id="tapButtonCount">0</span></small></button></section>
+<section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div><div class="rule" id="timerRule"><span class="rule-icon">⏱️</span><strong id="timerRuleValue">10:00</strong><small>EN DIRECT</small></div></section>
 <section class="stats" style="display:flex;justify-content:center"><div class="stat-box" style="width:100%;max-width:300px"><small>TES TAPS</small><strong id="tapCount" style="font-size:56px;color:#64b5f6">0</strong></div></section>
 <div class="leaderboard-chat-wrapper"><section class="leaderboard"><div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div><div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div></section><section class="chat-section" id="globalChat"><div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div><div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div><div class="chat-input-box" id="chatInputBox"><input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="200" autocomplete="off" enterkeyhint="send" inputmode="text"><button id="chatSend" type="button" aria-label="Envoyer le message">➤</button></div></section></div>
 <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
