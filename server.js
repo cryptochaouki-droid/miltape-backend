@@ -1038,12 +1038,10 @@ async function broadcastGameState() {
 }
 
 // ============================================================
-// MISE À JOUR CHRONO
+// MISE À JOUR CHRONO — ÉVÉNEMENT CORRIGÉ
 // ============================================================
 //
-// Le chrono reste basé sur endsAt.
-// On envoie aussi game:timer pour permettre au frontend
-// de garder l'affichage synchronisé sans toucher au chat.
+// On émet désormais "timer:update" pour correspondre au frontend.
 //
 
 function broadcastTimer() {
@@ -1053,7 +1051,7 @@ function broadcastTimer() {
     }
 
     io.emit(
-        "game:timer",
+        "timer:update",          // <--- CHANGEMENT ICI
         {
             gameId: game.id,
             status: game.status,
@@ -2201,11 +2199,6 @@ io.on(
                                 game.id
                         });
 
-                    // --------------------------------------------
-                    // IMPORTANT :
-                    // ON GARDE chat:message
-                    // --------------------------------------------
-
                     io.emit(
                         "chat:message",
                         {
@@ -2325,13 +2318,6 @@ setInterval(
 // ============================================================
 // CHRONO SOCKET — SYNCHRONISATION CHAQUE SECONDE
 // ============================================================
-//
-// IMPORTANT :
-// Ce timer n'intervient PAS dans le chat.
-// Il ne redémarre PAS la partie.
-// Il ne modifie PAS endsAt.
-// Il transmet seulement le temps restant.
-//
 
 setInterval(
     () => {
@@ -2927,4 +2913,31 @@ process.on(
                     server.close(
                         () => {
                             console.log(
-                                "🔌
+                                "🔌 Serveur fermé."
+                            );
+                            resolve();
+                        }
+                    );
+                }
+            );
+
+            await mongoose.connection.close();
+
+            console.log(
+                "✅ Fermeture propre terminée."
+            );
+
+            process.exit(0);
+
+        } catch (error) {
+
+            console.error(
+                "❌ Erreur lors de la fermeture :",
+                error?.message ||
+                error
+            );
+
+            process.exit(1);
+        }
+    }
+);
