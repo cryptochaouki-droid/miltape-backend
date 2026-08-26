@@ -2051,4 +2051,418 @@
       const text = chatInput.value.trim();
       if (text) {
         socket.emit("chat:send", { message: text });
-        chatInput.value =
+        chatInput.value = "";
+      }
+    }
+
+    if (chatSend) chatSend.addEventListener('click', sendMessage);
+    if (chatInput) chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    socket.on("chat:message", (data) => {
+      if (chatMessages) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-message';
+
+        // Créer les éléments avec textContent pour éviter XSS
+        const strong = document.createElement('strong');
+        strong.textContent = data.name + ' :';
+
+        const textNode = document.createTextNode(' ' + data.message);
+
+        msgDiv.appendChild(strong);
+        msgDiv.appendChild(textNode);
+
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    });
+
+    // ==========================================
+    // 19. PAIEMENT (URL corrigée – un seul paramètre "start")
+    // ==========================================
+    function initiatePayment(wallet, amount) {
+      const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
+      fetch(API_URL + "/api/wallet")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const serverWallet = data.wallet;
+            // ⚠️ Corrigé : l'ancienne URL contenait deux "?" ("start=transfer?to=...")
+            // ce qui rendait le second "?to=" invalide comme séparateur de query-string.
+            // Le paramètre "start" du bot Telegram Wallet doit être une chaîne unique
+            // (généralement encodée), pas un mini query-string imbriqué.
+            const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + amount + '-' + token);
+            const paymentUrl = 'https://t.me/wallet?start=' + startParam;
+            window.open(paymentUrl, '_blank');
+            hapticMedium();
+            alert("💰 Envoie " + amount + " " + token + " (TRC20) vers :\n" + serverWallet + "\n\n✅ Le paiement sera détecté automatiquement !");
+          } else { hapticError(); alert("❌ Impossible de récupérer le wallet du serveur."); }
+        })
+        .catch(err => { hapticError(); alert("❌ Erreur lors de la récupération du wallet."); console.error(err); });
+    }
+
+    // ==========================================
+    // 20. ERREURS SOCKET
+    // ==========================================
+    socket.on("error", (err) => {
+      if (err.message === "Joueur introuvable.") {
+        console.log("🔍 Session expirée, nettoyage automatique...");
+        localStorage.removeItem("miltape_player_id");
+        localStorage.removeItem("miltape_player_wallet");
+        localStorage.removeItem("miltape_player_name");
+        localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
+        if (enterChallenge) enterChallenge.style.display = 'block';
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
+        return;
+      }
+      hapticError();
+      alert("⚠️ Erreur : " + err.message);
+    });
+
+    // ==========================================
+    // 21. NOTIFICATIONS – sécurisé (textContent au lieu d'innerHTML)
+    // ==========================================
+    let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
+    const notifToggle = document.getElementById('notifToggle');
+    if (notifToggle) {
+      notifToggle.checked = notificationsEnabled;
+      notifToggle.addEventListener('change', function() {
+        notificationsEnabled = this.checked;
+        localStorage.setItem("miltape_notifications", this.checked.toString());
+      });
+    }
+
+    function getNotifIcon(type) {
+      const icons = { 'info':'📢','success':'✅','warning':'⏱️','alert':'🔔','champion':'🏆' };
+      return icons[type] || '📢';
+    }
+
+    function showNotification(type, message, data = {}) {
+      if (!notificationsEnabled) return;
+      const container = document.getElementById('notificationContainer');
+      if (!container) return;
+
+      // Construction sécurisée du DOM (au lieu d'innerHTML avec "message" non fiable)
+      const notif = document.createElement('div');
+      notif.className = 'notification ' + type;
+
+      const wrapper = document.createElement('span');
+      wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'notif-icon';
+      iconSpan.textContent = getNotifIcon(type);
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'notif-text';
+      textSpan.textContent = message; // sécurisé : jamais interprété comme HTML
+
+      wrapper.appendChild(iconSpan);
+      wrapper.appendChild(textSpan);
+      notif.appendChild(wrapper);
+      container.appendChild(notif);
+
+      if (type === 'champion') hapticHeavy();
+      else if (type === 'success') hapticMedium();
+      else hapticLight();
+      setTimeout(() => {
+        if (notif.parentNode) { notif.classList.add('hiding'); setTimeout(() => { if (notif.parentNode) notif.remove(); }, 300); }
+      }, 4000);
+    }
+
+    socket.on("notification:new", (data) => {
+      showNotification(data.type, data.message, data.data);
+      if (data.type === 'champion') {
+        const match = data.message.match(/#\d+\s+(\S+)\s+→\s+(\d+\.?\d*)/);
+        if (match) addWinnerToTicker(match[1], match[2], data.data?.winner?.rank || 1);
+      }
+    });
+
+    // ==========================================
+    // 22. BANDEAU DES GAGNANTS (TICKER) – sécurisé (textContent au lieu d'innerHTML)
+    // ==========================================
+    const winnerTicker = document.getElementById('winnerTicker');
+    const tickerTrack = document.getElementById('tickerTrack');
+    let tickerItems = [];
+    const MAX_TICKER_ITEMS = 20;
+
+    function addWinnerToTicker(name, amount, rank) {
+      if (!name) return;
+      const existing = tickerItems.find(item => item.name === name);
+      if (existing) { existing.amount = amount; updateTickerDisplay(); return; }
+      const emoji = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
+      tickerItems.push({ name, amount, rank, emoji });
+      if (tickerItems.length > MAX_TICKER_ITEMS) tickerItems.shift();
+      updateTickerDisplay();
+      showTicker();
+    }
+
+    function buildTickerItemEl(item) {
+      const span = document.createElement('span');
+      span.className = 'ticker-item';
+
+      const trophy = document.createElement('span');
+      trophy.className = 'trophy';
+      trophy.textContent = item.emoji;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = item.name; // sécurisé : pseudo joueur jamais interprété comme HTML
+
+      const arrow = document.createElement('span');
+      arrow.textContent = '→';
+
+      const amountSpan = document.createElement('span');
+      amountSpan.className = 'amount';
+      amountSpan.textContent = (typeof item.amount === 'number' ? item.amount + ' USDT' : item.amount);
+
+      span.appendChild(trophy);
+      span.appendChild(nameSpan);
+      span.appendChild(arrow);
+      span.appendChild(amountSpan);
+      return span;
+    }
+
+    function updateTickerDisplay() {
+      if (!tickerTrack) return;
+      tickerTrack.innerHTML = ""; // reset sûr, on ne réinjecte que des éléments créés via createElement
+      const doubled = [...tickerItems, ...tickerItems];
+      const frag = document.createDocumentFragment();
+      doubled.forEach(item => frag.appendChild(buildTickerItemEl(item)));
+      tickerTrack.appendChild(frag);
+      tickerTrack.style.animation = 'none';
+      void tickerTrack.offsetWidth;
+      tickerTrack.style.animation = 'tickerScroll 20s linear infinite';
+    }
+
+    function showTicker() { if (winnerTicker) winnerTicker.classList.add('show'); }
+    function hideTicker() { if (winnerTicker && tickerItems.length === 0) winnerTicker.classList.remove('show'); }
+
+    // ==========================================
+    // 23. MENU LATÉRAL + MODALES
+    // ==========================================
+    function showMenuMessage(title, content) {
+      const modal = document.getElementById('dynamicModal');
+      const modalTitle = document.getElementById('dynamicModalTitle');
+      const modalBody = document.getElementById('dynamicModalBody');
+      if (modal && modalTitle && modalBody) {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = content;
+        modal.classList.add('show');
+        hapticLight();
+      }
+    }
+
+    const closeModalBtn = document.getElementById('closeDynamicModal');
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener('click', function() {
+        const modal = document.getElementById('dynamicModal');
+        if (modal) modal.classList.remove('show');
+      });
+    }
+    const modalOverlayEl = document.getElementById('dynamicModal');
+    if (modalOverlayEl) {
+      modalOverlayEl.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+      });
+    }
+
+    const menuGamesBtn = document.getElementById('menuGamesBtn');
+    if (menuGamesBtn) {
+      menuGamesBtn.addEventListener('click', function() {
+        showMenuMessage('🎮 Mes parties', '<p>Tu n\'as pas encore de parties enregistrées.</p><p style="color:#888;font-size:12px;">Rejoins une partie pour commencer !</p>');
+      });
+    }
+
+    const menuRankingsBtn = document.getElementById('menuRankingsBtn');
+    if (menuRankingsBtn) {
+      menuRankingsBtn.addEventListener('click', function() {
+        const score = tapCount ? tapCount.textContent : '0';
+        showMenuMessage('🏆 Mes classements', '<p>Ton meilleur score : <strong style="color:#0d47a1;">' + score + '</strong> taps</p><p style="color:#888;font-size:12px;">Continue à taper pour grimper dans le classement !</p>');
+      });
+    }
+
+    const menuGainsBtn = document.getElementById('menuGainsBtn');
+    if (menuGainsBtn) {
+      menuGainsBtn.addEventListener('click', function() {
+        const wallet = localStorage.getItem("miltape_player_wallet");
+        const playerId = localStorage.getItem("miltape_player_id");
+        if (!wallet && !playerId) {
+          showMenuMessage('💰 Mes gains', '<p style="color:#888;">Tu n\'as pas encore de parties enregistrées.</p><p style="color:#888;font-size:12px;">Rejoins une partie pour commencer !</p>');
+          return;
+        }
+        let url = API_URL + '/api/player/history?';
+        if (playerId) url += 'playerId=' + playerId;
+        else url += 'wallet=' + wallet;
+        showMenuMessage('💰 Mes gains', '<div class="loader" style="margin:20px auto;"></div>');
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) { showMenuMessage('💰 Mes gains', '<p>Erreur: ' + data.message + '</p>'); return; }
+            const p = data.player;
+            const history = data.history;
+            let html = '<div class="dashboard-stats" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-around;margin-bottom:15px;">' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Total gagné</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#0d47a1;">' + p.totalGain + ' USDT</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Parties jouées</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#0d47a1;">' + p.gamesPlayed + '</span></div>' +
+              '<div class="stat-item" style="text-align:center;flex:1 1 80px;"><span class="stat-label" style="display:block;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.5px;">Meilleur score</span><span class="stat-value" style="display:block;font-size:20px;font-weight:900;color:#0d47a1;">' + p.bestScore + ' taps</span></div></div>';
+            if (history.length === 0) {
+              html += '<p class="no-data-message" style="color:#555;text-align:center;font-size:13px;padding:20px 0;">Aucune partie gagnée pour le moment.</p>';
+            } else {
+              html += '<div class="history-table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="history-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;"><thead><tr style="color:#0d47a1;border-bottom:1px solid rgba(0,0,0,0.1);"><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">#</th><th style="text-align:left;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Rang</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Mise</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Gain</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Taps</th><th style="text-align:right;padding:6px 4px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Date</th></tr></thead><tbody>';
+              history.forEach((h, idx) => {
+                const date = new Date(h.createdAt).toLocaleDateString('fr-FR');
+                html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:6px 4px;">' + (idx+1) + '</td><td style="padding:6px 4px;font-weight:700;color:#0d47a1;">#' + h.rank + '</td><td style="padding:6px 4px;text-align:right;">' + h.bet + ' USDT</td><td style="padding:6px 4px;text-align:right;color:#2ecc71;">+' + h.gain + ' USDT</td><td style="padding:6px 4px;text-align:right;">' + h.taps + '</td><td style="padding:6px 4px;text-align:right;color:#555;">' + date + '</td></tr>';
+              });
+              html += '</tbody></table></div>';
+            }
+            showMenuMessage('💰 Mes gains', html);
+          })
+          .catch(err => { console.error(err); showMenuMessage('💰 Mes gains', '<p style="color:#ff5b5b;">Erreur de chargement des gains.</p>'); });
+      });
+    }
+
+    const menuWithdrawalsBtn = document.getElementById('menuWithdrawalsBtn');
+    if (menuWithdrawalsBtn) {
+      menuWithdrawalsBtn.addEventListener('click', function() {
+        showMenuMessage('💸 Mes retraits', '<p>Tu n\'as pas encore effectué de retrait.</p><p style="color:#888;font-size:12px;">Les retraits sont disponibles après chaque partie.</p>');
+      });
+    }
+
+    const menuReferralBtn = document.getElementById('menuReferralBtn');
+    if (menuReferralBtn) {
+      menuReferralBtn.addEventListener('click', function() {
+        showMenuMessage('👥 Parrainage', '<p>Parraine tes amis et gagne des bonus !</p><p style="color:#888;font-size:12px;">Lien de parrainage :<br><span style="color:#0d47a1;word-break:break-all;font-size:11px;">https://cryptochaouki-droid.github.io/miltape-backend/</span></p>');
+      });
+    }
+
+    const menuChatBtn = document.getElementById('menuChatBtn');
+    if (menuChatBtn) {
+      menuChatBtn.addEventListener('click', function() {
+        const chatSection = document.getElementById('globalChat');
+        if (chatSection) { chatSection.scrollIntoView({ behavior: 'smooth' });
+          if (sideMenu) sideMenu.classList.remove('show');
+          if (menuOverlay) menuOverlay.classList.remove('show');
+        }
+      });
+    }
+
+    const menuRulesBtn = document.getElementById('menuRulesBtn');
+    if (menuRulesBtn) {
+      menuRulesBtn.addEventListener('click', function() {
+        showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper le plus possible.</p><p><strong>🏆 Top 5</strong> seulement.</p><p><strong>🪙 USDT (TRC20)</strong> – mise de 0.50 à 1 000 000 USDT.</p><p><strong>💰 Gains :</strong> les 5 premiers gagnent 2x leur mise.</p><p style="color:#888;font-size:12px;">Bonne chance ! 🔥</p>');
+      });
+    }
+
+    // ==========================================
+    // 24. MENU
+    // ==========================================
+    function toggleMenu() {
+      if (sideMenu && menuOverlay) {
+        sideMenu.classList.toggle('show');
+        menuOverlay.classList.toggle('show');
+      }
+    }
+    if (menuButton) menuButton.addEventListener('click', toggleMenu);
+    if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
+    if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
+
+    // ==========================================
+    // 25. BOUTON "NOUVELLE PARTIE"
+    // ==========================================
+    if (resetGameBtn) {
+      resetGameBtn.addEventListener('click', function() {
+        if (confirm("🔄 Voulez-vous vraiment recommencer une nouvelle partie ? Vos données locales seront effacées.")) {
+          localStorage.removeItem("miltape_player_id");
+          localStorage.removeItem("miltape_player_wallet");
+          localStorage.removeItem("miltape_player_name");
+          localStorage.removeItem("miltape_player_bet");
+          localStorage.removeItem("miltape_player_token");
+          localStorage.removeItem("miltape_spectator");
+          localStorage.removeItem("miltape_demo");
+          window.location.reload();
+        }
+      });
+    }
+
+    // ==========================================
+    // 26. TELEGRAM BACK BUTTON
+    // ==========================================
+    (function initTelegramBackButton() {
+      try {
+        if (window.Telegram && window.Telegram.WebApp) {
+          const webapp = window.Telegram.WebApp;
+          webapp.expand();
+          webapp.BackButton.show();
+          webapp.BackButton.onClick(function() { webapp.close(); });
+          console.log("✅ Telegram WebApp bouton retour initialisé");
+        }
+      } catch (e) {
+        console.log("ℹ️ Pas de Telegram WebApp détecté");
+      }
+    })();
+
+    // ==========================================
+    // 27. TELEGRAM USER
+    // ==========================================
+    function getTelegramUser() {
+      try {
+        if (window.Telegram && window.Telegram.WebApp) {
+          const user = window.Telegram.WebApp.initDataUnsafe?.user;
+          if (user && user.username) return user.username;
+          if (user && user.first_name) return user.first_name;
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // ==========================================
+    // 28. CAGNOTTE
+    // ==========================================
+    let jackpotCountdownInterval = null;
+
+    function updateJackpotCountdown(nextDrawTime) {
+      const countdownElement = document.getElementById('jackpotCountdown');
+      if (!countdownElement) return;
+      if (!nextDrawTime) { countdownElement.textContent = "--"; return; }
+      if (jackpotCountdownInterval) clearInterval(jackpotCountdownInterval);
+      jackpotCountdownInterval = setInterval(() => {
+        const now = Date.now();
+        let diff = nextDrawTime - now;
+        if (diff <= 0) {
+          countdownElement.textContent = "Tirage en cours...";
+          clearInterval(jackpotCountdownInterval);
+          socket.emit("jackpot:get");
+          return;
+        }
+        const days = Math.floor(diff / (1000*60*60*24));
+        const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+        const minutes = Math.floor((diff % (1000*60*60)) / (1000*60));
+        const seconds = Math.floor((diff % (1000*60)) / 1000);
+        let display = "";
+        if (days > 0) display += days + "j ";
+        if (hours > 0 || days > 0) display += hours + "h ";
+        if (minutes > 0 || hours > 0 || days > 0) display += minutes + "m ";
+        display += seconds + "s";
+        countdownElement.textContent = display;
+      }, 1000);
+    }
+
+    socket.on("jackpot:update", (data) => {
+      const prizeElement = document.getElementById('jackpotAmount');
+      if (prizeElement) prizeElement.textContent = data.prize + " USDT";
+      if (data.nextDraw) updateJackpotCountdown(data.nextDraw);
+      else { const countdownElement = document.getElementById('jackpotCountdown'); if (countdownElement) countdownElement.textContent = "--"; }
+    });
+
+    socket.emit("jackpot:get");
+
+    console.log("✅ Script Miltape chargé – XSS corrigé (chat, classement, notifications, ticker)");
+  </script>
+
+</body>
+</html>
