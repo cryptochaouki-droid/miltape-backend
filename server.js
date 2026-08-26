@@ -8,7 +8,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const PORT = Number(process.env.PORT) || 3000;
 
-// ✅✅✅ GARDE-FOUS ULTIMES (Empêche le serveur de planter sur SIGTERM) ✅✅✅
+// ✅✅✅ GARDE-FOUS ULTIMES & GESTION PROPRE DU SIGTERM ✅✅✅
 process.on('uncaughtException', (err) => {
     console.error('❌ Erreur non gérée interceptée (le serveur continue) :', err.message);
 });
@@ -65,7 +65,6 @@ const server = http.createServer(app);
 app.use(helmet());
 app.set('trust proxy', 1);
 
-// ✂️✂️✂️ CORRECTION CRUCIALE DU CORS (Ne plus utiliser les crochets ni credentials) ✂️✂️✂️
 const FRONTEND_ORIGINS = "*"; 
 app.use(cors({ origin: FRONTEND_ORIGINS }));
 app.use(express.json({ limit: "1mb" }));
@@ -532,4 +531,22 @@ server.listen(PORT, async () => {
         console.error("Erreur démarrage:", e.message); 
     }
     setInterval(checkPendingPayments, 15000);
+});
+
+// 🛡️ GESTION PROPRE DU SIGTERM (Évite les plantages lors des redémarrages Railway)
+process.on('SIGTERM', async () => {
+    console.log('🛑 Signal SIGTERM reçu. Fermeture propre du serveur...');
+    if (gameTimer) clearTimeout(gameTimer);
+    if (nextGameTimeout) clearTimeout(nextGameTimeout);
+    
+    server.close(async () => {
+        console.log('🔌 Serveur HTTP fermé.');
+        try {
+            await mongoose.connection.close(false);
+            console.log('📦 Connexion MongoDB fermée.');
+        } catch (err) {
+            console.error('Erreur lors de la fermeture de MongoDB :', err);
+        }
+        process.exit(0);
+    });
 });
