@@ -308,9 +308,16 @@ async function getIncomingTrc20Transactions(address) {
 function sendNotification(type, message, data = {}) {
     io.emit("notification", { type, message, data });
 }
+
+// ============================================================
+// MODIFICATION : broadcastOnlineCount avec log
+// ============================================================
 function broadcastOnlineCount() {
-    io.emit("online:count", { count: onlineSockets.size });
+    const count = onlineSockets.size;
+    console.log(`👥 Joueurs en ligne : ${count}`);
+    io.emit("online:count", { count });
 }
+
 async function broadcastGameState() {
     try {
         if (!game.id) return;
@@ -358,7 +365,6 @@ async function emitJackpotUpdate() {
 
         let jackpot = await Jackpot.findOne({ weekStart });
         if (!jackpot) {
-            // Création par sécurité (normalement déjà fait au démarrage)
             jackpot = await Jackpot.create({
                 weekStart,
                 weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -415,7 +421,6 @@ async function distributeWeeklyJackpot() {
         });
         sendNotification("champion", `🏆 ${winner.name} remporte le jackpot de ${jackpot.accumulatedFund} USDT !`);
 
-        // Réinitialiser les compteurs
         await Player.updateMany({}, { $set: { weeklyTaps: 0 } });
         console.log(`✅ Jackpot de ${jackpot.accumulatedFund} USDT attribué à ${winner.name} (${winner.weeklyTaps} taps)`);
     } catch (error) {
@@ -499,7 +504,6 @@ async function finishGame() {
                     token: player.token
                 });
             }
-            // Ajout au jackpot
             const weekStart = new Date();
             weekStart.setHours(0, 0, 0, 0);
             weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -633,7 +637,6 @@ io.on("connection", async (socket) => {
         console.error("Erreur état initial :", error?.message || error);
     }
 
-    // Demande manuelle du jackpot
     socket.on("jackpot:get", () => {
         emitJackpotUpdate().catch(err => console.error(err));
     });
