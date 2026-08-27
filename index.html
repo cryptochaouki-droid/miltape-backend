@@ -1053,6 +1053,16 @@ socket.on("jackpot:update",(data)=>{
     if(data.nextDraw)updateJackpotCountdown(data.nextDraw);
 });
 socket.emit("jackpot:get");
+
+// ============================================================
+//  ✅ SOLUTION 3 : Mise à jour auto du compteur en ligne
+//  → toutes les 10 secondes, sans rien faire
+// ============================================================
+setInterval(() => {
+    socket.emit('online:count');
+    console.log('🔄 Mise à jour auto du compteur en ligne');
+}, 10000);
+
 console.log("✅ Script Miltape chargé avec succès.");
 </script>
 </body>
