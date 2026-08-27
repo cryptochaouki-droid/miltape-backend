@@ -783,11 +783,13 @@ if(tapButton){
         if(now-lastTapTime<MIN_TAP_INTERVAL_MS)return;
         lastTapTime=now;
         tapEffects();
+        console.log("📤 Tap envoyé au serveur, isPaid:", isPaid, "myPlayerId:", myPlayerId);
         socket.emit("player:tap")
     })
 }
 
 socket.on("player:score",(data)=>{
+    console.log("📥 player:score reçu :", data);
     if(tapCount){tapCount.innerText=data.taps}
     if(tapButtonCount)tapButtonCount.innerText=data.taps;
     updateTapCounter(data.taps);
@@ -821,12 +823,30 @@ socket.on("game:state", (data) => {
 });
 
 // ============================================================
-//    Mise à jour du compteur de taps
+//    Mise à jour du compteur de taps (avec logs)
 // ============================================================
 function updateTapCounter(taps) {
     const el = document.getElementById('tapCounterDisplay');
-    if (el) el.textContent = taps || 0;
+    if (el) {
+        el.textContent = taps || 0;
+        console.log("🔄 Compteur mis à jour :", taps);
+    }
 }
+
+// ============================================================
+//    Écouteur player:update (celui qui est émis par le serveur)
+// ============================================================
+socket.on("player:update", (data) => {
+    console.log("📥 player:update reçu :", data, "myPlayerId:", myPlayerId);
+    // Mettre à jour le compteur si c'est le joueur actuel
+    if (myPlayerId && data.id === myPlayerId) {
+        updateTapCounter(data.taps);
+    }
+    // Mettre à jour le classement si besoin
+    if (leaderboardList) {
+        // Le leaderboard est mis à jour via leaderboard:update
+    }
+});
 
 // ============================================================
 //    Fin des modifications pour le chrono / compteur
