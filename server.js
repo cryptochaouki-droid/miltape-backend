@@ -21,7 +21,6 @@ const SUPPORTED_TOKENS = {
     TRX:  { contract: null, decimals: 6, symbol: "TRX" }
 };
 
-// Parts pour les 5 premiers (somme = 100%)
 const PRIZE_SHARES = [0.40, 0.25, 0.15, 0.12, 0.08];
 
 const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
@@ -30,9 +29,6 @@ const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 
-// ============================================================
-// GARDE-FOUS
-// ============================================================
 process.on("uncaughtException", (err) => console.error("❌", err?.message || err));
 process.on("unhandledRejection", (reason) => console.error("❌", reason));
 
@@ -41,9 +37,6 @@ if (!MONGODB_URI || !PRIVATE_KEY || !ADMIN_PASSWORD) {
     process.exit(1);
 }
 
-// ============================================================
-// TRONWEB
-// ============================================================
 let tronWeb = null;
 let MILTAPE_WALLET = "";
 try {
@@ -59,9 +52,6 @@ try {
     process.exit(1);
 }
 
-// ============================================================
-// SERVEUR EXPRESS & SOCKET.IO
-// ============================================================
 const app = express();
 const server = http.createServer(app);
 app.set("trust proxy", 1);
@@ -84,18 +74,12 @@ const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// ============================================================
-// MONGOOSE
-// ============================================================
 mongoose.set("strictQuery", true);
 mongoose.set("bufferTimeoutMS", 10000);
 mongoose.connection.on("connected", () => console.log("✅ Mongoose connecté."));
 mongoose.connection.on("disconnected", () => console.warn("⚠️ Mongoose déconnecté."));
 mongoose.connection.on("error", (err) => console.error("❌ Mongoose erreur :", err?.message || err));
 
-// ============================================================
-// SCHEMAS MONGODB
-// ============================================================
 const playerSchema = new mongoose.Schema({
     gameId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -157,9 +141,6 @@ const Payment = mongoose.model("Payment", paymentSchema);
 const History = mongoose.model("History", historySchema);
 const Jackpot = mongoose.model("Jackpot", jackpotSchema);
 
-// ============================================================
-// CONNEXION MONGODB
-// ============================================================
 async function connectMongoDB() {
     try {
         await mongoose.connect(MONGODB_URI, {
@@ -174,9 +155,6 @@ async function connectMongoDB() {
     }
 }
 
-// ============================================================
-// UTILITAIRES
-// ============================================================
 function normalizeWallet(address) {
     return String(address || "").trim();
 }
@@ -195,9 +173,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
     try { return await fetch(url, { ...options, signal: controller.signal }); } finally { clearTimeout(id); }
 }
 
-// ============================================================
-// CHRONO & JEU
-// ============================================================
 let gameTimer = null, nextGameTimeout = null;
 const onlineSockets = new Set();
 let game = {
@@ -223,9 +198,6 @@ function getGameStateObject() {
     };
 }
 
-// ============================================================
-// MONTANT UNIQUE POUR PAIEMENT
-// ============================================================
 async function assignUniqueDepositAmount(baseBet, gameId) {
     for (let i = 0; i < 10; i++) {
         const candidate = Number((Number(baseBet) + Math.random() * 0.001).toFixed(6));
@@ -235,9 +207,6 @@ async function assignUniqueDepositAmount(baseBet, gameId) {
     return Number((Number(baseBet) + 0.000999).toFixed(6));
 }
 
-// ============================================================
-// VÉRIFICATION ON-CHAIN
-// ============================================================
 async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     if (!txId || !expectedAmount) return false;
     const tokenInfo = SUPPORTED_TOKENS[token];
@@ -279,9 +248,6 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     }
 }
 
-// ============================================================
-// ENVOI DES GAINS AUTOMATIQUEMENT
-// ============================================================
 async function sendPrizeToWinner(historyEntry) {
     try {
         const { wallet, gain, token, playerName } = historyEntry;
@@ -290,10 +256,8 @@ async function sendPrizeToWinner(historyEntry) {
             console.error(`❌ Adresse invalide pour ${playerName} : ${wallet}`);
             return false;
         }
-
         const tokenInfo = SUPPORTED_TOKENS[token];
         if (!tokenInfo) throw new Error(`Token ${token} non supporté pour l'envoi.`);
-
         let txId = null;
         if (token === "TRX") {
             const amountSun = Math.floor(gain * 1e6);
@@ -313,17 +277,33 @@ async function sendPrizeToWinner(historyEntry) {
     }
 }
 
-// ============================================================
-// NOTIFICATIONS ET BROADCASTS
-// ============================================================
 function sendNotification(type, message, data = {}) {
-    io.emit("notification", { type, message, data });
+    io.emit("notification:new", { type, message, data });
 }
 
 function broadcastOnlineCount() {
     const count = onlineSockets.size;
     console.log(`👥 Joueurs en ligne : ${count}`);
     io.emit("online:count", { count });
+}
+
+async function emitLeaderboard() {
+    try {
+        if (!game.id) return;
+        const players = await Player.find({ gameId: game.id })
+            .select("name taps")
+            .sort({ taps: -1 })
+            .limit(50)
+            .lean();
+        const leaderboard = players.map((p, i) => ({
+            rank: i + 1,
+            name: p.name,
+            taps: p.taps
+        }));
+        io.emit("leaderboard:update", leaderboard);
+    } catch (error) {
+        console.error("❌ Erreur emitLeaderboard :", error?.message || error);
+    }
 }
 
 async function broadcastGameState() {
@@ -335,6 +315,7 @@ async function broadcastGameState() {
             .limit(50)
             .lean();
         io.emit("game:state", { game: getGameStateObject(), players });
+        await emitLeaderboard();
     } catch (error) {
         console.error("❌ Erreur broadcastGameState :", error?.message || error);
     }
@@ -349,9 +330,6 @@ function broadcastTimer() {
     });
 }
 
-// ============================================================
-// JACKPOT – GESTION DU MEILLEUR TAPEUR DE LA SEMAINE
-// ============================================================
 function getNextSaturday() {
     const now = new Date();
     const day = now.getDay();
@@ -370,7 +348,6 @@ async function emitJackpotUpdate() {
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
         let jackpot = await Jackpot.findOne({ weekStart });
         if (!jackpot) {
             jackpot = await Jackpot.create({
@@ -389,35 +366,25 @@ async function emitJackpotUpdate() {
     }
 }
 
-// Distribution au meilleur tapeur de la semaine
 async function distributeWeeklyJackpot() {
     try {
         console.log("🏆 Distribution du jackpot hebdomadaire...");
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
         const jackpot = await Jackpot.findOne({ weekStart });
         if (!jackpot || jackpot.drawn || jackpot.accumulatedFund <= 0) {
             console.log("Aucun jackpot à distribuer cette semaine.");
             return;
         }
-
-        const winner = await Player.findOne({})
-            .sort({ weeklyTaps: -1 })
-            .limit(1)
-            .select("name wallet weeklyTaps");
-
+        const winner = await Player.findOne({}).sort({ weeklyTaps: -1 }).limit(1).select("name wallet weeklyTaps");
         if (!winner || winner.weeklyTaps === 0) {
             console.log("Aucun gagnant (aucun tap effectué).");
             return;
         }
-
         jackpot.winner = winner._id;
         jackpot.drawn = true;
         await jackpot.save();
-
-        // Envoyer le jackpot au gagnant
         const amount = jackpot.accumulatedFund;
         const token = "USDT";
         const txId = await sendPrizeToWinner({
@@ -426,7 +393,6 @@ async function distributeWeeklyJackpot() {
             token: token,
             playerName: winner.name
         });
-
         io.emit("jackpot:winner", {
             winner: winner.name,
             amount: amount,
@@ -439,7 +405,6 @@ async function distributeWeeklyJackpot() {
             createdAt: new Date()
         });
         sendNotification("champion", `🏆 ${winner.name} remporte le jackpot de ${amount} USDT !`);
-
         await Player.updateMany({}, { $set: { weeklyTaps: 0 } });
         console.log(`✅ Jackpot de ${amount} USDT attribué à ${winner.name} (${winner.weeklyTaps} taps) - Tx: ${txId || "N/A"}`);
     } catch (error) {
@@ -447,15 +412,11 @@ async function distributeWeeklyJackpot() {
     }
 }
 
-// Planification : chaque samedi à minuit (UTC)
 cron.schedule('0 0 * * 6', () => {
     console.log("⏰ Planification : distribution du jackpot...");
     distributeWeeklyJackpot().catch(err => console.error(err));
 });
 
-// ============================================================
-// DÉMARRAGE ET FIN DE PARTIE
-// ============================================================
 async function startGame() {
     console.log("🎮 Démarrage de la partie...");
     if (gameTimer) { clearTimeout(gameTimer); gameTimer = null; }
@@ -464,7 +425,6 @@ async function startGame() {
     game.startedAt = new Date();
     game.endsAt = new Date(Date.now() + GAME_DURATION_SECONDS * 1000);
     game.durationSeconds = GAME_DURATION_SECONDS;
-
     io.emit("game:started", {
         gameId: game.id,
         startsAt: game.startedAt,
@@ -473,11 +433,9 @@ async function startGame() {
         remainingSeconds: GAME_DURATION_SECONDS
     });
     broadcastTimer();
-
     gameTimer = setTimeout(() => {
         finishGame().catch((error) => console.error("❌ finishGame :", error?.message || error));
     }, GAME_DURATION_SECONDS * 1000);
-
     try {
         await broadcastGameState();
         await emitJackpotUpdate();
@@ -492,17 +450,14 @@ async function finishGame() {
     game.status = "finished";
     if (gameTimer) { clearTimeout(gameTimer); gameTimer = null; }
     broadcastTimer();
-
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
     nextGameTimeout = setTimeout(() => {
         startGame().catch((error) => console.error("❌ Erreur nouvelle partie :", error?.message || error));
     }, 10000);
-
     game.status = "waiting";
     game.startedAt = null;
     game.endsAt = null;
     broadcastTimer();
-
     try {
         const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
         if (players.length > 0) {
@@ -526,8 +481,6 @@ async function finishGame() {
                 });
                 winners.push({ player, gain, history });
             }
-
-            // Envoi automatique des gains
             for (const { player, gain, history } of winners) {
                 try {
                     const txId = await sendPrizeToWinner({
@@ -547,8 +500,6 @@ async function finishGame() {
                     console.error(`❌ Erreur lors de l'envoi du gain à ${player.name}:`, err);
                 }
             }
-
-            // Ajout au jackpot hebdomadaire
             const weekStart = new Date();
             weekStart.setHours(0, 0, 0, 0);
             weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -563,8 +514,6 @@ async function finishGame() {
             jackpot.accumulatedFund = Number(jackpot.accumulatedFund || 0) + totalPot;
             await jackpot.save();
         }
-
-        // Émettre les gagnants (pour affichage frontend)
         const winnersList = players.slice(0, PRIZE_SHARES.length).map((player, index) => ({
             name: player.name,
             taps: player.taps,
@@ -579,9 +528,6 @@ async function finishGame() {
     }
 }
 
-// ============================================================
-// PAIEMENTS AUTOMATIQUES
-// ============================================================
 async function checkPendingPayments() {
     if (game.status !== "running") return;
     try {
@@ -592,11 +538,9 @@ async function checkPendingPayments() {
             depositAmount: { $ne: null }
         });
         if (unpaidPlayers.length === 0) return;
-
         const trxTransactions = await getIncomingTrxTransactions(MILTAPE_WALLET);
         const trc20Transactions = await getIncomingTrc20Transactions(MILTAPE_WALLET);
         const allTransactions = [...(trxTransactions || []), ...(trc20Transactions || [])];
-
         for (const tx of allTransactions) {
             try {
                 const txId = tx.transaction_id || tx.txID;
@@ -615,7 +559,6 @@ async function checkPendingPayments() {
                     token = "TRX";
                     amount = Number(value.amount) / 1e6;
                 } else continue;
-
                 if (!SUPPORTED_TOKENS[token]) continue;
                 const matchingPlayer = unpaidPlayers.find(
                     (player) => player.token === token && Math.abs(amount - Number(player.depositAmount)) < 0.0000001
@@ -623,13 +566,11 @@ async function checkPendingPayments() {
                 if (!matchingPlayer) continue;
                 const alreadyUsed = await Payment.findOne({ txId });
                 if (alreadyUsed) continue;
-
                 matchingPlayer.paid = true;
                 matchingPlayer.paymentTxId = txId;
                 matchingPlayer.depositAmount = null;
                 matchingPlayer.depositExpiresAt = null;
                 await matchingPlayer.save();
-
                 await Payment.create({
                     txId,
                     from: "Paiement détecté",
@@ -639,7 +580,6 @@ async function checkPendingPayments() {
                     gameId: game.id,
                     token
                 });
-
                 io.emit("payment:verified", {
                     verified: true,
                     wallet: matchingPlayer.wallet,
@@ -662,40 +602,28 @@ async function checkPendingPayments() {
     }
 }
 
-// ============================================================
-// SOCKET.IO ÉVÉNEMENTS
-// ============================================================
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
-
-    // ==========================================================
-    // ✅ ÉCOUTEUR online:count – ENREGISTRÉ TOUT DE SUITE
-    // ==========================================================
     socket.on("online:count", () => {
         socket.emit("online:count", { count: onlineSockets.size });
     });
-
     broadcastOnlineCount();
-
     socket.emit("timer:update", {
         gameId: game.id,
         status: game.status,
         remainingSeconds: getRemainingSeconds(),
         endsAt: game.endsAt
     });
-
     try {
         await broadcastGameState();
         await emitJackpotUpdate();
     } catch (error) {
         console.error("Erreur état initial :", error?.message || error);
     }
-
     socket.on("jackpot:get", () => {
         emitJackpotUpdate().catch(err => console.error(err));
     });
-
     socket.on("timer:request", () => {
         socket.emit("timer:update", {
             gameId: game.id,
@@ -704,7 +632,6 @@ io.on("connection", async (socket) => {
             endsAt: game.endsAt
         });
     });
-
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
@@ -712,21 +639,18 @@ io.on("connection", async (socket) => {
             const deviceId = normalizeWallet(data?.deviceId);
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
-
             if (!game.id || game.status !== "running") {
                 return socket.emit("error", { message: "La partie n'est pas encore disponible." });
             }
             if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) {
                 return socket.emit("error", { message: "Données invalides." });
             }
-
             let player = null;
             if (deviceId) {
                 player = await Player.findOne({ gameId: game.id, deviceId });
             } else {
                 player = await Player.findOne({ gameId: game.id, wallet });
             }
-
             if (!player) {
                 const depositAmount = await assignUniqueDepositAmount(bet, game.id);
                 player = await Player.create({
@@ -753,10 +677,9 @@ io.on("connection", async (socket) => {
                 player.depositExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
                 await player.save();
             }
-
             socket.data.playerId = player._id.toString();
             socket.data.gameId = game.id;
-
+            socket.data.playerName = player.name; // <-- stocker le nom pour le chat
             socket.emit("player:joined", {
                 success: true,
                 player: {
@@ -771,43 +694,36 @@ io.on("connection", async (socket) => {
                 },
                 game: getGameStateObject()
             });
-
             await broadcastGameState();
         } catch (error) {
             console.error("❌ player:join :", error?.message || error);
             socket.emit("error", { message: "Impossible de rejoindre la partie." });
         }
     });
-
     socket.on("player:tap", async (data) => {
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
             const taps = Math.max(0, Math.min(10, Number(data?.taps) || 1));
             if (taps <= 0) return;
-
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: taps, weeklyTaps: taps } },
                 { new: true }
             ).select("name taps");
-
             if (!result) return;
-
-            // ==========================================================
-            // ✅ FIX : L'événement s'appelle "player:score" pour correspondre au frontend
-            // ==========================================================
             io.emit("player:score", {
                 taps: result.taps
             });
+            // Mettre à jour le classement après chaque tap
+            await emitLeaderboard();
         } catch (error) {
             console.error("❌ player:tap :", error?.message || error);
         }
     });
-
     socket.on("chat:send", async (data) => {
         try {
-            const name = String(data?.name || "Anonyme").trim().substring(0, 30);
+            const name = socket.data.playerName || "Anonyme"; // <-- utiliser le nom stocké
             const message = String(data?.message || "").trim().substring(0, 300);
             if (!message) return;
             const msg = await Message.create({ name, message, gameId: game.id });
@@ -821,7 +737,6 @@ io.on("connection", async (socket) => {
             console.error("❌ chat:send :", error?.message || error);
         }
     });
-
     socket.on("disconnect", async () => {
         onlineSockets.delete(socket.id);
         console.log(`🔴 Déconnexion Socket : ${socket.id}`);
@@ -830,9 +745,6 @@ io.on("connection", async (socket) => {
     });
 });
 
-// ============================================================
-// INTERVALLES DE MAINTENANCE
-// ============================================================
 setInterval(() => {
     if (game.status !== "running") return;
     const now = new Date();
@@ -858,9 +770,6 @@ setInterval(() => {
     emitJackpotUpdate().catch(err => console.error("Erreur maj jackpot :", err));
 }, 60 * 1000);
 
-// ============================================================
-// ROUTES API EXPRESS
-// ============================================================
 app.get("/api/wallet", (req, res) => {
     res.json({ success: true, wallet: MILTAPE_WALLET });
 });
@@ -959,17 +868,12 @@ app.get("/health", (req, res) => {
     });
 });
 
-// ============================================================
-// DÉMARRAGE DU SERVEUR
-// ============================================================
 async function startServer() {
     try {
         await connectMongoDB();
-
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
         const existingJackpot = await Jackpot.findOne({ weekStart });
         if (!existingJackpot) {
             await Jackpot.create({
@@ -982,7 +886,6 @@ async function startServer() {
         } else {
             console.log("✅ Jackpot existant trouvé.");
         }
-
         server.listen(PORT, async () => {
             console.log("🚀 BACKEND ONLINE");
             console.log(`🌐 Port : ${PORT}`);
@@ -992,7 +895,6 @@ async function startServer() {
             console.log(`💰 Paiements auto : ACTIFS`);
             console.log(`🏆 Jackpot hebdomadaire (meilleur tapeur) : ACTIF`);
             console.log(`💸 Envoi automatique des gains : ACTIF`);
-
             try { await startGame(); } catch (error) { console.error("❌ Erreur démarrage partie :", error?.message || error); }
         });
     } catch (error) {
@@ -1003,9 +905,6 @@ async function startServer() {
 
 startServer();
 
-// ============================================================
-// SIGTERM — RAILWAY
-// ============================================================
 process.on("SIGTERM", async () => {
     console.log("🛑 SIGTERM reçu. Fermeture propre...");
     if (gameTimer) clearTimeout(gameTimer);
