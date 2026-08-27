@@ -6,12 +6,11 @@ const { Server } = require("socket.io");
 const { TronWeb } = require("tronweb");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const cron = require("node-cron"); // <-- NOUVEAU
+const cron = require("node-cron");
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
-
 const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60; // 10 minutes
 
@@ -100,7 +99,7 @@ const playerSchema = new mongoose.Schema({
     wallet: { type: String, trim: true, index: true },
     deviceId: { type: String, trim: true, index: true },
     taps: { type: Number, default: 0, min: 0 },
-    weeklyTaps: { type: Number, default: 0 }, // <-- NOUVEAU : cumul hebdomadaire
+    weeklyTaps: { type: Number, default: 0 },
     bet: { type: Number, default: 0, min: 0 },
     paid: { type: Boolean, default: false },
     paymentTxId: { type: String, default: null, unique: true, sparse: true },
@@ -336,7 +335,7 @@ function broadcastTimer() {
 }
 
 // ============================================================
-// JACKPOT – NOUVEAU : gestion du meilleur tapeur de la semaine
+// JACKPOT – GESTION DU MEILLEUR TAPEUR DE LA SEMAINE
 // ============================================================
 function getNextSaturday() {
     const now = new Date();
@@ -356,7 +355,18 @@ async function emitJackpotUpdate() {
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        const jackpot = await Jackpot.findOne({ weekStart });
+
+        let jackpot = await Jackpot.findOne({ weekStart });
+        if (!jackpot) {
+            // Création par sécurité (normalement déjà fait au démarrage)
+            jackpot = await Jackpot.create({
+                weekStart,
+                weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
+                accumulatedFund: 0,
+                drawn: false
+            });
+            console.log("✅ Jackpot créé à la volée.");
+        }
         const prize = jackpot ? jackpot.accumulatedFund : 0;
         const nextDraw = getNextSaturday();
         io.emit("jackpot:update", { prize, nextDraw });
@@ -365,15 +375,13 @@ async function emitJackpotUpdate() {
     }
 }
 
-// ============================================================
-// DISTRIBUTION DU JACKPOT AU MEILLEUR TAPEUR DE LA SEMAINE
-// ============================================================
+// Distribution au meilleur tapeur de la semaine
 async function distributeWeeklyJackpot() {
     try {
         console.log("🏆 Distribution du jackpot hebdomadaire...");
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // dimanche dernier
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
 
         const jackpot = await Jackpot.findOne({ weekStart });
         if (!jackpot || jackpot.drawn || jackpot.accumulatedFund <= 0) {
@@ -381,7 +389,6 @@ async function distributeWeeklyJackpot() {
             return;
         }
 
-        // Trouver le joueur avec le plus grand weeklyTaps (sur toute la base)
         const winner = await Player.findOne({})
             .sort({ weeklyTaps: -1 })
             .limit(1)
@@ -392,12 +399,10 @@ async function distributeWeeklyJackpot() {
             return;
         }
 
-        // Marquer le jackpot comme distribué
         jackpot.winner = winner._id;
         jackpot.drawn = true;
         await jackpot.save();
 
-        // Notifier tout le monde
         io.emit("jackpot:winner", {
             winner: winner.name,
             amount: jackpot.accumulatedFund,
@@ -410,16 +415,15 @@ async function distributeWeeklyJackpot() {
         });
         sendNotification("champion", `🏆 ${winner.name} remporte le jackpot de ${jackpot.accumulatedFund} USDT !`);
 
-        // Réinitialiser les compteurs hebdomadaires pour tous les joueurs
+        // Réinitialiser les compteurs
         await Player.updateMany({}, { $set: { weeklyTaps: 0 } });
-
         console.log(`✅ Jackpot de ${jackpot.accumulatedFund} USDT attribué à ${winner.name} (${winner.weeklyTaps} taps)`);
     } catch (error) {
         console.error("❌ Erreur distribution jackpot :", error?.message || error);
     }
 }
 
-// Planifier la distribution chaque samedi à minuit (UTC)
+// Planification : chaque samedi à minuit (UTC)
 cron.schedule('0 0 * * 6', () => {
     console.log("⏰ Planification : distribution du jackpot...");
     distributeWeeklyJackpot().catch(err => console.error(err));
@@ -629,6 +633,11 @@ io.on("connection", async (socket) => {
         console.error("Erreur état initial :", error?.message || error);
     }
 
+    // Demande manuelle du jackpot
+    socket.on("jackpot:get", () => {
+        emitJackpotUpdate().catch(err => console.error(err));
+    });
+
     socket.on("timer:request", () => {
         socket.emit("timer:update", {
             gameId: game.id,
@@ -668,7 +677,7 @@ io.on("connection", async (socket) => {
                     wallet,
                     deviceId,
                     taps: 0,
-                    weeklyTaps: 0, // initialisation
+                    weeklyTaps: 0,
                     bet,
                     paid: false,
                     token,
@@ -719,10 +728,9 @@ io.on("connection", async (socket) => {
             const taps = Math.max(0, Math.min(10, Number(data?.taps) || 1));
             if (taps <= 0) return;
 
-            // Mise à jour : taps ET weeklyTaps
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
-                { $inc: { taps: taps, weeklyTaps: taps } }, // <-- incrémente aussi weeklyTaps
+                { $inc: { taps: taps, weeklyTaps: taps } },
                 { new: true }
             ).select("name taps");
 
@@ -787,7 +795,6 @@ setInterval(async () => {
     try { await checkPendingPayments(); } catch (error) { console.error("❌ Erreur check paiements :", error?.message || error); } finally { paymentCheckRunning = false; }
 }, 15000);
 
-// Rafraîchissement du jackpot toutes les minutes
 setInterval(() => {
     emitJackpotUpdate().catch(err => console.error("Erreur maj jackpot :", err));
 }, 60 * 1000);
@@ -890,11 +897,30 @@ app.get("/health", (req, res) => {
 });
 
 // ============================================================
-// DÉMARRAGE DU SERVEUR
+// DÉMARRAGE DU SERVEUR (avec création initiale du jackpot)
 // ============================================================
 async function startServer() {
     try {
         await connectMongoDB();
+
+        // === CRÉATION DU JACKPOT DE LA SEMAINE S'IL N'EXISTE PAS ===
+        const weekStart = new Date();
+        weekStart.setHours(0, 0, 0, 0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+        const existingJackpot = await Jackpot.findOne({ weekStart });
+        if (!existingJackpot) {
+            await Jackpot.create({
+                weekStart,
+                weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
+                accumulatedFund: 0,
+                drawn: false
+            });
+            console.log("✅ Jackpot initialisé (0 USDT)");
+        } else {
+            console.log("✅ Jackpot existant trouvé.");
+        }
+
         server.listen(PORT, async () => {
             console.log("🚀 BACKEND ONLINE");
             console.log(`🌐 Port : ${PORT}`);
@@ -903,6 +929,7 @@ async function startServer() {
             console.log(`⏱️ Chrono Socket.IO : ACTIF`);
             console.log(`💰 Paiements auto : ACTIFS`);
             console.log(`🏆 Jackpot hebdomadaire (meilleur tapeur) : ACTIF`);
+
             try { await startGame(); } catch (error) { console.error("❌ Erreur démarrage partie :", error?.message || error); }
         });
     } catch (error) {
