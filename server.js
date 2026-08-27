@@ -663,7 +663,7 @@ async function checkPendingPayments() {
 }
 
 // ============================================================
-// SOCKET.IO ÉVÉNEMENTS – VERSION CORRIGÉE
+// SOCKET.IO ÉVÉNEMENTS
 // ============================================================
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
@@ -671,6 +671,7 @@ io.on("connection", async (socket) => {
 
     // ==========================================================
     // ✅ ÉCOUTEUR online:count – ENREGISTRÉ TOUT DE SUITE
+    // (avant tout await, pour ne jamais rater une requête)
     // ==========================================================
     socket.on("online:count", () => {
         socket.emit("online:count", { count: onlineSockets.size });
@@ -951,15 +952,30 @@ app.get("/api/game", async (req, res) => {
     }
 });
 
-app.get("/health", (req, res) => {
-    res.json({
-        status: "ok",
+// ==========================================================
+// ✅ ROUTE STATUS/HEALTH UNIFIÉE — inclut désormais "online"
+// C'est la route que le frontend et le monitoring appellent réellement.
+// ==========================================================
+function buildStatusPayload() {
+    return {
+        success: true,
+        status: "online",
+        service: "miltape-backend",
         gameStatus: game.status,
         gameId: game.id,
         remainingSeconds: getRemainingSeconds(),
         online: onlineSockets.size,
-        mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
-    });
+        mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+        timestamp: new Date().toISOString()
+    };
+}
+
+app.get("/api/status", (req, res) => {
+    res.json(buildStatusPayload());
+});
+
+app.get("/health", (req, res) => {
+    res.json(buildStatusPayload());
 });
 
 // ============================================================
@@ -988,8 +1004,9 @@ async function startServer() {
         }
 
         server.listen(PORT, async () => {
-            console.log("🚀 BACKEND ONLINE");
+            console.log("🚀 BACKEND ONLINE (Sécurisé)");
             console.log(`🌐 Port : ${PORT}`);
+            console.log(`❤️ Health check : /api/status`);
             console.log(`🎮 Durée partie : ${GAME_DURATION_SECONDS}s`);
             console.log(`💬 Chat Socket.IO : ACTIF`);
             console.log(`⏱️ Chrono Socket.IO : ACTIF`);
