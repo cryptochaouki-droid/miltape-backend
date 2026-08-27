@@ -501,10 +501,21 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <script>
 // =============================================================
 //  ⚠️ ATTENTION : Ce script est le SEUL script client autorisé.
-//  Ne chargez PAS de fichier script.js externe (ou autre) en parallèle.
-//  Un double écouteur sur "online:count" empêche le bon affichage
-//  du nombre de joueurs en ligne.
+//  Ne chargez PAS de fichier script.js externe (ou autre).
 // =============================================================
+
+// =============================================================
+//  ✅ FORCER LA DÉSACTIVATION DU SERVICE WORKER
+//  Pour éliminer le cache de l'ancienne version
+// =============================================================
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+            registration.unregister();
+            console.log('✅ Service Worker désactivé (cache vidé)');
+        }
+    });
+}
 
 (function initTonConnect(){try{if(typeof TON_CONNECT_UI==="undefined"||!TON_CONNECT_UI.TonConnectUI){console.warn("⚠️ TON Connect UI indisponible.");return}window.tonConnectUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:"https://miltape.vercel.app/tonconnect-manifest.json",buttonRootId:"ton-connect-button"});if(window.tonConnectUI&&typeof window.tonConnectUI.onStatusChange==="function"){window.tonConnectUI.onStatusChange(function(w){if(w&&w.account){console.log("✅ Wallet TON connecté :",w.account.address)}})}console.log("✅ TON Connect initialisé.")}catch(e){console.error("❌ Erreur TON Connect :",e);window.tonConnectUI=null}})();
 </script>
