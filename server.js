@@ -21,6 +21,9 @@ const SUPPORTED_TOKENS = {
     TRX:  { contract: null, decimals: 6, symbol: "TRX" }
 };
 
+// Parts pour les 5 premiers (somme = 100%)
+const PRIZE_SHARES = [0.40, 0.25, 0.15, 0.12, 0.08];
+
 const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
 const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
 const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
@@ -134,7 +137,8 @@ const historySchema = new mongoose.Schema({
     gain: { type: Number, required: true },
     taps: { type: Number, required: true },
     token: { type: String, default: "USDT" },
-    createdAt: { type: Date, default: Date.now }
+    paidOut: { type: Boolean, default: false },
+    payoutTxId: { type: String, default: null }
 }, { timestamps: true });
 
 const jackpotSchema = new mongoose.Schema({
@@ -275,30 +279,37 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     }
 }
 
-async function getIncomingTrxTransactions(address) {
+// ============================================================
+// ENVOI DES GAINS AUTOMATIQUEMENT
+// ============================================================
+async function sendPrizeToWinner(historyEntry) {
     try {
-        const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=30&only_confirmed=true`;
-        const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
-        const res = await fetchWithTimeout(url, { headers });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.data || [];
+        const { wallet, gain, token, playerName } = historyEntry;
+        if (!wallet || gain <= 0) return false;
+        if (!isValidTronAddress(wallet)) {
+            console.error(`❌ Adresse invalide pour ${playerName} : ${wallet}`);
+            return false;
+        }
+
+        const tokenInfo = SUPPORTED_TOKENS[token];
+        if (!tokenInfo) throw new Error(`Token ${token} non supporté pour l'envoi.`);
+
+        let txId = null;
+        if (token === "TRX") {
+            const amountSun = Math.floor(gain * 1e6);
+            const tx = await tronWeb.trx.sendTransaction(wallet, amountSun);
+            txId = tx.txid;
+        } else {
+            const contract = await tronWeb.contract().at(tokenInfo.contract);
+            const amountWithDecimals = Math.floor(gain * Math.pow(10, tokenInfo.decimals));
+            const tx = await contract.transfer(wallet, amountWithDecimals).send();
+            txId = tx.txid;
+        }
+        console.log(`✅ Gain de ${gain} ${token} envoyé à ${playerName} (${wallet}) - Tx: ${txId}`);
+        return txId;
     } catch (error) {
-        console.log("⚠️ Erreur API TRX ignorée :", error?.message || error);
-        return [];
-    }
-}
-async function getIncomingTrc20Transactions(address) {
-    try {
-        const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=30&only_confirmed=true`;
-        const headers = TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {};
-        const res = await fetchWithTimeout(url, { headers });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.data || [];
-    } catch (error) {
-        console.log("⚠️ Erreur API TRC20 ignorée :", error?.message || error);
-        return [];
+        console.error(`❌ Erreur envoi du gain à ${historyEntry.playerName}:`, error?.message || error);
+        return null;
     }
 }
 
@@ -309,9 +320,6 @@ function sendNotification(type, message, data = {}) {
     io.emit("notification", { type, message, data });
 }
 
-// ============================================================
-// MODIFICATION : broadcastOnlineCount avec log
-// ============================================================
 function broadcastOnlineCount() {
     const count = onlineSockets.size;
     console.log(`👥 Joueurs en ligne : ${count}`);
@@ -409,20 +417,31 @@ async function distributeWeeklyJackpot() {
         jackpot.drawn = true;
         await jackpot.save();
 
+        // Envoyer le jackpot au gagnant
+        const amount = jackpot.accumulatedFund;
+        const token = "USDT"; // On envoie en USDT (ou TRX selon choix)
+        const txId = await sendPrizeToWinner({
+            wallet: winner.wallet,
+            gain: amount,
+            token: token,
+            playerName: winner.name
+        });
+
         io.emit("jackpot:winner", {
             winner: winner.name,
-            amount: jackpot.accumulatedFund,
-            taps: winner.weeklyTaps
+            amount: amount,
+            taps: winner.weeklyTaps,
+            txId: txId || "pending"
         });
         io.emit("chat:message", {
             name: "🏆 Système",
-            message: `🎉 ${winner.name} remporte le jackpot de ${jackpot.accumulatedFund} USDT avec ${winner.weeklyTaps} taps cette semaine !`,
+            message: `🎉 ${winner.name} remporte le jackpot de ${amount} USDT avec ${winner.weeklyTaps} taps cette semaine !`,
             createdAt: new Date()
         });
-        sendNotification("champion", `🏆 ${winner.name} remporte le jackpot de ${jackpot.accumulatedFund} USDT !`);
+        sendNotification("champion", `🏆 ${winner.name} remporte le jackpot de ${amount} USDT !`);
 
         await Player.updateMany({}, { $set: { weeklyTaps: 0 } });
-        console.log(`✅ Jackpot de ${jackpot.accumulatedFund} USDT attribué à ${winner.name} (${winner.weeklyTaps} taps)`);
+        console.log(`✅ Jackpot de ${amount} USDT attribué à ${winner.name} (${winner.weeklyTaps} taps) - Tx: ${txId || "N/A"}`);
     } catch (error) {
         console.error("❌ Erreur distribution jackpot :", error?.message || error);
     }
@@ -488,11 +507,12 @@ async function finishGame() {
         const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
         if (players.length > 0) {
             const totalPot = players.reduce((sum, player) => sum + Number(player.bet || 0), 0);
-            const prizes = [{ share: 0.80 }, { share: 0.15 }, { share: 0.05 }];
-            for (let i = 0; i < players.length && i < prizes.length; i++) {
+            const winners = [];
+            for (let i = 0; i < players.length && i < PRIZE_SHARES.length; i++) {
                 const player = players[i];
-                const gain = Number((totalPot * prizes[i].share).toFixed(6));
-                await History.create({
+                const share = PRIZE_SHARES[i];
+                const gain = Number((totalPot * share).toFixed(6));
+                const history = await History.create({
                     playerId: player._id,
                     playerName: player.name,
                     wallet: player.wallet,
@@ -501,9 +521,34 @@ async function finishGame() {
                     bet: player.bet,
                     gain,
                     taps: player.taps,
-                    token: player.token
+                    token: player.token,
+                    paidOut: false
                 });
+                winners.push({ player, gain, history });
             }
+
+            // Envoi automatique des gains
+            for (const { player, gain, history } of winners) {
+                try {
+                    const txId = await sendPrizeToWinner({
+                        wallet: player.wallet,
+                        gain,
+                        token: player.token,
+                        playerName: player.name
+                    });
+                    if (txId) {
+                        history.paidOut = true;
+                        history.payoutTxId = txId;
+                        await history.save();
+                    } else {
+                        console.warn(`⚠️ Échec de l'envoi du gain à ${player.name} (${player.wallet})`);
+                    }
+                } catch (err) {
+                    console.error(`❌ Erreur lors de l'envoi du gain à ${player.name}:`, err);
+                }
+            }
+
+            // Ajout au jackpot hebdomadaire
             const weekStart = new Date();
             weekStart.setHours(0, 0, 0, 0);
             weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -519,13 +564,15 @@ async function finishGame() {
             await jackpot.save();
         }
 
-        const winners = players.slice(0, 3).map((player) => ({
+        // Émettre les gagnants (pour affichage frontend)
+        const winnersList = players.slice(0, PRIZE_SHARES.length).map((player, index) => ({
             name: player.name,
             taps: player.taps,
             bet: player.bet,
-            token: player.token
+            token: player.token,
+            gain: Number((players.reduce((sum, p) => sum + p.bet, 0) * PRIZE_SHARES[index]).toFixed(6))
         }));
-        io.emit("game:finished", { gameId: game.id, winners });
+        io.emit("game:finished", { gameId: game.id, winners: winnersList });
         io.emit("chat:message", { name: "🏆 Système", message: "🏁 La partie est terminée !", createdAt: new Date() });
     } catch (error) {
         console.error("❌ Erreur finishGame :", error?.message || error);
@@ -805,6 +852,11 @@ setInterval(() => {
 // ============================================================
 // ROUTES API EXPRESS
 // ============================================================
+// Route pour récupérer le wallet du serveur (utilisée par le frontend)
+app.get("/api/wallet", (req, res) => {
+    res.json({ success: true, wallet: MILTAPE_WALLET });
+});
+
 app.post("/api/payment/verify", async (req, res) => {
     try {
         const { txId, playerId } = req.body;
@@ -900,13 +952,13 @@ app.get("/health", (req, res) => {
 });
 
 // ============================================================
-// DÉMARRAGE DU SERVEUR (avec création initiale du jackpot)
+// DÉMARRAGE DU SERVEUR
 // ============================================================
 async function startServer() {
     try {
         await connectMongoDB();
 
-        // === CRÉATION DU JACKPOT DE LA SEMAINE S'IL N'EXISTE PAS ===
+        // Création du jackpot de la semaine s'il n'existe pas
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -932,6 +984,7 @@ async function startServer() {
             console.log(`⏱️ Chrono Socket.IO : ACTIF`);
             console.log(`💰 Paiements auto : ACTIFS`);
             console.log(`🏆 Jackpot hebdomadaire (meilleur tapeur) : ACTIF`);
+            console.log(`💸 Envoi automatique des gains : ACTIF`);
 
             try { await startGame(); } catch (error) { console.error("❌ Erreur démarrage partie :", error?.message || error); }
         });
