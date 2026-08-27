@@ -93,13 +93,38 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
   display: flex !important;
   align-items: center;
   gap: 8px;
-  max-width: 140px;
+  max-width: 280px;
   white-space: nowrap;
   font-size: 12px;
 }
 .tap-zone #timerRule .rule-icon { font-size: 16px; color: #0d47a1; }
 .tap-zone #timerRule strong { font-size: 20px; color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); font-family: 'Orbitron', sans-serif; }
 .tap-zone #timerRule small { font-size: 10px; color: #000000 !important; font-weight: 800; }
+/* ===== Ajout compteur de taps ===== */
+.tap-zone #timerRule .tap-counter {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tap-zone #timerRule .tap-counter .tap-icon { font-size: 14px; }
+.tap-zone #timerRule .tap-counter #tapCounterDisplay {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0d47a1;
+  min-width: 20px;
+  text-align: center;
+}
+.tap-zone #timerRule .tap-counter .tap-label {
+  font-size: 9px;
+  color: #555;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 /* ========================================================== */
 
 /* ========================================================== */
@@ -453,11 +478,16 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
 <section class="tap-zone" aria-label="Zone de tap">
-  <!-- ===== CHRONO EN HAUT À GAUCHE ===== -->
+  <!-- ===== CHRONO + COMPTEUR DE TAPS ===== -->
   <div class="rule" id="timerRule">
     <span class="rule-icon">⏱️</span>
     <strong id="timerRuleValue">10:00</strong>
     <small>EN DIRECT</small>
+    <span class="tap-counter">
+      <span class="tap-icon">👆</span>
+      <span id="tapCounterDisplay">0</span>
+      <span class="tap-label">TAPS</span>
+    </span>
   </div>
   <!-- ========================================= -->
   <button id="tapButton" class="tap-button" type="button" disabled><img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false"><small style="display:none"><span id="tapButtonCount">0</span></small></button>
@@ -629,6 +659,8 @@ socket.on("player:joined",(data)=>{
         if(enterChallenge)enterChallenge.style.display="none";
         if(tapCount)tapCount.innerText=data.player.taps;
         if(tapButtonCount)tapButtonCount.innerText=data.player.taps;
+        // Mise à jour du compteur de taps
+        updateTapCounter(data.player.taps);
         localStorage.setItem("miltape_player_id",data.player.id);
         localStorage.setItem("miltape_player_wallet",data.player.wallet);
         localStorage.setItem("miltape_player_name",data.player.name);
@@ -664,6 +696,7 @@ socket.on("player:restored",(data)=>{
         if(enterChallenge)enterChallenge.style.display="none";
         if(tapCount)tapCount.innerText=data.player.taps;
         if(tapButtonCount)tapButtonCount.innerText=data.player.taps;
+        updateTapCounter(data.player.taps);
         localStorage.setItem("miltape_player_id",data.player.id);
         localStorage.setItem("miltape_player_wallet",data.player.wallet);
         localStorage.setItem("miltape_player_name",data.player.name);
@@ -754,7 +787,11 @@ if(tapButton){
     })
 }
 
-socket.on("player:score",(data)=>{if(tapCount){tapCount.innerText=data.taps}if(tapButtonCount)tapButtonCount.innerText=data.taps});
+socket.on("player:score",(data)=>{
+    if(tapCount){tapCount.innerText=data.taps}
+    if(tapButtonCount)tapButtonCount.innerText=data.taps;
+    updateTapCounter(data.taps);
+});
 
 // ============================================================
 //    Écouteur timer:update modifié pour stocker endsAt
@@ -784,7 +821,15 @@ socket.on("game:state", (data) => {
 });
 
 // ============================================================
-//    Fin des modifications pour le chrono
+//    Mise à jour du compteur de taps
+// ============================================================
+function updateTapCounter(taps) {
+    const el = document.getElementById('tapCounterDisplay');
+    if (el) el.textContent = taps || 0;
+}
+
+// ============================================================
+//    Fin des modifications pour le chrono / compteur
 // ============================================================
 
 socket.on("totalStakes:update",(data)=>{
