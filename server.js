@@ -419,7 +419,7 @@ async function distributeWeeklyJackpot() {
 
         // Envoyer le jackpot au gagnant
         const amount = jackpot.accumulatedFund;
-        const token = "USDT"; // On envoie en USDT (ou TRX selon choix)
+        const token = "USDT";
         const txId = await sendPrizeToWinner({
             wallet: winner.wallet,
             gain: amount,
@@ -684,6 +684,12 @@ io.on("connection", async (socket) => {
         console.error("Erreur état initial :", error?.message || error);
     }
 
+    // ========== ÉCOUTEUR POUR DEMANDE DU NOMBRE EN LIGNE ==========
+    socket.on("online:count", () => {
+        // Répondre uniquement à ce client avec le nombre actuel
+        socket.emit("online:count", { count: onlineSockets.size });
+    });
+
     socket.on("jackpot:get", () => {
         emitJackpotUpdate().catch(err => console.error(err));
     });
@@ -852,7 +858,6 @@ setInterval(() => {
 // ============================================================
 // ROUTES API EXPRESS
 // ============================================================
-// Route pour récupérer le wallet du serveur (utilisée par le frontend)
 app.get("/api/wallet", (req, res) => {
     res.json({ success: true, wallet: MILTAPE_WALLET });
 });
