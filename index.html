@@ -476,6 +476,51 @@ const tapButton=document.getElementById('tapButton'),tapCount=document.getElemen
 let isPlaying=false,isPaid=false,myPlayerId=null,myBet=10,myWallet=null,myToken='USDT';
 const API_URL="https://miltape-backend-production.up.railway.app";
 
+// ============================================================
+//      NOUVEAU : variables pour le chronomètre local
+// ============================================================
+let endsAt = null;        // timestamp UTC (millisecondes)
+let timerInterval = null; // intervalle local
+
+// ============================================================
+//      Fonction de mise à jour du chrono (calcul local)
+// ============================================================
+function updateTimerDisplay() {
+    const timerRuleValue = document.getElementById('timerRuleValue');
+    if (!timerRuleValue) return;
+    if (!endsAt) {
+        timerRuleValue.innerText = '--:--';
+        return;
+    }
+    const now = Date.now();
+    let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+}
+
+// ============================================================
+//      Démarrage de l'intervalle local de rafraîchissement
+// ============================================================
+function startLocalTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if (endsAt) {
+            updateTimerDisplay();
+            // Arrêter automatiquement si le temps est écoulé
+            if (Date.now() >= endsAt) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+    }, 200);
+}
+startLocalTimer();
+
+// ============================================================
+//      FIN DES AJOUTS POUR LE CHRONOMÈTRE
+// ============================================================
+
 if(chatMessages) chatMessages.innerHTML = '<div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>';
 
 function formatAmount(value) {
@@ -525,7 +570,12 @@ async function restoreSession(){
 }
 
 socket.on('connect',async()=>{console.log('✅ Socket connecté avec ID :',socket.id);if(!demoMode&&tapMessage)tapMessage.innerText="✅ Connecté au serveur !";await restoreSession()});
-socket.on('reconnect',async()=>{console.log('🔄 Socket reconnecté !');await restoreSession()});
+socket.on('reconnect',async()=>{
+    console.log('🔄 Socket reconnecté !');
+    await restoreSession();
+    // Forcer une demande du timer pour resynchroniser
+    socket.emit('timer:request');
+});
 socket.on('connect_error',(err)=>{console.error('❌ Erreur de connexion Socket :',err.message);hapticError();if(tapMessage)tapMessage.innerText="⚠️ Erreur de connexion au serveur."});
 socket.on('disconnect',(reason)=>{console.log('🔴 Socket déconnecté :',reason);if(tapMessage)tapMessage.innerText="🔴 Déconnecté du serveur."});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){console.log('👀 Page de nouveau visible – restauration de la session');if(localStorage.getItem("miltape_player_id"))restoreSession()}});
@@ -705,13 +755,38 @@ if(tapButton){
 }
 
 socket.on("player:score",(data)=>{if(tapCount){tapCount.innerText=data.taps}if(tapButtonCount)tapButtonCount.innerText=data.taps});
-socket.on("timer:update",(data)=>{
-    const timerRuleValue=document.getElementById('timerRuleValue');
-    if(timerRuleValue){
-        const m=Math.floor(data.remainingSeconds/60),s=data.remainingSeconds%60;
-        timerRuleValue.innerText=m+":"+s.toString().padStart(2,'0')
+
+// ============================================================
+//    Écouteur timer:update modifié pour stocker endsAt
+// ============================================================
+socket.on("timer:update", (data) => {
+    if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
     }
 });
+
+// ============================================================
+//    Synchronisation via game:started et game:state
+// ============================================================
+socket.on("game:started", (data) => {
+    if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+    }
+});
+
+socket.on("game:state", (data) => {
+    if (data.game && data.game.endsAt) {
+        endsAt = new Date(data.game.endsAt).getTime();
+        updateTimerDisplay();
+    }
+});
+
+// ============================================================
+//    Fin des modifications pour le chrono
+// ============================================================
+
 socket.on("totalStakes:update",(data)=>{
     const displayBet=document.getElementById('displayBet'),displayBetTop=document.getElementById('displayBetTop');
     if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);
