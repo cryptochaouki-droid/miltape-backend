@@ -1006,6 +1006,39 @@
       margin-top: 4px;
       text-shadow: 0 1px 2px rgba(0,0,0,0.8);
     }
+    /* ===== AJOUTS JACKPOT – INFO GAGNANT ===== */
+    .jackpot-winner-info {
+      display: block;
+      font-size: 11px;
+      color: rgba(255, 215, 0, 0.85);
+      margin-top: 6px;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      letter-spacing: 0.3px;
+    }
+    .jackpot-winner-info strong {
+      color: #ffd700;
+      font-weight: 700;
+    }
+    .jackpot-footer {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 215, 0, 0.25);
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.75);
+      text-align: center;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+    @media (max-width: 430px) {
+      .jackpot-winner-info { font-size: 10px; }
+      .jackpot-footer { font-size: 10px; padding-top: 8px; margin-top: 10px; }
+    }
+    @media (max-width: 360px) {
+      .jackpot-winner-info { font-size: 9px; }
+      .jackpot-footer { font-size: 9px; }
+    }
     @media (max-width: 430px) {
       #jackpotAmount { font-size: 26px; }
       #jackpotCountdown { font-size: 20px; }
@@ -1134,10 +1167,19 @@
       <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
       <div class="jackpot-title">🏆 JACKPOT</div>
       <div class="jackpot-main-row">
-        <div class="jackpot-left"><span class="jackpot-label">💰 MONTANT</span><span id="jackpotAmount">0 USDT</span></div>
+        <div class="jackpot-left">
+          <span class="jackpot-label">💰 MONTANT</span>
+          <span id="jackpotAmount">0 USDT</span>
+          <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>
+        </div>
         <div class="jackpot-divider"></div>
-        <div class="jackpot-right"><span class="jackpot-label">⏳ TIRAGE DANS</span><span id="jackpotCountdown">--</span><span class="jackpot-schedule">📅 CHAQUE SAMEDI</span></div>
+        <div class="jackpot-right">
+          <span class="jackpot-label">⏳ TIRAGE DANS</span>
+          <span id="jackpotCountdown">--</span>
+          <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
+        </div>
       </div>
+      <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
     </div>
 
     <!-- TICKER DES GAGNANTS -->
