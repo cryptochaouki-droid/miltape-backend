@@ -75,7 +75,7 @@ html{width:100%;min-height:100%;overflow-x:hidden;overflow-y:scroll;scroll-behav
 .tap-zone{width:100%;min-height:310px;display:flex;align-items:center;justify-content:center;position:relative;padding:10px 0;flex-direction:column}
 /* ===== CHRONOMÈTRE ===== */
 .tap-zone #timerRule {
-  position: relative; /* on enlève absolute pour ne pas cacher le bouton */
+  position: relative;
   margin-bottom: 20px;
   z-index: 20;
   background: rgba(255,255,255,0.85);
@@ -858,11 +858,33 @@ socket.on("totalStakes:update",(data)=>{
     if(displayBet)displayBet.textContent="$"+formatAmount(data.totalStakes);
     if(displayBetTop)displayBetTop.textContent="$"+formatAmount(data.totalStakes)
 });
-socket.on("online:count",(count)=>{
-    if(onlineCount){
-        onlineCount.innerHTML='<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>'+count+' EN LIGNE</span>'
+
+// ============================================================
+//  ✅ ÉCOUTEUR ONLINE:COUNT (CORRIGÉ POUR SUPPORTER OBJET OU NOMBRE)
+// ============================================================
+socket.on("online:count", (data) => {
+    let count = data;
+    if (typeof data === 'object' && data !== null && 'count' in data) {
+        count = data.count;
     }
+    if (onlineCount) {
+        onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>' + count + ' EN LIGNE</span>';
+    }
+    console.log("📊 Nombre de joueurs en ligne :", count);
 });
+
+// ============================================================
+//  ✅ Mise à jour auto du compteur en ligne toutes les 5 secondes
+// ============================================================
+setInterval(() => {
+    socket.emit('online:count');
+    console.log('🔄 Demande du compteur en ligne');
+}, 5000);
+
+// ============================================================
+//    FIN DES AJOUTS POUR LE COMPTEUR
+// ============================================================
+
 socket.on("leaderboard:update",(leaderboard)=>{
     if(leaderboardList){
         leaderboardList.innerHTML="";
@@ -1054,14 +1076,6 @@ socket.on("jackpot:update",(data)=>{
     if(data.nextDraw)updateJackpotCountdown(data.nextDraw);
 });
 socket.emit("jackpot:get");
-
-// ============================================================
-//  ✅ Mise à jour auto du compteur en ligne toutes les 5 secondes
-// ============================================================
-setInterval(() => {
-    socket.emit('online:count');
-    console.log('🔄 Mise à jour auto du compteur en ligne');
-}, 5000);
 
 console.log("✅ Script Miltape chargé avec succès.");
 </script>
