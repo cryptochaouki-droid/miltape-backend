@@ -799,9 +799,10 @@ io.on("connection", async (socket) => {
 
             if (!result) return;
 
-            io.emit("player:update", {
-                id: playerId,
-                name: result.name,
+            // ==========================================================
+            // ✅ FIX : L'événement s'appelle "player:score" pour correspondre au frontend
+            // ==========================================================
+            io.emit("player:score", {
                 taps: result.taps
             });
         } catch (error) {
@@ -958,6 +959,7 @@ app.get("/api/game", async (req, res) => {
 // ==========================================================
 function buildStatusPayload() {
     return {
+        version: "v2",
         success: true,
         status: "online",
         service: "miltape-backend",
