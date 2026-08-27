@@ -13,6 +13,7 @@ const cron = require("node-cron");
 // ============================================================
 const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60; // 10 minutes
+const JACKPOT_PERCENT = 0.05; // 5% du pot total va au jackpot
 
 const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
@@ -20,9 +21,6 @@ const SUPPORTED_TOKENS = {
     TUSD: { contract: "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4", decimals: 6, symbol: "TUSD" },
     TRX:  { contract: null, decimals: 6, symbol: "TRX" }
 };
-
-// Parts pour les 5 premiers (somme = 100%)
-const PRIZE_SHARES = [0.40, 0.25, 0.15, 0.12, 0.08];
 
 const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
 const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
@@ -317,13 +315,32 @@ async function sendPrizeToWinner(historyEntry) {
 // NOTIFICATIONS ET BROADCASTS
 // ============================================================
 function sendNotification(type, message, data = {}) {
-    io.emit("notification", { type, message, data });
+    io.emit("notification:new", { type, message, data });
 }
 
 function broadcastOnlineCount() {
     const count = onlineSockets.size;
     console.log(`👥 Joueurs en ligne : ${count}`);
     io.emit("online:count", { count });
+}
+
+async function emitLeaderboard() {
+    try {
+        if (!game.id) return;
+        const players = await Player.find({ gameId: game.id })
+            .select("name taps")
+            .sort({ taps: -1 })
+            .limit(50)
+            .lean();
+        const leaderboard = players.map((p, i) => ({
+            rank: i + 1,
+            name: p.name,
+            taps: p.taps
+        }));
+        io.emit("leaderboard:update", leaderboard);
+    } catch (error) {
+        console.error("❌ Erreur emitLeaderboard :", error?.message || error);
+    }
 }
 
 async function broadcastGameState() {
@@ -335,6 +352,7 @@ async function broadcastGameState() {
             .limit(50)
             .lean();
         io.emit("game:state", { game: getGameStateObject(), players });
+        await emitLeaderboard();
     } catch (error) {
         console.error("❌ Erreur broadcastGameState :", error?.message || error);
     }
@@ -505,75 +523,109 @@ async function finishGame() {
 
     try {
         const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
-        if (players.length > 0) {
-            const totalPot = players.reduce((sum, player) => sum + Number(player.bet || 0), 0);
-            const winners = [];
-            for (let i = 0; i < players.length && i < PRIZE_SHARES.length; i++) {
-                const player = players[i];
-                const share = PRIZE_SHARES[i];
-                const gain = Number((totalPot * share).toFixed(6));
-                const history = await History.create({
-                    playerId: player._id,
-                    playerName: player.name,
-                    wallet: player.wallet,
-                    gameId: game.id,
-                    rank: i + 1,
-                    bet: player.bet,
-                    gain,
-                    taps: player.taps,
-                    token: player.token,
-                    paidOut: false
-                });
-                winners.push({ player, gain, history });
-            }
 
-            // Envoi automatique des gains
-            for (const { player, gain, history } of winners) {
-                try {
-                    const txId = await sendPrizeToWinner({
-                        wallet: player.wallet,
-                        gain,
-                        token: player.token,
-                        playerName: player.name
-                    });
-                    if (txId) {
-                        history.paidOut = true;
-                        history.payoutTxId = txId;
-                        await history.save();
-                    } else {
-                        console.warn(`⚠️ Échec de l'envoi du gain à ${player.name} (${player.wallet})`);
-                    }
-                } catch (err) {
-                    console.error(`❌ Erreur lors de l'envoi du gain à ${player.name}:`, err);
-                }
-            }
-
-            // Ajout au jackpot hebdomadaire
-            const weekStart = new Date();
-            weekStart.setHours(0, 0, 0, 0);
-            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-            let jackpot = await Jackpot.findOne({ weekStart });
-            if (!jackpot) {
-                jackpot = await Jackpot.create({
-                    weekStart,
-                    weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
-                    accumulatedFund: 0
-                });
-            }
-            jackpot.accumulatedFund = Number(jackpot.accumulatedFund || 0) + totalPot;
-            await jackpot.save();
+        if (players.length === 0) {
+            io.emit("game:finished", { gameId: game.id, winners: [] });
+            io.emit("chat:message", { name: "🏆 Système", message: "🏁 La partie est terminée ! Aucun gagnant.", createdAt: new Date() });
+            return;
         }
 
-        // Émettre les gagnants (pour affichage frontend)
-        const winnersList = players.slice(0, PRIZE_SHARES.length).map((player, index) => ({
+        // ============================================================
+        //  CALCUL DES GAINS – RÈGLES DÉFINITIVES
+        // ============================================================
+
+        const totalPot = players.reduce((sum, player) => sum + Number(player.bet || 0), 0);
+
+        // 5% pour le jackpot
+        const jackpotDeduction = totalPot * JACKPOT_PERCENT;
+
+        // Prendre les 5 premiers joueurs (ou moins s'il y a moins de 5 joueurs)
+        const topPlayers = players.slice(0, 5);
+
+        // Chaque gagnant reçoit 2 × sa mise
+        const winners = [];
+        let totalGains = 0;
+
+        for (let i = 0; i < topPlayers.length; i++) {
+            const player = topPlayers[i];
+            const gain = Number((player.bet * 2).toFixed(6));
+            totalGains += gain;
+
+            const history = await History.create({
+                playerId: player._id,
+                playerName: player.name,
+                wallet: player.wallet,
+                gameId: game.id,
+                rank: i + 1,
+                bet: player.bet,
+                gain,
+                taps: player.taps,
+                token: player.token,
+                paidOut: false
+            });
+
+            winners.push({ player, gain, history });
+        }
+
+        // Profit du serveur (ce qui reste après gains et jackpot)
+        const serverProfit = totalPot - totalGains - jackpotDeduction;
+
+        // Envoi automatique des gains
+        for (const { player, gain, history } of winners) {
+            try {
+                const txId = await sendPrizeToWinner({
+                    wallet: player.wallet,
+                    gain,
+                    token: player.token,
+                    playerName: player.name
+                });
+                if (txId) {
+                    history.paidOut = true;
+                    history.payoutTxId = txId;
+                    await history.save();
+                } else {
+                    console.warn(`⚠️ Échec de l'envoi du gain à ${player.name} (${player.wallet})`);
+                }
+            } catch (err) {
+                console.error(`❌ Erreur lors de l'envoi du gain à ${player.name}:`, err);
+            }
+        }
+
+        // Ajout au jackpot hebdomadaire (uniquement la déduction de 5%)
+        const weekStart = new Date();
+        weekStart.setHours(0, 0, 0, 0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+        let jackpot = await Jackpot.findOne({ weekStart });
+        if (!jackpot) {
+            jackpot = await Jackpot.create({
+                weekStart,
+                weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
+                accumulatedFund: 0
+            });
+        }
+        jackpot.accumulatedFund = Number(jackpot.accumulatedFund || 0) + jackpotDeduction;
+        await jackpot.save();
+
+        // Logs pour suivre les flux
+        console.log(`💰 Partie ${game.id}:`);
+        console.log(`   - Total des mises : ${totalPot.toFixed(2)} USDT`);
+        console.log(`   - Gains versés : ${totalGains.toFixed(2)} USDT (${topPlayers.length} gagnants)`);
+        console.log(`   - Jackpot : ${jackpotDeduction.toFixed(2)} USDT`);
+        console.log(`   - Profit serveur : ${serverProfit.toFixed(2)} USDT`);
+
+        // Émettre les gagnants pour le frontend
+        const winnersList = topPlayers.map((player, index) => ({
             name: player.name,
             taps: player.taps,
             bet: player.bet,
             token: player.token,
-            gain: Number((players.reduce((sum, p) => sum + p.bet, 0) * PRIZE_SHARES[index]).toFixed(6))
+            gain: Number((player.bet * 2).toFixed(6))
         }));
+
         io.emit("game:finished", { gameId: game.id, winners: winnersList });
-        io.emit("chat:message", { name: "🏆 Système", message: "🏁 La partie est terminée !", createdAt: new Date() });
+        io.emit("chat:message", { name: "🏆 Système", message: `🏁 La partie est terminée ! ${winnersList.length} gagnants !`, createdAt: new Date() });
+
     } catch (error) {
         console.error("❌ Erreur finishGame :", error?.message || error);
     }
@@ -671,16 +723,13 @@ io.on("connection", async (socket) => {
 
     // ==========================================================
     // ✅ ÉCOUTEUR online:count – ENREGISTRÉ TOUT DE SUITE
-    // (avant tout await, pour ne jamais rater une requête)
     // ==========================================================
     socket.on("online:count", () => {
         socket.emit("online:count", { count: onlineSockets.size });
     });
 
-    // Envoyer le nombre actuel à tous les clients
     broadcastOnlineCount();
 
-    // Envoyer l'état du timer immédiatement
     socket.emit("timer:update", {
         gameId: game.id,
         status: game.status,
@@ -688,7 +737,6 @@ io.on("connection", async (socket) => {
         endsAt: game.endsAt
     });
 
-    // Envoyer l'état du jeu et du jackpot (avec await)
     try {
         await broadcastGameState();
         await emitJackpotUpdate();
@@ -696,7 +744,6 @@ io.on("connection", async (socket) => {
         console.error("Erreur état initial :", error?.message || error);
     }
 
-    // Autres écouteurs
     socket.on("jackpot:get", () => {
         emitJackpotUpdate().catch(err => console.error(err));
     });
@@ -761,6 +808,7 @@ io.on("connection", async (socket) => {
 
             socket.data.playerId = player._id.toString();
             socket.data.gameId = game.id;
+            socket.data.playerName = player.name; // pour le chat
 
             socket.emit("player:joined", {
                 success: true,
@@ -799,11 +847,13 @@ io.on("connection", async (socket) => {
 
             if (!result) return;
 
+            // Envoi du score au client pour mise à jour en temps réel
             io.emit("player:score", {
-                id: playerId,
-                name: result.name,
                 taps: result.taps
             });
+
+            // Mise à jour du classement
+            await emitLeaderboard();
         } catch (error) {
             console.error("❌ player:tap :", error?.message || error);
         }
@@ -811,7 +861,7 @@ io.on("connection", async (socket) => {
 
     socket.on("chat:send", async (data) => {
         try {
-            const name = String(data?.name || "Anonyme").trim().substring(0, 30);
+            const name = socket.data.playerName || "Anonyme";
             const message = String(data?.message || "").trim().substring(0, 300);
             if (!message) return;
             const msg = await Message.create({ name, message, gameId: game.id });
@@ -954,7 +1004,6 @@ app.get("/api/game", async (req, res) => {
 
 // ==========================================================
 // ✅ ROUTE STATUS/HEALTH UNIFIÉE — inclut désormais "online"
-// C'est la route que le frontend et le monitoring appellent réellement.
 // ==========================================================
 function buildStatusPayload() {
     return {
