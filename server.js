@@ -671,16 +671,13 @@ io.on("connection", async (socket) => {
 
     // ==========================================================
     // ✅ ÉCOUTEUR online:count – ENREGISTRÉ TOUT DE SUITE
-    // (avant tout await, pour ne jamais rater une requête)
     // ==========================================================
     socket.on("online:count", () => {
         socket.emit("online:count", { count: onlineSockets.size });
     });
 
-    // Envoyer le nombre actuel à tous les clients
     broadcastOnlineCount();
 
-    // Envoyer l'état du timer immédiatement
     socket.emit("timer:update", {
         gameId: game.id,
         status: game.status,
@@ -688,7 +685,6 @@ io.on("connection", async (socket) => {
         endsAt: game.endsAt
     });
 
-    // Envoyer l'état du jeu et du jackpot (avec await)
     try {
         await broadcastGameState();
         await emitJackpotUpdate();
@@ -696,7 +692,6 @@ io.on("connection", async (socket) => {
         console.error("Erreur état initial :", error?.message || error);
     }
 
-    // Autres écouteurs
     socket.on("jackpot:get", () => {
         emitJackpotUpdate().catch(err => console.error(err));
     });
@@ -953,31 +948,15 @@ app.get("/api/game", async (req, res) => {
     }
 });
 
-// ==========================================================
-// ✅ ROUTE STATUS/HEALTH UNIFIÉE — inclut désormais "online"
-// C'est la route que le frontend et le monitoring appellent réellement.
-// ==========================================================
-function buildStatusPayload() {
-    return {
-        version: "v2",
-        success: true,
-        status: "online",
-        service: "miltape-backend",
+app.get("/health", (req, res) => {
+    res.json({
+        status: "ok",
         gameStatus: game.status,
         gameId: game.id,
         remainingSeconds: getRemainingSeconds(),
         online: onlineSockets.size,
-        mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-        timestamp: new Date().toISOString()
-    };
-}
-
-app.get("/api/status", (req, res) => {
-    res.json(buildStatusPayload());
-});
-
-app.get("/health", (req, res) => {
-    res.json(buildStatusPayload());
+        mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+    });
 });
 
 // ============================================================
@@ -987,7 +966,6 @@ async function startServer() {
     try {
         await connectMongoDB();
 
-        // Création du jackpot de la semaine s'il n'existe pas
         const weekStart = new Date();
         weekStart.setHours(0, 0, 0, 0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -1006,9 +984,8 @@ async function startServer() {
         }
 
         server.listen(PORT, async () => {
-            console.log("🚀 BACKEND ONLINE (Sécurisé)");
+            console.log("🚀 BACKEND ONLINE");
             console.log(`🌐 Port : ${PORT}`);
-            console.log(`❤️ Health check : /api/status`);
             console.log(`🎮 Durée partie : ${GAME_DURATION_SECONDS}s`);
             console.log(`💬 Chat Socket.IO : ACTIF`);
             console.log(`⏱️ Chrono Socket.IO : ACTIF`);
