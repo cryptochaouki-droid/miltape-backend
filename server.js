@@ -504,6 +504,9 @@ async function startGame() {
     }
 }
 
+// ============================================================
+//  ✅ FINISHGAME CORRIGÉE : MODE DÉMO IGNORÉ POUR LE JACKPOT
+// ============================================================
 async function finishGame() {
     if (game.status !== "running") return;
     console.log("🏁 Fin de la partie...");
@@ -531,13 +534,17 @@ async function finishGame() {
         }
 
         // ============================================================
+        //  DÉTECTION DU MODE DÉMO
+        //  Si un joueur a un paymentTxId qui commence par "DEMO_",
+        //  alors toute la partie est considérée comme une partie démo.
+        // ============================================================
+        const isDemoGame = players.some(p => p.paymentTxId && p.paymentTxId.startsWith('DEMO_'));
+
+        // ============================================================
         //  CALCUL DES GAINS – RÈGLES DÉFINITIVES
         // ============================================================
 
         const totalPot = players.reduce((sum, player) => sum + Number(player.bet || 0), 0);
-
-        // 5% pour le jackpot
-        const jackpotDeduction = totalPot * JACKPOT_PERCENT;
 
         // Prendre les 5 premiers joueurs (ou moins s'il y a moins de 5 joueurs)
         const topPlayers = players.slice(0, 5);
@@ -568,7 +575,32 @@ async function finishGame() {
         }
 
         // Profit du serveur (ce qui reste après gains et jackpot)
-        const serverProfit = totalPot - totalGains - jackpotDeduction;
+        let serverProfit = totalPot - totalGains;
+
+        // ============================================================
+        //  JACKPOT : UNIQUEMENT SI CE N'EST PAS UNE PARTIE DÉMO
+        // ============================================================
+        let jackpotDeduction = 0;
+        if (!isDemoGame) {
+            jackpotDeduction = totalPot * JACKPOT_PERCENT;
+            serverProfit = totalPot - totalGains - jackpotDeduction;
+
+            // Ajout au jackpot hebdomadaire
+            const weekStart = new Date();
+            weekStart.setHours(0, 0, 0, 0);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+            let jackpot = await Jackpot.findOne({ weekStart });
+            if (!jackpot) {
+                jackpot = await Jackpot.create({
+                    weekStart,
+                    weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
+                    accumulatedFund: 0
+                });
+            }
+            jackpot.accumulatedFund = Number(jackpot.accumulatedFund || 0) + jackpotDeduction;
+            await jackpot.save();
+        }
 
         // Envoi automatique des gains
         for (const { player, gain, history } of winners) {
@@ -591,27 +623,16 @@ async function finishGame() {
             }
         }
 
-        // Ajout au jackpot hebdomadaire (uniquement la déduction de 5%)
-        const weekStart = new Date();
-        weekStart.setHours(0, 0, 0, 0);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
-        let jackpot = await Jackpot.findOne({ weekStart });
-        if (!jackpot) {
-            jackpot = await Jackpot.create({
-                weekStart,
-                weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
-                accumulatedFund: 0
-            });
-        }
-        jackpot.accumulatedFund = Number(jackpot.accumulatedFund || 0) + jackpotDeduction;
-        await jackpot.save();
-
         // Logs pour suivre les flux
         console.log(`💰 Partie ${game.id}:`);
+        console.log(`   - Mode démo : ${isDemoGame ? 'OUI' : 'NON'}`);
         console.log(`   - Total des mises : ${totalPot.toFixed(2)} USDT`);
         console.log(`   - Gains versés : ${totalGains.toFixed(2)} USDT (${topPlayers.length} gagnants)`);
-        console.log(`   - Jackpot : ${jackpotDeduction.toFixed(2)} USDT`);
+        if (!isDemoGame) {
+            console.log(`   - Jackpot : ${jackpotDeduction.toFixed(2)} USDT`);
+        } else {
+            console.log(`   - Jackpot : 0 USDT (partie démo ignorée)`);
+        }
         console.log(`   - Profit serveur : ${serverProfit.toFixed(2)} USDT`);
 
         // Émettre les gagnants pour le frontend
