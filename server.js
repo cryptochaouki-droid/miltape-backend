@@ -663,13 +663,23 @@ async function checkPendingPayments() {
 }
 
 // ============================================================
-// SOCKET.IO ÉVÉNEMENTS
+// SOCKET.IO ÉVÉNEMENTS – VERSION CORRIGÉE
 // ============================================================
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
+
+    // ==========================================================
+    // ✅ ÉCOUTEUR online:count – ENREGISTRÉ TOUT DE SUITE
+    // ==========================================================
+    socket.on("online:count", () => {
+        socket.emit("online:count", { count: onlineSockets.size });
+    });
+
+    // Envoyer le nombre actuel à tous les clients
     broadcastOnlineCount();
 
+    // Envoyer l'état du timer immédiatement
     socket.emit("timer:update", {
         gameId: game.id,
         status: game.status,
@@ -677,6 +687,7 @@ io.on("connection", async (socket) => {
         endsAt: game.endsAt
     });
 
+    // Envoyer l'état du jeu et du jackpot (avec await)
     try {
         await broadcastGameState();
         await emitJackpotUpdate();
@@ -684,12 +695,7 @@ io.on("connection", async (socket) => {
         console.error("Erreur état initial :", error?.message || error);
     }
 
-    // ========== ÉCOUTEUR POUR DEMANDE DU NOMBRE EN LIGNE ==========
-    socket.on("online:count", () => {
-        // Répondre uniquement à ce client avec le nombre actuel
-        socket.emit("online:count", { count: onlineSockets.size });
-    });
-
+    // Autres écouteurs
     socket.on("jackpot:get", () => {
         emitJackpotUpdate().catch(err => console.error(err));
     });
