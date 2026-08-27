@@ -205,6 +205,28 @@ const io = new Server(server, {
 
 mongoose.set("strictQuery", true);
 
+// Timeouts explicites : évite qu'une requête reste bloquée
+// indéfiniment (buffering par défaut) si Mongo est lent/injoignable.
+// C'est ce qui pouvait geler le cycle de partie (et donc le chrono)
+// quand finishGame() attendait une requête qui ne se terminait jamais.
+mongoose.set("bufferTimeoutMS", 10000);
+
+let mongoIsConnected = false;
+
+mongoose.connection.on("connected", () => {
+    mongoIsConnected = true;
+    console.log("✅ Mongoose : connecté.");
+});
+
+mongoose.connection.on("disconnected", () => {
+    mongoIsConnected = false;
+    console.warn("⚠️ Mongoose : déconnecté (tentative de reconnexion automatique)...");
+});
+
+mongoose.connection.on("error", (err) => {
+    console.error("❌ Mongoose erreur :", err?.message || err);
+});
+
 // ============================================================
 // VARIABLES PARTIE
 // ============================================================
@@ -521,7 +543,13 @@ const Jackpot = mongoose.model(
 
 async function connectMongoDB() {
     try {
-        await mongoose.connect(MONGODB_URI);
+        await mongoose.connect(MONGODB_URI, {
+            // Ne pas rester bloqué des dizaines de secondes si le
+            // cluster est injoignable (ex: Atlas free tier en pause).
+            serverSelectionTimeoutMS: 8000,
+            socketTimeoutMS: 20000,
+            connectTimeoutMS: 10000
+        });
 
         console.log("✅ MongoDB connecté.");
 
@@ -570,6 +598,19 @@ function generateGameId() {
             .substring(2, 8)
             .toUpperCase()
     );
+}
+
+// Petit utilitaire pour ne jamais laisser un fetch() pendre
+// indéfiniment (TronGrid lent/down). Sans ça, checkPendingPayments()
+// peut accumuler des requêtes ouvertes indéfiniment.
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(id);
+    }
 }
 
 // ============================================================
@@ -886,7 +927,7 @@ async function getIncomingTrxTransactions(
                 : {};
 
         const res =
-            await fetch(
+            await fetchWithTimeout(
                 url,
                 { headers }
             );
@@ -934,7 +975,7 @@ async function getIncomingTrc20Transactions(
                 : {};
 
         const res =
-            await fetch(
+            await fetchWithTimeout(
                 url,
                 { headers }
             );
@@ -1165,12 +1206,16 @@ async function startGame() {
         }
     );
 
+    // Le chrono est déjà correct en mémoire à ce stade (game.endsAt
+    // fixé plus haut) : on l'émet tout de suite, indépendamment de
+    // ce que fait Mongo juste après. Ainsi, même si broadcastGameState()
+    // /emitJackpotUpdate() traînent (Mongo lent), le chrono côté
+    // client n'est jamais en attente de la base de données.
     broadcastTimer();
 
-    await broadcastGameState();
-
-    await emitJackpotUpdate();
-
+    // On planifie déjà la fin de partie ICI, avant les appels Mongo,
+    // pour que le cycle de jeu (chrono) ne dépende jamais du temps
+    // de réponse de la base de données.
     gameTimer =
         setTimeout(
             () => {
@@ -1187,6 +1232,16 @@ async function startGame() {
             },
             GAME_DURATION_SECONDS * 1000
         );
+
+    try {
+        await broadcastGameState();
+        await emitJackpotUpdate();
+    } catch (error) {
+        console.error(
+            "❌ Erreur post-démarrage (non bloquante pour le chrono) :",
+            error?.message || error
+        );
+    }
 }
 
 // ============================================================
@@ -1213,6 +1268,47 @@ async function finishGame() {
         clearTimeout(gameTimer);
         gameTimer = null;
     }
+
+    broadcastTimer();
+
+    // ------------------------------------------------------
+    // On planifie la prochaine partie tout de suite, AVANT les
+    // opérations Mongo ci-dessous. Comme ça, même si Mongo est
+    // lent/injoignable et que le calcul des gains/jackpot traîne
+    // ou échoue, le cycle de jeu (et donc le chrono) repart quand
+    // même après le délai prévu, au lieu de rester bloqué sur
+    // "Tirage en cours..." indéfiniment.
+    // ------------------------------------------------------
+
+    if (nextGameTimeout) {
+        clearTimeout(nextGameTimeout);
+    }
+
+    nextGameTimeout =
+        setTimeout(
+            () => {
+                startGame()
+                    .catch(
+                        (error) => {
+                            console.error(
+                                "❌ Erreur nouvelle partie :",
+                                error?.message ||
+                                error
+                            );
+                        }
+                    );
+            },
+            10000
+        );
+
+    game.status =
+        "waiting";
+
+    game.startedAt =
+        null;
+
+    game.endsAt =
+        null;
 
     broadcastTimer();
 
@@ -1394,49 +1490,10 @@ async function finishGame() {
     } catch (error) {
 
         console.error(
-            "❌ Erreur finishGame :",
+            "❌ Erreur finishGame (calcul gains/jackpot) :",
             error?.message || error
         );
 
-    } finally {
-
-        // ----------------------------------------------------
-        // NOUVELLE PARTIE APRÈS 10 SECONDES
-        // ----------------------------------------------------
-
-        game.status =
-            "waiting";
-
-        game.startedAt =
-            null;
-
-        game.endsAt =
-            null;
-
-        broadcastTimer();
-
-        if (nextGameTimeout) {
-            clearTimeout(
-                nextGameTimeout
-            );
-        }
-
-        nextGameTimeout =
-            setTimeout(
-                () => {
-                    startGame()
-                        .catch(
-                            (error) => {
-                                console.error(
-                                    "❌ Erreur nouvelle partie :",
-                                    error?.message ||
-                                    error
-                                );
-                            }
-                        );
-                },
-                10000
-            );
     }
 }
 
@@ -1776,8 +1833,21 @@ io.on(
         broadcastOnlineCount();
 
         // ----------------------------------------------------
-        // ETAT INITIAL
+        // ETAT INITIAL — envoyé tout de suite (synchrone,
+        // indépendant de Mongo) pour que le chrono du client
+        // qui vient de se (re)connecter soit à jour immédiatement,
+        // sans attendre broadcastGameState()/jackpot.
         // ----------------------------------------------------
+
+        socket.emit(
+            "timer:update",
+            {
+                gameId: game.id,
+                status: game.status,
+                remainingSeconds: getRemainingSeconds(),
+                endsAt: game.endsAt
+            }
+        );
 
         try {
             await broadcastGameState();
@@ -1791,6 +1861,26 @@ io.on(
                 error
             );
         }
+
+        // ====================================================
+        // RESYNC EXPLICITE DU CHRONO (demandé par le client,
+        // typiquement juste après une reconnexion WebSocket)
+        // ====================================================
+
+        socket.on(
+            "timer:request",
+            () => {
+                socket.emit(
+                    "timer:update",
+                    {
+                        gameId: game.id,
+                        status: game.status,
+                        remainingSeconds: getRemainingSeconds(),
+                        endsAt: game.endsAt
+                    }
+                );
+            }
+        );
 
         // ====================================================
         // PLAYER JOIN
@@ -2317,6 +2407,11 @@ setInterval(
 
 // ============================================================
 // CHRONO SOCKET — SYNCHRONISATION CHAQUE SECONDE
+// ============================================================
+//
+// Cette boucle est 100% en mémoire (getRemainingSeconds() ne
+// touche jamais Mongo) : elle continue de tourner même si la
+// base de données est lente ou injoignable.
 // ============================================================
 
 setInterval(
