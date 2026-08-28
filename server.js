@@ -144,10 +144,9 @@ function getGameStateObject() {
     }; 
 }
 
-// ✅ CORRECTION FINALE : Le serveur envoie uniquement le temps restant (source de vérité)
 function broadcastTimer() {
     if (!game.id) return;
-    io.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds() });
+    io.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
 }
 
 function broadcastOnlineCount() {
@@ -376,12 +375,11 @@ io.on("connection", async (socket) => {
     });
 
     broadcastOnlineCount();
-    // ✅ ENVOI DIRECT DU TEMPS RESTANT AU NOUVEAU CLIENT
-    socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds() });
+    socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
     try { await broadcastGameState(); await emitJackpotUpdate(); } catch (e) { console.error(e); }
 
     socket.on("jackpot:get", () => { emitJackpotUpdate().catch(err => console.error(err)); });
-    socket.on("timer:request", () => { socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds() }); });
+    socket.on("timer:request", () => { socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt }); });
 
     socket.on("player:join", async (data) => {
         try {
