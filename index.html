@@ -452,14 +452,13 @@
     //  CE SCRIPT EST LE SEUL SCRIPT CLIENT AUTORISÉ.
     // =============================================================
 
-    // REGISTRATION DU SERVICE WORKER (Pour forcer le téléchargement de la bonne version)
+    // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-          console.log('✅ Service Worker enregistré avec succès :', registration.scope);
-        }).catch(err => {
-          console.log('❌ Erreur Service Worker :', err);
-        });
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('✅ Service Worker désactivé (cache vidé)');
+        }
       });
     }
 
@@ -528,6 +527,34 @@
     // VARIABLES POUR LE CHRONOMÈTRE LOCAL
     let endsAt = null;
     let timerInterval = null;
+
+    function updateTimerDisplay() {
+      const timerRuleValue = document.getElementById('timerRuleValue');
+      if (!timerRuleValue) return;
+      if (!endsAt) {
+        timerRuleValue.innerText = '--:--';
+        return;
+      }
+      const now = Date.now();
+      let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+    }
+
+    function startLocalTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (endsAt) {
+          updateTimerDisplay();
+          if (Date.now() >= endsAt) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+        }
+      }, 200);
+    }
+    startLocalTimer();
 
     // HAPTIC
     function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
@@ -805,19 +832,12 @@
     }
 
     // =============================================================
-    //  ✅ TIMER – SYNCHRONISATION AVEC LE SERVEUR (MAJEURE)
-    //  Le serveur envoie "remainingSeconds" directement.
-    //  On n'a plus besoin de calculer nous-mêmes avec l'horloge locale.
+    //  TIMER – SYNCHRONISATION AVEC LE SERVEUR (MODIF PRÉPARATION)
     // =============================================================
-    
-    function updateTimerWithServer(data) {
-      if (data.remainingSeconds !== undefined) {
-        const timerRuleValue = document.getElementById('timerRuleValue');
-        if (timerRuleValue) {
-          const m = Math.floor(data.remainingSeconds / 60);
-          const s = data.remainingSeconds % 60;
-          timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-        }
+    socket.on("timer:update", (data) => {
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
       }
       gameStatus = data.status || gameStatus;
       const timerSmall = document.querySelector('#timerRule small');
@@ -826,12 +846,51 @@
         else if (data.status === "running") timerSmall.innerText = "EN DIRECT";
       }
       if (data.status === "preparing" && tapButton) tapButton.disabled = true;
-    }
+    });
 
-    socket.on("timer:update", updateTimerWithServer);
-    socket.on("game:preparing", (data) => { updateTimerWithServer({ status: "preparing", remainingSeconds: 120 }); });
-    socket.on("game:started", (data) => { updateTimerWithServer({ status: "running", remainingSeconds: 600 }); });
-    socket.on("game:state", (data) => { if (data.game) updateTimerWithServer({ status: data.game.status, remainingSeconds: data.game.remainingSeconds }); });
+    // NOUVEL ÉVÉNEMENT : PHASE DE PRÉPARATION
+    socket.on("game:preparing", (data) => {
+      gameStatus = "preparing";
+      if (data.preparationEndsAt) {
+        endsAt = new Date(data.preparationEndsAt).getTime();
+        updateTimerDisplay();
+      }
+      const timerSmall = document.querySelector('#timerRule small');
+      if (timerSmall) timerSmall.innerText = "PRÉPARATION";
+      if (tapButton) tapButton.disabled = true;
+      if (tapMessage) tapMessage.innerText = "⏳ Phase de préparation (2 min) : Rejoins et paie ta mise !";
+    });
+
+    socket.on("game:started", (data) => {
+      gameStatus = "running";
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+      }
+      const timerSmall = document.querySelector('#timerRule small');
+      if (timerSmall) timerSmall.innerText = "EN DIRECT";
+      // MODIF : Si le joueur a payé, on peut maintenant taper
+      if (isPaid && tapButton) tapButton.disabled = false;
+      if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";
+    });
+
+    socket.on("game:state", (data) => {
+      if (data.game) {
+        gameStatus = data.game.status;
+        if (data.game.status === "preparing" && data.game.preparationEndsAt) {
+          endsAt = new Date(data.game.preparationEndsAt).getTime();
+          updateTimerDisplay();
+          if (tapButton) tapButton.disabled = true;
+          const timerSmall = document.querySelector('#timerRule small');
+          if (timerSmall) timerSmall.innerText = "PRÉPARATION";
+        } else if (data.game.status === "running" && data.game.endsAt) {
+          endsAt = new Date(data.game.endsAt).getTime();
+          updateTimerDisplay();
+          const timerSmall = document.querySelector('#timerRule small');
+          if (timerSmall) timerSmall.innerText = "EN DIRECT";
+        }
+      }
+    });
 
     // TOTAL DES MISES
     socket.on("totalStakes:update", (data) => {
