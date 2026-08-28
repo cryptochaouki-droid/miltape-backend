@@ -14,16 +14,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
   <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
-
-  <!-- ===== DÉTECTION D'ÉCHEC DE CHARGEMENT DE SCRIPT (diagnostic) ===== -->
-  <script>
-    window.addEventListener('error', function(e) {
-      if (e.target && e.target.tagName === 'SCRIPT') {
-        console.error('❌ Échec de chargement du script :', e.target.src);
-      }
-    }, true);
-  </script>
-
+  
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function initTelegramWebApp() {
@@ -40,13 +31,14 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
-
+  
   <!-- ===== SOCKET.IO AVEC FALLBACK MULTI-CDN ===== -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
           onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js';document.head.appendChild(s);">
   </script>
 
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  
   <style>
     /* ===== FOND BLEU SAPHIR HD ===== */
     body {
@@ -352,112 +344,111 @@
       <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
 
-<!-- JACKPOT -->
-<div id="jackpotDisplay">
-  <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
-  <div class="jackpot-title">🏆 JACKPOT</div>
-  <div class="jackpot-main-row">
-    <div class="jackpot-left">
-      <span class="jackpot-label">💰 MONTANT</span>
-      <span id="jackpotAmount">0 USDT</span>
-      <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>
+    <!-- JACKPOT -->
+    <div id="jackpotDisplay">
+      <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
+      <div class="jackpot-title">🏆 JACKPOT</div>
+      <div class="jackpot-main-row">
+        <div class="jackpot-left">
+          <span class="jackpot-label">💰 MONTANT</span>
+          <span id="jackpotAmount">0 USDT</span>
+          <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>
+        </div>
+        <div class="jackpot-divider"></div>
+        <div class="jackpot-right">
+          <span class="jackpot-label">⏳ TIRAGE DANS</span>
+          <span id="jackpotCountdown">--</span>
+          <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
+        </div>
+      </div>
+      <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
     </div>
-    <div class="jackpot-divider"></div>
-    <div class="jackpot-right">
-      <span class="jackpot-label">⏳ TIRAGE DANS</span>
-      <span id="jackpotCountdown">--</span>
-      <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
+
+    <!-- TICKER DES GAGNANTS -->
+    <div id="winnerTicker"><div id="tickerTrack"></div></div>
+
+    <!-- BANNIÈRE -->
+    <section class="hero-banner-container">
+      <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
+      <div class="hero-header-overlay">
+        <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
+          <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
+          <div class="wallet-icon">👛</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADRESSE DU SERVEUR -->
+    <div class="server-wallet-box">
+      <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
+      <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
+      <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
-  </div>
-  <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
-</div>
 
-<!-- TICKER DES GAGNANTS -->
-<div id="winnerTicker"><div id="tickerTrack"></div></div>
-
-<!-- BANNIÈRE -->
-<section class="hero-banner-container">
-  <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
-  <div class="hero-header-overlay">
-    <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
-      <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
-      <div class="wallet-icon">👛</div>
+    <!-- SÉLECTION TOKEN ET MISE -->
+    <div style="text-align:center;margin:15px 0">
+      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <label class="crypto-label">🪙 CRYPTO :</label>
+        <select id="tokenSelect">
+          <option value="USDT">USDT (TRC20)</option>
+          <option value="USDC">USDC (TRC20)</option>
+          <option value="TUSD">TUSD (TRC20)</option>
+          <option value="TRX">TRX</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="color:#fff;font-weight:700;font-size:14px;font-family:'Poppins',sans-serif">💰 MISE :</label>
+        <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">
+      </div>
     </div>
-  </div>
-</section>
 
-<!-- ADRESSE DU SERVEUR -->
-<div class="server-wallet-box">
-  <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
-  <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
-  <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
-</div>
+    <!-- BOUTON DE PAIEMENT ET JOUER -->
+    <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
+    <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 
-<!-- SÉLECTION TOKEN ET MISE -->
-<div style="text-align:center;margin:15px 0">
-  <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-    <label class="crypto-label">🪙 CRYPTO :</label>
-    <select id="tokenSelect">
-      <option value="USDT">USDT (TRC20)</option>
-      <option value="USDC">USDC (TRC20)</option>
-      <option value="TUSD">TUSD (TRC20)</option>
-      <option value="TRX">TRX</option>
-    </select>
-  </div>
-  <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
-    <label style="color:#fff;font-weight:700;font-size:14px;font-family:'Poppins',sans-serif">💰 MISE :</label>
-    <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">
-  </div>
-</div>
+    <!-- MESSAGE D'ÉTAT -->
+    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
 
-<!-- BOUTON DE PAIEMENT ET JOUER -->
-<button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
-<button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
+    <!-- ZONE DE TAP -->
+    <section class="tap-zone" aria-label="Zone de tap">
+      <div class="rule" id="timerRule">
+        <span class="rule-icon">⏱️</span>
+        <strong id="timerRuleValue">10:00</strong>
+        <small>PRÉPARATION</small>
+        <span class="tap-counter">
+          <span class="tap-icon">👆</span>
+          <span id="tapCounterDisplay">0</span>
+          <span class="tap-label">TAPS</span>
+        </span>
+      </div>
+      <button id="tapButton" class="tap-button" type="button" disabled>
+        <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">
+        <small style="display:none"><span id="tapButtonCount">0</span></small>
+      </button>
+    </section>
 
-<!-- MESSAGE D'ÉTAT -->
-<div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
+    <!-- RÈGLES -->
+    <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
 
-<!-- ZONE DE TAP -->
-<section class="tap-zone" aria-label="Zone de tap">
-  <div class="rule" id="timerRule">
-    <span class="rule-icon">⏱️</span>
-    <strong id="timerRuleValue">10:00</strong>
-    <small>PRÉPARATION</small>
-    <span class="tap-counter">
-      <span class="tap-icon">👆</span>
-      <span id="tapCounterDisplay">0</span>
-      <span class="tap-label">TAPS</span>
-    </span>
-  </div>
-  <button id="tapButton" class="tap-button" type="button" disabled>
-    <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">
-    <small style="display:none"><span id="tapButtonCount">0</span></small>
-  </button>
-</section>
-
-<!-- RÈGLES -->
-<section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
-
-<!-- CLASSEMENT + CHAT -->
-<div class="leaderboard-chat-wrapper">
-  <section class="leaderboard">
-    <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
-    <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>
-  </section>
-  <section class="chat-section" id="globalChat">
-    <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
-    <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
-    <div class="chat-input-box" id="chatInputBox">
-      <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
-      <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
+    <!-- CLASSEMENT + CHAT -->
+    <div class="leaderboard-chat-wrapper">
+      <section class="leaderboard">
+        <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
+        <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>
+      </section>
+      <section class="chat-section" id="globalChat">
+        <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
+        <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
+        <div class="chat-input-box" id="chatInputBox">
+          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
+          <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
+        </div>
+      </section>
     </div>
-  </section>
-</div>
 
-<!-- FOOTER -->
-<div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
-<div style="width:100%;height:40px"></div>
-
+    <!-- FOOTER -->
+    <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
+    <div style="width:100%;height:40px"></div>
   </main>
 
   <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->
@@ -465,16 +456,6 @@
     // =============================================================
     //  CE SCRIPT EST LE SEUL SCRIPT CLIENT AUTORISÉ.
     // =============================================================
-
-    // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-          console.log('✅ Service Worker désactivé (cache vidé)');
-        }
-      });
-    }
 
     // TON CONNECT (optionnel)
     (function initTonConnect() {
@@ -545,38 +526,6 @@
     let myToken = 'USDT';
     let gameStatus = "waiting"; // NOUVEAU : pour gérer la phase préparation
     const API_URL = "https://miltape-backend-production.up.railway.app";
-
-    // VARIABLES POUR LE CHRONOMÈTRE LOCAL
-    let endsAt = null;
-    let timerInterval = null;
-
-    function updateTimerDisplay() {
-      const timerRuleValue = document.getElementById('timerRuleValue');
-      if (!timerRuleValue) return;
-      if (!endsAt) {
-        timerRuleValue.innerText = '--:--';
-        return;
-      }
-      const now = Date.now();
-      let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-    }
-
-    function startLocalTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        if (endsAt) {
-          updateTimerDisplay();
-          if (Date.now() >= endsAt) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-          }
-        }
-      }, 200);
-    }
-    startLocalTimer();
 
     // HAPTIC
     function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
@@ -854,12 +803,16 @@
     }
 
     // =============================================================
-    //  TIMER – SYNCHRONISATION AVEC LE SERVEUR (MODIF PRÉPARATION)
+    //  ✅ TIMER – SYNCHRONISATION AVEC LE SERVEUR (source de vérité)
     // =============================================================
-    socket.on("timer:update", (data) => {
-      if (data.endsAt) {
-        endsAt = new Date(data.endsAt).getTime();
-        updateTimerDisplay();
+    function updateTimerWithServer(data) {
+      if (data.remainingSeconds !== undefined) {
+        const timerRuleValue = document.getElementById('timerRuleValue');
+        if (timerRuleValue) {
+          const m = Math.floor(data.remainingSeconds / 60);
+          const s = data.remainingSeconds % 60;
+          timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+        }
       }
       gameStatus = data.status || gameStatus;
       const timerSmall = document.querySelector('#timerRule small');
@@ -868,51 +821,12 @@
         else if (data.status === "running") timerSmall.innerText = "EN DIRECT";
       }
       if (data.status === "preparing" && tapButton) tapButton.disabled = true;
-    });
+    }
 
-    // NOUVEL ÉVÉNEMENT : PHASE DE PRÉPARATION
-    socket.on("game:preparing", (data) => {
-      gameStatus = "preparing";
-      if (data.preparationEndsAt) {
-        endsAt = new Date(data.preparationEndsAt).getTime();
-        updateTimerDisplay();
-      }
-      const timerSmall = document.querySelector('#timerRule small');
-      if (timerSmall) timerSmall.innerText = "PRÉPARATION";
-      if (tapButton) tapButton.disabled = true;
-      if (tapMessage) tapMessage.innerText = "⏳ Phase de préparation (2 min) : Rejoins et paie ta mise !";
-    });
-
-    socket.on("game:started", (data) => {
-      gameStatus = "running";
-      if (data.endsAt) {
-        endsAt = new Date(data.endsAt).getTime();
-        updateTimerDisplay();
-      }
-      const timerSmall = document.querySelector('#timerRule small');
-      if (timerSmall) timerSmall.innerText = "EN DIRECT";
-      // MODIF : Si le joueur a payé, on peut maintenant taper
-      if (isPaid && tapButton) tapButton.disabled = false;
-      if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";
-    });
-
-    socket.on("game:state", (data) => {
-      if (data.game) {
-        gameStatus = data.game.status;
-        if (data.game.status === "preparing" && data.game.preparationEndsAt) {
-          endsAt = new Date(data.game.preparationEndsAt).getTime();
-          updateTimerDisplay();
-          if (tapButton) tapButton.disabled = true;
-          const timerSmall = document.querySelector('#timerRule small');
-          if (timerSmall) timerSmall.innerText = "PRÉPARATION";
-        } else if (data.game.status === "running" && data.game.endsAt) {
-          endsAt = new Date(data.game.endsAt).getTime();
-          updateTimerDisplay();
-          const timerSmall = document.querySelector('#timerRule small');
-          if (timerSmall) timerSmall.innerText = "EN DIRECT";
-        }
-      }
-    });
+    socket.on("timer:update", updateTimerWithServer);
+    socket.on("game:preparing", (data) => { updateTimerWithServer({ status: "preparing", remainingSeconds: 120 }); });
+    socket.on("game:started", (data) => { updateTimerWithServer({ status: "running", remainingSeconds: 600 }); });
+    socket.on("game:state", (data) => { if (data.game) updateTimerWithServer({ status: data.game.status, remainingSeconds: data.game.remainingSeconds }); });
 
     // TOTAL DES MISES
     socket.on("totalStakes:update", (data) => {
