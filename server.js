@@ -396,7 +396,6 @@ io.on("connection", async (socket) => {
             } else {
                 player.name = name; player.wallet = wallet; player.bet = bet; player.token = token;
                 player.paid = false; 
-                // ✅ CORRECTION 2 : On retire le champ paymentTxId du document en mettant undefined au lieu de null
                 player.paymentTxId = undefined;
                 player.depositAmount = bet; player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
