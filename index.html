@@ -524,7 +524,7 @@
     let myBet = 10;
     let myWallet = null;
     let myToken = 'USDT';
-    let gameStatus = "waiting"; // NOUVEAU : pour gérer la phase préparation
+    let gameStatus = "waiting";
     const API_URL = "https://miltape-backend-production.up.railway.app";
 
     // HAPTIC
@@ -575,7 +575,6 @@
       try {
         const res = await fetch(API_URL + "/api/status");
         const data = await res.json();
-        // MODIF : Accepter la restauration pendant la préparation ou le jeu
         if (data.status !== "running" && data.status !== "preparing") {
           localStorage.removeItem("miltape_player_id");
           localStorage.removeItem("miltape_player_wallet");
@@ -644,7 +643,6 @@
         isPlaying = true; isPaid = false;
         myPlayerId = data.player.id;
         myToken = data.player.token || 'USDT';
-        // MODIF : On désactive le bouton Taper tant que la partie n'est pas "running"
         if (tapButton) tapButton.disabled = true;
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
@@ -657,7 +655,6 @@
 
         if (demoMode) {
           isPaid = true;
-          // MODIF : Ne débloquer le tap que si le jeu est déjà en cours
           if (gameStatus === "running") tapButton.disabled = false;
           if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
@@ -803,9 +800,34 @@
     }
 
     // =============================================================
-    //  ✅ TIMER – SYNCHRONISATION AVEC LE SERVEUR (source de vérité)
+    //  ✅ DÉBLOQUER LE BOUTON TAPE DÈS QUE LE JEU COMMENCE
     // =============================================================
-    function updateTimerWithServer(data) {
+    socket.on("game:started", (data) => {
+      gameStatus = "running";
+      // Mise à jour du chrono
+      if (data.remainingSeconds !== undefined) {
+        const timerRuleValue = document.getElementById('timerRuleValue');
+        if (timerRuleValue) {
+          const m = Math.floor(data.remainingSeconds / 60);
+          const s = data.remainingSeconds % 60;
+          timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+        }
+      }
+      const timerSmall = document.querySelector('#timerRule small');
+      if (timerSmall) timerSmall.innerText = "EN DIRECT";
+
+      // ✅ DÉBLOQUER LE BOUTON TAPE (Peu importe l'état)
+      if (tapButton) {
+        tapButton.disabled = false;
+      }
+
+      if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";
+    });
+
+    // =============================================================
+    //  ✅ MISE À JOUR DU CHRONO (Basé sur le serveur)
+    // =============================================================
+    socket.on("timer:update", (data) => {
       if (data.remainingSeconds !== undefined) {
         const timerRuleValue = document.getElementById('timerRuleValue');
         if (timerRuleValue) {
@@ -821,12 +843,43 @@
         else if (data.status === "running") timerSmall.innerText = "EN DIRECT";
       }
       if (data.status === "preparing" && tapButton) tapButton.disabled = true;
-    }
+    });
 
-    socket.on("timer:update", updateTimerWithServer);
-    socket.on("game:preparing", (data) => { updateTimerWithServer({ status: "preparing", remainingSeconds: 120 }); });
-    socket.on("game:started", (data) => { updateTimerWithServer({ status: "running", remainingSeconds: 600 }); });
-    socket.on("game:state", (data) => { if (data.game) updateTimerWithServer({ status: data.game.status, remainingSeconds: data.game.remainingSeconds }); });
+    // NOUVEL ÉVÉNEMENT : PHASE DE PRÉPARATION
+    socket.on("game:preparing", (data) => {
+      gameStatus = "preparing";
+      const timerRuleValue = document.getElementById('timerRuleValue');
+      if (timerRuleValue) {
+        timerRuleValue.innerText = "02:00";
+      }
+      const timerSmall = document.querySelector('#timerRule small');
+      if (timerSmall) timerSmall.innerText = "PRÉPARATION";
+      if (tapButton) tapButton.disabled = true;
+      if (tapMessage) tapMessage.innerText = "⏳ Phase de préparation (2 min) : Rejoins et paie ta mise !";
+    });
+
+    socket.on("game:state", (data) => {
+      if (data.game) {
+        gameStatus = data.game.status;
+        if (data.game.status === "preparing") {
+          const timerRuleValue = document.getElementById('timerRuleValue');
+          if (timerRuleValue) timerRuleValue.innerText = "02:00";
+          const timerSmall = document.querySelector('#timerRule small');
+          if (timerSmall) timerSmall.innerText = "PRÉPARATION";
+          if (tapButton) tapButton.disabled = true;
+        } else if (data.game.status === "running" && data.game.remainingSeconds) {
+          const timerRuleValue = document.getElementById('timerRuleValue');
+          if (timerRuleValue) {
+            const m = Math.floor(data.game.remainingSeconds / 60);
+            const s = data.game.remainingSeconds % 60;
+            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+          }
+          const timerSmall = document.querySelector('#timerRule small');
+          if (timerSmall) timerSmall.innerText = "EN DIRECT";
+          if (tapButton) tapButton.disabled = false;
+        }
+      }
+    });
 
     // TOTAL DES MISES
     socket.on("totalStakes:update", (data) => {
