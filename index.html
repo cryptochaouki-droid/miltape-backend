@@ -454,15 +454,8 @@
   <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->
   <script>
     // =============================================================
-    //  ✅ ENREGISTREMENT DU SERVICE WORKER (Pour vider le cache)
+    //  CE SCRIPT EST LE SEUL SCRIPT CLIENT AUTORISÉ.
     // =============================================================
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then(function(reg) {
-        console.log('✅ Service Worker enregistré !');
-      }).catch(function(err) {
-        console.error('❌ Erreur Service Worker :', err);
-      });
-    }
 
     // TON CONNECT (optionnel)
     (function initTonConnect() {
