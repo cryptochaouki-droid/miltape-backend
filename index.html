@@ -1,1102 +1,1144 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0d47a1" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne." />
-  <title>Miltape World Challenge</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
-  <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    (function initTelegramWebApp() {
-      try {
-        if (window.Telegram && window.Telegram.WebApp) {
-          const w = window.Telegram.WebApp;
-          w.expand();
-          w.BackButton.show();
-          w.BackButton.onClick(function() { w.close(); });
-          if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
-          console.log("✅ Telegram WebApp initialisée");
-        }
-      } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
-    })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <style>
-    /* ===== FOND BLEU SAPHIR HD ===== */
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%);
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: auto;
-      position: relative;
-    }
-    body::before { content: ""; position: fixed; top: -20%; right: -10%; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(100, 180, 255, 0.12), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow1 7s ease-in-out infinite alternate; }
-    body::after { content: ""; position: fixed; bottom: -20%; left: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(50, 120, 255, 0.08), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow2 9s ease-in-out infinite alternate; }
-    @keyframes hdGlow1 { 0% { transform: translate(0, 0) scale(1); opacity: .5; } 100% { transform: translate(-40px, 30px) scale(1.3); opacity: 1; } }
-    @keyframes hdGlow2 { 0% { transform: translate(0, 0) scale(1); opacity: .3; } 100% { transform: translate(30px, -40px) scale(1.4); opacity: .8; } }
-    .gem-sparkle { position: fixed; width: 4px; height: 4px; background: #64b5f6; border-radius: 50%; pointer-events: none; z-index: 0; box-shadow: 0 0 12px rgba(100, 181, 246, .4); animation: sparkleFloatHD 5s ease-in-out infinite alternate; }
-    .gem-sparkle:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
-    .gem-sparkle:nth-child(2) { top: 25%; left: 85%; animation-delay: 1.4s; width: 6px; height: 6px; }
-    .gem-sparkle:nth-child(3) { top: 55%; left: 8%; animation-delay: 2.8s; }
-    .gem-sparkle:nth-child(4) { top: 75%; left: 75%; animation-delay: .9s; width: 5px; height: 5px; }
-    .gem-sparkle:nth-child(5) { top: 40%; left: 55%; animation-delay: 2s; width: 8px; height: 8px; box-shadow: 0 0 20px rgba(100, 181, 246, .6); }
-    .gem-sparkle:nth-child(6) { top: 12%; left: 48%; animation-delay: 3.5s; }
-    .gem-sparkle:nth-child(7) { top: 65%; left: 32%; animation-delay: .6s; }
-    .gem-sparkle:nth-child(8) { top: 88%; left: 88%; animation-delay: 2.2s; }
-    @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }
-    .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }
-    .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content { border-radius: 24px !important; }
-    .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); }
-    #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
-    html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }
-    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #64b5f6; border-radius: 999px; background: #051230; color: #64b5f6; font-size: 13px; font-weight: 900; box-shadow: 0 0 20px rgba(100, 181, 246, .2); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
-    .install-pwa-button.show { display: block; }
-    .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }
-    .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }
-    .hero-header-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: flex-end; align-items: center; z-index: 10; }
-    .wallet-badge-top { background: rgba(0, 0, 0, .5); backdrop-filter: blur(8px); border: 1px solid rgba(100, 181, 246, .3); padding: 4px 8px; border-radius: 12px; text-align: right; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-    .wallet-badge-top .wb-label { display: block; font-size: 7px; color: #ddd; }
-    .wallet-badge-top .wb-value { display: block; font-size: 13px; font-weight: 900; color: #64b5f6; }
-    .wallet-badge-top .wallet-icon { font-size: 16px; background: #0a2a5c; padding: 4px; border-radius: 6px; }
-    .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }
-    .side-menu.show { left: 0; }
-    .close-menu { background: 0 0; border: none; color: #e0e0e0; font-size: 28px; cursor: pointer; }
-    .side-menu-content { margin-top: 40px; padding-bottom: 30px; }
-    .side-menu-content h3 { color: #64b5f6; margin-bottom: 20px; font-size: 16px; letter-spacing: 1px; }
-    .menu-block { margin-bottom: 15px; background: rgba(255, 255, 255, .03); padding: 12px; border-radius: 10px; }
-    .menu-block label, .menu-block h4 { display: block; font-size: 13px; color: #64b5f6; margin-bottom: 8px; font-weight: 700; }
-    .menu-block select { width: 100%; padding: 8px; border-radius: 6px; background: #0a2a5c; color: #e0e0e0; border: 1px solid rgba(100, 181, 246, .2); box-sizing: border-box; font-family: 'Poppins', sans-serif; font-size: 12px; }
-    .menu-nav-btn { display: block; width: 100%; background: 0 0; border: none; color: #e0e0e0; text-align: left; font-size: 14px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; border-radius: 8px; text-decoration: none; box-sizing: border-box; font-family: 'Poppins', sans-serif; transition: all .2s ease; }
-    .menu-nav-btn:hover, .menu-nav-btn:active { background: rgba(100, 181, 246, .12); color: #64b5f6; }
-    .trust-contact-box { border-left: 3px solid #2ecc71; }
-    .support-link { display: inline-block; padding: 8px 12px; background: #0088cc; color: #fff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 700; font-family: 'Poppins', sans-serif; }
-    .menu-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; z-index: 999; }
-    .menu-overlay.show { display: block; }
-    .legal-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; box-sizing: border-box; }
-    .legal-modal.show { display: flex; }
-    .legal-content { background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); border: 1px solid #64b5f6; max-width: 500px; width: 100%; max-height: 90vh; max-height: 90dvh; overflow-y: auto; padding: 20px; box-sizing: border-box; color: #e0e0e0; position: relative; animation: modalPop .4s cubic-bezier(.34, 1.56, .64, 1); }
-    .legal-content h3 { color: #64b5f6; margin-top: 0; }
-    .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
-    .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
-    .tap-zone { width: 100%; min-height: 310px; display: flex; align-items: center; justify-content: center; position: relative; padding: 10px 0; flex-direction: column; }
-    /* ===== CHRONOMÈTRE ===== */
-    .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(100, 181, 246, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
-    .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 3vw, 20px); color: #0d47a1; }
-    .tap-zone #timerRule strong { font-size: clamp(20px, 5vw, 28px); color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); font-family: 'Orbitron', sans-serif; }
-    .tap-zone #timerRule small { font-size: clamp(10px, 2vw, 13px); color: #000000 !important; font-weight: 800; }
-    .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 4px; }
-    .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
-    .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
-    .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    /* ===== BOUTON TAP ===== */
-    .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }
-    .tap-button:disabled { cursor: not-allowed; opacity: .6; }
-    .tap-button:active:not(:disabled) { transform: scale(.92); }
-    .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }
-    .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }
-    .tap-button small { display: none; }
-    /* ===== BOUTON JOUER ===== */
-    .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }
-    .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
-    .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
-    .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }
-    .main-play-button b { margin-left: 8px; }
-    .tap-message, #tapMessage { display: none !important; }
-    .chat-messages { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; border-radius: 24px !important; padding: 12px !important; height: 180px !important; overflow-y: auto !important; overflow-x: hidden !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
-    .chat-message { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 10px !important; margin-bottom: 6px !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
-    .chat-input-box { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 5px; }
-    .leaderboard { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; box-shadow: 0 2px 12px rgba(0, 0, 0, .15) !important; border-radius: 24px !important; padding: 15px !important; }
-    .leaderboard .section-title { color: #222 !important; font-size: 14px !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
-    .leaderboard .section-title span { color: #222 !important; font-size: 14px !important; }
-    .leaderboard .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }
-    .leaderboard-item { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 12px !important; border-left: 3px solid #0d47a1 !important; margin-bottom: 4px !important; display: flex !important; align-items: center !important; gap: 10px !important; }
-    .rank-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 32px !important; height: 32px !important; min-width: 32px !important; border-radius: 50% !important; font-size: 14px !important; font-weight: 900 !important; color: #fff !important; background: #0d47a1 !important; flex-shrink: 0 !important; }
-    .leaderboard-item:nth-child(1) .rank-badge { background: #ffd700 !important; color: #000 !important; box-shadow: 0 0 20px rgba(255, 215, 0, .4) !important; }
-    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000 !important; box-shadow: 0 0 15px rgba(192, 192, 192, .3) !important; }
-    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff !important; box-shadow: 0 0 15px rgba(205, 127, 50, .3) !important; }
-    .leaderboard-item:nth-child(4) .rank-badge, .leaderboard-item:nth-child(5) .rank-badge { background: #0d47a1 !important; color: #fff !important; }
-    .leaderboard-item .player-name { color: #222 !important; font-weight: 600 !important; font-size: 14px !important; flex: 1 !important; }
-    .leaderboard-item .player-score { color: #0d47a1 !important; font-weight: 900 !important; font-size: 14px !important; }
-    .empty-ranking { color: #888 !important; font-size: 13px !important; }
-    .section-title { font-size: 14px !important; color: #222 !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
-    .section-title span { color: #222 !important; font-size: 14px !important; }
-    .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }
-    .stat-box { background: rgba(100, 181, 246, .06) !important; border: 1px solid rgba(100, 181, 246, .12) !important; padding: 20px !important; box-shadow: 0 0 40px rgba(100, 181, 246, .04) !important; border-radius: 24px !important; }
-    .stat-box small { display: block; font-size: 14px !important; color: rgba(255, 255, 255, .8) !important; font-family: 'Poppins', sans-serif; letter-spacing: 2px !important; font-weight: 700 !important; }
-    .stat-box strong { font-size: 56px !important; font-weight: 900 !important; color: #64b5f6 !important; font-family: 'Orbitron', sans-serif !important; text-shadow: 0 0 30px rgba(100, 181, 246, .25), 0 0 60px rgba(100, 181, 246, .08) !important; }
-    .stats { display: flex; justify-content: center; padding: 10px 0 5px; animation: slideUp .9s ease-out .4s both; }
-    .top-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, .05); position: relative; overflow: hidden; }
-    .top-header::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .05), transparent); animation: headerShine 6s ease-in-out infinite; pointer-events: none; }
-    @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }
-    .menu-button { background: 0 0; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px 8px; }
-    .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }
-    .wallet-box { text-align: right; font-family: 'Poppins', sans-serif; }
-    .wallet-box small { display: block; font-size: 8px; color: rgba(255, 255, 255, .5); }
-    .wallet-box strong { font-size: 14px; color: #64b5f6; }
-    .wallet-button { background: rgba(100, 181, 246, .12); border: 1px solid rgba(100, 181, 246, .2); border-radius: 10px; color: #fff; padding: 6px 12px; font-size: 12px; font-family: 'Poppins', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-    .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 25px !important; padding: 0 16px; animation: slideUp 1s ease-out .5s both; }
-    .rules { display: flex; justify-content: center; gap: 20px; padding: 15px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }
-    .rule { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .08); font-family: 'Poppins', sans-serif; font-size: 11px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .1); }
-    .rule .rule-icon { font-size: 18px; }
-    .rule strong { color: #64b5f6; font-size: 13px; }
-    .rule small { color: rgba(255, 255, 255, .6); font-size: 9px; }
-    .rules .rule:first-child { display: none !important; }
-    .tap-message { text-align: center; font-size: 15px !important; color: #fff; padding: 12px 20px !important; margin: 5px auto; font-family: 'Poppins', sans-serif; letter-spacing: .5px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(6px); border-radius: 20px; display: inline-block; max-width: 90%; border: 1px solid rgba(255, 255, 255, .06); font-weight: 700 !important; }
-    .steps-guide { display: none !important; justify-content: center; gap: 12px !important; padding: 12px 16px !important; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255, 255, 255, .05); flex-wrap: wrap; text-align: center; font-size: 11px !important; font-family: 'Poppins', sans-serif; color: rgba(255, 255, 255, .7); }
-    .step-item { display: flex; align-items: center; gap: 4px; }
-    .step-number { background: #64b5f6; color: #051230; border-radius: 50%; width: 20px !important; height: 20px !important; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px !important; flex-shrink: 0; }
-    .step-arrow { color: rgba(255, 255, 255, .2); }
-    .server-wallet-box { text-align: center; margin: 10px 12px !important; padding: 12px !important; border-radius: 16px; background: rgba(255, 255, 255, .04) !important; border: 1px solid rgba(255, 255, 255, .06) !important; }
-    .server-wallet-label { font-size: 11px; color: rgba(255, 255, 255, .4); }
-    .server-wallet-address { font-size: 15px !important; font-weight: 700; color: #64b5f6 !important; word-break: break-all; font-family: 'Poppins', sans-serif; background: rgba(0, 0, 0, .20) !important; padding: 4px 8px !important; border-radius: 6px !important; display: inline-block !important; }
-    .server-wallet-link { font-size: 10px; color: #64b5f6; text-decoration: none; display: inline-block; margin-top: 4px; }
-    .trust-footer { text-align: center; padding: 12px; font-size: 11px; color: rgba(255, 255, 255, .3); font-family: 'Poppins', sans-serif; border-top: 1px solid rgba(255, 255, 255, .04); margin-top: 20px; }
-    .trust-footer a { color: #64b5f6; text-decoration: none; }
-    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
-    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 30px 24px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }
-    #welcomeModal .welcome-icon { font-size: 48px; margin-bottom: 10px; }
-    #welcomeModal .welcome-title { margin: 0 0 8px; font-size: 22px; color: #64b5f6; }
-    #welcomeModal .welcome-sub { font-size: 14px; color: rgba(255, 255, 255, .8); margin: 0 0 20px; }
-    #welcomeModal .welcome-steps { text-align: left; font-size: 14px; line-height: 1.8; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
-    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 8px; }
-    #welcomeModal .welcome-steps strong { color: #64b5f6; }
-    #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
-    #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
-    #welcomeModal .welcome-btn:active { transform: scale(.96); }
-    @media(max-width:430px) { .tap-button { width: clamp(150px, 38vw, 200px); height: clamp(150px, 38vw, 200px); } .tap-zone { min-height: 280px; } .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } #timerRuleValue { font-size: 20px !important; } .stat-box strong { font-size: 44px !important; } .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } .server-wallet-address { font-size: 13px !important; } }
-    @media(max-width:360px) { .tap-button { width: clamp(120px, 32vw, 160px); height: clamp(120px, 32vw, 160px); } .tap-zone { min-height: 260px; } .chat-input-box input { font-size: 12px !important; } .chat-input-box button { width: 42px; min-width: 42px; } #timerRuleValue { font-size: 18px !important; } .stat-box strong { font-size: 38px !important; } .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } .server-wallet-address { font-size: 12px !important; } }
-    @media(min-width:600px) { body { padding: 20px 0 40px; } .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } }
-    @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-    @keyframes slideUp { 0% { opacity: 0; transform: translateY(30px) scale(.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-    @keyframes messageSlide { 0% { opacity: 0; transform: translateX(-10px); } 100% { opacity: 1; transform: translateX(0); } }
-    @keyframes modalPop { 0% { opacity: 0; transform: scale(.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
-    @keyframes confettiFall { 0% { transform: translateY(0) rotate(0) scale(1); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg) scale(.5); opacity: 0; } }
-    #winnerTicker { width: 100%; max-width: 480px; margin: 0 auto; overflow: hidden; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(100, 181, 246, .12); border-top: 1px solid rgba(100, 181, 246, .12); height: 36px; position: sticky; top: 68px; z-index: 40; display: none; }
-    #winnerTicker.show { display: block; }
-    #tickerTrack { display: flex; align-items: center; height: 100%; white-space: nowrap; animation: tickerScroll 20s linear infinite; gap: 40px; padding-left: 100%; }
-    @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-    .ticker-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; font-size: 12px; color: #64b5f6; padding: 0 10px; text-shadow: 0 0 20px rgba(100, 181, 246, .05); flex-shrink: 0; }
-    .ticker-item .trophy { font-size: 14px; }
-    .ticker-item .name { color: #fff; font-weight: 700; }
-    .ticker-item .amount { color: #2ecc71; font-weight: 700; }
-    #winnerTicker:hover #tickerTrack { animation-play-state: paused; }
-    #tokenSelect { width: 140px; padding: 10px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255, 255, 255, .1); font-size: 14px; text-align: center; outline: 0; font-family: 'Poppins', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364b5f6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
-    #tokenSelect option { background: #0d47a1; color: #fff; }
-    .crypto-label { color: #fff; font-weight: 700; font-size: 14px; font-family: 'Poppins', sans-serif; }
-    @media(max-width:480px) { #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; } }
-    .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }
-    .online strong span:last-child { color: #fff; }
-    .wallet-button { color: #fff; }
-  </style>
-
-  <!-- ===== JACKPOT ===== -->
-  <style>
-    #jackpotDisplay { position: relative; width: calc(100% - 24px); margin: 12px auto; padding: 20px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%); border: 1px solid rgba(255, 80, 80, 0.8); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); overflow: hidden; text-align: center; animation: jackpotHaloPulse 3s ease-in-out infinite alternate; z-index: 1; }
-    #jackpotDisplay::before { content: ''; position: absolute; top: -50%; left: -20%; width: 140%; height: 200%; background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, rgba(255, 30, 30, 0.05) 40%, transparent 70%); pointer-events: none; z-index: -1; }
-    @keyframes jackpotHaloPulse { 0% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 15px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.2); } 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(255,30,30,0.7), inset 0 1px 0 rgba(255,255,255,0.2); } }
-    .jackpot-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.5); color: #ffd700; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
-    .jackpot-title { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 900; color: #ffd700; letter-spacing: 2px; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.8); }
-    .jackpot-main-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .jackpot-left, .jackpot-right { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
-    .jackpot-divider { width: 2px; height: 60px; background: rgba(255, 215, 0, 0.5); border-radius: 2px; box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
-    .jackpot-label { font-size: 10px; color: rgba(255,255,255,0.9); letter-spacing: 1px; text-transform: uppercase; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
-    #jackpotAmount { font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; transition: transform 0.2s ease; animation: amountGlow 2s ease-in-out infinite alternate; }
-    @keyframes amountGlow { 0% { text-shadow: 0 0 10px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1); } 100% { text-shadow: 0 0 25px rgba(255,255,255,1), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1.02); } }
-    #jackpotCountdown { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; color: #2ecc71; text-shadow: 0 0 15px rgba(46, 204, 113, 0.8), 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; }
-    .jackpot-schedule { font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
-    .jackpot-winner-info { display: block; font-size: 11px; color: rgba(255, 215, 0, 0.85); margin-top: 6px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); letter-spacing: 0.3px; }
-    .jackpot-winner-info strong { color: #ffd700; font-weight: 700; }
-    .jackpot-footer { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 215, 0, 0.25); font-size: 11px; color: rgba(255, 255, 255, 0.75); text-align: center; font-weight: 400; letter-spacing: 0.3px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
-    @media (max-width: 430px) { .jackpot-winner-info { font-size: 10px; } .jackpot-footer { font-size: 10px; padding-top: 8px; margin-top: 10px; } }
-    @media (max-width: 360px) { .jackpot-winner-info { font-size: 9px; } .jackpot-footer { font-size: 9px; } }
-    @media (max-width: 430px) { #jackpotAmount { font-size: 26px; } #jackpotCountdown { font-size: 20px; } .jackpot-title { font-size: 20px; } }
-    @media (max-width: 360px) { .jackpot-main-row { flex-direction: column; gap: 10px; } .jackpot-divider { width: 60%; height: 2px; } #jackpotAmount { font-size: 28px; } #jackpotCountdown { font-size: 18px; } }
-  </style>
-</head>
-
-<body>
-  <!-- ===== ÉLÉMENTS VISUELS ===== -->
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-  <div class="gem-sparkle"></div>
-
-  <!-- MODALE DE BIENVENUE -->
-  <div id="welcomeModal">
-    <div class="welcome-content">
-      <div class="welcome-icon">🎮</div>
-      <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
-      <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
-      <div class="welcome-steps">
-        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
-        <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet (2 min pour préparer)</div>
-        <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
-        <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
-      </div>
-      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
-      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
-    </div>
-  </div>
-
-  <!-- CONTENEUR DE NOTIFICATIONS -->
-  <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
-
-  <!-- BOUTON PWA -->
-  <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
-
-  <!-- MENU LATÉRAL -->
-  <aside id="sideMenu" class="side-menu">
-    <button id="closeMenu" class="close-menu" type="button">×</button>
-    <div class="side-menu-content">
-      <h3>🧭 Menu Miltape</h3>
-      <div class="menu-block">
-        <button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button>
-        <button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button>
-        <button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button>
-        <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button>
-        <button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button>
-        <button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button>
-        <button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button>
-        <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
-      </div>
-      <div class="menu-block" style="text-align:center">
-        <button id="demomodebtn" class="menu-nav-btn" type="button" style="background:rgba(100,181,246,.12);color:#64b5f6;font-weight:700;text-align:center;border:1px solid rgba(100,181,246,.2);font-family:'Poppins',sans-serif;transition:all .3s ease">
-          🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span>
-        </button>
-        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;font-family:'Poppins',sans-serif">🔒 Mode démo désactivé</div>
-      </div>
-      <div class="menu-block" style="text-align:center">
-        <button id="resetGameBtn" class="menu-nav-btn" type="button" style="background:rgba(255,50,50,.12);color:#ff4444;border:1px solid rgba(255,50,50,.25);font-family:'Poppins',sans-serif;transition:all .3s ease">🔄 NOUVELLE PARTIE</button>
-        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;font-family:'Poppins',sans-serif">Efface tes données locales</div>
-      </div>
-      <div class="menu-block">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-          <span style="color:#64b5f6;font-weight:700;font-size:13px">🔔 Notifications</span>
-          <input type="checkbox" id="notifToggle" checked style="width:40px;height:20px;cursor:pointer;accent-color:#64b5f6;background:rgba(255,255,255,.1);border-radius:10px">
-        </label>
-      </div>
-      <div class="menu-block">
-        <label for="languageSelect">🌐 Langue</label>
-        <select id="languageSelect">
-          <option value="fr">Français</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-      <div class="menu-block trust-contact-box">
-        <h4>🛡️ Support & Confiance</h4>
-        <p style="font-size:12px;color:#b8b8b8;font-family:'Poppins',sans-serif">Une question ? Un problème ?</p>
-        <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
-        <div style="margin-top:8px;font-size:12px"><a href="mailto:miltapesupport@gmail.com" style="color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif">📧 miltapesupport@gmail.com</a></div>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)">
-          <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;transition:all .3s ease">🔍 Voir toutes les transactions sur TronScan</a>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <div id="menuOverlay" class="menu-overlay"></div>
-
-  <!-- MODALE DYNAMIQUE -->
-  <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
-    <div class="legal-content">
-      <button id="closeDynamicModal" class="legal-close" type="button">×</button>
-      <h3 id="dynamicModalTitle">Miltape</h3>
-      <div id="dynamicModalBody"></div>
-    </div>
-  </div>
-
-  <!-- ===== APPLICATION PRINCIPALE ===== -->
-  <main class="app">
-    <header class="top-header">
-      <button class="menu-button" id="menuButton" type="button">☰</button>
-      <div class="online">
-        <strong id="onlineCount">
-          <span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span>
-          <span>1 EN LIGNE</span>
-        </strong>
-      </div>
-      <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
-      <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
-    </header>
-
-    <!-- JACKPOT -->
-    <div id="jackpotDisplay">
-      <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
-      <div class="jackpot-title">🏆 JACKPOT</div>
-      <div class="jackpot-main-row">
-        <div class="jackpot-left">
-          <span class="jackpot-label">💰 MONTANT</span>
-          <span id="jackpotAmount">0 USDT</span>
-          <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>
-        </div>
-        <div class="jackpot-divider"></div>
-        <div class="jackpot-right">
-          <span class="jackpot-label">⏳ TIRAGE DANS</span>
-          <span id="jackpotCountdown">--</span>
-          <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
-        </div>
-      </div>
-      <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
-    </div>
-
-    <!-- TICKER DES GAGNANTS -->
-    <div id="winnerTicker"><div id="tickerTrack"></div></div>
-
-    <!-- BANNIÈRE -->
-    <section class="hero-banner-container">
-      <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
-      <div class="hero-header-overlay">
-        <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
-          <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
-          <div class="wallet-icon">👛</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ADRESSE DU SERVEUR -->
-    <div class="server-wallet-box">
-      <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
-      <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
-      <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
-    </div>
-
-    <!-- SÉLECTION TOKEN ET MISE -->
-    <div style="text-align:center;margin:15px 0">
-      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <label class="crypto-label">🪙 CRYPTO :</label>
-        <select id="tokenSelect">
-          <option value="USDT">USDT (TRC20)</option>
-          <option value="USDC">USDC (TRC20)</option>
-          <option value="TUSD">TUSD (TRC20)</option>
-          <option value="TRX">TRX</option>
-        </select>
-      </div>
-      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
-        <label style="color:#fff;font-weight:700;font-size:14px;font-family:'Poppins',sans-serif">💰 MISE :</label>
-        <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">
-      </div>
-    </div>
-
-    <!-- BOUTON DE PAIEMENT ET JOUER -->
-    <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
-    <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
-
-    <!-- MESSAGE D'ÉTAT -->
-    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
-
-    <!-- ZONE DE TAP -->
-    <section class="tap-zone" aria-label="Zone de tap">
-      <div class="rule" id="timerRule">
-        <span class="rule-icon">⏱️</span>
-        <strong id="timerRuleValue">10:00</strong>
-        <small>PRÉPARATION</small>
-        <span class="tap-counter">
-          <span class="tap-icon">👆</span>
-          <span id="tapCounterDisplay">0</span>
-          <span class="tap-label">TAPS</span>
-        </span>
-      </div>
-      <button id="tapButton" class="tap-button" type="button" disabled>
-        <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">
-        <small style="display:none"><span id="tapButtonCount">0</span></small>
-      </button>
-    </section>
-
-    <!-- RÈGLES -->
-    <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
-
-    <!-- CLASSEMENT + CHAT -->
-    <div class="leaderboard-chat-wrapper">
-      <section class="leaderboard">
-        <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
-        <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>
-      </section>
-      <section class="chat-section" id="globalChat">
-        <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
-        <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
-        <div class="chat-input-box" id="chatInputBox">
-          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
-          <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
-        </div>
-      </section>
-    </div>
-
-    <!-- FOOTER -->
-    <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
-    <div style="width:100%;height:40px"></div>
-  </main>
-
-  <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->
-  <script>
-    // =============================================================
-    //  ⚠️ SERVICE WORKER DÉSACTIVÉ (Pour éviter le cache bloqué)
-    // =============================================================
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-          console.log('✅ Service Worker désactivé (cache vidé)');
-        }
-      });
-    }
-
-    // TON CONNECT (optionnel)
-    (function initTonConnect() {
-      try {
-        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {
-          console.warn("⚠️ TON Connect UI indisponible.");
-          return;
-        }
-        window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-          manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
-          buttonRootId: "ton-connect-button"
-        });
-        if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {
-          window.tonConnectUI.onStatusChange(function(w) {
-            if (w && w.account) {
-              console.log("✅ Wallet TON connecté :", w.account.address);
-            }
-          });
-        }
-        console.log("✅ TON Connect initialisé.");
-      } catch (e) {
-        console.error("❌ Erreur TON Connect :", e);
-        window.tonConnectUI = null;
-      }
-    })();
-
-    // CONNEXION SOCKET.IO
-    const socket = io("https://miltape-backend-production.up.railway.app");
-
-    // ÉLÉMENTS DOM
-    const tapButton = document.getElementById('tapButton');
-    const tapCount = document.getElementById('tapCount');
-    const tapButtonCount = document.getElementById('tapButtonCount');
-    const enterChallenge = document.getElementById('enterChallenge');
-    const enterChallengeTop = document.getElementById('enterChallengeTop');
-    const tapMessage = document.getElementById('tapMessage');
-    const onlineCount = document.getElementById('onlineCount');
-    const leaderboardList = document.getElementById('leaderboardList');
-    const chatInput = document.getElementById('chatInput');
-    const chatSend = document.getElementById('chatSend');
-    const chatMessages = document.getElementById('chatMessages');
-    const betInput = document.getElementById('betInput');
-    const payButton = document.getElementById('payButton');
-    const tokenSelect = document.getElementById('tokenSelect');
-    const demoBtn = document.getElementById('demomodebtn');
-    const demoStatus = document.getElementById('demoStatus');
-    const demoToggleLabel = document.getElementById('demoToggleLabel');
-    const menuButton = document.getElementById('menuButton');
-    const sideMenu = document.getElementById('sideMenu');
-    const closeMenu = document.getElementById('closeMenu');
-    const menuOverlay = document.getElementById('menuOverlay');
-    const resetGameBtn = document.getElementById('resetGameBtn');
-
-    // ÉTATS
-    let isPlaying = false;
-    let isPaid = false;
-    let myPlayerId = null;
-    let myBet = 10;
-    let myWallet = null;
-    let myToken = 'USDT';
-    let gameStatus = "waiting";
-    const API_URL = "https://miltape-backend-production.up.railway.app";
-
-    // HAPTIC
-    function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
-    function hapticMedium() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {} }
-    function hapticHeavy() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {} }
-    function hapticSuccess() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
-    function hapticError() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {} }
-
-    // MODE DÉMO
-    let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
-
-    function updateDemoUI() {
-      if (demoMode) {
-        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#64b5f6"; }
-        if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.2)"; demoBtn.style.borderColor = "rgba(100,181,246,0.4)"; demoBtn.style.color = "#64b5f6"; }
-        if (demoToggleLabel) demoToggleLabel.textContent = "ON";
-        if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
-      } else {
-        if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "rgba(255,255,255,0.4)"; }
-        if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.12)"; demoBtn.style.borderColor = "rgba(100,181,246,0.2)"; demoBtn.style.color = "#64b5f6"; }
-        if (demoToggleLabel) demoToggleLabel.textContent = "OFF";
-        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
-      }
-    }
-    updateDemoUI();
-
-    if (demoBtn) {
-      demoBtn.addEventListener('click', function() {
-        demoMode = !demoMode;
-        localStorage.setItem("miltape_demo", String(demoMode));
-        updateDemoUI();
-        hapticMedium();
-        if (!demoMode) {
-          if (enterChallenge) enterChallenge.style.display = 'block';
-          if (payButton) payButton.style.display = 'none';
-        }
-        alert(demoMode ? "🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !" : "🔒 Mode démo désactivé.");
-      });
-    }
-
-    // RESTAURER LA SESSION
-    async function restoreSession() {
-      const playerId = localStorage.getItem("miltape_player_id");
-      const wallet = localStorage.getItem("miltape_player_wallet");
-      const name = localStorage.getItem("miltape_player_name");
-      if (!playerId || !wallet || !name) return false;
-      try {
-        const res = await fetch(API_URL + "/api/status");
-        const data = await res.json();
-        if (data.status !== "running" && data.status !== "preparing") {
-          localStorage.removeItem("miltape_player_id");
-          localStorage.removeItem("miltape_player_wallet");
-          localStorage.removeItem("miltape_player_name");
-          localStorage.removeItem("miltape_player_bet");
-          return false;
-        }
-      } catch (error) { console.error("❌ Erreur vérification statut :", error); return false; }
-      socket.emit("player:restore", { playerId, wallet, deviceId: MY_DEVICE_ID });
-      return true;
-    }
-
-    // SOCKET CONNEXION
-    socket.on('connect', async () => {
-      console.log('✅ Socket connecté avec ID :', socket.id);
-      if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";
-      await restoreSession();
-    });
-    socket.on('reconnect', async () => { await restoreSession(); socket.emit('timer:request'); });
-    socket.on('connect_error', (err) => { hapticError(); if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur."; });
-    socket.on('disconnect', (reason) => { if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur."; });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (localStorage.getItem("miltape_player_id")) restoreSession(); } });
-
-    // DEVICE ID
-    function getOrCreateDeviceId() {
-      let id = localStorage.getItem("miltape_device_id");
-      if (id) return id;
-      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ("dev_" + Date.now() + "_" + Math.random().toString(36).substring(2, 15));
-      localStorage.setItem("miltape_device_id", id);
-      return id;
-    }
-    const MY_DEVICE_ID = getOrCreateDeviceId();
-
-    // REJOINDRE LA PARTIE
-    async function joinGame() {
-      const telegramName = getTelegramUser();
-      let name = telegramName || prompt("Entre ton pseudo pour le classement :");
-      if (!name) return;
-      let wallet;
-      if (demoMode) {
-        try {
-          if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
-            const account = await tronWeb.createAccount();
-            wallet = account.address.base58;
-          } else { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
-        } catch (e) { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
-      } else {
-        wallet = prompt("Entre ton adresse TRON (ex: T...) :");
-        if (!wallet) return;
-      }
-      const token = tokenSelect ? tokenSelect.value : 'USDT';
-      let bet = 10;
-      if (betInput) { const rawBet = parseFloat(betInput.value); if (!isNaN(rawBet) && rawBet > 0) bet = rawBet; }
-      myBet = bet; myWallet = wallet; myToken = token;
-      if (tapMessage) tapMessage.innerText = "Connexion au serveur en cours...";
-      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID });
-      hapticMedium();
-    }
-
-    if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
-    if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
-
-    // ÉVÉNEMENTS SOCKET : JOUEUR
-    socket.on("player:joined", (data) => {
-      if (data.success) {
-        isPlaying = true; isPaid = false;
-        myPlayerId = data.player.id;
-        myToken = data.player.token || 'USDT';
-        if (tapButton) tapButton.disabled = true;
-        if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
-        if (enterChallenge) enterChallenge.style.display = "none";
-        updateTapCounter(data.player.taps);
-        localStorage.setItem("miltape_player_id", data.player.id);
-        localStorage.setItem("miltape_player_wallet", data.player.wallet);
-        localStorage.setItem("miltape_player_name", data.player.name);
-        localStorage.setItem("miltape_player_bet", data.player.bet.toString());
-        localStorage.setItem("miltape_player_token", myToken);
-
-        if (demoMode) {
-          isPaid = true;
-          if (gameStatus === "running") tapButton.disabled = false;
-          if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
-          if (payButton) payButton.style.display = 'none';
-          fetch(API_URL + "/api/demo/verify", {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id })
-          }).catch(err => console.error(err));
-        } else {
-          if (payButton) {
-            payButton.style.display = 'block';
-            payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
-          }
-        }
-        hapticMedium();
-      }
-    });
-
-    socket.on("player:restored", (data) => {
-      if (data.success) {
-        isPlaying = true;
-        myPlayerId = data.player.id; myWallet = data.player.wallet; myBet = data.player.bet || 10; myToken = data.player.token || 'USDT';
-        if (demoMode) {
-          isPaid = true;
-          if (gameStatus === "running") tapButton.disabled = false;
-          if (tapMessage) tapMessage.innerText = "🔬 Mode démo : bon retour " + data.player.name + " !";
-        } else {
-          isPaid = data.player.paid || false;
-          if (gameStatus === "running") tapButton.disabled = !isPaid;
-          if (tapMessage) tapMessage.innerText = isPaid ? "✅ Revenu ! ÉTAPE 3 : Tape maintenant !" : "💰 ÉTAPE 2 : Paie ta mise pour taper !";
-          if (payButton) {
-            if (!isPaid) { payButton.style.display = 'block'; payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet); }
-            else { payButton.style.display = 'none'; }
-          }
-        }
-        if (enterChallenge) enterChallenge.style.display = "none";
-        updateTapCounter(data.player.taps);
-        localStorage.setItem("miltape_player_id", data.player.id);
-        localStorage.setItem("miltape_player_wallet", data.player.wallet);
-        localStorage.setItem("miltape_player_name", data.player.name);
-        localStorage.setItem("miltape_player_bet", data.player.bet.toString());
-        localStorage.setItem("miltape_player_token", myToken);
-        hapticMedium();
-      } else {
-        localStorage.removeItem("miltape_player_id");
-        localStorage.removeItem("miltape_player_wallet");
-        localStorage.removeItem("miltape_player_name");
-        localStorage.removeItem("miltape_player_bet");
-        localStorage.removeItem("miltape_player_token");
-        if (enterChallenge) enterChallenge.style.display = 'block';
-        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
-      }
-    });
-
-    socket.on("payment:verified", (data) => {
-      if (data.verified) {
-        isPaid = true;
-        hapticSuccess();
-        if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Attends que le jeu commence !";
-        if (payButton) payButton.style.display = 'none';
-      }
-    });
-
-    socket.on("game:finished", (data) => {
-      if (tapCount) tapCount.innerText = "0";
-      if (tapButtonCount) tapButtonCount.innerText = "0";
-      isPlaying = false; isPaid = false; gameStatus = "waiting";
-      if (tapButton) tapButton.disabled = true;
-
-      let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n" + "═".repeat(30) + "\n\n";
-      if (data.winners && data.winners.length > 0) {
-        message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";
-        data.winners.forEach((w, index) => {
-          const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
-          message += emoji + " #" + w.rank + " " + w.name + "\n   Mise : " + formatAmount(w.bet) + " USDT → Gain : " + formatAmount(w.gain) + " USDT\n\n";
-        });
-        launchConfetti(); hapticHeavy();
-        data.winners.forEach((winner, index) => setTimeout(() => addWinnerToTicker(winner.name, formatAmount(winner.gain), winner.rank), index * 200));
-      } else {
-        message += "❌ Aucun gagnant cette fois-ci.\n\n";
-      }
-      alert(message);
-      if (enterChallenge) enterChallenge.style.display = 'block';
-      if (payButton) payButton.style.display = 'none';
-      if (betInput) betInput.disabled = false;
-      localStorage.removeItem("miltape_player_id");
-      localStorage.removeItem("miltape_player_wallet");
-      localStorage.removeItem("miltape_player_name");
-      localStorage.removeItem("miltape_player_bet");
-      localStorage.removeItem("miltape_player_token");
-    });
-
-    // CONFETTIS
-    function launchConfetti() {
-      const colors = ['#64b5f6', '#ffd700', '#2ecc71', '#42a5f5', '#ff6b6b', '#ffd93d', '#6c5ce7', '#fd79a8'];
-      for (let i = 0; i < 60; i++) {
-        const c = document.createElement('div');
-        const size = 6 + Math.random() * 10;
-        const isCircle = Math.random() > 0.5;
-        c.style.cssText = 'position:fixed;width:' + size + 'px;height:' + (isCircle ? size : size * 0.4) + 'px;background:' + colors[Math.floor(Math.random() * colors.length)] + ';border-radius:' + (isCircle ? '50%' : '2px') + ';top:-10px;left:' + (Math.random() * 100) + '%;z-index:9999;pointer-events:none;animation:confettiFall ' + (2 + Math.random() * 2) + 's linear forwards;animation-delay:' + (Math.random() * 0.8) + 's;transform:rotate(' + (Math.random() * 360) + 'deg);box-shadow:0 0 6px rgba(255,255,255,0.1)';
-        document.body.appendChild(c);
-        setTimeout(() => c.remove(), 4000);
-      }
-    }
-
-    // TAP – BOUTON ET LOGIQUE
-    function tapEffects() {
-      if (!tapButton) return;
-      tapButton.classList.add('tap-active');
-      setTimeout(() => tapButton.classList.remove('tap-active'), 100);
-      hapticLight();
-    }
-
-    let lastTapTime = 0;
-    const MIN_TAP_INTERVAL_MS = 50;
-    if (tapButton) {
-      tapButton.addEventListener('click', function() {
-        if (!isPlaying || tapButton.disabled || !isPaid) {
-          if (!isPaid && tapMessage) {
-            tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
-            hapticError();
-            setTimeout(() => { if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !"; }, 3000);
-          } else if (isPaid && gameStatus === "preparing") {
-            if (tapMessage) tapMessage.innerText = "⏳ Le jeu commence dans quelques instants...";
-          }
-          return;
-        }
-        const now = Date.now();
-        if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
-        lastTapTime = now;
-        tapEffects();
-        socket.emit("player:tap");
-      });
-    }
-
-    socket.on("player:score", (data) => {
-      if (tapCount) tapCount.innerText = data.taps;
-      if (tapButtonCount) tapButtonCount.innerText = data.taps;
-      updateTapCounter(data.taps);
-    });
-
-    function updateTapCounter(taps) {
-      const el = document.getElementById('tapCounterDisplay');
-      if (el) el.textContent = taps || 0;
-    }
-
-    // =============================================================
-    //  ✅ TIMER – SYNCHRONISATION AVEC LE SERVEUR (source de vérité)
-    // =============================================================
-    function updateTimerWithServer(data) {
-      if (data.remainingSeconds !== undefined) {
-        const timerRuleValue = document.getElementById('timerRuleValue');
-        if (timerRuleValue) {
-          const m = Math.floor(data.remainingSeconds / 60);
-          const s = data.remainingSeconds % 60;
-          timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-        }
-      }
-      gameStatus = data.status || gameStatus;
-      const timerSmall = document.querySelector('#timerRule small');
-      if (timerSmall) {
-        if (data.status === "preparing") timerSmall.innerText = "PRÉPARATION";
-        else if (data.status === "running") timerSmall.innerText = "EN DIRECT";
-      }
-      if (data.status === "preparing" && tapButton) tapButton.disabled = true;
-    }
-
-    socket.on("timer:update", updateTimerWithServer);
-    socket.on("game:preparing", (data) => { updateTimerWithServer({ status: "preparing", remainingSeconds: 120 }); });
-    socket.on("game:started", (data) => { updateTimerWithServer({ status: "running", remainingSeconds: 600 }); });
-    socket.on("game:state", (data) => { if (data.game) updateTimerWithServer({ status: data.game.status, remainingSeconds: data.game.remainingSeconds }); });
-
-    // TOTAL DES MISES
-    socket.on("totalStakes:update", (data) => {
-      const displayBet = document.getElementById('displayBet');
-      const displayBetTop = document.getElementById('displayBetTop');
-      if (displayBet) displayBet.textContent = "$" + formatAmount(data.totalStakes);
-      if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);
-    });
-
-    // COMPTEUR EN LIGNE
-    socket.on("online:count", (data) => {
-      let count = data;
-      if (typeof data === 'object' && data !== null && 'count' in data) count = data.count;
-      if (onlineCount) {
-        onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>' + count + ' EN LIGNE</span>';
-      }
-    });
-
-    setInterval(() => { socket.emit('online:count'); }, 5000);
-
-    // CLASSEMENT
-    socket.on("leaderboard:update", (leaderboard) => {
-      if (leaderboardList) {
-        leaderboardList.innerHTML = "";
-        if (leaderboard.length === 0) { leaderboardList.innerHTML = '<div class="empty-ranking">Aucun joueur pour le moment</div>'; return; }
-        leaderboard.forEach(player => {
-          const div = document.createElement('div');
-          div.className = 'leaderboard-item';
-          const rankSpan = document.createElement('span');
-          rankSpan.className = 'rank-badge';
-          rankSpan.textContent = player.rank;
-          const nameSpan = document.createElement('span');
-          nameSpan.className = 'player-name';
-          nameSpan.textContent = player.name;
-          const scoreSpan = document.createElement('span');
-          scoreSpan.className = 'player-score';
-          scoreSpan.textContent = player.taps;
-          div.appendChild(rankSpan);
-          div.appendChild(nameSpan);
-          div.appendChild(scoreSpan);
-          leaderboardList.appendChild(div);
-        });
-      }
-    });
-
-    // CHAT
-    function sendMessage() {
-      if (!chatInput) return;
-      let text = chatInput.value.trim();
-      if (!text) return;
-      if (text.length > 500) { alert("Message trop long !"); return; }
-      if (text.includes('<') || text.includes('>')) { alert("Les balises HTML ne sont pas autorisées !"); return; }
-      socket.emit("chat:send", { message: text });
-      chatInput.value = "";
-    }
-    if (chatSend) chatSend.addEventListener('click', sendMessage);
-    if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-    socket.on("chat:message", (data) => {
-      if (chatMessages) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'chat-message';
-        const strong = document.createElement('strong');
-        strong.textContent = data.name + ' :';
-        const textNode = document.createTextNode(' ' + data.message);
-        msgDiv.appendChild(strong);
-        msgDiv.appendChild(textNode);
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
-    });
-
-    // PAIEMENT
-    function initiatePayment(wallet, amount) {
-      const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
-      fetch(API_URL + "/api/wallet").then(res => res.json()).then(data => {
-        if (data.success) {
-          const serverWallet = data.wallet;
-          const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + formatAmount(amount) + '-' + token);
-          const paymentUrl = 'https://t.me/wallet?start=' + startParam;
-          window.open(paymentUrl, '_blank');
-          hapticMedium();
-          alert("💰 Envoie " + formatAmount(amount) + " " + token + " (TRC20) vers :\n" + serverWallet + "\n\n✅ Le paiement sera détecté automatiquement !");
-        } else { hapticError(); alert("❌ Impossible de récupérer le wallet du serveur."); }
-      }).catch(err => { hapticError(); alert("❌ Erreur lors de la récupération du wallet."); });
-    }
-
-    // GESTION DES ERREURS SOCKET
-    socket.on("error", (err) => {
-      if (err.message === "Joueur introuvable.") {
-        localStorage.removeItem("miltape_player_id");
-        localStorage.removeItem("miltape_player_wallet");
-        localStorage.removeItem("miltape_player_name");
-        localStorage.removeItem("miltape_player_bet");
-        localStorage.removeItem("miltape_player_token");
-        if (enterChallenge) enterChallenge.style.display = 'block';
-        return;
-      }
-      hapticError();
-      alert("⚠️ Erreur : " + err.message);
-    });
-
-    // NOTIFICATIONS
-    let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
-    const notifToggle = document.getElementById('notifToggle');
-    if (notifToggle) {
-      notifToggle.checked = notificationsEnabled;
-      notifToggle.addEventListener('change', function() { notificationsEnabled = this.checked; localStorage.setItem("miltape_notifications", this.checked.toString()); });
-    }
-
-    function showNotification(type, message, data = {}) {
-      if (!notificationsEnabled) return;
-      const container = document.getElementById('notificationContainer');
-      if (!container) return;
-      const notif = document.createElement('div');
-      notif.className = 'notification ' + type;
-      const wrapper = document.createElement('span');
-      wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;';
-      const textSpan = document.createElement('span');
-      textSpan.className = 'notif-text';
-      textSpan.textContent = message;
-      wrapper.appendChild(textSpan);
-      notif.appendChild(wrapper);
-      container.appendChild(notif);
-      if (type === 'champion') hapticHeavy();
-      else if (type === 'success') hapticMedium();
-      else hapticLight();
-      setTimeout(() => { if (notif.parentNode) notif.remove(); }, 4000);
-    }
-    socket.on("notification:new", (data) => { showNotification(data.type, data.message, data.data); });
-
-    // BANDEAU DES GAGNANTS (TICKER)
-    const winnerTicker = document.getElementById('winnerTicker');
-    const tickerTrack = document.getElementById('tickerTrack');
-    let tickerItems = [];
-    const MAX_TICKER_ITEMS = 20;
-
-    function addWinnerToTicker(name, amount, rank) {
-      if (!name) return;
-      const existing = tickerItems.find(item => item.name === name);
-      if (existing) { existing.amount = amount; updateTickerDisplay(); return; }
-      const emoji = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
-      tickerItems.push({ name, amount, rank, emoji });
-      if (tickerItems.length > MAX_TICKER_ITEMS) tickerItems.shift();
-      updateTickerDisplay();
-      if (winnerTicker) winnerTicker.classList.add('show');
-    }
-
-    function buildTickerItemEl(item) {
-      const span = document.createElement('span');
-      span.className = 'ticker-item';
-      const trophy = document.createElement('span');
-      trophy.className = 'trophy';
-      trophy.textContent = item.emoji;
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'name';
-      nameSpan.textContent = item.name;
-      const arrow = document.createElement('span');
-      arrow.textContent = '→';
-      const amountSpan = document.createElement('span');
-      amountSpan.className = 'amount';
-      amountSpan.textContent = item.amount + ' USDT';
-      span.appendChild(trophy);
-      span.appendChild(nameSpan);
-      span.appendChild(arrow);
-      span.appendChild(amountSpan);
-      return span;
-    }
-
-    function updateTickerDisplay() {
-      if (!tickerTrack) return;
-      tickerTrack.innerHTML = "";
-      const doubled = [...tickerItems, ...tickerItems];
-      const frag = document.createDocumentFragment();
-      doubled.forEach(item => frag.appendChild(buildTickerItemEl(item)));
-      tickerTrack.appendChild(frag);
-    }
-
-    // MENU LATÉRAL
-    function toggleMenu() {
-      if (sideMenu && menuOverlay) { sideMenu.classList.toggle('show'); menuOverlay.classList.toggle('show'); }
-    }
-    if (menuButton) menuButton.addEventListener('click', toggleMenu);
-    if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
-    if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
-
-    function showMenuMessage(title, content) {
-      const modal = document.getElementById('dynamicModal');
-      const modalTitle = document.getElementById('dynamicModalTitle');
-      const modalBody = document.getElementById('dynamicModalBody');
-      if (modal && modalTitle && modalBody) {
-        modalTitle.textContent = title;
-        modalBody.innerHTML = content;
-        modal.classList.add('show');
-        hapticLight();
-      }
-    }
-    const closeModalBtn = document.getElementById('closeDynamicModal');
-    if (closeModalBtn) closeModalBtn.addEventListener('click', function() { const modal = document.getElementById('dynamicModal'); if (modal) modal.classList.remove('show'); });
-
-    const menuGamesBtn = document.getElementById('menuGamesBtn');
-    if (menuGamesBtn) menuGamesBtn.addEventListener('click', () => showMenuMessage('🎮 Mes parties', '<p>Rejoins une partie pour commencer !</p>'));
-    const menuRankingsBtn = document.getElementById('menuRankingsBtn');
-    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#0d47a1;">' + score + '</strong> taps</p>'); });
-    const menuRulesBtn = document.getElementById('menuRulesBtn');
-    if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
-
-    // RESET GAME
-    if (resetGameBtn) {
-      resetGameBtn.addEventListener('click', function() {
-        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
-          localStorage.clear(); window.location.reload();
-        }
-      });
-    }
-
-    // TELEGRAM USER
-    function getTelegramUser() {
-      try {
-        if (window.Telegram && window.Telegram.WebApp) {
-          const user = window.Telegram.WebApp.initDataUnsafe?.user;
-          if (user && user.username) return user.username;
-          if (user && user.first_name) return user.first_name;
-        }
-        return null;
-      } catch (e) { return null; }
-    }
-
-    // JACKPOT – COMPTE À REBOURS
-    let jackpotCountdownInterval = null;
-    function updateJackpotCountdown(nextDrawTime) {
-      const el = document.getElementById('jackpotCountdown');
-      if (!el) return;
-      if (!nextDrawTime || typeof nextDrawTime !== 'number' || nextDrawTime <= Date.now()) {
-        el.textContent = "Tirage en cours...";
-        if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }
-        socket.emit("jackpot:get");
-        return;
-      }
-      if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }
-      function update() {
-        const now = Date.now();
-        let diff = nextDrawTime - now;
-        if (diff <= 0) {
-          el.textContent = "Tirage en cours...";
-          clearInterval(jackpotCountdownInterval);
-          jackpotCountdownInterval = null;
-          socket.emit("jackpot:get");
-          return;
-        }
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        let display = "";
-        if (days > 0) display += days + "j ";
-        if (hours > 0 || days > 0) display += hours + "h ";
-        if (minutes > 0 || hours > 0 || days > 0) display += minutes + "m ";
-        display += seconds + "s";
-        el.textContent = display;
-      }
-      update();
-      jackpotCountdownInterval = setInterval(update, 1000);
-    }
-
-    socket.on("jackpot:update", (data) => {
-      const prizeElement = document.getElementById('jackpotAmount');
-      if (prizeElement) prizeElement.textContent = formatAmount(data.prize) + " USDT";
-      if (data.nextDraw) updateJackpotCountdown(data.nextDraw);
-    });
-    socket.emit("jackpot:get");
-
-    // UTILITAIRES
-    function formatAmount(value) {
-      if (value === null || value === undefined || isNaN(value)) return "0";
-      return Number(parseFloat(value).toFixed(8)).toString();
-    }
-
-    console.log("✅ Script Miltape chargé avec succès.");
-  </script>
-</body>
-</html>
+<!DOCTYPE html>  <html lang="fr">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />  
+  <meta name="theme-color" content="#0d47a1" />  
+  <meta name="mobile-web-app-capable" content="yes" />  
+  <meta name="apple-mobile-web-app-capable" content="yes" />  
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />  
+  <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne." />  
+  <title>Miltape World Challenge</title>  
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet" />  
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />  
+  <link rel="manifest" href="./manifest.json" />  
+  <link rel="apple-touch-icon" href="./icon-192~2.jpg" />  
+  <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />  
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>  
+  <script>  
+    (function initTelegramWebApp() {  
+      try {  
+        if (window.Telegram && window.Telegram.WebApp) {  
+          const w = window.Telegram.WebApp;  
+          w.expand();  
+          w.BackButton.show();  
+          w.BackButton.onClick(function() { w.close(); });  
+          if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);  
+          console.log("✅ Telegram WebApp initialisée");  
+        }  
+      } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }  
+    })();  
+  </script>  
+  <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>  
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>  
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>  
+  <style>  
+    /* ===== FOND BLEU SAPHIR HD ===== */  
+    body {  
+      font-family: 'Poppins', sans-serif;  
+      background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%);  
+      min-height: 100vh;  
+      margin: 0;  
+      padding: 0;  
+      overflow-x: hidden;  
+      overflow-y: auto;  
+      -webkit-overflow-scrolling: touch;  
+      overscroll-behavior-y: auto;  
+      position: relative;  
+    }  
+    body::before { content: ""; position: fixed; top: -20%; right: -10%; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(100, 180, 255, 0.12), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow1 7s ease-in-out infinite alternate; }  
+    body::after { content: ""; position: fixed; bottom: -20%; left: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(50, 120, 255, 0.08), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow2 9s ease-in-out infinite alternate; }  
+    @keyframes hdGlow1 { 0% { transform: translate(0, 0) scale(1); opacity: .5; } 100% { transform: translate(-40px, 30px) scale(1.3); opacity: 1; } }  
+    @keyframes hdGlow2 { 0% { transform: translate(0, 0) scale(1); opacity: .3; } 100% { transform: translate(30px, -40px) scale(1.4); opacity: .8; } }  
+    .gem-sparkle { position: fixed; width: 4px; height: 4px; background: #64b5f6; border-radius: 50%; pointer-events: none; z-index: 0; box-shadow: 0 0 12px rgba(100, 181, 246, .4); animation: sparkleFloatHD 5s ease-in-out infinite alternate; }  
+    .gem-sparkle:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }  
+    .gem-sparkle:nth-child(2) { top: 25%; left: 85%; animation-delay: 1.4s; width: 6px; height: 6px; }  
+    .gem-sparkle:nth-child(3) { top: 55%; left: 8%; animation-delay: 2.8s; }  
+    .gem-sparkle:nth-child(4) { top: 75%; left: 75%; animation-delay: .9s; width: 5px; height: 5px; }  
+    .gem-sparkle:nth-child(5) { top: 40%; left: 55%; animation-delay: 2s; width: 8px; height: 8px; box-shadow: 0 0 20px rgba(100, 181, 246, .6); }  
+    .gem-sparkle:nth-child(6) { top: 12%; left: 48%; animation-delay: 3.5s; }  
+    .gem-sparkle:nth-child(7) { top: 65%; left: 32%; animation-delay: .6s; }  
+    .gem-sparkle:nth-child(8) { top: 88%; left: 88%; animation-delay: 2.2s; }  
+    @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }  
+    .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }  
+    .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content { border-radius: 24px !important; }  
+    .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); }  
+    #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }  
+    html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }  
+    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #64b5f6; border-radius: 999px; background: #051230; color: #64b5f6; font-size: 13px; font-weight: 900; box-shadow: 0 0 20px rgba(100, 181, 246, .2); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }  
+    .install-pwa-button.show { display: block; }  
+    .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }  
+    .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }  
+    .hero-header-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: flex-end; align-items: center; z-index: 10; }  
+    .wallet-badge-top { background: rgba(0, 0, 0, .5); backdrop-filter: blur(8px); border: 1px solid rgba(100, 181, 246, .3); padding: 4px 8px; border-radius: 12px; text-align: right; display: flex; align-items: center; gap: 6px; cursor: pointer; }  
+    .wallet-badge-top .wb-label { display: block; font-size: 7px; color: #ddd; }  
+    .wallet-badge-top .wb-value { display: block; font-size: 13px; font-weight: 900; color: #64b5f6; }  
+    .wallet-badge-top .wallet-icon { font-size: 16px; background: #0a2a5c; padding: 4px; border-radius: 6px; }  
+    .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }  
+    .side-menu.show { left: 0; }  
+    .close-menu { background: 0 0; border: none; color: #e0e0e0; font-size: 28px; cursor: pointer; }  
+    .side-menu-content { margin-top: 40px; padding-bottom: 30px; }  
+    .side-menu-content h3 { color: #64b5f6; margin-bottom: 20px; font-size: 16px; letter-spacing: 1px; }  
+    .menu-block { margin-bottom: 15px; background: rgba(255, 255, 255, .03); padding: 12px; border-radius: 10px; }  
+    .menu-block label, .menu-block h4 { display: block; font-size: 13px; color: #64b5f6; margin-bottom: 8px; font-weight: 700; }  
+    .menu-block select { width: 100%; padding: 8px; border-radius: 6px; background: #0a2a5c; color: #e0e0e0; border: 1px solid rgba(100, 181, 246, .2); box-sizing: border-box; font-family: 'Poppins', sans-serif; font-size: 12px; }  
+    .menu-nav-btn { display: block; width: 100%; background: 0 0; border: none; color: #e0e0e0; text-align: left; font-size: 14px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; border-radius: 8px; text-decoration: none; box-sizing: border-box; font-family: 'Poppins', sans-serif; transition: all .2s ease; }  
+    .menu-nav-btn:hover, .menu-nav-btn:active { background: rgba(100, 181, 246, .12); color: #64b5f6; }  
+    .trust-contact-box { border-left: 3px solid #2ecc71; }  
+    .support-link { display: inline-block; padding: 8px 12px; background: #0088cc; color: #fff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 700; font-family: 'Poppins', sans-serif; }  
+    .menu-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; z-index: 999; }  
+    .menu-overlay.show { display: block; }  
+    .legal-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; box-sizing: border-box; }  
+    .legal-modal.show { display: flex; }  
+    .legal-content { background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); border: 1px solid #64b5f6; max-width: 500px; width: 100%; max-height: 90vh; max-height: 90dvh; overflow-y: auto; padding: 20px; box-sizing: border-box; color: #e0e0e0; position: relative; animation: modalPop .4s cubic-bezier(.34, 1.56, .64, 1); }  
+    .legal-content h3 { color: #64b5f6; margin-top: 0; }  
+    .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }  
+    .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }  
+    .tap-zone { width: 100%; min-height: 310px; display: flex; align-items: center; justify-content: center; position: relative; padding: 10px 0; flex-direction: column; }  
+    /* ===== CHRONOMÈTRE ===== */  
+    .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(100, 181, 246, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }  
+    .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 3vw, 20px); color: #0d47a1; }  
+    .tap-zone #timerRule strong { font-size: clamp(20px, 5vw, 28px); color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); font-family: 'Orbitron', sans-serif; }  
+    .tap-zone #timerRule small { font-size: clamp(10px, 2vw, 13px); color: #000000 !important; font-weight: 800; }  
+    .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 4px; }  
+    .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }  
+    .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }  
+    .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }  
+    /* ===== BOUTON TAP ===== */  
+    .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }  
+    .tap-button:disabled { cursor: not-allowed; opacity: .6; }  
+    .tap-button:active:not(:disabled) { transform: scale(.92); }  
+    .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }  
+    .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }  
+    .tap-button small { display: none; }  
+    /* ===== BOUTON JOUER ===== */  
+    .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }  
+    .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }  
+    .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }  
+    .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }  
+    .main-play-button b { margin-left: 8px; }  
+    .tap-message, #tapMessage { display: none !important; }  
+    .chat-messages { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; border-radius: 24px !important; padding: 12px !important; height: 180px !important; overflow-y: auto !important; overflow-x: hidden !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }  
+    .chat-message { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 10px !important; margin-bottom: 6px !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }  
+    .chat-input-box { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 5px; }  
+    .leaderboard { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; box-shadow: 0 2px 12px rgba(0, 0, 0, .15) !important; border-radius: 24px !important; padding: 15px !important; }  
+    .leaderboard .section-title { color: #222 !important; font-size: 14px !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }  
+    .leaderboard .section-title span { color: #222 !important; font-size: 14px !important; }  
+    .leaderboard .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }  
+    .leaderboard-item { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 12px !important; border-left: 3px solid #0d47a1 !important; margin-bottom: 4px !important; display: flex !important; align-items: center !important; gap: 10px !important; }  
+    .rank-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 32px !important; height: 32px !important; min-width: 32px !important; border-radius: 50% !important; font-size: 14px !important; font-weight: 900 !important; color: #fff !important; background: #0d47a1 !important; flex-shrink: 0 !important; }  
+    .leaderboard-item:nth-child(1) .rank-badge { background: #ffd700 !important; color: #000 !important; box-shadow: 0 0 20px rgba(255, 215, 0, .4) !important; }  
+    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000 !important; box-shadow: 0 0 15px rgba(192, 192, 192, .3) !important; }  
+    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff !important; box-shadow: 0 0 15px rgba(205, 127, 50, .3) !important; }  
+    .leaderboard-item:nth-child(4) .rank-badge, .leaderboard-item:nth-child(5) .rank-badge { background: #0d47a1 !important; color: #fff !important; }  
+    .leaderboard-item .player-name { color: #222 !important; font-weight: 600 !important; font-size: 14px !important; flex: 1 !important; }  
+    .leaderboard-item .player-score { color: #0d47a1 !important; font-weight: 900 !important; font-size: 14px !important; }  
+    .empty-ranking { color: #888 !important; font-size: 13px !important; }  
+    .section-title { font-size: 14px !important; color: #222 !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }  
+    .section-title span { color: #222 !important; font-size: 14px !important; }  
+    .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }  
+    .stat-box { background: rgba(100, 181, 246, .06) !important; border: 1px solid rgba(100, 181, 246, .12) !important; padding: 20px !important; box-shadow: 0 0 40px rgba(100, 181, 246, .04) !important; border-radius: 24px !important; }  
+    .stat-box small { display: block; font-size: 14px !important; color: rgba(255, 255, 255, .8) !important; font-family: 'Poppins', sans-serif; letter-spacing: 2px !important; font-weight: 700 !important; }  
+    .stat-box strong { font-size: 56px !important; font-weight: 900 !important; color: #64b5f6 !important; font-family: 'Orbitron', sans-serif !important; text-shadow: 0 0 30px rgba(100, 181, 246, .25), 0 0 60px rgba(100, 181, 246, .08) !important; }  
+    .stats { display: flex; justify-content: center; padding: 10px 0 5px; animation: slideUp .9s ease-out .4s both; }  
+    .top-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, .05); position: relative; overflow: hidden; }  
+    .top-header::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .05), transparent); animation: headerShine 6s ease-in-out infinite; pointer-events: none; }  
+    @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }  
+    .menu-button { background: 0 0; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px 8px; }  
+    .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }  
+    .wallet-box { text-align: right; font-family: 'Poppins', sans-serif; }  
+    .wallet-box small { display: block; font-size: 8px; color: rgba(255, 255, 255, .5); }  
+    .wallet-box strong { font-size: 14px; color: #64b5f6; }  
+    .wallet-button { background: rgba(100, 181, 246, .12); border: 1px solid rgba(100, 181, 246, .2); border-radius: 10px; color: #fff; padding: 6px 12px; font-size: 12px; font-family: 'Poppins', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; }  
+    .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 25px !important; padding: 0 16px; animation: slideUp 1s ease-out .5s both; }  
+    .rules { display: flex; justify-content: center; gap: 20px; padding: 15px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }  
+    .rule { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .08); font-family: 'Poppins', sans-serif; font-size: 11px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .1); }  
+    .rule .rule-icon { font-size: 18px; }  
+    .rule strong { color: #64b5f6; font-size: 13px; }  
+    .rule small { color: rgba(255, 255, 255, .6); font-size: 9px; }  
+    .rules .rule:first-child { display: none !important; }  
+    .tap-message { text-align: center; font-size: 15px !important; color: #fff; padding: 12px 20px !important; margin: 5px auto; font-family: 'Poppins', sans-serif; letter-spacing: .5px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(6px); border-radius: 20px; display: inline-block; max-width: 90%; border: 1px solid rgba(255, 255, 255, .06); font-weight: 700 !important; }  
+    .steps-guide { display: none !important; justify-content: center; gap: 12px !important; padding: 12px 16px !important; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255, 255, 255, .05); flex-wrap: wrap; text-align: center; font-size: 11px !important; font-family: 'Poppins', sans-serif; color: rgba(255, 255, 255, .7); }  
+    .step-item { display: flex; align-items: center; gap: 4px; }  
+    .step-number { background: #64b5f6; color: #051230; border-radius: 50%; width: 20px !important; height: 20px !important; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px !important; flex-shrink: 0; }  
+    .step-arrow { color: rgba(255, 255, 255, .2); }  
+    .server-wallet-box { text-align: center; margin: 10px 12px !important; padding: 12px !important; border-radius: 16px; background: rgba(255, 255, 255, .04) !important; border: 1px solid rgba(255, 255, 255, .06) !important; }  
+    .server-wallet-label { font-size: 11px; color: rgba(255, 255, 255, .4); }  
+    .server-wallet-address { font-size: 15px !important; font-weight: 700; color: #64b5f6 !important; word-break: break-all; font-family: 'Poppins', sans-serif; background: rgba(0, 0, 0, .20) !important; padding: 4px 8px !important; border-radius: 6px !important; display: inline-block !important; }  
+    .server-wallet-link { font-size: 10px; color: #64b5f6; text-decoration: none; display: inline-block; margin-top: 4px; }  
+    .trust-footer { text-align: center; padding: 12px; font-size: 11px; color: rgba(255, 255, 255, .3); font-family: 'Poppins', sans-serif; border-top: 1px solid rgba(255, 255, 255, .04); margin-top: 20px; }  
+    .trust-footer a { color: #64b5f6; text-decoration: none; }  
+    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }  
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 30px 24px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }  
+    #welcomeModal .welcome-icon { font-size: 48px; margin-bottom: 10px; }  
+    #welcomeModal .welcome-title { margin: 0 0 8px; font-size: 22px; color: #64b5f6; }  
+    #welcomeModal .welcome-sub { font-size: 14px; color: rgba(255, 255, 255, .8); margin: 0 0 20px; }  
+    #welcomeModal .welcome-steps { text-align: left; font-size: 14px; line-height: 1.8; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }  
+    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 8px; }  
+    #welcomeModal .welcome-steps strong { color: #64b5f6; }  
+    #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }  
+    #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }  
+    #welcomeModal .welcome-btn:active { transform: scale(.96); }  
+    @media(max-width:430px) { .tap-button { width: clamp(150px, 38vw, 200px); height: clamp(150px, 38vw, 200px); } .tap-zone { min-height: 280px; } .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } #timerRuleValue { font-size: 20px !important; } .stat-box strong { font-size: 44px !important; } .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } .server-wallet-address { font-size: 13px !important; } }  
+    @media(max-width:360px) { .tap-button { width: clamp(120px, 32vw, 160px); height: clamp(120px, 32vw, 160px); } .tap-zone { min-height: 260px; } .chat-input-box input { font-size: 12px !important; } .chat-input-box button { width: 42px; min-width: 42px; } #timerRuleValue { font-size: 18px !important; } .stat-box strong { font-size: 38px !important; } .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } .server-wallet-address { font-size: 12px !important; } }  
+    @media(min-width:600px) { body { padding: 20px 0 40px; } .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } }  
+    @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }  
+    @keyframes slideUp { 0% { opacity: 0; transform: translateY(30px) scale(.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }  
+    @keyframes messageSlide { 0% { opacity: 0; transform: translateX(-10px); } 100% { opacity: 1; transform: translateX(0); } }  
+    @keyframes modalPop { 0% { opacity: 0; transform: scale(.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }  
+    @keyframes confettiFall { 0% { transform: translateY(0) rotate(0) scale(1); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg) scale(.5); opacity: 0; } }  
+    #winnerTicker { width: 100%; max-width: 480px; margin: 0 auto; overflow: hidden; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(100, 181, 246, .12); border-top: 1px solid rgba(100, 181, 246, .12); height: 36px; position: sticky; top: 68px; z-index: 40; display: none; }  
+    #winnerTicker.show { display: block; }  
+    #tickerTrack { display: flex; align-items: center; height: 100%; white-space: nowrap; animation: tickerScroll 20s linear infinite; gap: 40px; padding-left: 100%; }  
+    @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }  
+    .ticker-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; font-size: 12px; color: #64b5f6; padding: 0 10px; text-shadow: 0 0 20px rgba(100, 181, 246, .05); flex-shrink: 0; }  
+    .ticker-item .trophy { font-size: 14px; }  
+    .ticker-item .name { color: #fff; font-weight: 700; }  
+    .ticker-item .amount { color: #2ecc71; font-weight: 700; }  
+    #winnerTicker:hover #tickerTrack { animation-play-state: paused; }  
+    #tokenSelect { width: 140px; padding: 10px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255, 255, 255, .1); font-size: 14px; text-align: center; outline: 0; font-family: 'Poppins', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364b5f6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }  
+    #tokenSelect option { background: #0d47a1; color: #fff; }  
+    .crypto-label { color: #fff; font-weight: 700; font-size: 14px; font-family: 'Poppins', sans-serif; }  
+    @media(max-width:480px) { #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; } }  
+    .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }  
+    .online strong span:last-child { color: #fff; }  
+    .wallet-button { color: #fff; }  
+  </style>    <!-- ===== JACKPOT ===== -->    <style>  
+    #jackpotDisplay { position: relative; width: calc(100% - 24px); margin: 12px auto; padding: 20px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%); border: 1px solid rgba(255, 80, 80, 0.8); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); overflow: hidden; text-align: center; animation: jackpotHaloPulse 3s ease-in-out infinite alternate; z-index: 1; }  
+    #jackpotDisplay::before { content: ''; position: absolute; top: -50%; left: -20%; width: 140%; height: 200%; background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, rgba(255, 30, 30, 0.05) 40%, transparent 70%); pointer-events: none; z-index: -1; }  
+    @keyframes jackpotHaloPulse { 0% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 15px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.2); } 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(255,30,30,0.7), inset 0 1px 0 rgba(255,255,255,0.2); } }  
+    .jackpot-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.5); color: #ffd700; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }  
+    .jackpot-title { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 900; color: #ffd700; letter-spacing: 2px; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.8); }  
+    .jackpot-main-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }  
+    .jackpot-left, .jackpot-right { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }  
+    .jackpot-divider { width: 2px; height: 60px; background: rgba(255, 215, 0, 0.5); border-radius: 2px; box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }  
+    .jackpot-label { font-size: 10px; color: rgba(255,255,255,0.9); letter-spacing: 1px; text-transform: uppercase; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }  
+    #jackpotAmount { font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; transition: transform 0.2s ease; animation: amountGlow 2s ease-in-out infinite alternate; }  
+    @keyframes amountGlow { 0% { text-shadow: 0 0 10px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1); } 100% { text-shadow: 0 0 25px rgba(255,255,255,1), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1.02); } }  
+    #jackpotCountdown { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; color: #2ecc71; text-shadow: 0 0 15px rgba(46, 204, 113, 0.8), 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; }  
+    .jackpot-schedule { font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }  
+    .jackpot-winner-info { display: block; font-size: 11px; color: rgba(255, 215, 0, 0.85); margin-top: 6px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); letter-spacing: 0.3px; }  
+    .jackpot-winner-info strong { color: #ffd700; font-weight: 700; }  
+    .jackpot-footer { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 215, 0, 0.25); font-size: 11px; color: rgba(255, 255, 255, 0.75); text-align: center; font-weight: 400; letter-spacing: 0.3px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }  
+    @media (max-width: 430px) { .jackpot-winner-info { font-size: 10px; } .jackpot-footer { font-size: 10px; padding-top: 8px; margin-top: 10px; } }  
+    @media (max-width: 360px) { .jackpot-winner-info { font-size: 9px; } .jackpot-footer { font-size: 9px; } }  
+    @media (max-width: 430px) { #jackpotAmount { font-size: 26px; } #jackpotCountdown { font-size: 20px; } .jackpot-title { font-size: 20px; } }  
+    @media (max-width: 360px) { .jackpot-main-row { flex-direction: column; gap: 10px; } .jackpot-divider { width: 60%; height: 2px; } #jackpotAmount { font-size: 28px; } #jackpotCountdown { font-size: 18px; } }  
+  </style>  </head>  <body>  
+  <!-- ===== ÉLÉMENTS VISUELS ===== -->  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>  
+  <div class="gem-sparkle"></div>    <!-- MODALE DE BIENVENUE -->    <div id="welcomeModal">  
+    <div class="welcome-content">  
+      <div class="welcome-icon">🎮</div>  
+      <h2 class="welcome-title">Bienvenue sur Miltape !</h2>  
+      <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>  
+      <div class="welcome-steps">  
+        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>  
+        <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet (2 min pour préparer)</div>  
+        <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>  
+        <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>  
+      </div>  
+      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>  
+      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>  
+    </div>  
+  </div>    <!-- CONTENEUR DE NOTIFICATIONS -->    <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>    <!-- BOUTON PWA -->  <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
+
+  <!-- MENU LATÉRAL -->    <aside id="sideMenu" class="side-menu">  
+    <button id="closeMenu" class="close-menu" type="button">×</button>  
+    <div class="side-menu-content">  
+      <h3>🧭 Menu Miltape</h3>  
+      <div class="menu-block">  
+        <button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button>  
+        <button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button>  
+        <button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button>  
+        <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button>  
+        <button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button>  
+        <button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button>  
+        <button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button>  
+        <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>  
+      </div>  
+      <div class="menu-block" style="text-align:center">  
+        <button id="demomodebtn" class="menu-nav-btn" type="button" style="background:rgba(100,181,246,.12);color:#64b5f6;font-weight:700;text-align:center;border:1px solid rgba(100,181,246,.2);font-family:'Poppins',sans-serif;transition:all .3s ease">  
+          🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span>  
+        </button>  
+        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;font-family:'Poppins',sans-serif">🔒 Mode démo désactivé</div>  
+      </div>  
+      <div class="menu-block" style="text-align:center">  
+        <button id="resetGameBtn" class="menu-nav-btn" type="button" style="background:rgba(255,50,50,.12);color:#ff4444;border:1px solid rgba(255,50,50,.25);font-family:'Poppins',sans-serif;transition:all .3s ease">🔄 NOUVELLE PARTIE</button>  
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;font-family:'Poppins',sans-serif">Efface tes données locales</div>  
+      </div>  
+      <div class="menu-block">  
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">  
+          <span style="color:#64b5f6;font-weight:700;font-size:13px">🔔 Notifications</span>  
+          <input type="checkbox" id="notifToggle" checked style="width:40px;height:20px;cursor:pointer;accent-color:#64b5f6;background:rgba(255,255,255,.1);border-radius:10px">  
+        </label>  
+      </div>  
+      <div class="menu-block">  
+        <label for="languageSelect">🌐 Langue</label>  
+        <select id="languageSelect">  
+          <option value="fr">Français</option>  
+          <option value="en">English</option>  
+        </select>  
+      </div>  
+      <div class="menu-block trust-contact-box">  
+        <h4>🛡️ Support & Confiance</h4>  
+        <p style="font-size:12px;color:#b8b8b8;font-family:'Poppins',sans-serif">Une question ? Un problème ?</p>  
+        <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>  
+        <div style="margin-top:8px;font-size:12px"><a href="mailto:miltapesupport@gmail.com" style="color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif">📧 miltapesupport@gmail.com</a></div>  
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)">  
+          <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;transition:all .3s ease">🔍 Voir toutes les transactions sur TronScan</a>  
+        </div>  
+      </div>  
+    </div>  
+  </aside>    <div id="menuOverlay" class="menu-overlay"></div>    <!-- MODALE DYNAMIQUE -->    <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">  
+    <div class="legal-content">  
+      <button id="closeDynamicModal" class="legal-close" type="button">×</button>  
+      <h3 id="dynamicModalTitle">Miltape</h3>  
+      <div id="dynamicModalBody"></div>  
+    </div>  
+  </div>    <!-- ===== APPLICATION PRINCIPALE ===== -->    <main class="app">  
+    <header class="top-header">  
+      <button class="menu-button" id="menuButton" type="button">☰</button>  
+      <div class="online">  
+        <strong id="onlineCount">  
+          <span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span>  
+          <span>1 EN LIGNE</span>  
+        </strong>  
+      </div>  
+      <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>  
+      <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>  
+    </header>  <!-- JACKPOT -->  
+<div id="jackpotDisplay">  
+  <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>  
+  <div class="jackpot-title">🏆 JACKPOT</div>  
+  <div class="jackpot-main-row">  
+    <div class="jackpot-left">  
+      <span class="jackpot-label">💰 MONTANT</span>  
+      <span id="jackpotAmount">0 USDT</span>  
+      <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>  
+    </div>  
+    <div class="jackpot-divider"></div>  
+    <div class="jackpot-right">  
+      <span class="jackpot-label">⏳ TIRAGE DANS</span>  
+      <span id="jackpotCountdown">--</span>  
+      <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>  
+    </div>  
+  </div>  
+  <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>  
+</div>  
+
+<!-- TICKER DES GAGNANTS -->  
+<div id="winnerTicker"><div id="tickerTrack"></div></div>  
+
+<!-- BANNIÈRE -->  
+<section class="hero-banner-container">  
+  <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">  
+  <div class="hero-header-overlay">  
+    <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">  
+      <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>  
+      <div class="wallet-icon">👛</div>  
+    </div>  
+  </div>  
+</section>  
+
+<!-- ADRESSE DU SERVEUR -->  
+<div class="server-wallet-box">  
+  <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>  
+  <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>  
+  <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>  
+</div>  
+
+<!-- SÉLECTION TOKEN ET MISE -->  
+<div style="text-align:center;margin:15px 0">  
+  <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">  
+    <label class="crypto-label">🪙 CRYPTO :</label>  
+    <select id="tokenSelect">  
+      <option value="USDT">USDT (TRC20)</option>  
+      <option value="USDC">USDC (TRC20)</option>  
+      <option value="TUSD">TUSD (TRC20)</option>  
+      <option value="TRX">TRX</option>  
+    </select>  
+  </div>  
+  <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">  
+    <label style="color:#fff;font-weight:700;font-size:14px;font-family:'Poppins',sans-serif">💰 MISE :</label>  
+    <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">  
+  </div>  
+</div>  
+
+<!-- BOUTON DE PAIEMENT ET JOUER -->  
+<button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>  
+<button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>  
+
+<!-- MESSAGE D'ÉTAT -->  
+<div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>  
+
+<!-- ZONE DE TAP -->  
+<section class="tap-zone" aria-label="Zone de tap">  
+  <div class="rule" id="timerRule">  
+    <span class="rule-icon">⏱️</span>  
+    <strong id="timerRuleValue">10:00</strong>  
+    <small>PRÉPARATION</small>  
+    <span class="tap-counter">  
+      <span class="tap-icon">👆</span>  
+      <span id="tapCounterDisplay">0</span>  
+      <span class="tap-label">TAPS</span>  
+    </span>  
+  </div>  
+  <button id="tapButton" class="tap-button" type="button" disabled>  
+    <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">  
+    <small style="display:none"><span id="tapButtonCount">0</span></small>  
+  </button>  
+</section>  
+
+<!-- RÈGLES -->  
+<section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>  
+
+<!-- CLASSEMENT + CHAT -->  
+<div class="leaderboard-chat-wrapper">  
+  <section class="leaderboard">  
+    <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>  
+    <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>  
+  </section>  
+  <section class="chat-section" id="globalChat">  
+    <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>  
+    <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>  
+    <div class="chat-input-box" id="chatInputBox">  
+      <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">  
+      <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>  
+    </div>  
+  </section>  
+</div>  
+
+<!-- FOOTER -->  
+<div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>  
+<div style="width:100%;height:40px"></div>
+
+  </main>    <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->    <script>  
+    // =============================================================  
+    //  CE SCRIPT EST LE SEUL SCRIPT CLIENT AUTORISÉ.  
+    // =============================================================  
+  
+    // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)  
+    if ('serviceWorker' in navigator) {  
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {  
+        for (let registration of registrations) {  
+          registration.unregister();  
+          console.log('✅ Service Worker désactivé (cache vidé)');  
+        }  
+      });  
+    }  
+  
+    // TON CONNECT (optionnel)  
+    (function initTonConnect() {  
+      try {  
+        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {  
+          console.warn("⚠️ TON Connect UI indisponible.");  
+          return;  
+        }  
+        window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({  
+          manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",  
+          buttonRootId: "ton-connect-button"  
+        });  
+        if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {  
+          window.tonConnectUI.onStatusChange(function(w) {  
+            if (w && w.account) {  
+              console.log("✅ Wallet TON connecté :", w.account.address);  
+            }  
+          });  
+        }  
+        console.log("✅ TON Connect initialisé.");  
+      } catch (e) {  
+        console.error("❌ Erreur TON Connect :", e);  
+        window.tonConnectUI = null;  
+      }  
+    })();  
+  
+    // CONNEXION SOCKET.IO  
+    const socket = io("https://miltape-backend-production.up.railway.app");  
+  
+    // ÉLÉMENTS DOM  
+    const tapButton = document.getElementById('tapButton');  
+    const tapCount = document.getElementById('tapCount');  
+    const tapButtonCount = document.getElementById('tapButtonCount');  
+    const enterChallenge = document.getElementById('enterChallenge');  
+    const enterChallengeTop = document.getElementById('enterChallengeTop');  
+    const tapMessage = document.getElementById('tapMessage');  
+    const onlineCount = document.getElementById('onlineCount');  
+    const leaderboardList = document.getElementById('leaderboardList');  
+    const chatInput = document.getElementById('chatInput');  
+    const chatSend = document.getElementById('chatSend');  
+    const chatMessages = document.getElementById('chatMessages');  
+    const betInput = document.getElementById('betInput');  
+    const payButton = document.getElementById('payButton');  
+    const tokenSelect = document.getElementById('tokenSelect');  
+    const demoBtn = document.getElementById('demomodebtn');  
+    const demoStatus = document.getElementById('demoStatus');  
+    const demoToggleLabel = document.getElementById('demoToggleLabel');  
+    const menuButton = document.getElementById('menuButton');  
+    const sideMenu = document.getElementById('sideMenu');  
+    const closeMenu = document.getElementById('closeMenu');  
+    const menuOverlay = document.getElementById('menuOverlay');  
+    const resetGameBtn = document.getElementById('resetGameBtn');  
+  
+    // ÉTATS  
+    let isPlaying = false;  
+    let isPaid = false;  
+    let myPlayerId = null;  
+    let myBet = 10;  
+    let myWallet = null;  
+    let myToken = 'USDT';  
+    let gameStatus = "waiting"; // NOUVEAU : pour gérer la phase préparation  
+    const API_URL = "https://miltape-backend-production.up.railway.app";  
+  
+    // VARIABLES POUR LE CHRONOMÈTRE LOCAL  
+    let endsAt = null;  
+    let timerInterval = null;  
+  
+    function updateTimerDisplay() {  
+      const timerRuleValue = document.getElementById('timerRuleValue');  
+      if (!timerRuleValue) return;  
+      if (!endsAt) {  
+        timerRuleValue.innerText = '--:--';  
+        return;  
+      }  
+      const now = Date.now();  
+      let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));  
+      const m = Math.floor(remaining / 60);  
+      const s = remaining % 60;  
+      timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');  
+    }  
+  
+    function startLocalTimer() {  
+      if (timerInterval) clearInterval(timerInterval);  
+      timerInterval = setInterval(() => {  
+        if (endsAt) {  
+          updateTimerDisplay();  
+          if (Date.now() >= endsAt) {  
+            clearInterval(timerInterval);  
+            timerInterval = null;  
+          }  
+        }  
+      }, 200);  
+    }  
+    startLocalTimer();  
+  
+    // HAPTIC  
+    function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }  
+    function hapticMedium() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {} }  
+    function hapticHeavy() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {} }  
+    function hapticSuccess() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {} }  
+    function hapticError() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {} }  
+  
+    // MODE DÉMO  
+    let demoMode = localStorage.getItem("miltape_demo") === "true" || false;  
+  
+    function updateDemoUI() {  
+      if (demoMode) {  
+        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#64b5f6"; }  
+        if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.2)"; demoBtn.style.borderColor = "rgba(100,181,246,0.4)"; demoBtn.style.color = "#64b5f6"; }  
+        if (demoToggleLabel) demoToggleLabel.textContent = "ON";  
+        if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";  
+      } else {  
+        if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "rgba(255,255,255,0.4)"; }  
+        if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.12)"; demoBtn.style.borderColor = "rgba(100,181,246,0.2)"; demoBtn.style.color = "#64b5f6"; }  
+        if (demoToggleLabel) demoToggleLabel.textContent = "OFF";  
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";  
+      }  
+    }  
+    updateDemoUI();  
+  
+    if (demoBtn) {  
+      demoBtn.addEventListener('click', function() {  
+        demoMode = !demoMode;  
+        localStorage.setItem("miltape_demo", String(demoMode));  
+        updateDemoUI();  
+        hapticMedium();  
+        if (!demoMode) {  
+          if (enterChallenge) enterChallenge.style.display = 'block';  
+          if (payButton) payButton.style.display = 'none';  
+        }  
+        alert(demoMode ? "🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !" : "🔒 Mode démo désactivé.");  
+      });  
+    }  
+  
+    // RESTAURER LA SESSION  
+    async function restoreSession() {  
+      const playerId = localStorage.getItem("miltape_player_id");  
+      const wallet = localStorage.getItem("miltape_player_wallet");  
+      const name = localStorage.getItem("miltape_player_name");  
+      if (!playerId || !wallet || !name) return false;  
+      try {  
+        const res = await fetch(API_URL + "/api/status");  
+        const data = await res.json();  
+        // MODIF : Accepter la restauration pendant la préparation ou le jeu  
+        if (data.status !== "running" && data.status !== "preparing") {  
+          localStorage.removeItem("miltape_player_id");  
+          localStorage.removeItem("miltape_player_wallet");  
+          localStorage.removeItem("miltape_player_name");  
+          localStorage.removeItem("miltape_player_bet");  
+          return false;  
+        }  
+      } catch (error) { console.error("❌ Erreur vérification statut :", error); return false; }  
+      socket.emit("player:restore", { playerId, wallet, deviceId: MY_DEVICE_ID });  
+      return true;  
+    }  
+  
+    // SOCKET CONNEXION  
+    socket.on('connect', async () => {  
+      console.log('✅ Socket connecté avec ID :', socket.id);  
+      if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";  
+      await restoreSession();  
+    });  
+    socket.on('reconnect', async () => { await restoreSession(); socket.emit('timer:request'); });  
+    socket.on('connect_error', (err) => { hapticError(); if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur."; });  
+    socket.on('disconnect', (reason) => { if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur."; });  
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (localStorage.getItem("miltape_player_id")) restoreSession(); } });  
+  
+    // DEVICE ID  
+    function getOrCreateDeviceId() {  
+      let id = localStorage.getItem("miltape_device_id");  
+      if (id) return id;  
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ("dev_" + Date.now() + "_" + Math.random().toString(36).substring(2, 15));  
+      localStorage.setItem("miltape_device_id", id);  
+      return id;  
+    }  
+    const MY_DEVICE_ID = getOrCreateDeviceId();  
+  
+    // REJOINDRE LA PARTIE  
+    async function joinGame() {  
+      const telegramName = getTelegramUser();  
+      let name = telegramName || prompt("Entre ton pseudo pour le classement :");  
+      if (!name) return;  
+      let wallet;  
+      if (demoMode) {  
+        try {  
+          if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {  
+            const account = await tronWeb.createAccount();  
+            wallet = account.address.base58;  
+          } else { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }  
+        } catch (e) { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }  
+      } else {  
+        wallet = prompt("Entre ton adresse TRON (ex: T...) :");  
+        if (!wallet) return;  
+      }  
+      const token = tokenSelect ? tokenSelect.value : 'USDT';  
+      let bet = 10;  
+      if (betInput) { const rawBet = parseFloat(betInput.value); if (!isNaN(rawBet) && rawBet > 0) bet = rawBet; }  
+      myBet = bet; myWallet = wallet; myToken = token;  
+      if (tapMessage) tapMessage.innerText = "Connexion au serveur en cours...";  
+      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID });  
+      hapticMedium();  
+    }  
+  
+    if (enterChallenge) enterChallenge.addEventListener('click', joinGame);  
+    if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);  
+  
+    // ÉVÉNEMENTS SOCKET : JOUEUR  
+    socket.on("player:joined", (data) => {  
+      if (data.success) {  
+        isPlaying = true; isPaid = false;  
+        myPlayerId = data.player.id;  
+        myToken = data.player.token || 'USDT';  
+        // MODIF : On désactive le bouton Taper tant que la partie n'est pas "running"  
+        if (tapButton) tapButton.disabled = true;  
+        if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";  
+        if (enterChallenge) enterChallenge.style.display = "none";  
+        updateTapCounter(data.player.taps);  
+        localStorage.setItem("miltape_player_id", data.player.id);  
+        localStorage.setItem("miltape_player_wallet", data.player.wallet);  
+        localStorage.setItem("miltape_player_name", data.player.name);  
+        localStorage.setItem("miltape_player_bet", data.player.bet.toString());  
+        localStorage.setItem("miltape_player_token", myToken);  
+  
+        if (demoMode) {  
+          isPaid = true;  
+          // MODIF : Ne débloquer le tap que si le jeu est déjà en cours  
+          if (gameStatus === "running") tapButton.disabled = false;  
+          if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";  
+          if (payButton) payButton.style.display = 'none';  
+          fetch(API_URL + "/api/demo/verify", {  
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id })  
+          }).catch(err => console.error(err));  
+        } else {  
+          if (payButton) {  
+            payButton.style.display = 'block';  
+            payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);  
+          }  
+        }  
+        hapticMedium();  
+      }  
+    });  
+  
+    socket.on("player:restored", (data) => {  
+      if (data.success) {  
+        isPlaying = true;  
+        myPlayerId = data.player.id; myWallet = data.player.wallet; myBet = data.player.bet || 10; myToken = data.player.token || 'USDT';  
+        if (demoMode) {  
+          isPaid = true;  
+          if (gameStatus === "running") tapButton.disabled = false;  
+          if (tapMessage) tapMessage.innerText = "🔬 Mode démo : bon retour " + data.player.name + " !";  
+        } else {  
+          isPaid = data.player.paid || false;  
+          if (gameStatus === "running") tapButton.disabled = !isPaid;  
+          if (tapMessage) tapMessage.innerText = isPaid ? "✅ Revenu ! ÉTAPE 3 : Tape maintenant !" : "💰 ÉTAPE 2 : Paie ta mise pour taper !";  
+          if (payButton) {  
+            if (!isPaid) { payButton.style.display = 'block'; payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet); }  
+            else { payButton.style.display = 'none'; }  
+          }  
+        }  
+        if (enterChallenge) enterChallenge.style.display = "none";  
+        updateTapCounter(data.player.taps);  
+        localStorage.setItem("miltape_player_id", data.player.id);  
+        localStorage.setItem("miltape_player_wallet", data.player.wallet);  
+        localStorage.setItem("miltape_player_name", data.player.name);  
+        localStorage.setItem("miltape_player_bet", data.player.bet.toString());  
+        localStorage.setItem("miltape_player_token", myToken);  
+        hapticMedium();  
+      } else {  
+        localStorage.removeItem("miltape_player_id");  
+        localStorage.removeItem("miltape_player_wallet");  
+        localStorage.removeItem("miltape_player_name");  
+        localStorage.removeItem("miltape_player_bet");  
+        localStorage.removeItem("miltape_player_token");  
+        if (enterChallenge) enterChallenge.style.display = 'block';  
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";  
+      }  
+    });  
+  
+    socket.on("payment:verified", (data) => {  
+      if (data.verified) {  
+        isPaid = true;  
+        hapticSuccess();  
+        if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Attends que le jeu commence !";  
+        if (payButton) payButton.style.display = 'none';  
+      }  
+    });  
+  
+    socket.on("game:finished", (data) => {  
+      if (tapCount) tapCount.innerText = "0";  
+      if (tapButtonCount) tapButtonCount.innerText = "0";  
+      isPlaying = false; isPaid = false; gameStatus = "waiting";  
+      if (tapButton) tapButton.disabled = true;  
+  
+      let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n" + "═".repeat(30) + "\n\n";  
+      if (data.winners && data.winners.length > 0) {  
+        message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";  
+        data.winners.forEach((w, index) => {  
+          const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";  
+          message += emoji + " #" + w.rank + " " + w.name + "\n   Mise : " + formatAmount(w.bet) + " USDT → Gain : " + formatAmount(w.gain) + " USDT\n\n";  
+        });  
+        launchConfetti(); hapticHeavy();  
+        data.winners.forEach((winner, index) => setTimeout(() => addWinnerToTicker(winner.name, formatAmount(winner.gain), winner.rank), index * 200));  
+      } else {  
+        message += "❌ Aucun gagnant cette fois-ci.\n\n";  
+      }  
+      alert(message);  
+      if (enterChallenge) enterChallenge.style.display = 'block';  
+      if (payButton) payButton.style.display = 'none';  
+      if (betInput) betInput.disabled = false;  
+      localStorage.removeItem("miltape_player_id");  
+      localStorage.removeItem("miltape_player_wallet");  
+      localStorage.removeItem("miltape_player_name");  
+      localStorage.removeItem("miltape_player_bet");  
+      localStorage.removeItem("miltape_player_token");  
+    });  
+  
+    // CONFETTIS  
+    function launchConfetti() {  
+      const colors = ['#64b5f6', '#ffd700', '#2ecc71', '#42a5f5', '#ff6b6b', '#ffd93d', '#6c5ce7', '#fd79a8'];  
+      for (let i = 0; i < 60; i++) {  
+        const c = document.createElement('div');  
+        const size = 6 + Math.random() * 10;  
+        const isCircle = Math.random() > 0.5;  
+        c.style.cssText = 'position:fixed;width:' + size + 'px;height:' + (isCircle ? size : size * 0.4) + 'px;background:' + colors[Math.floor(Math.random() * colors.length)] + ';border-radius:' + (isCircle ? '50%' : '2px') + ';top:-10px;left:' + (Math.random() * 100) + '%;z-index:9999;pointer-events:none;animation:confettiFall ' + (2 + Math.random() * 2) + 's linear forwards;animation-delay:' + (Math.random() * 0.8) + 's;transform:rotate(' + (Math.random() * 360) + 'deg);box-shadow:0 0 6px rgba(255,255,255,0.1)';  
+        document.body.appendChild(c);  
+        setTimeout(() => c.remove(), 4000);  
+      }  
+    }  
+  
+    // TAP – BOUTON ET LOGIQUE  
+    function tapEffects() {  
+      if (!tapButton) return;  
+      tapButton.classList.add('tap-active');  
+      setTimeout(() => tapButton.classList.remove('tap-active'), 100);  
+      hapticLight();  
+    }  
+  
+    let lastTapTime = 0;  
+    const MIN_TAP_INTERVAL_MS = 50;  
+    if (tapButton) {  
+      tapButton.addEventListener('click', function() {  
+        if (!isPlaying || tapButton.disabled || !isPaid) {  
+          if (!isPaid && tapMessage) {  
+            tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";  
+            hapticError();  
+            setTimeout(() => { if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !"; }, 3000);  
+          } else if (isPaid && gameStatus === "preparing") {  
+            if (tapMessage) tapMessage.innerText = "⏳ Le jeu commence dans quelques instants...";  
+          }  
+          return;  
+        }  
+        const now = Date.now();  
+        if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;  
+        lastTapTime = now;  
+        tapEffects();  
+        socket.emit("player:tap");  
+      });  
+    }  
+  
+    socket.on("player:score", (data) => {  
+      if (tapCount) tapCount.innerText = data.taps;  
+      if (tapButtonCount) tapButtonCount.innerText = data.taps;  
+      updateTapCounter(data.taps);  
+    });  
+  
+    function updateTapCounter(taps) {  
+      const el = document.getElementById('tapCounterDisplay');  
+      if (el) el.textContent = taps || 0;  
+    }  
+  
+    // =============================================================  
+    //  TIMER – SYNCHRONISATION AVEC LE SERVEUR (MODIF PRÉPARATION)  
+    // =============================================================  
+    socket.on("timer:update", (data) => {  
+      if (data.endsAt) {  
+        endsAt = new Date(data.endsAt).getTime();  
+        updateTimerDisplay();  
+      }  
+      gameStatus = data.status || gameStatus;  
+      const timerSmall = document.querySelector('#timerRule small');  
+      if (timerSmall) {  
+        if (data.status === "preparing") timerSmall.innerText = "PRÉPARATION";  
+        else if (data.status === "running") timerSmall.innerText = "EN DIRECT";  
+      }  
+      if (data.status === "preparing" && tapButton) tapButton.disabled = true;  
+    });  
+  
+    // NOUVEL ÉVÉNEMENT : PHASE DE PRÉPARATION  
+    socket.on("game:preparing", (data) => {  
+      gameStatus = "preparing";  
+      if (data.preparationEndsAt) {  
+        endsAt = new Date(data.preparationEndsAt).getTime();  
+        updateTimerDisplay();  
+      }  
+      const timerSmall = document.querySelector('#timerRule small');  
+      if (timerSmall) timerSmall.innerText = "PRÉPARATION";  
+      if (tapButton) tapButton.disabled = true;  
+      if (tapMessage) tapMessage.innerText = "⏳ Phase de préparation (2 min) : Rejoins et paie ta mise !";  
+    });  
+  
+    socket.on("game:started", (data) => {  
+      gameStatus = "running";  
+      if (data.endsAt) {  
+        endsAt = new Date(data.endsAt).getTime();  
+        updateTimerDisplay();  
+      }  
+      const timerSmall = document.querySelector('#timerRule small');  
+      if (timerSmall) timerSmall.innerText = "EN DIRECT";  
+      // MODIF : Si le joueur a payé, on peut maintenant taper  
+      if (isPaid && tapButton) tapButton.disabled = false;  
+      if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";  
+    });  
+  
+    socket.on("game:state", (data) => {  
+      if (data.game) {  
+        gameStatus = data.game.status;  
+        if (data.game.status === "preparing" && data.game.preparationEndsAt) {  
+          endsAt = new Date(data.game.preparationEndsAt).getTime();  
+          updateTimerDisplay();  
+          if (tapButton) tapButton.disabled = true;  
+          const timerSmall = document.querySelector('#timerRule small');  
+          if (timerSmall) timerSmall.innerText = "PRÉPARATION";  
+        } else if (data.game.status === "running" && data.game.endsAt) {  
+          endsAt = new Date(data.game.endsAt).getTime();  
+          updateTimerDisplay();  
+          const timerSmall = document.querySelector('#timerRule small');  
+          if (timerSmall) timerSmall.innerText = "EN DIRECT";  
+        }  
+      }  
+    });  
+  
+    // TOTAL DES MISES  
+    socket.on("totalStakes:update", (data) => {  
+      const displayBet = document.getElementById('displayBet');  
+      const displayBetTop = document.getElementById('displayBetTop');  
+      if (displayBet) displayBet.textContent = "$" + formatAmount(data.totalStakes);  
+      if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);  
+    });  
+  
+    // COMPTEUR EN LIGNE  
+    socket.on("online:count", (data) => {  
+      let count = data;  
+      if (typeof data === 'object' && data !== null && 'count' in data) count = data.count;  
+      if (onlineCount) {  
+        onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>' + count + ' EN LIGNE</span>';  
+      }  
+    });  
+  
+    setInterval(() => { socket.emit('online:count'); }, 5000);  
+  
+    // CLASSEMENT  
+    socket.on("leaderboard:update", (leaderboard) => {  
+      if (leaderboardList) {  
+        leaderboardList.innerHTML = "";  
+        if (leaderboard.length === 0) { leaderboardList.innerHTML = '<div class="empty-ranking">Aucun joueur pour le moment</div>'; return; }  
+        leaderboard.forEach(player => {  
+          const div = document.createElement('div');  
+          div.className = 'leaderboard-item';  
+          const rankSpan = document.createElement('span');  
+          rankSpan.className = 'rank-badge';  
+          rankSpan.textContent = player.rank;  
+          const nameSpan = document.createElement('span');  
+          nameSpan.className = 'player-name';  
+          nameSpan.textContent = player.name;  
+          const scoreSpan = document.createElement('span');  
+          scoreSpan.className = 'player-score';  
+          scoreSpan.textContent = player.taps;  
+          div.appendChild(rankSpan);  
+          div.appendChild(nameSpan);  
+          div.appendChild(scoreSpan);  
+          leaderboardList.appendChild(div);  
+        });  
+      }  
+    });  
+  
+    // CHAT  
+    function sendMessage() {  
+      if (!chatInput) return;  
+      let text = chatInput.value.trim();  
+      if (!text) return;  
+      if (text.length > 500) { alert("Message trop long !"); return; }  
+      if (text.includes('<') || text.includes('>')) { alert("Les balises HTML ne sont pas autorisées !"); return; }  
+      socket.emit("chat:send", { message: text });  
+      chatInput.value = "";  
+    }  
+    if (chatSend) chatSend.addEventListener('click', sendMessage);  
+    if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });  
+    socket.on("chat:message", (data) => {  
+      if (chatMessages) {  
+        const msgDiv = document.createElement('div');  
+        msgDiv.className = 'chat-message';  
+        const strong = document.createElement('strong');  
+        strong.textContent = data.name + ' :';  
+        const textNode = document.createTextNode(' ' + data.message);  
+        msgDiv.appendChild(strong);  
+        msgDiv.appendChild(textNode);  
+        chatMessages.appendChild(msgDiv);  
+        chatMessages.scrollTop = chatMessages.scrollHeight;  
+      }  
+    });  
+  
+    // PAIEMENT  
+    function initiatePayment(wallet, amount) {  
+      const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');  
+      fetch(API_URL + "/api/wallet").then(res => res.json()).then(data => {  
+        if (data.success) {  
+          const serverWallet = data.wallet;  
+          const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + formatAmount(amount) + '-' + token);  
+          const paymentUrl = 'https://t.me/wallet?start=' + startParam;  
+          window.open(paymentUrl, '_blank');  
+          hapticMedium();  
+          alert("💰 Envoie " + formatAmount(amount) + " " + token + " (TRC20) vers :\n" + serverWallet + "\n\n✅ Le paiement sera détecté automatiquement !");  
+        } else { hapticError(); alert("❌ Impossible de récupérer le wallet du serveur."); }  
+      }).catch(err => { hapticError(); alert("❌ Erreur lors de la récupération du wallet."); });  
+    }  
+  
+    // GESTION DES ERREURS SOCKET  
+    socket.on("error", (err) => {  
+      if (err.message === "Joueur introuvable.") {  
+        localStorage.removeItem("miltape_player_id");  
+        localStorage.removeItem("miltape_player_wallet");  
+        localStorage.removeItem("miltape_player_name");  
+        localStorage.removeItem("miltape_player_bet");  
+        localStorage.removeItem("miltape_player_token");  
+        if (enterChallenge) enterChallenge.style.display = 'block';  
+        return;  
+      }  
+      hapticError();  
+      alert("⚠️ Erreur : " + err.message);  
+    });  
+  
+    // NOTIFICATIONS  
+    let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";  
+    const notifToggle = document.getElementById('notifToggle');  
+    if (notifToggle) {  
+      notifToggle.checked = notificationsEnabled;  
+      notifToggle.addEventListener('change', function() { notificationsEnabled = this.checked; localStorage.setItem("miltape_notifications", this.checked.toString()); });  
+    }  
+  
+    function showNotification(type, message, data = {}) {  
+      if (!notificationsEnabled) return;  
+      const container = document.getElementById('notificationContainer');  
+      if (!container) return;  
+      const notif = document.createElement('div');  
+      notif.className = 'notification ' + type;  
+      const wrapper = document.createElement('span');  
+      wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;';  
+      const textSpan = document.createElement('span');  
+      textSpan.className = 'notif-text';  
+      textSpan.textContent = message;  
+      wrapper.appendChild(textSpan);  
+      notif.appendChild(wrapper);  
+      container.appendChild(notif);  
+      if (type === 'champion') hapticHeavy();  
+      else if (type === 'success') hapticMedium();  
+      else hapticLight();  
+      setTimeout(() => { if (notif.parentNode) notif.remove(); }, 4000);  
+    }  
+    socket.on("notification:new", (data) => { showNotification(data.type, data.message, data.data); });  
+  
+    // BANDEAU DES GAGNANTS (TICKER)  
+    const winnerTicker = document.getElementById('winnerTicker');  
+    const tickerTrack = document.getElementById('tickerTrack');  
+    let tickerItems = [];  
+    const MAX_TICKER_ITEMS = 20;  
+  
+    function addWinnerToTicker(name, amount, rank) {  
+      if (!name) return;  
+      const existing = tickerItems.find(item => item.name === name);  
+      if (existing) { existing.amount = amount; updateTickerDisplay(); return; }  
+      const emoji = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';  
+      tickerItems.push({ name, amount, rank, emoji });  
+      if (tickerItems.length > MAX_TICKER_ITEMS) tickerItems.shift();  
+      updateTickerDisplay();  
+      if (winnerTicker) winnerTicker.classList.add('show');  
+    }  
+  
+    function buildTickerItemEl(item) {  
+      const span = document.createElement('span');  
+      span.className = 'ticker-item';  
+      const trophy = document.createElement('span');  
+      trophy.className = 'trophy';  
+      trophy.textContent = item.emoji;  
+      const nameSpan = document.createElement('span');  
+      nameSpan.className = 'name';  
+      nameSpan.textContent = item.name;  
+      const arrow = document.createElement('span');  
+      arrow.textContent = '→';  
+      const amountSpan = document.createElement('span');  
+      amountSpan.className = 'amount';  
+      amountSpan.textContent = item.amount + ' USDT';  
+      span.appendChild(trophy);  
+      span.appendChild(nameSpan);  
+      span.appendChild(arrow);  
+      span.appendChild(amountSpan);  
+      return span;  
+    }  
+  
+    function updateTickerDisplay() {  
+      if (!tickerTrack) return;  
+      tickerTrack.innerHTML = "";  
+      const doubled = [...tickerItems, ...tickerItems];  
+      const frag = document.createDocumentFragment();  
+      doubled.forEach(item => frag.appendChild(buildTickerItemEl(item)));  
+      tickerTrack.appendChild(frag);  
+    }  
+  
+    // MENU LATÉRAL  
+    function toggleMenu() {  
+      if (sideMenu && menuOverlay) { sideMenu.classList.toggle('show'); menuOverlay.classList.toggle('show'); }  
+    }  
+    if (menuButton) menuButton.addEventListener('click', toggleMenu);  
+    if (closeMenu) closeMenu.addEventListener('click', toggleMenu);  
+    if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);  
+  
+    function showMenuMessage(title, content) {  
+      const modal = document.getElementById('dynamicModal');  
+      const modalTitle = document.getElementById('dynamicModalTitle');  
+      const modalBody = document.getElementById('dynamicModalBody');  
+      if (modal && modalTitle && modalBody) {  
+        modalTitle.textContent = title;  
+        modalBody.innerHTML = content;  
+        modal.classList.add('show');  
+        hapticLight();  
+      }  
+    }  
+    const closeModalBtn = document.getElementById('closeDynamicModal');  
+    if (closeModalBtn) closeModalBtn.addEventListener('click', function() { const modal = document.getElementById('dynamicModal'); if (modal) modal.classList.remove('show'); });  
+  
+    const menuGamesBtn = document.getElementById('menuGamesBtn');  
+    if (menuGamesBtn) menuGamesBtn.addEventListener('click', () => showMenuMessage('🎮 Mes parties', '<p>Rejoins une partie pour commencer !</p>'));  
+    const menuRankingsBtn = document.getElementById('menuRankingsBtn');  
+    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#0d47a1;">' + score + '</strong> taps</p>'); });  
+    const menuRulesBtn = document.getElementById('menuRulesBtn');  
+    if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));  
+  
+    // RESET GAME  
+    if (resetGameBtn) {  
+      resetGameBtn.addEventListener('click', function() {  
+        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {  
+          localStorage.clear(); window.location.reload();  
+        }  
+      });  
+    }  
+  
+    // TELEGRAM USER  
+    function getTelegramUser() {  
+      try {  
+        if (window.Telegram && window.Telegram.WebApp) {  
+          const user = window.Telegram.WebApp.initDataUnsafe?.user;  
+          if (user && user.username) return user.username;  
+          if (user && user.first_name) return user.first_name;  
+        }  
+        return null;  
+      } catch (e) { return null; }  
+    }  
+  
+    // JACKPOT – COMPTE À REBOURS  
+    let jackpotCountdownInterval = null;  
+    function updateJackpotCountdown(nextDrawTime) {  
+      const el = document.getElementById('jackpotCountdown');  
+      if (!el) return;  
+      if (!nextDrawTime || typeof nextDrawTime !== 'number' || nextDrawTime <= Date.now()) {  
+        el.textContent = "Tirage en cours...";  
+        if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }  
+        socket.emit("jackpot:get");  
+        return;  
+      }  
+      if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }  
+      function update() {  
+        const now = Date.now();  
+        let diff = nextDrawTime - now;  
+        if (diff <= 0) {  
+          el.textContent = "Tirage en cours...";  
+          clearInterval(jackpotCountdownInterval);  
+          jackpotCountdownInterval = null;  
+          socket.emit("jackpot:get");  
+          return;  
+        }  
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));  
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));  
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));  
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);  
+        let display = "";  
+        if (days > 0) display += days + "j ";  
+        if (hours > 0 || days > 0) display += hours + "h ";  
+        if (minutes > 0 || hours > 0 || days > 0) display += minutes + "m ";  
+        display += seconds + "s";  
+        el.textContent = display;  
+      }  
+      update();  
+      jackpotCountdownInterval = setInterval(update, 1000);  
+    }  
+  
+    socket.on("jackpot:update", (data) => {  
+      const prizeElement = document.getElementById('jackpotAmount');  
+      if (prizeElement) prizeElement.textContent = formatAmount(data.prize) + " USDT";  
+      if (data.nextDraw) updateJackpotCountdown(data.nextDraw);  
+    });  
+    socket.emit("jackpot:get");  
+  
+    // UTILITAIRES  
+    function formatAmount(value) {  
+      if (value === null || value === undefined || isNaN(value)) return "0";  
+      return Number(parseFloat(value).toFixed(8)).toString();  
+    }  
+  
+    console.log("✅ Script Miltape chargé avec succès.");  
+  </script>  </body>  
+</html>  
