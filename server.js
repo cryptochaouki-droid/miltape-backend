@@ -8,12 +8,9 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cron = require("node-cron");
 
-// ============================================================
-// CONFIGURATION
-// ============================================================
 const PORT = Number(process.env.PORT) || 3000;
-const GAME_DURATION_SECONDS = 10 * 60; // 10 minutes de jeu
-const PREPARATION_DURATION_SECONDS = 2 * 60; // 2 minutes de préparation (paiement)
+const GAME_DURATION_SECONDS = 10 * 60;
+const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 
 const SUPPORTED_TOKENS = {
@@ -71,7 +68,6 @@ mongoose.set("bufferTimeoutMS", 10000);
 mongoose.connection.on("connected", () => console.log("✅ Mongoose connecté."));
 mongoose.connection.on("error", (err) => console.error("❌ Mongoose erreur :", err?.message || err));
 
-// SCHEMAS
 const playerSchema = new mongoose.Schema({
     gameId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -179,7 +175,6 @@ async function broadcastGameState() {
     } catch (error) { console.error("❌ Erreur broadcastGameState :", error?.message || error); }
 }
 
-// JACKPOT
 function getNextSaturday() { const now = new Date(); const day = now.getDay(); const diff = (6 - day + 7) % 7; const next = new Date(now); next.setDate(now.getDate() + diff); next.setHours(0, 0, 0, 0); if (day === 6 && now.getHours() >= 0) next.setDate(next.getDate() + 7); return next.getTime(); }
 
 async function emitJackpotUpdate() {
@@ -221,9 +216,6 @@ async function sendPrizeToWinner(historyEntry) {
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
 
-// ============================================================
-//  PHASE DE PRÉPARATION ET DÉMARRAGE DU JEU
-// ============================================================
 async function startPreparationPhase() {
     console.log("⏳ Démarrage de la phase de préparation (2 minutes)...");
     if (gameTimer) { clearTimeout(gameTimer); gameTimer = null; }
@@ -305,9 +297,6 @@ async function finishGame() {
     } catch (error) { console.error("❌ Erreur finishGame :", error?.message || error); game.status = "waiting"; game.startedAt = null; game.endsAt = null; broadcastTimer(); }
 }
 
-// ============================================================
-// PAIEMENTS AUTOMATIQUES (Pendant la préparation et le jeu)
-// ============================================================
 async function getIncomingTrxTransactions(address) {
     try { const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=20&order_by=block_timestamp,desc`; const res = await fetchWithTimeout(url, { headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {} }); if (!res.ok) return []; const data = await res.json(); return data.data || []; } catch (error) { return []; }
 }
@@ -338,9 +327,6 @@ async function checkPendingPayments() {
     } catch (error) { console.error("❌ Erreur checkPendingPayments :", error?.message || error); }
 }
 
-// ============================================================
-// VÉRIFICATION ON-CHAIN
-// ============================================================
 async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     try {
         const tx = await tronWeb.trx.getTransaction(txId); if (!tx) return false;
@@ -364,9 +350,6 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     } catch (e) { return false; }
 }
 
-// ============================================================
-// SOCKET.IO ÉVÉNEMENTS
-// ============================================================
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
@@ -400,7 +383,6 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ MODIFICATION : ON ACCEPTE TOUJOURS LE JOUEUR (TANT QUE LE SERVEUR EST EN LIGNE)
             if (!game.id) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
             if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
@@ -429,7 +411,6 @@ io.on("connection", async (socket) => {
     socket.on("player:tap", async () => {
         try {
             const playerId = socket.data.playerId;
-            // Bloquer les taps pendant la préparation
             if (!playerId || game.status !== "running") return;
             const result = await Player.findOneAndUpdate({ _id: playerId, gameId: game.id, paid: true }, { $inc: { taps: 1, weeklyTaps: 1 } }, { new: true }).select("name taps");
             if (!result) return;
@@ -451,9 +432,6 @@ io.on("connection", async (socket) => {
     socket.on("disconnect", async () => { onlineSockets.delete(socket.id); console.log(`🔴 Déconnexion Socket : ${socket.id}`); broadcastOnlineCount(); try { await broadcastGameState(); } catch (e) { console.error(e); } });
 });
 
-// ============================================================
-// INTERVALLES DE MAINTENANCE
-// ============================================================
 setInterval(() => {
     if (game.status !== "preparing" && game.status !== "running") return;
     const now = new Date();
@@ -473,22 +451,16 @@ setInterval(async () => {
 
 setInterval(() => { emitJackpotUpdate().catch(err => console.error("Erreur maj jackpot :", err)); }, 60 * 1000);
 
-// ============================================================
-// ROUTES API EXPRESS
-// ============================================================
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
-app.post("/api/payment/verify", async (req, res) => { /* ... Code existant identique ... */ });
-app.post("/api/demo/verify", async (req, res) => { /* ... Code existant identique ... */ });
-app.get("/api/game", async (req, res) => { /* ... Code existant identique ... */ });
+app.post("/api/payment/verify", async (req, res) => { /* ... */ });
+app.post("/api/demo/verify", async (req, res) => { /* ... */ });
+app.get("/api/game", async (req, res) => { /* ... */ });
 function buildStatusPayload() {
     return { success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size, mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", timestamp: new Date().toISOString() };
 }
 app.get("/api/status", (req, res) => res.json(buildStatusPayload()));
 app.get("/health", (req, res) => res.json(buildStatusPayload()));
 
-// ============================================================
-// DÉMARRAGE DU SERVEUR
-// ============================================================
 async function startServer() {
     try {
         await connectMongoDB();
@@ -509,4 +481,9 @@ process.on("SIGTERM", async () => {
     if (gameTimer) clearTimeout(gameTimer);
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
     try {
-        await new Promise((resolve) => server.close(() => { console
+        await new Promise((resolve) => server.close(() => { console.log("🔌 Serveur fermé."); resolve(); }));
+        await mongoose.connection.close();
+        console.log("✅ Fermeture propre terminée.");
+        process.exit(0);
+    } catch (error) { console.error("❌ Erreur lors de la fermeture :", error?.message || error); process.exit(1); }
+});
