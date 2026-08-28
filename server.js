@@ -210,9 +210,6 @@ async function emitLeaderboard() {
     } catch (error) { console.error("❌ Erreur emitLeaderboard :", error?.message || error); }
 }
 
-// ============================================================
-// ✅ NOUVEAU : ÉMISSION DU TOTAL DES MISES
-// ============================================================
 async function emitTotalStakes() {
     try {
         const result = await Player.aggregate([{ $match: { gameId: game.id } }, { $group: { _id: null, total: { $sum: "$bet" } } }]);
@@ -227,7 +224,7 @@ async function broadcastGameState() {
         const players = await Player.find({ gameId: game.id }).select("name taps wallet bet paid token depositAmount").sort({ taps: -1 }).limit(50).lean();
         io.emit("game:state", { game: getGameStateObject(), players });
         await emitLeaderboard();
-        await emitTotalStakes(); // AJOUT
+        await emitTotalStakes(); 
     } catch (error) { console.error("❌ Erreur broadcastGameState :", error?.message || error); }
 }
 
@@ -338,8 +335,6 @@ async function finishGame() {
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
     nextGameTimeout = setTimeout(() => { startGame().catch((error) => console.error("❌ Erreur nouvelle partie :", error?.message || error)); }, 10000);
 
-    // NOTE: On ne remet PAS le statut à "waiting" ici, on attend la fin du traitement
-
     try {
         const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
 
@@ -431,7 +426,7 @@ async function finishGame() {
 }
 
 // ============================================================
-// PAIEMENTS AUTOMATIQUES (CORRIGÉ : Fonctions ajoutées)
+// PAIEMENTS AUTOMATIQUES (Fonctions ajoutées)
 // ============================================================
 async function getIncomingTrxTransactions(address) {
     try {
@@ -500,6 +495,50 @@ async function checkPendingPayments() {
             } catch (error) { if (error?.code !== 11000) console.log("⚠️ Transaction ignorée :", error?.message || error); }
         }
     } catch (error) { console.error("❌ Erreur checkPendingPayments :", error?.message || error); }
+}
+
+// ============================================================
+// VÉRIFICATION ON-CHAIN (Fonction manquante ajoutée !)
+// ============================================================
+async function verifyOnChain(txId, expectedAmount, token = "USDT") {
+    if (!txId || !expectedAmount) return false;
+    const tokenInfo = SUPPORTED_TOKENS[token];
+    if (!tokenInfo) throw new Error("Token non supporté.");
+    try {
+        const tx = await tronWeb.trx.getTransaction(txId);
+        if (!tx) return false;
+        const contracts = tx.raw_data?.contract;
+        if (!Array.isArray(contracts) || !contracts.length) return false;
+        const contract = contracts[0];
+        let amount = 0;
+        if (token === "TRX") {
+            if (contract.type !== "TransferContract") return false;
+            const value = contract.parameter?.value;
+            if (!value) return false;
+            const recipient = tronWeb.address.fromHex(value.to_address);
+            if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
+            amount = Number(value.amount) / 1e6;
+        } else {
+            if (contract.type !== "TriggerSmartContract") return false;
+            const value = contract.parameter?.value;
+            if (!value) return false;
+            const contractAddress = tronWeb.address.fromHex(value.contract_address);
+            if (!sameWallet(contractAddress, tokenInfo.contract)) return false;
+            const data = String(value.data || "");
+            if (data.length < 136) return false;
+            const recipientHex = "41" + data.substring(32, 72);
+            const recipient = tronWeb.address.fromHex(recipientHex);
+            if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
+            const rawAmount = BigInt("0x" + data.substring(72, 136));
+            amount = Number(rawAmount) / Math.pow(10, tokenInfo.decimals);
+        }
+        const txInfo = await tronWeb.trx.getTransactionInfo(txId);
+        if (!txInfo || txInfo.receipt?.result !== "SUCCESS" || !txInfo.blockNumber) return false;
+        return Math.abs(amount - Number(expectedAmount)) < 0.0000001;
+    } catch (error) {
+        console.error("❌ Erreur vérification blockchain :", error?.message || error);
+        return false;
+    }
 }
 
 // ============================================================
