@@ -61,7 +61,7 @@ app.use(express.static(__dirname));
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
-// ✅ CONFIGURATION SOCKET.IO TOLÉRANTE AUX RÉSEAUX MOBILES
+// CONFIG SOCKET.IO (Tolérant aux réseaux mobiles)
 const io = new Server(server, { 
     cors: { origin: "*", methods: ["GET", "POST"] },
     pingInterval: 25000,
@@ -73,7 +73,7 @@ mongoose.set("bufferTimeoutMS", 10000);
 mongoose.connection.on("connected", () => console.log("✅ Mongoose connecté."));
 mongoose.connection.on("error", (err) => console.error("❌ Mongoose erreur :", err?.message || err));
 
-// ✅ CORRECTION 1 : On retire `default: null` pour éviter que MongoDB bloque les insertions multiples
+// ✅ CORRECTION SCHÉMA (Index unique propre)
 const playerSchema = new mongoose.Schema({
     gameId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -146,7 +146,8 @@ function getGameStateObject() {
 
 function broadcastTimer() {
     if (!game.id) return;
-    io.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
+    // ✅ ENVOIE LE TEMPS RESTANT DÉJÀ CALCULÉ (PAS LA DATE) pour une synchro parfaite
+    io.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds() });
 }
 
 function broadcastOnlineCount() {
@@ -231,7 +232,7 @@ async function startPreparationPhase() {
     game.endsAt = null;
     game.preparationEndsAt = new Date(Date.now() + PREPARATION_DURATION_SECONDS * 1000);
 
-    io.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
+    io.emit("game:preparing", { gameId: game.id, remainingSeconds: PREPARATION_DURATION_SECONDS });
     broadcastTimer();
 
     gameTimer = setTimeout(() => {
@@ -249,7 +250,7 @@ async function beginActualGame() {
     game.endsAt = new Date(Date.now() + GAME_DURATION_SECONDS * 1000);
     game.preparationEndsAt = null;
 
-    io.emit("game:started", { gameId: game.id, startsAt: game.startedAt, endsAt: game.endsAt, duration: GAME_DURATION_SECONDS, remainingSeconds: GAME_DURATION_SECONDS });
+    io.emit("game:started", { gameId: game.id, remainingSeconds: GAME_DURATION_SECONDS });
     broadcastTimer();
 
     gameTimer = setTimeout(() => { finishGame().catch((error) => console.error("❌ finishGame :", error?.message || error)); }, GAME_DURATION_SECONDS * 1000);
@@ -365,21 +366,21 @@ io.on("connection", async (socket) => {
     socket.on("player:restore", async (data) => {
         try {
             const player = await Player.findById(data.playerId);
-            if (player && (player.gameId === game.id)) { 
+            if (player) { 
                 socket.data.playerId = player._id.toString();
-                socket.data.gameId = player.gameId;
                 socket.data.playerName = player.name;
-                socket.emit("player:restored", { success: true, player });
+                socket.emit("player:restored", { success: true, player, game: getGameStateObject() });
             } else { socket.emit("player:restored", { success: false }); }
         } catch (e) { socket.emit("player:restored", { success: false }); }
     });
 
     broadcastOnlineCount();
-    socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
+    // ✅ On envoie l'état complet au nouveau client dès sa connexion
+    socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds() });
     try { await broadcastGameState(); await emitJackpotUpdate(); } catch (e) { console.error(e); }
 
     socket.on("jackpot:get", () => { emitJackpotUpdate().catch(err => console.error(err)); });
-    socket.on("timer:request", () => { socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt }); });
+    socket.on("timer:request", () => { socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds() }); });
 
     socket.on("player:join", async (data) => {
         try {
@@ -389,8 +390,6 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ MODIFICATION IMPORTANTE : On accepte TOUJOURS le joueur.
-            // Si le jeu est en attente (waiting), on lance automatiquement une nouvelle phase.
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
@@ -450,6 +449,7 @@ setInterval(() => {
     Player.updateMany({ gameId: game.id, paid: false, depositExpiresAt: { $lt: now } }, { $set: { depositExpiresAt: null, depositAmount: null, bet: 0 } }).catch((error) => console.error("❌ Erreur timeout paiement :", error?.message || error));
 }, 60 * 1000);
 
+// ✅ ENVOI DU CHRONO À TOUT LE MONDE TOUTES LES SECONDES (Source de vérité)
 setInterval(() => {
     if (game.status === "preparing" || game.status === "running") broadcastTimer();
 }, 1000);
@@ -520,7 +520,6 @@ app.get("/api/game", async (req, res) => {
     res.json({ success: true, game: getGameStateObject() });
 });
 
-// ✅ ROUTES ADMIN AJOUTÉES (Panneau Admin)
 app.post("/api/admin/login", async (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
