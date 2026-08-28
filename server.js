@@ -504,4 +504,9 @@ async function startServer() {
 }
 startServer();
 
-process.on("SIGTERM
+process.on("SIGTERM", async () => {
+    console.log("🛑 SIGTERM reçu. Fermeture propre...");
+    if (gameTimer) clearTimeout(gameTimer);
+    if (nextGameTimeout) clearTimeout(nextGameTimeout);
+    try {
+        await new Promise((resolve) => server.close(() => { console
