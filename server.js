@@ -122,7 +122,6 @@ let game = {
     preparationEndsAt: null 
 };
 
-// Gestion du temps restant (PREPARATION ou JEU)
 function getRemainingSeconds() {
     if (game.status === "preparing" && game.preparationEndsAt) {
         return Math.max(0, Math.ceil((game.preparationEndsAt.getTime() - Date.now()) / 1000));
@@ -237,7 +236,6 @@ async function startPreparationPhase() {
     io.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
     broadcastTimer();
 
-    // Planifier le début réel du jeu après 2 minutes
     gameTimer = setTimeout(() => {
         beginActualGame().catch((error) => console.error("❌ Erreur démarrage jeu :", error?.message || error));
     }, PREPARATION_DURATION_SECONDS * 1000);
@@ -402,8 +400,8 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // Autoriser les joueurs à rejoindre pendant la PREPARATION et le JEU
-            if (!game.id || (game.status !== "preparing" && game.status !== "running")) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
+            // ✅ MODIFICATION : ON ACCEPTE TOUJOURS LE JOUEUR (TANT QUE LE SERVEUR EST EN LIGNE)
+            if (!game.id) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
             if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
             let player = null;
@@ -506,4 +504,4 @@ async function startServer() {
 }
 startServer();
 
-process.on("SIGTERM", async () => { if (gameTimer) clearTimeout(gameTimer); if (nextGameTimeout) clearTimeout(nextGameTimeout); await new Promise(r => server.close(r)); await mongoose.connection.close(); process.exit(0); });
+process.on("SIGTERM
