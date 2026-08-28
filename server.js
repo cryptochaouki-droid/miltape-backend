@@ -61,7 +61,12 @@ app.use(express.static(__dirname));
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+// ✅ CONFIGURATION SOCKET.IO TOLÉRANTE AUX RÉSEAUX MOBILES
+const io = new Server(server, { 
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    pingInterval: 25000,
+    pingTimeout: 60000  // Laisse 60 secondes de grâce avant de considérer le joueur comme déconnecté
+});
 
 mongoose.set("strictQuery", true);
 mongoose.set("bufferTimeoutMS", 10000);
