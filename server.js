@@ -391,11 +391,11 @@ io.on("connection", async (socket) => {
             else player = await Player.findOne({ gameId: game.id, wallet });
 
             if (!player) {
-                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: null, depositExpiresAt: null });
+                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
             } else {
                 player.name = name; player.wallet = wallet; player.bet = bet; player.token = token;
                 player.paid = false; player.paymentTxId = null;
-                player.depositAmount = null; player.depositExpiresAt = null;
+                player.depositAmount = bet; player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
             }
 
@@ -452,9 +452,62 @@ setInterval(async () => {
 setInterval(() => { emitJackpotUpdate().catch(err => console.error("Erreur maj jackpot :", err)); }, 60 * 1000);
 
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
-app.post("/api/payment/verify", async (req, res) => { /* ... */ });
-app.post("/api/demo/verify", async (req, res) => { /* ... */ });
-app.get("/api/game", async (req, res) => { /* ... */ });
+
+app.post("/api/payment/verify", async (req, res) => {
+    try {
+        const { txId, playerId, expectedAmount, token } = req.body;
+        if (!txId || !playerId || !expectedAmount) return res.status(400).json({ success: false, error: "Données manquantes." });
+        const player = await Player.findById(playerId);
+        if (!player) return res.status(404).json({ success: false, error: "Joueur introuvable." });
+        const alreadyUsed = await Payment.findOne({ txId });
+        if (alreadyUsed) return res.status(400).json({ success: false, error: "Cette transaction a déjà été utilisée." });
+        
+        const tokenName = token || player.token || "USDT";
+        const isValid = await verifyOnChain(txId, expectedAmount, tokenName);
+        if (!isValid) return res.status(400).json({ success: false, error: "Transaction invalide ou montant incorrect." });
+
+        player.paid = true;
+        player.paymentTxId = txId;
+        player.depositAmount = null;
+        player.depositExpiresAt = null;
+        await player.save();
+
+        await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: expectedAmount, verified: true, gameId: game.id, token: tokenName });
+        io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: expectedAmount, playerName: player.name, token: tokenName });
+        io.emit("chat:message", { name: "🟢 Système", message: `✅ ${player.name} a validé son paiement de ${expectedAmount} ${tokenName}`, createdAt: new Date() });
+        await broadcastGameState();
+        return res.json({ success: true });
+    } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post("/api/demo/verify", async (req, res) => {
+    if (!DEMO_MODE_ENABLED_ON_SERVER) return res.status(403).json({ success: false, error: "Mode démo désactivé." });
+    try {
+        const { playerId } = req.body;
+        const player = await Player.findById(playerId);
+        if (!player) return res.status(404).json({ success: false, error: "Joueur introuvable." });
+        
+        player.paid = true;
+        player.paymentTxId = "DEMO_" + Date.now();
+        player.depositAmount = null;
+        player.depositExpiresAt = null;
+        await player.save();
+
+        io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
+        io.emit("chat:message", { name: "🎮 Démo", message: `🚀 ${player.name} a rejoint la partie en mode DÉMO !`, createdAt: new Date() });
+        await broadcastGameState();
+        return res.json({ success: true });
+    } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get("/api/game", async (req, res) => {
+    res.json({ success: true, game: getGameStateObject() });
+});
+
 function buildStatusPayload() {
     return { success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size, mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", timestamp: new Date().toISOString() };
 }
