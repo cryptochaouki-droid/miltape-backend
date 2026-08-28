@@ -65,7 +65,7 @@ app.use("/api/", limiter);
 const io = new Server(server, { 
     cors: { origin: "*", methods: ["GET", "POST"] },
     pingInterval: 25000,
-    pingTimeout: 60000  // Laisse 60 secondes de grâce avant de considérer le joueur comme déconnecté
+    pingTimeout: 60000
 });
 
 mongoose.set("strictQuery", true);
@@ -513,6 +513,44 @@ app.post("/api/demo/verify", async (req, res) => {
 
 app.get("/api/game", async (req, res) => {
     res.json({ success: true, game: getGameStateObject() });
+});
+
+// ✅ ROUTES ADMIN AJOUTÉES (Panneau Admin)
+app.post("/api/admin/login", async (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+        return res.json({ success: true });
+    } else {
+        return res.status(401).json({ success: false, message: "Mot de passe incorrect !" });
+    }
+});
+
+app.get("/api/online", async (req, res) => {
+    res.json({ success: true, online: onlineSockets.size });
+});
+
+app.get("/api/total-stakes", async (req, res) => {
+    const players = await Player.find({});
+    const totalStakes = players.reduce((sum, p) => sum + (p.bet || 0), 0);
+    res.json({ success: true, totalStakes });
+});
+
+app.get("/api/admin/stats", async (req, res) => {
+    try {
+        const recentPlayers = await Player.find({}).sort({ createdAt: -1 }).limit(10).lean();
+        res.json({ success: true, recentPlayers: recentPlayers.map(p => ({ playerId: p._id, playerName: p.name, score: p.taps, wallet: p.wallet, bet: p.bet })) });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get("/api/admin/payouts", async (req, res) => {
+    try {
+        const winners = await History.find({ paidOut: false }).sort({ createdAt: -1 }).limit(10).lean();
+        res.json({ success: true, winners: winners.map(w => ({ playerName: w.playerName, wallet: w.wallet, score: w.taps, amount: w.gain, rank: w.rank })) });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 function buildStatusPayload() {
