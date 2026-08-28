@@ -68,6 +68,7 @@ mongoose.set("bufferTimeoutMS", 10000);
 mongoose.connection.on("connected", () => console.log("✅ Mongoose connecté."));
 mongoose.connection.on("error", (err) => console.error("❌ Mongoose erreur :", err?.message || err));
 
+// ✅ CORRECTION 1 : On retire `default: null` pour éviter que MongoDB bloque les insertions multiples
 const playerSchema = new mongoose.Schema({
     gameId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -77,7 +78,7 @@ const playerSchema = new mongoose.Schema({
     weeklyTaps: { type: Number, default: 0 },
     bet: { type: Number, default: 0, min: 0 },
     paid: { type: Boolean, default: false },
-    paymentTxId: { type: String, default: null, unique: true, sparse: true },
+    paymentTxId: { type: String, unique: true, sparse: true },
     token: { type: String, default: "USDT" },
     depositAmount: { type: Number, default: null },
     depositExpiresAt: { type: Date, default: null }
@@ -394,7 +395,9 @@ io.on("connection", async (socket) => {
                 player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
             } else {
                 player.name = name; player.wallet = wallet; player.bet = bet; player.token = token;
-                player.paid = false; player.paymentTxId = null;
+                player.paid = false; 
+                // ✅ CORRECTION 2 : On retire le champ paymentTxId du document en mettant undefined au lieu de null
+                player.paymentTxId = undefined;
                 player.depositAmount = bet; player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
             }
@@ -497,46 +500,4 @@ app.post("/api/demo/verify", async (req, res) => {
 
         io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
         io.emit("chat:message", { name: "🎮 Démo", message: `🚀 ${player.name} a rejoint la partie en mode DÉMO !`, createdAt: new Date() });
-        await broadcastGameState();
-        return res.json({ success: true });
-    } catch (e) {
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.get("/api/game", async (req, res) => {
-    res.json({ success: true, game: getGameStateObject() });
-});
-
-function buildStatusPayload() {
-    return { success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size, mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", timestamp: new Date().toISOString() };
-}
-app.get("/api/status", (req, res) => res.json(buildStatusPayload()));
-app.get("/health", (req, res) => res.json(buildStatusPayload()));
-
-async function startServer() {
-    try {
-        await connectMongoDB();
-        const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        if (!(await Jackpot.findOne({ weekStart }))) await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) });
-        server.listen(PORT, async () => {
-            console.log("🚀 BACKEND ONLINE (Sécurisé)");
-            console.log(`🌐 Port : ${PORT}`);
-            console.log(`🔬 Mode Démo Gratuit : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIF' : 'INACTIF'}`);
-            try { await startPreparationPhase(); } catch (e) { console.error(e); }
-        });
-    } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
-}
-startServer();
-
-process.on("SIGTERM", async () => {
-    console.log("🛑 SIGTERM reçu. Fermeture propre...");
-    if (gameTimer) clearTimeout(gameTimer);
-    if (nextGameTimeout) clearTimeout(nextGameTimeout);
-    try {
-        await new Promise((resolve) => server.close(() => { console.log("🔌 Serveur fermé."); resolve(); }));
-        await mongoose.connection.close();
-        console.log("✅ Fermeture propre terminée.");
-        process.exit(0);
-    } catch (error) { console.error("❌ Erreur lors de la fermeture :", error?.message || error); process.exit(1); }
-});
+        await
