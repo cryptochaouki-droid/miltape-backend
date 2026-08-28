@@ -389,6 +389,11 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
+            // ✅ MODIFICATION IMPORTANTE : On accepte TOUJOURS le joueur.
+            // Si le jeu est en attente (waiting), on lance automatiquement une nouvelle phase.
+            if (!game.id || game.status === "waiting") {
+                await startPreparationPhase();
+            }
             if (!game.id) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
             if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
