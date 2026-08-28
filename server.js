@@ -202,6 +202,15 @@ function broadcastTimer() {
     io.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt });
 }
 
+// ============================================================
+// ✅ AJOUT CRUCIAL : FONCTION broadcastOnlineCount
+// ============================================================
+function broadcastOnlineCount() {
+    const count = onlineSockets.size;
+    console.log(`👥 Joueurs en ligne : ${count}`);
+    io.emit("online:count", { count });
+}
+
 async function emitLeaderboard() {
     try {
         if (!game.id) return;
@@ -265,7 +274,6 @@ async function distributeWeeklyJackpot() {
         jackpot.drawn = true;
         await jackpot.save();
 
-        // Ici, on envoie le vrai jackpot (dans le mode réel uniquement)
         const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain: jackpot.accumulatedFund, token: "USDT", playerName: winner.name });
 
         io.emit("jackpot:winner", { winner: winner.name, amount: jackpot.accumulatedFund, taps: winner.weeklyTaps, txId: txId || "pending" });
@@ -345,7 +353,6 @@ async function finishGame() {
             return;
         }
 
-        // ✅ DÉTECTION DU MODE DÉMO
         const isDemoGame = players.some(p => p.paymentTxId && p.paymentTxId.startsWith('DEMO_'));
 
         const totalPot = players.reduce((sum, player) => sum + Number(player.bet || 0), 0);
@@ -368,11 +375,8 @@ async function finishGame() {
             serverProfit = totalPot - totalGains - jackpotDeduction;
         }
 
-        // ============================================================
-        // ✅ LOGIQUE D'ENVOI DES GAINS – CORRECTION MAJEURE
-        // ============================================================
+        // MODE DÉMO vs MODE RÉEL
         if (isDemoGame) {
-            // 🎉 MODE DÉMO : AUCUN PAIEMENT RÉEL, ON MARQUE COMME PAYÉ
             console.log("🎉 MODE DÉMO : Aucun paiement réel effectué. Les gains sont fictifs.");
             for (const { player, gain, history } of winners) {
                 history.paidOut = true;
@@ -380,27 +384,16 @@ async function finishGame() {
                 await history.save();
             }
         } else {
-            // 💰 MODE RÉEL : ON ENVOIE L'ARGENT AVEC UN DÉLAI POUR ÉVITER LE 429
             for (const { player, gain, history } of winners) {
                 try {
                     const txId = await sendPrizeToWinner({ wallet: player.wallet, gain, token: player.token, playerName: player.name });
                     if (txId) { history.paidOut = true; history.payoutTxId = txId; await history.save(); }
                     else console.warn(`⚠️ Échec de l'envoi du gain à ${player.name}`);
                 } catch (err) { console.error(`❌ Erreur lors de l'envoi du gain à ${player.name}:`, err); }
-                await new Promise(r => setTimeout(r, 2000)); // Délai de 2 secondes anti-429
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
 
-        // Logs
-        console.log(`💰 Partie ${game.id}:`);
-        console.log(`   - Mode démo : ${isDemoGame ? 'OUI' : 'NON'}`);
-        console.log(`   - Total des mises : ${totalPot.toFixed(2)} USDT`);
-        console.log(`   - Gains versés : ${totalGains.toFixed(2)} USDT (${topPlayers.length} gagnants)`);
-        console.log(`   - Profit serveur : ${serverProfit.toFixed(2)} USDT`);
-
-        // ============================================================
-        // ✅ AJOUT DU CHAMP "rank" POUR LE FRONT-END
-        // ============================================================
         const winnersList = topPlayers.map((player, index) => ({
             rank: index + 1,
             name: player.name,
@@ -413,11 +406,7 @@ async function finishGame() {
         io.emit("game:finished", { gameId: game.id, winners: winnersList });
         io.emit("chat:message", { name: "🏆 Système", message: `🏁 La partie est terminée ! ${winnersList.length} gagnants !`, createdAt: new Date() });
 
-        // ✅ Remise en attente du jeu UNIQUEMENT après traitement
-        game.status = "waiting";
-        game.startedAt = null;
-        game.endsAt = null;
-        broadcastTimer();
+        game.status = "waiting"; game.startedAt = null; game.endsAt = null; broadcastTimer();
 
     } catch (error) {
         console.error("❌ Erreur finishGame :", error?.message || error);
@@ -426,7 +415,7 @@ async function finishGame() {
 }
 
 // ============================================================
-// PAIEMENTS AUTOMATIQUES (Fonctions ajoutées)
+// PAIEMENTS AUTOMATIQUES
 // ============================================================
 async function getIncomingTrxTransactions(address) {
     try {
@@ -478,7 +467,6 @@ async function checkPendingPayments() {
                 } else continue;
 
                 if (!SUPPORTED_TOKENS[token]) continue;
-                // On ignore les joueurs en mode démo pour éviter tout conflit
                 const matchingPlayer = unpaidPlayers.find(p => p.token === token && Math.abs(amount - Number(p.depositAmount)) < 0.0000001 && !p.paymentTxId?.startsWith('DEMO_'));
                 if (!matchingPlayer) continue;
                 const alreadyUsed = await Payment.findOne({ txId });
@@ -498,7 +486,7 @@ async function checkPendingPayments() {
 }
 
 // ============================================================
-// VÉRIFICATION ON-CHAIN (Fonction manquante ajoutée !)
+// VÉRIFICATION ON-CHAIN
 // ============================================================
 async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     if (!txId || !expectedAmount) return false;
