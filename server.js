@@ -500,4 +500,46 @@ app.post("/api/demo/verify", async (req, res) => {
 
         io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
         io.emit("chat:message", { name: "🎮 Démo", message: `🚀 ${player.name} a rejoint la partie en mode DÉMO !`, createdAt: new Date() });
-        await
+        await broadcastGameState();
+        return res.json({ success: true });
+    } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get("/api/game", async (req, res) => {
+    res.json({ success: true, game: getGameStateObject() });
+});
+
+function buildStatusPayload() {
+    return { success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size, mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected", timestamp: new Date().toISOString() };
+}
+app.get("/api/status", (req, res) => res.json(buildStatusPayload()));
+app.get("/health", (req, res) => res.json(buildStatusPayload()));
+
+async function startServer() {
+    try {
+        await connectMongoDB();
+        const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        if (!(await Jackpot.findOne({ weekStart }))) await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) });
+        server.listen(PORT, async () => {
+            console.log("🚀 BACKEND ONLINE (Sécurisé)");
+            console.log(`🌐 Port : ${PORT}`);
+            console.log(`🔬 Mode Démo Gratuit : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIF' : 'INACTIF'}`);
+            try { await startPreparationPhase(); } catch (e) { console.error(e); }
+        });
+    } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
+}
+startServer();
+
+process.on("SIGTERM", async () => {
+    console.log("🛑 SIGTERM reçu. Fermeture propre...");
+    if (gameTimer) clearTimeout(gameTimer);
+    if (nextGameTimeout) clearTimeout(nextGameTimeout);
+    try {
+        await new Promise((resolve) => server.close(() => { console.log("🔌 Serveur fermé."); resolve(); }));
+        await mongoose.connection.close();
+        console.log("✅ Fermeture propre terminée.");
+        process.exit(0);
+    } catch (error) { console.error("❌ Erreur lors de la fermeture :", error?.message || error); process.exit(1); }
+});
