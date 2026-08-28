@@ -1,5 +1,0 @@
-[phases.setup]
-nixPkgs = ["caddy"]
-
-[start]
-cmd = "caddy run --config /app/Caddyfile"
