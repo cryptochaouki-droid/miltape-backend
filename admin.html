@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miltape - Panneau Admin</title>
+    <title>Miltape - Panneau Admin (Sécurisé)</title>
     <style>
         body { background-color: #090014; color: #fff; font-family: sans-serif; padding: 20px; margin: 0; }
         .admin-container { max-width: 850px; margin: 0 auto; display: none; }
         
-        /* Styles de la boîte de login */
         #loginBoxContainer {
             display: flex;
             justify-content: center;
@@ -37,9 +36,7 @@
             font-size: 14px;
             outline: none;
         }
-        .login-box input:focus {
-            border-color: #ffcc00;
-        }
+        .login-box input:focus { border-color: #ffcc00; }
         .login-box button {
             width: 100%;
             padding: 12px;
@@ -51,11 +48,8 @@
             cursor: pointer;
             font-size: 14px;
         }
-        .login-box button:hover {
-            background: #ffd633;
-        }
+        .login-box button:hover { background: #ffd633; }
 
-        /* Styles du dashboard */
         .admin-card { background: rgba(25, 10, 40, 0.9); border: 1px solid #ffcc00; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .admin-card h2 { color: #ffcc00; margin-top: 0; font-size: 20px; }
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
@@ -71,9 +65,6 @@
 </head>
 <body>
 
-<!-- =====================================================
-     ÉCRAN DE CONNEXION ADMIN
-====================================================== -->
 <div id="loginBoxContainer">
     <div class="login-box">
         <h3 style="color: #ffcc00; margin-top: 0;">🔐 Admin Miltape</h3>
@@ -83,73 +74,32 @@
     </div>
 </div>
 
-<!-- =====================================================
-     TABLEAU DE BORD ADMIN
-====================================================== -->
 <div id="adminMainContainer" class="admin-container">
     <h1>👑 PANNEAU ADMIN — MILTAPE</h1>
     <p>Bienvenue le boss ! Tu es l'unique modérateur.</p>
 
     <button class="refresh-btn" onclick="loadAdminData()">🔄 Actualiser les données</button>
 
-    <!-- STATS GLOBALES -->
     <div class="stat-grid">
-        <div class="stat-box">
-            <span>JOUEURS CONNECTÉS</span>
-            <strong id="totalPlayers">-</strong>
-        </div>
-        <div class="stat-box">
-            <span>ENJEUX TOTALS (USDT)</span>
-            <strong id="totalTaps">-</strong>
-        </div>
-        <div class="stat-box">
-            <span>STATUT DU JEU</span>
-            <strong id="gameStatus" style="font-size: 18px;">-</strong>
-        </div>
+        <div class="stat-box"><span>JOUEURS CONNECTÉS</span><strong id="totalPlayers">-</strong></div>
+        <div class="stat-box"><span>ENJEUX TOTALS (USDT)</span><strong id="totalTaps">-</strong></div>
+        <div class="stat-box"><span>STATUT DU JEU</span><strong id="gameStatus" style="font-size: 18px;">-</strong></div>
     </div>
 
-    <!-- PAIEMENTS ET GAGNANTS EN ATTENTE -->
     <div class="admin-card" style="border-color: #00d2ff;">
         <h2 style="color: #00d2ff;">🏆 Gagnants & Paiements en Attente</h2>
         <table>
-            <thead>
-                <tr>
-                    <th>Rang</th>
-                    <th>Pseudo</th>
-                    <th>Adresse Wallet (TRON)</th>
-                    <th>Score / Enjeu</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="payoutsTableBody">
-                <tr><td colspan="5">Chargement des gagnants...</td></tr>
-            </tbody>
+            <thead><tr><th>Rang</th><th>Pseudo</th><th>Adresse Wallet (TRON)</th><th>Score / Enjeu</th><th>Action</th></tr></thead>
+            <tbody id="payoutsTableBody"><tr><td colspan="5">Chargement des gagnants...</td></tr></tbody>
         </table>
     </div>
 
-    <!-- DERNIERS JOUEURS -->
     <div class="admin-card">
         <h2>👥 Derniers Joueurs Inscrits / Actifs</h2>
         <table>
-            <thead>
-                <tr>
-                    <th>Pseudo</th>
-                    <th>Score Actuel</th>
-                    <th>ID Joueur</th>
-                </tr>
-            </thead>
-            <tbody id="playersTableBody">
-                <tr><td colspan="3">Chargement...</td></tr>
-            </tbody>
+            <thead><tr><th>Pseudo</th><th>Score Actuel</th><th>ID Joueur</th></tr></thead>
+            <tbody id="playersTableBody"><tr><td colspan="3">Chargement...</td></tr></tbody>
         </table>
-    </div>
-
-    <!-- SURVEILLANCE DU CHAT -->
-    <div class="admin-card">
-        <h2>💬 Surveillance du Chat Global</h2>
-        <div id="adminChatBox" style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; height: 200px; overflow-y: auto; font-size: 13px;">
-            En attente de messages...
-        </div>
     </div>
 </div>
 
@@ -165,10 +115,7 @@ let adminInterval = null;
 
 async function handleAdminLogin() {
     const password = adminPasswordInput.value.trim();
-    if (!password) {
-        alert("Veuillez entrer le mot de passe !");
-        return;
-    }
+    if (!password) { alert("Veuillez entrer le mot de passe !"); return; }
 
     try {
         loginBtn.textContent = "Vérification...";
@@ -184,7 +131,6 @@ async function handleAdminLogin() {
         if (data.success) {
             loginBoxContainer.style.display = "none";
             adminMainContainer.style.display = "block";
-
             loadAdminData();
             if (adminInterval) clearInterval(adminInterval);
             adminInterval = setInterval(loadAdminData, 4000);
@@ -201,66 +147,40 @@ async function handleAdminLogin() {
     }
 }
 
-if (loginBtn) {
-    loginBtn.addEventListener("click", handleAdminLogin);
-}
-
-if (adminPasswordInput) {
-    adminPasswordInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") handleAdminLogin();
-    });
-}
+if (loginBtn) loginBtn.addEventListener("click", handleAdminLogin);
+if (adminPasswordInput) adminPasswordInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleAdminLogin(); });
 
 async function loadAdminData() {
     try {
-        // 1. Charger le statut et joueurs connectés
         const resStatus = await fetch(API_URL + "/api/status");
         const dataStatus = await resStatus.json();
-
-        if (dataStatus.success) {
-            document.getElementById("gameStatus").textContent = `PARTIE #${dataStatus.gameId} (${dataStatus.timerLeft}s)`;
-        }
+        if (dataStatus.success) document.getElementById("gameStatus").textContent = `PARTIE #${dataStatus.gameId} (${dataStatus.remainingSeconds}s)`;
 
         const resOnline = await fetch(API_URL + "/api/online");
         const dataOnline = await resOnline.json();
-        if (dataOnline.success) {
-            document.getElementById("totalPlayers").textContent = dataOnline.online;
-        }
+        if (dataOnline.success) document.getElementById("totalPlayers").textContent = dataOnline.online;
 
-        // 2. Enjeux totaux
         const resStakes = await fetch(API_URL + "/api/total-stakes");
         const dataStakes = await resStakes.json();
-        if (dataStakes.success) {
-            document.getElementById("totalTaps").textContent = `${dataStakes.totalStakes} USDT`;
-        }
+        if (dataStakes.success) document.getElementById("totalTaps").textContent = `${dataStakes.totalStakes} USDT`;
 
-        // 3. Charger les Stats spécifiques si l'API admin personnalisée existe
         try {
             const resStats = await fetch(API_URL + "/api/admin/stats");
             const dataStats = await resStats.json();
-
             if (dataStats.success && dataStats.recentPlayers) {
-                const tbody = document.getElementById("playersTableBody");
-                tbody.innerHTML = dataStats.recentPlayers.map(p => `
-                    <tr>
-                        <td><strong>${escapeHTML(p.playerName)}</strong></td>
-                        <td style="color: #ffcc00;">${p.score || 0} taps</td>
-                        <td style="font-size: 11px; color: #888;">${p.playerId}</td>
-                    </tr>
+                document.getElementById("playersTableBody").innerHTML = dataStats.recentPlayers.map(p => `
+                    <tr><td><strong>${escapeHTML(p.playerName)}</strong></td><td style="color: #ffcc00;">${p.score || 0} taps</td><td style="font-size: 11px; color: #888;">${p.playerId}</td></tr>
                 `).join("");
             }
         } catch (err) {
-            document.getElementById("playersTableBody").innerHTML = `<tr><td colspan="3" style="color:#888;">Utilisez les fonctionnalités Socket pour voir le détail exact des joueurs en temps réel.</td></tr>`;
+            document.getElementById("playersTableBody").innerHTML = `<tr><td colspan="3" style="color:#888;">Aucune donnée dispo.</td></tr>`;
         }
 
-        // 4. Charger les gagnants
         try {
             const resPayouts = await fetch(API_URL + "/api/admin/payouts");
             const dataPayouts = await resPayouts.json();
-
             if (dataPayouts.success && dataPayouts.winners) {
                 const payoutsTbody = document.getElementById("payoutsTableBody");
-
                 if (dataPayouts.winners.length === 0) {
                     payoutsTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Aucun paiement en attente.</td></tr>`;
                 } else {
@@ -270,11 +190,7 @@ async function loadAdminData() {
                             <td><strong>${escapeHTML(w.playerName || 'Anonyme')}</strong></td>
                             <td style="font-size: 12px; color: #00d2ff; font-family: monospace;">${w.wallet || w.cryptoAddress || 'Non renseigné'}</td>
                             <td style="color: #00ff66; font-weight: bold;">${w.score || 0} Taps (${w.amount || 0} USDT)</td>
-                            <td>
-                                <button onclick="copyWalletAddress('${w.wallet || w.cryptoAddress}', this)" style="background:#00d2ff; color:#000; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">
-                                    📋 Copier Wallet
-                                </button>
-                            </td>
+                            <td><button onclick="copyWalletAddress('${w.wallet || w.cryptoAddress}', this)" style="background:#00d2ff; color:#000; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">📋 Copier Wallet</button></td>
                         </tr>
                     `).join("");
                 }
@@ -289,16 +205,11 @@ async function loadAdminData() {
 }
 
 function copyWalletAddress(wallet, btnElement) {
-    if (!wallet || wallet === "Non renseigné" || wallet === "undefined") {
-        alert("Ce joueur n'a pas renseigné d'adresse wallet valide !");
-        return;
-    }
-    
+    if (!wallet || wallet === "Non renseigné" || wallet === "undefined") { alert("Ce joueur n'a pas renseigné d'adresse wallet valide !"); return; }
     navigator.clipboard.writeText(wallet);
     const originalText = btnElement.textContent;
     btnElement.textContent = "✅ Copié !";
     btnElement.style.background = "#00ff66";
-
     setTimeout(() => {
         btnElement.textContent = originalText;
         btnElement.style.background = "#00d2ff";
