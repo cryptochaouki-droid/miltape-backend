@@ -393,7 +393,7 @@ io.on("connection", async (socket) => {
                 await startPreparationPhase();
             }
             if (!game.id) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
-            if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
+            if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
             // ✅ RECHERCHE PAR WALLET UNIQUEMENT (Indépendant du téléphone)
             let player = await Player.findOne({ wallet: wallet });
@@ -411,6 +411,7 @@ io.on("connection", async (socket) => {
                 socket.data.playerName = player.name; // On garde le pseudo sauvegardé
             } else {
                 // ✅ NOUVEAU JOUEUR : On vérifie le pseudo et on crée avec le gameId
+                if (!name) return socket.emit("error", { message: "Entre ton pseudo pour rejoindre !" });
                 const existingName = await Player.findOne({ name: name });
                 if (existingName) {
                     return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
