@@ -410,13 +410,8 @@ io.on("connection", async (socket) => {
                 await player.save();
                 socket.data.playerName = player.name; // On garde le pseudo sauvegardé
             } else {
-                // ✅ NOUVEAU JOUEUR : On vérifie le pseudo et on crée avec le gameId
-                if (!name) return socket.emit("error", { message: "Entre ton pseudo pour rejoindre !" });
-                const existingName = await Player.findOne({ name: name });
-                if (existingName) {
-                    return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
-                }
-                
+                // ✅ NOUVEAU JOUEUR : On crée directement sans vérifier le pseudo
+                // (Le serveur acceptera le pseudo choisi par le joueur à ce moment)
                 player = await Player.create({ 
                     gameId: game.id, // ⚠️ C'EST AUSSI LA LIGNE QUI MANQUAIT POUR LES NOUVEAUX !
                     name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) 
