@@ -748,7 +748,7 @@ async function startServer() {
             console.log("🚀 BACKEND ONLINE (Sécurisé)");
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🔬 Mode Démo Gratuit : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIF' : 'INACTIF'}`);
-            try { await startPreparationPhase(); } catch (e) { console.error(e); }
+            // ✅ CORRECTION : On ne lance PAS la partie automatiquement !
         });
     } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
 }
