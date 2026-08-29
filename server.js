@@ -391,12 +391,7 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ AJOUT : INTERDIRE LE DOUBLE PSEUDO
-            const existingName = await Player.findOne({ gameId: game.id, name: name });
-            if (existingName) {
-                return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
-            }
-
+            // ✅ AJOUT : Si la partie est en attente, on lance une nouvelle phase
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
@@ -404,22 +399,27 @@ io.on("connection", async (socket) => {
             if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
             let player = null;
+            // 1. On cherche d'abord le joueur existant (pour le restaurer sans bloquer)
             if (deviceId) player = await Player.findOne({ gameId: game.id, deviceId });
             else player = await Player.findOne({ gameId: game.id, wallet });
 
-            if (!player) {
-                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
-            } else {
-                // ✅ AJOUT : INTERDIRE LE CHANGEMENT DE PSEUDO
-                // On garde le nom original (player.name), on ne change QUE la mise et le token
+            if (player) {
+                // 2. Joueur existant : On restaure, on interdit le changement de pseudo
                 player.bet = bet; 
                 player.token = token;
-                // ❌ player.name = name;  (Ne PAS décommenter, ça permettrait de changer de pseudo)
                 player.paid = false; 
                 player.paymentTxId = undefined;
                 player.depositAmount = bet; 
                 player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
+            } else {
+                // 3. NOUVEAU joueur : On vérifie si le pseudo est déjà pris
+                const existingName = await Player.findOne({ gameId: game.id, name: name });
+                if (existingName) {
+                    return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
+                }
+                
+                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
             }
 
             socket.data.playerId = player._id.toString();
