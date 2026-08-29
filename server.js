@@ -7,6 +7,7 @@ const { TronWeb } = require("tronweb");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cron = require("node-cron");
+const path = require("path"); // AJOUTÉ POUR LES CHEMINS
 
 const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60;
@@ -56,7 +57,8 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
+// ✅ CORRECTION : Chemin des fichiers statiques
+app.use(express.static(path.join(__dirname)));
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
@@ -389,8 +391,12 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ MODIFICATION IMPORTANTE : On accepte TOUJOURS le joueur.
-            // Si le jeu est en attente (waiting), on lance automatiquement une nouvelle phase.
+            // ✅ AJOUT : INTERDIRE LE DOUBLE PSEUDO
+            const existingName = await Player.findOne({ gameId: game.id, name: name });
+            if (existingName) {
+                return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
+            }
+
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
@@ -404,10 +410,15 @@ io.on("connection", async (socket) => {
             if (!player) {
                 player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
             } else {
-                player.name = name; player.wallet = wallet; player.bet = bet; player.token = token;
+                // ✅ AJOUT : INTERDIRE LE CHANGEMENT DE PSEUDO
+                // On garde le nom original (player.name), on ne change QUE la mise et le token
+                player.bet = bet; 
+                player.token = token;
+                // ❌ player.name = name;  (Ne PAS décommenter, ça permettrait de changer de pseudo)
                 player.paid = false; 
                 player.paymentTxId = undefined;
-                player.depositAmount = bet; player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                player.depositAmount = bet; 
+                player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
             }
 
