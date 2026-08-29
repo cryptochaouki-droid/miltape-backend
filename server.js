@@ -7,7 +7,7 @@ const { TronWeb } = require("tronweb");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cron = require("node-cron");
-const path = require("path"); // AJOUTÉ POUR LES CHEMINS
+const path = require("path");
 
 const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60;
@@ -57,13 +57,11 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
-// ✅ CORRECTION : Chemin des fichiers statiques
 app.use(express.static(path.join(__dirname)));
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
-// ✅ CONFIGURATION SOCKET.IO TOLÉRANTE AUX RÉSEAUX MOBILES
 const io = new Server(server, { 
     cors: { origin: "*", methods: ["GET", "POST"] },
     pingInterval: 25000,
@@ -390,20 +388,18 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ AJOUT : Si la partie est en attente, on lance une nouvelle phase
+            // Si la partie est en attente, on lance une nouvelle phase
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
             if (!game.id) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
             if (!name || !isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
-            let player = null;
-            // 1. On cherche d'abord le joueur existant (pour le restaurer sans bloquer)
-            if (deviceId) player = await Player.findOne({ gameId: game.id, deviceId });
-            else player = await Player.findOne({ gameId: game.id, wallet });
+            // ✅ RECHERCHE PAR WALLET UNIQUEMENT (Indépendant du téléphone)
+            let player = await Player.findOne({ wallet: wallet });
 
             if (player) {
-                // 2. Joueur existant : On restaure, on interdit le changement de pseudo
+                // ✅ Joueur existant : On restaure TOUT sans bloquer (même pseudo, même score)
                 player.bet = bet; 
                 player.token = token;
                 player.paid = false; 
@@ -411,14 +407,15 @@ io.on("connection", async (socket) => {
                 player.depositAmount = bet; 
                 player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
+                socket.data.playerName = player.name; // On garde le pseudo sauvegardé
             } else {
-                // 3. NOUVEAU joueur : On vérifie si le pseudo est déjà pris
-                const existingName = await Player.findOne({ gameId: game.id, name: name });
+                // ✅ NOUVEAU joueur : On vérifie si le pseudo est déjà pris
+                const existingName = await Player.findOne({ name: name });
                 if (existingName) {
                     return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
                 }
                 
-                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
+                player = await Player.create({ name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
             }
 
             socket.data.playerId = player._id.toString();
@@ -530,7 +527,6 @@ app.get("/api/game", async (req, res) => {
     res.json({ success: true, game: getGameStateObject() });
 });
 
-// ✅ ROUTES ADMIN AJOUTÉES (Panneau Admin)
 app.post("/api/admin/login", async (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
