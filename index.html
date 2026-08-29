@@ -680,7 +680,14 @@
         if (tapButton) tapButton.disabled = true;
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
-        updateTapCounter(data.player.taps);
+        
+        // ✅ AFFICHER 0 PENDANT LA PRÉPARATION
+        if (gameStatus === "running") {
+          updateTapCounter(data.player.taps);
+        } else {
+          updateTapCounter(0);
+        }
+
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
@@ -721,6 +728,14 @@
       if (data.success) {
         isPlaying = true;
         myPlayerId = data.player.id; myWallet = data.player.wallet; myBet = data.player.bet || 10; myToken = data.player.token || 'USDT';
+        
+        // ✅ AFFICHER 0 PENDANT LA PRÉPARATION
+        if (gameStatus === "running") {
+          updateTapCounter(data.player.taps);
+        } else {
+          updateTapCounter(0);
+        }
+
         if (demoMode) {
           isPaid = true;
           if (gameStatus === "running") tapButton.disabled = false;
@@ -735,7 +750,6 @@
           }
         }
         if (enterChallenge) enterChallenge.style.display = "none";
-        updateTapCounter(data.player.taps);
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
