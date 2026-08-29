@@ -63,7 +63,7 @@
     .gem-sparkle:nth-child(8) { top: 88%; left: 88%; animation-delay: 2.2s; }
     @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }
     .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }
-    .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content, #nameModal .legal-content { border-radius: 24px !important; }
+    .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content, #nameModal .legal-content, #walletModal .legal-content { border-radius: 24px !important; }
     .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); }
     #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
     html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }
@@ -257,13 +257,20 @@
       <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
     </div>
   </div>
-  <!-- MODALE PSEUDO / WALLET (AJOUTÉE POUR ÉVITER LE BLOCAGE DU PROMPT) -->
+  <!-- MODALE PSEUDO -->
   <div id="nameModal" class="legal-modal">
     <div class="legal-content">
       <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
       <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
-      <input type="text" id="walletInput" placeholder="Ton adresse TRON (ex: T...)" maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px; display:none;">
       <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
+    </div>
+  </div>
+  <!-- MODALE WALLET (AJOUTÉE POUR ÉVITER LE BLOCAGE DU PROMPT) -->
+  <div id="walletModal" class="legal-modal">
+    <div class="legal-content">
+      <h3>💰 Entrez votre adresse TRON</h3>
+      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
+      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
   <!-- CONTENEUR DE NOTIFICATIONS -->
@@ -608,7 +615,7 @@
       return id;
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
-    // REJOINDRE LA PARTIE (FONCTION MODIFIÉE POUR ÉVITER LE BLOCAGE DU PROMPT)
+    // REJOINDRE LA PARTIE
     async function joinGame() {
       const telegramName = getTelegramUser();
       let name = telegramName;
@@ -628,6 +635,7 @@
         await proceedJoin(name);
       }
     }
+    // FONCTION POUR DEMANDER LE WALLET SANS PROMPT
     async function proceedJoin(name) {
       let wallet;
       if (demoMode) {
@@ -637,10 +645,22 @@
             wallet = account.address.base58;
           } else { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
         } catch (e) { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
+        proceedToJoin(name, wallet);
       } else {
-        wallet = prompt("Entre ton adresse TRON (ex: T...) :");
-        if (!wallet) return;
+        // OUVERTURE DE LA FENÊTRE WALLET
+        const walletModal = document.getElementById('walletModal');
+        const walletInput = document.getElementById('walletInput');
+        walletModal.style.display = 'flex';
+        document.getElementById('walletSubmitBtn').onclick = function() {
+          wallet = walletInput.value.trim();
+          if (!wallet) { alert("Entre une adresse valide !"); return; }
+          walletModal.style.display = 'none';
+          proceedToJoin(name, wallet);
+        };
+        walletInput.onkeypress = (e) => { if(e.key === 'Enter') document.getElementById('walletSubmitBtn').click(); };
       }
+    }
+    async function proceedToJoin(name, wallet) {
       const token = tokenSelect ? tokenSelect.value : 'USDT';
       let bet = 10;
       if (betInput) { const rawBet = parseFloat(betInput.value); if (!isNaN(rawBet) && rawBet > 0) bet = rawBet; }
@@ -672,7 +692,7 @@
         if (chatMessages) {
           const msgDiv = document.createElement('div');
           msgDiv.className = 'chat-message';
-          const strong = document.createElement('strong';
+          const strong = document.createElement('strong');
           strong.textContent = 'Système : ';
           const textNode = document.createTextNode('🟢 ' + data.player.name + ' a rejoint la partie !');
           msgDiv.appendChild(strong);
