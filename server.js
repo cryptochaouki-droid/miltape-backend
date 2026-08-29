@@ -399,7 +399,8 @@ io.on("connection", async (socket) => {
             let player = await Player.findOne({ wallet: wallet });
 
             if (player) {
-                // ✅ Joueur existant : On restaure TOUT sans bloquer (même pseudo, même score)
+                // ✅ JOUEUR EXISTANT : On restaure TOUT et on l'associe à la partie en cours
+                player.gameId = game.id; // ⚠️ C'EST LA LIGNE QUI MANQUAIT !
                 player.bet = bet; 
                 player.token = token;
                 player.paid = false; 
@@ -409,13 +410,16 @@ io.on("connection", async (socket) => {
                 await player.save();
                 socket.data.playerName = player.name; // On garde le pseudo sauvegardé
             } else {
-                // ✅ NOUVEAU joueur : On vérifie si le pseudo est déjà pris
+                // ✅ NOUVEAU JOUEUR : On vérifie le pseudo et on crée avec le gameId
                 const existingName = await Player.findOne({ name: name });
                 if (existingName) {
                     return socket.emit("error", { message: "❌ Ce pseudo est déjà utilisé ! Choisis-en un autre." });
                 }
                 
-                player = await Player.create({ name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) });
+                player = await Player.create({ 
+                    gameId: game.id, // ⚠️ C'EST AUSSI LA LIGNE QUI MANQUAIT POUR LES NOUVEAUX !
+                    name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) 
+                });
             }
 
             socket.data.playerId = player._id.toString();
