@@ -230,6 +230,9 @@ async function startPreparationPhase() {
     game.endsAt = null;
     game.preparationEndsAt = new Date(Date.now() + PREPARATION_DURATION_SECONDS * 1000);
 
+    // ✅ AJOUT IMPORTANT : REMETTRE LES TAPS À ZÉRO POUR LA NOUVELLE PARTIE
+    await Player.updateMany({}, { $set: { taps: 0, weeklyTaps: 0 } });
+
     io.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
     broadcastTimer();
 
