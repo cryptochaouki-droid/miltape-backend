@@ -13,6 +13,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60;
 const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
+const DUEL_DURATION_SECONDS = 60; // 1 minute pour un duel
+const DUEL_COMMISSION = 0.10; // 10% pour toi
 
 const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
@@ -93,11 +95,38 @@ const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }
 const historySchema = new mongoose.Schema({ playerId: mongoose.Schema.Types.ObjectId, playerName: String, wallet: String, gameId: String, rank: Number, bet: Number, gain: Number, taps: Number, token: String, paidOut: Boolean, payoutTxId: String }, { timestamps: true });
 const jackpotSchema = new mongoose.Schema({ weekStart: Date, weekEnd: Date, accumulatedFund: Number, winner: mongoose.Schema.Types.ObjectId, drawn: Boolean }, { timestamps: true });
 
+// ✅ AJOUT : Modèle pour les Duels 1vs1
+const duelSchema = new mongoose.Schema({
+    player1: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
+    player2: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
+    bet: { type: Number, required: true },
+    startTime: Date,
+    endTime: Date,
+    status: { type: String, default: 'waiting' }, // waiting, active, finished
+    winner: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
+    payoutTxId: String,
+    taps_player1: { type: Number, default: 0 },
+    taps_player2: { type: Number, default: 0 }
+}, { timestamps: true });
+
+// ✅ AJOUT : Modèle pour les paiements de Duel (anti-fraude)
+const duelPaymentSchema = new mongoose.Schema({
+    duelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Duel', index: true },
+    playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', index: true },
+    from: String,
+    to: String,
+    bet: Number,
+    txId: { type: String, unique: true },
+    verified: Boolean
+}, { timestamps: true });
+
 const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
 const Payment = mongoose.model("Payment", paymentSchema);
 const History = mongoose.model("History", historySchema);
 const Jackpot = mongoose.model("Jackpot", jackpotSchema);
+const Duel = mongoose.model("Duel", duelSchema);
+const DuelPayment = mongoose.model("DuelPayment", duelPaymentSchema);
 
 async function connectMongoDB() {
     try {
@@ -358,6 +387,33 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     } catch (e) { return false; }
 }
 
+// ✅ AJOUT : Vérification du paiement pour les Duels
+async function verifyDuelPayment(txId, expectedAmount, playerWallet) {
+    try {
+        const existingPayment = await DuelPayment.findOne({ txId });
+        if (existingPayment) return false;
+        const tx = await tronWeb.trx.getTransaction(txId);
+        if (!tx) return false;
+        const contract = tx.raw_data?.contract?.[0];
+        if (!contract) return false;
+        if (contract.type !== "TriggerSmartContract") return false;
+        const value = contract.parameter?.value;
+        if (!value) return false;
+        const contractAddress = tronWeb.address.fromHex(value.contract_address);
+        if (!sameWallet(contractAddress, SUPPORTED_TOKENS["USDT"].contract)) return false;
+        const recipient = tronWeb.address.fromHex("41" + value.data.substring(32, 72));
+        if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
+        const rawAmount = BigInt("0x" + value.data.substring(72, 136));
+        const amount = Number(rawAmount) / Math.pow(10, SUPPORTED_TOKENS["USDT"].decimals);
+        if (Math.abs(amount - expectedAmount) < 0.0000001) return false;
+        const txInfo = await tronWeb.trx.getTransactionInfo(txId);
+        if (!txInfo || txInfo.receipt?.result !== "SUCCESS") return false;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
@@ -391,19 +447,16 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // Si la partie est en attente, on lance une nouvelle phase
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
             if (!game.id) return socket.emit("error", { message: "La partie n'est pas encore disponible." });
             if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
-            // ✅ RECHERCHE PAR WALLET UNIQUEMENT (Indépendant du téléphone)
             let player = await Player.findOne({ wallet: wallet });
 
             if (player) {
-                // ✅ JOUEUR EXISTANT : On restaure TOUT et on l'associe à la partie en cours
-                player.gameId = game.id; // ⚠️ C'EST LA LIGNE QUI MANQUAIT !
+                player.gameId = game.id;
                 player.bet = bet; 
                 player.token = token;
                 player.paid = false; 
@@ -411,12 +464,10 @@ io.on("connection", async (socket) => {
                 player.depositAmount = bet; 
                 player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 await player.save();
-                socket.data.playerName = player.name; // On garde le pseudo sauvegardé
+                socket.data.playerName = player.name;
             } else {
-                // ✅ NOUVEAU JOUEUR : On crée directement sans vérifier le pseudo
-                // (Le serveur acceptera le pseudo choisi par le joueur à ce moment)
                 player = await Player.create({ 
-                    gameId: game.id, // ⚠️ C'EST AUSSI LA LIGNE QUI MANQUAIT POUR LES NOUVEAUX !
+                    gameId: game.id, 
                     name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) 
                 });
             }
@@ -449,6 +500,121 @@ io.on("connection", async (socket) => {
             const msg = await Message.create({ name, message, gameId: game.id });
             io.emit("chat:message", { id: msg._id, name, message, createdAt: msg.createdAt });
         } catch (error) { console.error("❌ chat:send :", error?.message || error); }
+    });
+
+    // ==========================================================
+    // ✅ AJOUT : ROUTES POUR LES DUELS 1VS1
+    // ==========================================================
+
+    socket.on("duel:create", async (data) => {
+        try {
+            const { playerId, bet, txId } = data;
+            const player = await Player.findById(playerId);
+            if (!player) return socket.emit("error", { message: "Joueur introuvable." });
+            if (!bet || bet < 1 || bet > 100) return socket.emit("error", { message: "Mise invalide (min 1, max 100 USDT)" });
+
+            const isValid = await verifyDuelPayment(txId, bet, player.wallet);
+            if (!isValid) return socket.emit("error", { message: "Transaction invalide ou montant incorrect" });
+
+            await DuelPayment.create({
+                duelId: null,
+                playerId: playerId,
+                from: player.wallet,
+                to: MILTAPE_WALLET,
+                bet: bet,
+                txId: txId,
+                verified: true
+            });
+
+            const duel = await Duel.create({
+                player1: playerId,
+                bet: bet,
+                status: 'waiting'
+            });
+
+            await DuelPayment.updateOne({ txId }, { $set: { duelId: duel._id } });
+
+            socket.emit('duel:created', { duel });
+            io.emit('chat:message', { name: "🎯 Système", message: `🥊 ${player.name} lance un duel à ${bet} USDT !` });
+        } catch (e) {
+            console.error("❌ Erreur duel:create :", e?.message || e);
+        }
+    });
+
+    socket.on("duel:accept", async (data) => {
+        try {
+            const { duelId, playerId, txId } = data;
+            const player = await Player.findById(playerId);
+            if (!player) return socket.emit("error", { message: "Joueur introuvable." });
+
+            const duel = await Duel.findById(duelId);
+            if (!duel || duel.status !== 'waiting') return socket.emit("error", { message: "Duel indisponible." });
+            if (duel.player1.toString() === playerId) return socket.emit("error", { message: "Tu ne peux pas accepter ton propre duel !" });
+
+            const isValid = await verifyDuelPayment(txId, duel.bet, player.wallet);
+            if (!isValid) return socket.emit("error", { message: "Transaction invalide ou montant incorrect" });
+
+            await DuelPayment.create({
+                duelId: duelId,
+                playerId: playerId,
+                from: player.wallet,
+                to: MILTAPE_WALLET,
+                bet: duel.bet,
+                txId: txId,
+                verified: true
+            });
+
+            duel.player2 = playerId;
+            duel.startTime = new Date();
+            duel.endTime = new Date(Date.now() + DUEL_DURATION_SECONDS * 1000);
+            duel.status = 'active';
+            await duel.save();
+
+            io.emit('duel:started', { duel });
+        } catch (e) {
+            console.error("❌ Erreur duel:accept :", e?.message || e);
+        }
+    });
+
+    socket.on("duel:tap", async (data) => {
+        try {
+            const { duelId, playerId } = data;
+            const duel = await Duel.findById(duelId);
+            if (!duel || duel.status !== 'active') return;
+
+            if (playerId.toString() === duel.player1.toString()) {
+                await Duel.updateOne({ _id: duelId }, { $inc: { taps_player1: 1 } });
+            } else if (playerId.toString() === duel.player2.toString()) {
+                await Duel.updateOne({ _id: duelId }, { $inc: { taps_player2: 1 } });
+            }
+
+            if (Date.now() >= duel.endTime - 5000) {
+                const finalDuel = await Duel.findById(duelId);
+                const player1Taps = finalDuel.taps_player1 || 0;
+                const player2Taps = finalDuel.taps_player2 || 0;
+
+                let winnerId = null;
+                if (player1Taps > player2Taps) winnerId = duel.player1;
+                else if (player2Taps > player1Taps) winnerId = duel.player2;
+                else winnerId = duel.player1;
+
+                const totalPot = duel.bet * 2;
+                const winnerGain = totalPot * 0.9;
+                const commission = totalPot * 0.1;
+
+                const winner = await Player.findById(winnerId);
+                const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain: winnerGain, token: "USDT" });
+
+                duel.winner = winnerId;
+                duel.payoutTxId = txId;
+                duel.status = 'finished';
+                await duel.save();
+
+                io.emit('duel:finished', { duel, winnerName: winner.name, gain: winnerGain });
+            }
+        } catch (e) {
+            console.error("❌ Erreur duel:tap :", e?.message || e);
+        }
     });
 
     socket.on("disconnect", async () => { onlineSockets.delete(socket.id); console.log(`🔴 Déconnexion Socket : ${socket.id}`); broadcastOnlineCount(); try { await broadcastGameState(); } catch (e) { console.error(e); } });
