@@ -31,9 +31,11 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
+  <!-- ⚠️ MODIFICATION IMPORTANTE : Socket.IO servi par votre serveur Railway -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
+    /* ===== FOND BLEU SAPHIR HD ===== */
     body {
       font-family: 'Poppins', sans-serif;
       background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%);
@@ -95,6 +97,7 @@
     .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
     .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
     .tap-zone { width: 100%; min-height: 310px; display: flex; align-items: center; justify-content: center; position: relative; padding: 10px 0; flex-direction: column; }
+    /* ===== CHRONOMÈTRE ===== */
     .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(100, 181, 246, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
     .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 3vw, 20px); color: #0d47a1; }
     .tap-zone #timerRule strong { font-size: clamp(20px, 5vw, 28px); color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); font-family: 'Orbitron', sans-serif; }
@@ -103,12 +106,14 @@
     .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    /* ===== BOUTON TAP ===== */
     .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }
     .tap-button:disabled { cursor: not-allowed; opacity: .6; }
     .tap-button:active:not(:disabled) { transform: scale(.92); }
     .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }
     .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }
     .tap-button small { display: none; }
+    /* ===== BOUTON JOUER ===== */
     .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }
     .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
     .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
@@ -201,6 +206,7 @@
     .online strong span:last-child { color: #fff; }
     .wallet-button { color: #fff; }
   </style>
+  <!-- ===== JACKPOT ===== -->
   <style>
     #jackpotDisplay { position: relative; width: calc(100% - 24px); margin: 12px auto; padding: 20px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%); border: 1px solid rgba(255, 80, 80, 0.8); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); overflow: hidden; text-align: center; animation: jackpotHaloPulse 3s ease-in-out infinite alternate; z-index: 1; }
     #jackpotDisplay::before { content: ''; position: absolute; top: -50%; left: -20%; width: 140%; height: 200%; background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, rgba(255, 30, 30, 0.05) 40%, transparent 70%); pointer-events: none; z-index: -1; }
@@ -226,6 +232,7 @@
 </head>
 
 <body>
+  <!-- ===== ÉLÉMENTS VISUELS ===== -->
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
@@ -234,7 +241,6 @@
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
-
   <!-- MODALE DE BIENVENUE -->
   <div id="welcomeModal">
     <div class="welcome-content">
@@ -251,8 +257,7 @@
       <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
     </div>
   </div>
-
-  <!-- MODALE PSEUDO / WALLET -->
+  <!-- MODALE PSEUDO / WALLET (AJOUTÉE POUR ÉVITER LE BLOCAGE DU PROMPT) -->
   <div id="nameModal" class="legal-modal">
     <div class="legal-content">
       <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
@@ -261,10 +266,11 @@
       <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
-
+  <!-- CONTENEUR DE NOTIFICATIONS -->
   <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
+  <!-- BOUTON PWA -->
   <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
-
+  <!-- MENU LATÉRAL -->
   <aside id="sideMenu" class="side-menu">
     <button id="closeMenu" class="close-menu" type="button">×</button>
     <div class="side-menu-content">
@@ -314,7 +320,7 @@
     </div>
   </aside>
   <div id="menuOverlay" class="menu-overlay"></div>
-
+  <!-- MODALE DYNAMIQUE -->
   <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
     <div class="legal-content">
       <button id="closeDynamicModal" class="legal-close" type="button">×</button>
@@ -322,7 +328,7 @@
       <div id="dynamicModalBody"></div>
     </div>
   </div>
-
+  <!-- ===== APPLICATION PRINCIPALE ===== -->
   <main class="app">
     <header class="top-header">
       <button class="menu-button" id="menuButton" type="button">☰</button>
@@ -335,7 +341,7 @@
       <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
       <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
-
+    <!-- JACKPOT -->
     <div id="jackpotDisplay">
       <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
       <div class="jackpot-title">🏆 JACKPOT</div>
@@ -354,9 +360,9 @@
       </div>
       <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
     </div>
-
+    <!-- TICKER DES GAGNANTS -->
     <div id="winnerTicker"><div id="tickerTrack"></div></div>
-
+    <!-- BANNIÈRE -->
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
       <div class="hero-header-overlay">
@@ -366,13 +372,13 @@
         </div>
       </div>
     </section>
-
+    <!-- ADRESSE DU SERVEUR -->
     <div class="server-wallet-box">
       <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
       <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
       <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
-
+    <!-- SÉLECTION TOKEN ET MISE -->
     <div style="text-align:center;margin:15px 0">
       <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <label class="crypto-label">🪙 CRYPTO :</label>
@@ -388,11 +394,12 @@
         <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">
       </div>
     </div>
-
+    <!-- BOUTON DE PAIEMENT ET JOUER -->
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
+    <!-- MESSAGE D'ÉTAT -->
     <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
-
+    <!-- ZONE DE TAP -->
     <section class="tap-zone" aria-label="Zone de tap">
       <div class="rule" id="timerRule">
         <span class="rule-icon">⏱️</span>
@@ -409,9 +416,9 @@
         <small style="display:none"><span id="tapButtonCount">0</span></small>
       </button>
     </section>
-
+    <!-- RÈGLES -->
     <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
-
+    <!-- CLASSEMENT + CHAT -->
     <div class="leaderboard-chat-wrapper">
       <section class="leaderboard">
         <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
@@ -426,31 +433,48 @@
         </div>
       </section>
     </div>
-
+    <!-- FOOTER -->
     <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
     <div style="width:100%;height:40px"></div>
   </main>
-
+  <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->
   <script>
+    // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for (let registration of registrations) {
           registration.unregister();
+          console.log('✅ Service Worker désactivé (cache vidé)');
         }
       });
     }
-
+    // TON CONNECT (optionnel)
     (function initTonConnect() {
       try {
-        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) return;
+        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {
+          console.warn("⚠️ TON Connect UI indisponible.");
+          return;
+        }
         window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
           manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
           buttonRootId: "ton-connect-button"
         });
-      } catch (e) { window.tonConnectUI = null; }
+        if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {
+          window.tonConnectUI.onStatusChange(function(w) {
+            if (w && w.account) {
+              console.log("✅ Wallet TON connecté :", w.account.address);
+            }
+          });
+        }
+        console.log("✅ TON Connect initialisé.");
+      } catch (e) {
+        console.error("❌ Erreur TON Connect :", e);
+        window.tonConnectUI = null;
+      }
     })();
-
+    // CONNEXION SOCKET.IO (UTILISE L'URL ACTUELLE DU SERVEUR)
     const socket = io();
+    // ÉLÉMENTS DOM
     const tapButton = document.getElementById('tapButton');
     const tapCount = document.getElementById('tapCount');
     const tapButtonCount = document.getElementById('tapButtonCount');
@@ -473,7 +497,7 @@
     const closeMenu = document.getElementById('closeMenu');
     const menuOverlay = document.getElementById('menuOverlay');
     const resetGameBtn = document.getElementById('resetGameBtn');
-
+    // ÉTATS
     let isPlaying = false;
     let isPaid = false;
     let myPlayerId = null;
@@ -481,48 +505,54 @@
     let myWallet = null;
     let myToken = 'USDT';
     let gameStatus = "waiting";
-
+    // VARIABLES POUR LE CHRONOMÈTRE LOCAL
     let endsAt = null;
     let timerInterval = null;
-
     function updateTimerDisplay() {
       const timerRuleValue = document.getElementById('timerRuleValue');
       if (!timerRuleValue) return;
-      if (!endsAt) { timerRuleValue.innerText = '--:--'; return; }
+      if (!endsAt) {
+        timerRuleValue.innerText = '--:--';
+        return;
+      }
       const now = Date.now();
       let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
       timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
     }
-
     function startLocalTimer() {
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         if (endsAt) {
           updateTimerDisplay();
-          if (Date.now() >= endsAt) { clearInterval(timerInterval); timerInterval = null; }
+          if (Date.now() >= endsAt) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
         }
       }, 200);
     }
     startLocalTimer();
-
+    // HAPTIC
     function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
     function hapticMedium() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {} }
     function hapticHeavy() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {} }
     function hapticSuccess() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
     function hapticError() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {} }
-
+    // MODE DÉMO
     let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
     function updateDemoUI() {
       if (demoMode) {
         if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#64b5f6"; }
         if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.2)"; demoBtn.style.borderColor = "rgba(100,181,246,0.4)"; demoBtn.style.color = "#64b5f6"; }
         if (demoToggleLabel) demoToggleLabel.textContent = "ON";
+        if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
       } else {
         if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "rgba(255,255,255,0.4)"; }
         if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.12)"; demoBtn.style.borderColor = "rgba(100,181,246,0.2)"; demoBtn.style.color = "#64b5f6"; }
         if (demoToggleLabel) demoToggleLabel.textContent = "OFF";
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       }
     }
     updateDemoUI();
@@ -539,7 +569,7 @@
         alert(demoMode ? "🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !" : "🔒 Mode démo désactivé.");
       });
     }
-
+    // RESTAURER LA SESSION
     async function restoreSession() {
       const playerId = localStorage.getItem("miltape_player_id");
       const wallet = localStorage.getItem("miltape_player_wallet");
@@ -555,14 +585,21 @@
           localStorage.removeItem("miltape_player_bet");
           return false;
         }
-      } catch (error) { return false; }
+      } catch (error) { console.error("❌ Erreur vérification statut :", error); return false; }
       socket.emit("player:restore", { playerId, wallet, deviceId: MY_DEVICE_ID });
       return true;
     }
-
-    socket.on('connect', async () => { await restoreSession(); });
+    // SOCKET CONNEXION
+    socket.on('connect', async () => {
+      console.log('✅ Socket connecté avec ID :', socket.id);
+      if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";
+      await restoreSession();
+    });
     socket.on('reconnect', async () => { await restoreSession(); socket.emit('timer:request'); });
-
+    socket.on('connect_error', (err) => { hapticError(); if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur."; });
+    socket.on('disconnect', (reason) => { if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur."; });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (localStorage.getItem("miltape_player_id")) restoreSession(); } });
+    // DEVICE ID
     function getOrCreateDeviceId() {
       let id = localStorage.getItem("miltape_device_id");
       if (id) return id;
@@ -571,7 +608,7 @@
       return id;
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
-
+    // REJOINDRE LA PARTIE (FONCTION MODIFIÉE POUR ÉVITER LE BLOCAGE DU PROMPT)
     async function joinGame() {
       const telegramName = getTelegramUser();
       let name = telegramName;
@@ -591,7 +628,6 @@
         await proceedJoin(name);
       }
     }
-
     async function proceedJoin(name) {
       let wallet;
       if (demoMode) {
@@ -609,19 +645,20 @@
       let bet = 10;
       if (betInput) { const rawBet = parseFloat(betInput.value); if (!isNaN(rawBet) && rawBet > 0) bet = rawBet; }
       myBet = bet; myWallet = wallet; myToken = token;
+      if (tapMessage) tapMessage.innerText = "Connexion au serveur en cours...";
       socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID });
       hapticMedium();
     }
-
     if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
     if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
-
+    // ÉVÉNEMENTS SOCKET : JOUEUR
     socket.on("player:joined", (data) => {
       if (data.success) {
         isPlaying = true; isPaid = false;
         myPlayerId = data.player.id;
         myToken = data.player.token || 'USDT';
         if (tapButton) tapButton.disabled = true;
+        if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
         updateTapCounter(data.player.taps);
         localStorage.setItem("miltape_player_id", data.player.id);
@@ -632,10 +669,11 @@
         if (demoMode) {
           isPaid = true;
           if (gameStatus === "running") tapButton.disabled = false;
+          if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
           fetch("/api/demo/verify", {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id })
-          }).catch(err => {});
+          }).catch(err => console.error(err));
         } else {
           if (payButton) {
             payButton.style.display = 'block';
@@ -645,7 +683,6 @@
         hapticMedium();
       }
     });
-
     socket.on("player:restored", (data) => {
       if (data.success) {
         isPlaying = true;
@@ -653,9 +690,11 @@
         if (demoMode) {
           isPaid = true;
           if (gameStatus === "running") tapButton.disabled = false;
+          if (tapMessage) tapMessage.innerText = "🔬 Mode démo : bon retour " + data.player.name + " !";
         } else {
           isPaid = data.player.paid || false;
           if (gameStatus === "running") tapButton.disabled = !isPaid;
+          if (tapMessage) tapMessage.innerText = isPaid ? "✅ Revenu ! ÉTAPE 3 : Tape maintenant !" : "💰 ÉTAPE 2 : Paie ta mise pour taper !";
           if (payButton) {
             if (!isPaid) { payButton.style.display = 'block'; payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet); }
             else { payButton.style.display = 'none'; }
@@ -670,42 +709,83 @@
         localStorage.setItem("miltape_player_token", myToken);
         hapticMedium();
       } else {
-        localStorage.clear();
+        localStorage.removeItem("miltape_player_id");
+        localStorage.removeItem("miltape_player_wallet");
+        localStorage.removeItem("miltape_player_name");
+        localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
         if (enterChallenge) enterChallenge.style.display = 'block';
+        if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       }
     });
-
     socket.on("payment:verified", (data) => {
       if (data.verified) {
         isPaid = true;
         hapticSuccess();
+        if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Attends que le jeu commence !";
         if (payButton) payButton.style.display = 'none';
       }
     });
-
     socket.on("game:finished", (data) => {
       if (tapCount) tapCount.innerText = "0";
       if (tapButtonCount) tapButtonCount.innerText = "0";
       isPlaying = false; isPaid = false; gameStatus = "waiting";
       if (tapButton) tapButton.disabled = true;
+      let message = "🏆 RÉSULTATS DE LA PARTIE 🏆\n" + "═".repeat(30) + "\n\n";
+      if (data.winners && data.winners.length > 0) {
+        message += "🥇 Les 5 gagnants (2x leur mise) :\n\n";
+        data.winners.forEach((w, index) => {
+          const emoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅";
+          message += emoji + " #" + w.rank + " " + w.name + "\n   Mise : " + formatAmount(w.bet) + " USDT → Gain : " + formatAmount(w.gain) + " USDT\n\n";
+        });
+        launchConfetti(); hapticHeavy();
+        data.winners.forEach((winner, index) => setTimeout(() => addWinnerToTicker(winner.name, formatAmount(winner.gain), winner.rank), index * 200));
+      } else {
+        message += "❌ Aucun gagnant cette fois-ci.\n\n";
+      }
+      alert(message);
       if (enterChallenge) enterChallenge.style.display = 'block';
       if (payButton) payButton.style.display = 'none';
       if (betInput) betInput.disabled = false;
-      localStorage.clear();
+      localStorage.removeItem("miltape_player_id");
+      localStorage.removeItem("miltape_player_wallet");
+      localStorage.removeItem("miltape_player_name");
+      localStorage.removeItem("miltape_player_bet");
+      localStorage.removeItem("miltape_player_token");
     });
-
+    // CONFETTIS
+    function launchConfetti() {
+      const colors = ['#64b5f6', '#ffd700', '#2ecc71', '#42a5f5', '#ff6b6b', '#ffd93d', '#6c5ce7', '#fd79a8'];
+      for (let i = 0; i < 60; i++) {
+        const c = document.createElement('div');
+        const size = 6 + Math.random() * 10;
+        const isCircle = Math.random() > 0.5;
+        c.style.cssText = 'position:fixed;width:' + size + 'px;height:' + (isCircle ? size : size * 0.4) + 'px;background:' + colors[Math.floor(Math.random() * colors.length)] + ';border-radius:' + (isCircle ? '50%' : '2px') + ';top:-10px;left:' + (Math.random() * 100) + '%;z-index:9999;pointer-events:none;animation:confettiFall ' + (2 + Math.random() * 2) + 's linear forwards;animation-delay:' + (Math.random() * 0.8) + 's;transform:rotate(' + (Math.random() * 360) + 'deg);box-shadow:0 0 6px rgba(255,255,255,0.1)';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
+      }
+    }
+    // TAP – BOUTON ET LOGIQUE
     function tapEffects() {
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
       setTimeout(() => tapButton.classList.remove('tap-active'), 100);
       hapticLight();
     }
-
     let lastTapTime = 0;
     const MIN_TAP_INTERVAL_MS = 50;
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        if (!isPlaying || tapButton.disabled || !isPaid) return;
+        if (!isPlaying || tapButton.disabled || !isPaid) {
+          if (!isPaid && tapMessage) {
+            tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
+            hapticError();
+            setTimeout(() => { if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !"; }, 3000);
+          } else if (isPaid && gameStatus === "preparing") {
+            if (tapMessage) tapMessage.innerText = "⏳ Le jeu commence dans quelques instants...";
+          }
+          return;
+        }
         const now = Date.now();
         if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
         lastTapTime = now;
@@ -713,18 +793,21 @@
         socket.emit("player:tap");
       });
     }
-
     socket.on("player:score", (data) => {
+      if (tapCount) tapCount.innerText = data.taps;
+      if (tapButtonCount) tapButtonCount.innerText = data.taps;
       updateTapCounter(data.taps);
     });
-
     function updateTapCounter(taps) {
       const el = document.getElementById('tapCounterDisplay');
       if (el) el.textContent = taps || 0;
     }
-
+    // TIMER – SYNCHRONISATION AVEC LE SERVEUR
     socket.on("timer:update", (data) => {
-      if (data.endsAt) { endsAt = new Date(data.endsAt).getTime(); updateTimerDisplay(); }
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+      }
       gameStatus = data.status || gameStatus;
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) {
@@ -733,7 +816,28 @@
       }
       if (data.status === "preparing" && tapButton) tapButton.disabled = true;
     });
-
+    socket.on("game:preparing", (data) => {
+      gameStatus = "preparing";
+      if (data.preparationEndsAt) {
+        endsAt = new Date(data.preparationEndsAt).getTime();
+        updateTimerDisplay();
+      }
+      const timerSmall = document.querySelector('#timerRule small');
+      if (timerSmall) timerSmall.innerText = "PRÉPARATION";
+      if (tapButton) tapButton.disabled = true;
+      if (tapMessage) tapMessage.innerText = "⏳ Phase de préparation (2 min) : Rejoins et paie ta mise !";
+    });
+    socket.on("game:started", (data) => {
+      gameStatus = "running";
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+      }
+      const timerSmall = document.querySelector('#timerRule small');
+      if (timerSmall) timerSmall.innerText = "EN DIRECT";
+      if (isPaid && tapButton) tapButton.disabled = false;
+      if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";
+    });
     socket.on("game:state", (data) => {
       if (data.game) {
         gameStatus = data.game.status;
@@ -741,27 +845,33 @@
           endsAt = new Date(data.game.preparationEndsAt).getTime();
           updateTimerDisplay();
           if (tapButton) tapButton.disabled = true;
+          const timerSmall = document.querySelector('#timerRule small');
+          if (timerSmall) timerSmall.innerText = "PRÉPARATION";
         } else if (data.game.status === "running" && data.game.endsAt) {
           endsAt = new Date(data.game.endsAt).getTime();
           updateTimerDisplay();
+          const timerSmall = document.querySelector('#timerRule small');
+          if (timerSmall) timerSmall.innerText = "EN DIRECT";
         }
       }
     });
-
+    // TOTAL DES MISES
     socket.on("totalStakes:update", (data) => {
       const displayBet = document.getElementById('displayBet');
       const displayBetTop = document.getElementById('displayBetTop');
       if (displayBet) displayBet.textContent = "$" + formatAmount(data.totalStakes);
       if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);
     });
-
+    // COMPTEUR EN LIGNE
     socket.on("online:count", (data) => {
-      let count = (typeof data === 'object' && data !== null && 'count' in data) ? data.count : data;
+      let count = data;
+      if (typeof data === 'object' && data !== null && 'count' in data) count = data.count;
       if (onlineCount) {
         onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px;"></span><span>' + count + ' EN LIGNE</span>';
       }
     });
-
+    setInterval(() => { socket.emit('online:count'); }, 5000);
+    // CLASSEMENT
     socket.on("leaderboard:update", (leaderboard) => {
       if (leaderboardList) {
         leaderboardList.innerHTML = "";
@@ -785,43 +895,136 @@
         });
       }
     });
-
+    // CHAT
     function sendMessage() {
       if (!chatInput) return;
       let text = chatInput.value.trim();
-      if (!text || text.length > 500) return;
+      if (!text) return;
+      if (text.length > 500) { alert("Message trop long !"); return; }
+      if (text.includes('<') || text.includes('>')) { alert("Les balises HTML ne sont pas autorisées !"); return; }
       socket.emit("chat:send", { message: text });
       chatInput.value = "";
     }
     if (chatSend) chatSend.addEventListener('click', sendMessage);
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
     socket.on("chat:message", (data) => {
       if (chatMessages) {
         const msgDiv = document.createElement('div');
         msgDiv.className = 'chat-message';
         const strong = document.createElement('strong');
         strong.textContent = data.name + ' :';
+        const textNode = document.createTextNode(' ' + data.message);
         msgDiv.appendChild(strong);
-        msgDiv.appendChild(document.createTextNode(' ' + data.message));
+        msgDiv.appendChild(textNode);
         chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
     });
-
+    // PAIEMENT
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
       fetch("/api/wallet").then(res => res.json()).then(data => {
         if (data.success) {
-          window.open('https://t.me/wallet?start=' + encodeURIComponent('transfer-' + data.wallet + '-' + formatAmount(amount) + '-' + token), '_blank');
+          const serverWallet = data.wallet;
+          const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + formatAmount(amount) + '-' + token);
+          const paymentUrl = 'https://t.me/wallet?start=' + startParam;
+          window.open(paymentUrl, '_blank');
           hapticMedium();
-        } else { hapticError(); }
-      }).catch(err => { hapticError(); });
+          alert("💰 Envoie " + formatAmount(amount) + " " + token + " (TRC20) vers :\n" + serverWallet + "\n\n✅ Le paiement sera détecté automatiquement !");
+        } else { hapticError(); alert("❌ Impossible de récupérer le wallet du serveur."); }
+      }).catch(err => { hapticError(); alert("❌ Erreur lors de la récupération du wallet."); });
     }
-
-    const menuGamesBtn = document.getElementById('menuGamesBtn');
-    if (menuGamesBtn) menuGamesBtn.addEventListener('click', () => showMenuMessage('🎮 Mes parties', '<p>Rejoins une partie pour commencer !</p>'));
-    
+    // GESTION DES ERREURS SOCKET
+    socket.on("error", (err) => {
+      if (err.message === "Joueur introuvable.") {
+        localStorage.removeItem("miltape_player_id");
+        localStorage.removeItem("miltape_player_wallet");
+        localStorage.removeItem("miltape_player_name");
+        localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
+        if (enterChallenge) enterChallenge.style.display = 'block';
+        return;
+      }
+      hapticError();
+      alert("⚠️ Erreur : " + err.message);
+    });
+    // NOTIFICATIONS
+    let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
+    const notifToggle = document.getElementById('notifToggle');
+    if (notifToggle) {
+      notifToggle.checked = notificationsEnabled;
+      notifToggle.addEventListener('change', function() { notificationsEnabled = this.checked; localStorage.setItem("miltape_notifications", this.checked.toString()); });
+    }
+    function showNotification(type, message, data = {}) {
+      if (!notificationsEnabled) return;
+      const container = document.getElementById('notificationContainer');
+      if (!container) return;
+      const notif = document.createElement('div');
+      notif.className = 'notification ' + type;
+      const wrapper = document.createElement('span');
+      wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'notif-text';
+      textSpan.textContent = message;
+      wrapper.appendChild(textSpan);
+      notif.appendChild(wrapper);
+      container.appendChild(notif);
+      if (type === 'champion') hapticHeavy();
+      else if (type === 'success') hapticMedium();
+      else hapticLight();
+      setTimeout(() => { if (notif.parentNode) notif.remove(); }, 4000);
+    }
+    socket.on("notification:new", (data) => { showNotification(data.type, data.message, data.data); });
+    // BANDEAU DES GAGNANTS (TICKER)
+    const winnerTicker = document.getElementById('winnerTicker');
+    const tickerTrack = document.getElementById('tickerTrack');
+    let tickerItems = [];
+    const MAX_TICKER_ITEMS = 20;
+    function addWinnerToTicker(name, amount, rank) {
+      if (!name) return;
+      const existing = tickerItems.find(item => item.name === name);
+      if (existing) { existing.amount = amount; updateTickerDisplay(); return; }
+      const emoji = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏅';
+      tickerItems.push({ name, amount, rank, emoji });
+      if (tickerItems.length > MAX_TICKER_ITEMS) tickerItems.shift();
+      updateTickerDisplay();
+      if (winnerTicker) winnerTicker.classList.add('show');
+    }
+    function buildTickerItemEl(item) {
+      const span = document.createElement('span');
+      span.className = 'ticker-item';
+      const trophy = document.createElement('span');
+      trophy.className = 'trophy';
+      trophy.textContent = item.emoji;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = item.name;
+      const arrow = document.createElement('span');
+      arrow.textContent = '→';
+      const amountSpan = document.createElement('span');
+      amountSpan.className = 'amount';
+      amountSpan.textContent = item.amount + ' USDT';
+      span.appendChild(trophy);
+      span.appendChild(nameSpan);
+      span.appendChild(arrow);
+      span.appendChild(amountSpan);
+      return span;
+    }
+    function updateTickerDisplay() {
+      if (!tickerTrack) return;
+      tickerTrack.innerHTML = "";
+      const doubled = [...tickerItems, ...tickerItems];
+      const frag = document.createDocumentFragment();
+      doubled.forEach(item => frag.appendChild(buildTickerItemEl(item)));
+      tickerTrack.appendChild(frag);
+    }
+    // MENU LATÉRAL
+    function toggleMenu() {
+      if (sideMenu && menuOverlay) { sideMenu.classList.toggle('show'); menuOverlay.classList.toggle('show'); }
+    }
+    if (menuButton) menuButton.addEventListener('click', toggleMenu);
+    if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
+    if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
     function showMenuMessage(title, content) {
       const modal = document.getElementById('dynamicModal');
       const modalTitle = document.getElementById('dynamicModalTitle');
@@ -833,16 +1036,23 @@
         hapticLight();
       }
     }
-    
     const closeModalBtn = document.getElementById('closeDynamicModal');
-    if (closeModalBtn) closeModalBtn.addEventListener('click', () => document.getElementById('dynamicModal').classList.remove('show'));
-
+    if (closeModalBtn) closeModalBtn.addEventListener('click', function() { const modal = document.getElementById('dynamicModal'); if (modal) modal.classList.remove('show'); });
+    const menuGamesBtn = document.getElementById('menuGamesBtn');
+    if (menuGamesBtn) menuGamesBtn.addEventListener('click', () => showMenuMessage('🎮 Mes parties', '<p>Rejoins une partie pour commencer !</p>'));
+    const menuRankingsBtn = document.getElementById('menuRankingsBtn');
+    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#0d47a1;">' + score + '</strong> taps</p>'); });
+    const menuRulesBtn = document.getElementById('menuRulesBtn');
+    if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
+    // RESET GAME
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
-        if (confirm("🔄 Recommencer une nouvelle partie ?")) { localStorage.clear(); window.location.reload(); }
+        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
+          localStorage.clear(); window.location.reload();
+        }
       });
     }
-
+    // TELEGRAM USER
     function getTelegramUser() {
       try {
         if (window.Telegram && window.Telegram.WebApp) {
@@ -853,17 +1063,54 @@
         return null;
       } catch (e) { return null; }
     }
-
+    // JACKPOT – COMPTE À REBOURS
+    let jackpotCountdownInterval = null;
+    function updateJackpotCountdown(nextDrawTime) {
+      const el = document.getElementById('jackpotCountdown');
+      if (!el) return;
+      if (!nextDrawTime || typeof nextDrawTime !== 'number' || nextDrawTime <= Date.now()) {
+        el.textContent = "Tirage en cours...";
+        if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }
+        socket.emit("jackpot:get");
+        return;
+      }
+      if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }
+      function update() {
+        const now = Date.now();
+        let diff = nextDrawTime - now;
+        if (diff <= 0) {
+          el.textContent = "Tirage en cours...";
+          clearInterval(jackpotCountdownInterval);
+          jackpotCountdownInterval = null;
+          socket.emit("jackpot:get");
+          return;
+        }
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        let display = "";
+        if (days > 0) display += days + "j ";
+        if (hours > 0 || days > 0) display += hours + "h ";
+        if (minutes > 0 || hours > 0 || days > 0) display += minutes + "m ";
+        display += seconds + "s";
+        el.textContent = display;
+      }
+      update();
+      jackpotCountdownInterval = setInterval(update, 1000);
+    }
     socket.on("jackpot:update", (data) => {
       const prizeElement = document.getElementById('jackpotAmount');
       if (prizeElement) prizeElement.textContent = formatAmount(data.prize) + " USDT";
+      if (data.nextDraw) updateJackpotCountdown(data.nextDraw);
     });
     socket.emit("jackpot:get");
-
+    // UTILITAIRES
     function formatAmount(value) {
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
+    console.log("✅ Script Miltape chargé avec succès.");
   </script>
 </body>
 </html>
