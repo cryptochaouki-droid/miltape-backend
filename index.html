@@ -34,7 +34,6 @@
   <!-- ⚠️ MODIFICATION IMPORTANTE : Socket.IO servi par votre serveur Railway -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  
   <style>
     /* ===== FOND BLEU SAPHIR HD ===== */
     body {
@@ -681,13 +680,22 @@
         if (tapButton) tapButton.disabled = true;
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
-        if (gameStatus === "running") updateTapCounter(data.player.taps);
+        
+        // ✅ AFFICHER 0 PENDANT LA PRÉPARATION
+        if (gameStatus === "running") {
+          updateTapCounter(data.player.taps);
+        } else {
+          updateTapCounter(0);
+        }
+
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
+        // ➕ AJOUT : NOTIFICATION QUAND QUELQU'UN SE CONNECTE
         showNotification("success", "🟢 " + data.player.name + " a rejoint la partie !");
+        // ➕ AJOUT : MESSAGE DANS LE CHAT
         if (chatMessages) {
           const msgDiv = document.createElement('div');
           msgDiv.className = 'chat-message';
@@ -720,7 +728,14 @@
       if (data.success) {
         isPlaying = true;
         myPlayerId = data.player.id; myWallet = data.player.wallet; myBet = data.player.bet || 10; myToken = data.player.token || 'USDT';
-        if (gameStatus === "running") updateTapCounter(data.player.taps);
+        
+        // ✅ AFFICHER 0 PENDANT LA PRÉPARATION
+        if (gameStatus === "running") {
+          updateTapCounter(data.player.taps);
+        } else {
+          updateTapCounter(0);
+        }
+
         if (demoMode) {
           isPaid = true;
           if (gameStatus === "running") tapButton.disabled = false;
@@ -757,6 +772,7 @@
         hapticSuccess();
         if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Attends que le jeu commence !";
         if (payButton) payButton.style.display = 'none';
+        // ➕ AJOUT : NOTIFICATION PAIEMENT
         showNotification("success", "✅ Paiement vérifié !");
       }
     });
@@ -774,6 +790,7 @@
         });
         launchConfetti(); hapticHeavy();
         data.winners.forEach((winner, index) => setTimeout(() => addWinnerToTicker(winner.name, formatAmount(winner.gain), winner.rank), index * 200));
+        // ➕ AJOUT : NOTIFICATION FIN DE PARTIE
         showNotification("champion", "🏆 La partie est terminée !");
       } else {
         message += "❌ Aucun gagnant cette fois-ci.\n\n";
@@ -872,6 +889,7 @@
       if (timerSmall) timerSmall.innerText = "EN DIRECT";
       if (isPaid && tapButton) tapButton.disabled = false;
       if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";
+      // ➕ AJOUT : NOTIFICATION DÉMARRAGE
       showNotification("success", "🚀 Le jeu a commencé !");
     });
     socket.on("game:state", (data) => {
@@ -955,6 +973,7 @@
         chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
+      // ➕ AJOUT : NOTIFICATION MESSAGE
       showNotification("info", "💬 " + data.name + " a écrit un message");
     });
     // PAIEMENT
