@@ -242,6 +242,27 @@
       box-shadow: 0 8px 0 #4a148c, 0 10px 30px rgba(156, 39, 176, 0.5) !important;
     }
     #duelButton:active { box-shadow: 0 2px 0 #4a148c !important; }
+
+    /* ===== BOUTONS DE MISE DUEL ===== */
+    .duelBetBtn {
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .duelBetBtn.active {
+      border-color: #9c27b0;
+      background: rgba(156, 39, 176, 0.3);
+      box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
+    }
   </style>
   <!-- ===== JACKPOT ===== -->
   <style>
@@ -421,25 +442,51 @@
       <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
 
+    <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
     <div style="text-align:center;margin:15px 0">
-      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <label class="crypto-label">🪙 CRYPTO :</label>
-        <select id="tokenSelect">
-          <option value="USDT">USDT (TRC20)</option>
-          <option value="USDC">USDC (TRC20)</option>
-          <option value="TUSD">TUSD (TRC20)</option>
-          <option value="TRX">TRX</option>
-        </select>
+      <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(100, 181, 246, 0.3); border-radius: 15px; padding: 15px; margin-bottom: 15px;">
+        <h4 style="color: #fff; margin: 0 0 10px; font-family: 'Orbitron', sans-serif;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #2ecc71; color: #fff; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔒 100% AUTOMATIQUE</span>
+            <span style="background: #64b5f6; color: #051230; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
+        </div>
+
+        <p style="color: #eee; font-size: 13px; margin: 0; line-height: 1.8;">
+            ⚡ <strong>Le paiement est instantané</strong> : Tu paies, le serveur vérifie la transaction en quelques secondes, et tu es automatiquement mis en file d'attente.<br><br>
+            💸 <strong>Le gain est instantané</strong> : Dès que le duel se termine, le serveur t'envoie <strong>automatiquement</strong> ton argent sur ton wallet TRON !<br><br>
+            🛡️ <strong>Nous ne touchons pas à ton argent</strong> : Le système est programmé pour t'envoyer exactement le montant gagné.
+        </p>
+
+        <div style="margin-top: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 10px;">
+            <strong style="color: #64b5f6;">💰 EXEMPLE :</strong><br>
+            <span style="color: #eee; font-size: 12px;">
+                Mise de <strong style="color: #fff;">1 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">1.80 USDT</strong><br>
+                Mise de <strong style="color: #fff;">10 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">18 USDT</strong>
+            </span>
+        </div>
       </div>
-      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
-        <label style="color:#fff;font-weight:700;font-size:14px;font-family:'Poppins',sans-serif">💰 MISE :</label>
-        <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">
+
+      <div style="margin: 10px 0;">
+        <h4 style="color:#fff; margin: 5px;">💰 CHOISIS TA MISE DUEL</h4>
+        <div id="duelBetsContainer" style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+            <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
+            <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
+            <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
+            <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
+            <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
+            <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
+            <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
+            <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
+            <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
+        </div>
       </div>
     </div>
+    <!-- ===== FIN SECTION DUEL ===== -->
 
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
     
-    <!-- ✅ AJOUT : BOUTON DUEL -->
+    <!-- ✅ BOUTON DUEL -->
     <button id="duelButton" class="main-play-button" type="button">⚡ MODE DUEL 1 VS 1 (1 MINUTE)</button>
     
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
@@ -526,7 +573,7 @@
     const tapButtonCount = document.getElementById('tapButtonCount');
     const enterChallenge = document.getElementById('enterChallenge');
     const enterChallengeTop = document.getElementById('enterChallengeTop');
-    const duelButton = document.getElementById('duelButton'); // ✅ AJOUT
+    const duelButton = document.getElementById('duelButton');
     const tapMessage = document.getElementById('tapMessage');
     const onlineCount = document.getElementById('onlineCount');
     const leaderboardList = document.getElementById('leaderboardList');
@@ -967,8 +1014,6 @@
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        // ✅ CORRECTION : On retire la condition "!isPaid" pour autoriser le tap 
-        // (nécessaire en mode démo et pour éviter les blocages)
         if (!isPlaying || tapButton.disabled) {
           return;
         }
@@ -1278,27 +1323,65 @@
     socket.emit("jackpot:get");
     
     // ===== AJOUT : LOGIQUE DU MODE DUEL =====
+    // Fonction pour sélectionner une mise prédéfinie
+    function selectDuelBet(btn) {
+      document.querySelectorAll('.duelBetBtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
     if (duelButton) {
       duelButton.addEventListener('click', () => {
-        socket.emit('duel:join');
-        duelButton.innerText = "⏳ RECHERCHE D'UN ADVERSAIRE...";
+        // Récupère la mise du bouton actif
+        const activeBetBtn = document.querySelector('.duelBetBtn.active');
+        const bet = activeBetBtn ? parseFloat(activeBetBtn.dataset.bet) : 1;
+        socket.emit('duel:join', { bet: bet });
+        duelButton.innerText = "⏳ RECHERCHE À " + bet + " USDT...";
       });
     }
+
+    // Demande de paiement pour rejoindre le duel
+    socket.on('duel:need_payment', (data) => {
+      const serverWallet = data.wallet;
+      const paymentUrl = 'https://t.me/wallet?start=transfer-' + serverWallet + '-' + data.amount + '-USDT';
+      window.open(paymentUrl, '_blank');
+      
+      alert("💰 PAYE " + data.amount + " USDT vers :\n" + serverWallet + "\n\n✅ DÈS QUE TU AS PAYÉ, ENTRE TON TxID.\n⚡ Le serveur vérifiera AUTOMATIQUEMENT ta transaction en quelques secondes !");
+      
+      setTimeout(() => {
+        const txId = prompt("✅ Entre l'ID de ta transaction (TxID) :");
+        if (txId) {
+          socket.emit('duel:payment_verified', { txId, playerId: myPlayerId });
+        }
+      }, 3000);
+    });
+
+    // Paiement accepté
+    socket.on('duel:payment_success', () => {
+      alert("✅ PAIEMENT VÉRIFIÉ AUTOMATIQUEMENT !\n⚡ Tu es maintenant en file d'attente !");
+    });
+
+    // Erreur de paiement
+    socket.on('duel:payment_error', (data) => {
+      alert("❌ " + data.message);
+    });
 
     socket.on('duel:queue', (data) => {
       console.log("👥 File d'attente :", data);
     });
 
+    // Duel démarré -> Le bouton devient le chrono
     socket.on('duel:started', (data) => {
       duelState.active = true;
-      duelState.endsAt = Date.now() + 60000;
       duelState.opponentName = data.opponentName;
-      duelButton.innerText = "⚔️ DUEL EN COURS...";
+      duelState.endsAt = Date.now() + 60000;
       
-      // Démarrer le chrono du duel (celui du mode normal est séparé)
+      duelButton.innerText = "⚔️ " + duelState.opponentName + " | 1:00";
+      
       let duelTimer = setInterval(() => {
         let remaining = Math.max(0, Math.floor((duelState.endsAt - Date.now()) / 1000));
-        duelButton.innerText = "⚔️ " + remaining + "s RESTANTES";
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        duelButton.innerText = "⚔️ " + duelState.opponentName + " | " + m + ":" + (s < 10 ? "0" : "") + s;
         
         if (remaining <= 0) {
           clearInterval(duelTimer);
@@ -1308,6 +1391,7 @@
       }, 1000);
     });
 
+    // Fin du duel
     socket.on('duel:finished', (data) => {
       duelState.active = false;
       duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
