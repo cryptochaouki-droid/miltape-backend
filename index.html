@@ -15,6 +15,8 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
   <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
+  
+  <!-- 1. Script Telegram sécurisé -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function initTelegramWebApp() {
@@ -22,17 +24,27 @@
         if (window.Telegram && window.Telegram.WebApp) {
           const w = window.Telegram.WebApp;
           w.expand();
-          w.BackButton.show();
-          w.BackButton.onClick(function() { w.close(); });
+          // Vérification de la version pour éviter l'erreur "BackButton not supported"
+          try {
+            if (w.version && parseFloat(w.version) >= 6.1) {
+              w.BackButton.show();
+              w.BackButton.onClick(function() { w.close(); });
+            }
+          } catch (e) { console.warn("⚠️ BackButton non supporté:", e); }
+          
           if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
           console.log("✅ Telegram WebApp initialisée");
         }
       } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
     })();
   </script>
+  
+  <!-- 2. CDN Socket.IO (CORRIGE L'ERREUR 404 ET "io is not defined") -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  
   <style>
     /* ===== FOND BLEU SAPHIR HD ===== */
     body {
@@ -96,7 +108,6 @@
     .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
     .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
     .tap-zone { width: 100%; min-height: 310px; display: flex; align-items: center; justify-content: center; position: relative; padding: 10px 0; flex-direction: column; }
-    /* ===== CHRONOMÈTRE ===== */
     .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(100, 181, 246, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
     .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 3vw, 20px); color: #0d47a1; }
     .tap-zone #timerRule strong { font-size: clamp(20px, 5vw, 28px); color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); font-family: 'Orbitron', sans-serif; }
@@ -105,14 +116,12 @@
     .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    /* ===== BOUTON TAP ===== */
     .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }
     .tap-button:disabled { cursor: not-allowed; opacity: .6; }
     .tap-button:active:not(:disabled) { transform: scale(.92); }
     .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }
     .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }
     .tap-button small { display: none; }
-    /* ===== BOUTON JOUER ===== */
     .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }
     .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
     .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
@@ -231,7 +240,6 @@
 </head>
 
 <body>
-  <!-- ===== ÉLÉMENTS VISUELS ===== -->
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
@@ -240,7 +248,7 @@
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
-  <!-- MODALE DE BIENVENUE -->
+
   <div id="welcomeModal">
     <div class="welcome-content">
       <div class="welcome-icon">🎮</div>
@@ -256,7 +264,7 @@
       <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
     </div>
   </div>
-  <!-- MODALE PSEUDO -->
+
   <div id="nameModal" class="legal-modal">
     <div class="legal-content">
       <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
@@ -264,7 +272,7 @@
       <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
-  <!-- MODALE WALLET -->
+
   <div id="walletModal" class="legal-modal">
     <div class="legal-content">
       <h3>💰 Entrez votre adresse TRON</h3>
@@ -272,11 +280,10 @@
       <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
-  <!-- CONTENEUR DE NOTIFICATIONS -->
+
   <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
-  <!-- BOUTON PWA -->
   <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
-  <!-- MENU LATÉRAL -->
+
   <aside id="sideMenu" class="side-menu">
     <button id="closeMenu" class="close-menu" type="button">×</button>
     <div class="side-menu-content">
@@ -326,7 +333,7 @@
     </div>
   </aside>
   <div id="menuOverlay" class="menu-overlay"></div>
-  <!-- MODALE DYNAMIQUE -->
+
   <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
     <div class="legal-content">
       <button id="closeDynamicModal" class="legal-close" type="button">×</button>
@@ -334,7 +341,7 @@
       <div id="dynamicModalBody"></div>
     </div>
   </div>
-  <!-- ===== APPLICATION PRINCIPALE ===== -->
+
   <main class="app">
     <header class="top-header">
       <button class="menu-button" id="menuButton" type="button">☰</button>
@@ -347,7 +354,7 @@
       <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
       <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
-    <!-- JACKPOT -->
+
     <div id="jackpotDisplay">
       <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
       <div class="jackpot-title">🏆 JACKPOT</div>
@@ -366,9 +373,9 @@
       </div>
       <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
     </div>
-    <!-- TICKER DES GAGNANTS -->
+
     <div id="winnerTicker"><div id="tickerTrack"></div></div>
-    <!-- BANNIÈRE -->
+
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
       <div class="hero-header-overlay">
@@ -378,13 +385,13 @@
         </div>
       </div>
     </section>
-    <!-- ADRESSE DU SERVEUR -->
+
     <div class="server-wallet-box">
       <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
       <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
       <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
-    <!-- SÉLECTION TOKEN ET MISE -->
+
     <div style="text-align:center;margin:15px 0">
       <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <label class="crypto-label">🪙 CRYPTO :</label>
@@ -400,12 +407,12 @@
         <input type="text" inputmode="decimal" id="betInput" value="10" style="width:140px;padding:10px;background:rgba(255,255,255,.06);backdrop-filter:blur(5px);color:#fff;border:1px solid rgba(255,255,255,.08);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif">
       </div>
     </div>
-    <!-- BOUTON DE PAIEMENT ET JOUER -->
+
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
-    <!-- MESSAGE D'ÉTAT -->
+
     <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
-    <!-- ZONE DE TAP -->
+
     <section class="tap-zone" aria-label="Zone de tap">
       <div class="rule" id="timerRule">
         <span class="rule-icon">⏱️</span>
@@ -422,9 +429,9 @@
         <small style="display:none"><span id="tapButtonCount">0</span></small>
       </button>
     </section>
-    <!-- RÈGLES -->
+
     <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
-    <!-- CLASSEMENT + CHAT -->
+
     <div class="leaderboard-chat-wrapper">
       <section class="leaderboard">
         <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
@@ -439,17 +446,16 @@
         </div>
       </section>
     </div>
-    <!-- FOOTER -->
+
     <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
     <div style="width:100%;height:40px"></div>
   </main>
-  <!-- ===== SCRIPT PRINCIPAL (CORRIGÉ) ===== -->
+
   <script>
     // ===== CONFIGURATION BACKEND =====
-    // ✅ URL de votre backend sur Railway
+    // ⚠️ REMPLACEZ CETTE URL PAR CELLE DE VOTRE SERVICE RAILWAY
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
     
-    // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for (let registration of registrations) {
@@ -459,24 +465,13 @@
       });
     }
     
-    // TON CONNECT (optionnel)
     (function initTonConnect() {
       try {
-        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {
-          console.warn("⚠️ TON Connect UI indisponible.");
-          return;
-        }
+        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) return;
         window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
           manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
           buttonRootId: "ton-connect-button"
         });
-        if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {
-          window.tonConnectUI.onStatusChange(function(w) {
-            if (w && w.account) {
-              console.log("✅ Wallet TON connecté :", w.account.address);
-            }
-          });
-        }
         console.log("✅ TON Connect initialisé.");
       } catch (e) {
         console.error("❌ Erreur TON Connect :", e);
@@ -484,7 +479,7 @@
       }
     })();
     
-    // ✅ CONNEXION SOCKET.IO VERS RAILWAY
+    // ✅ CONNEXION SOCKET.IO VERS RAILWAY (CDN)
     const socket = io(BACKEND_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -492,7 +487,6 @@
         reconnectionDelay: 1000
     });
     
-    // ÉLÉMENTS DOM
     const tapButton = document.getElementById('tapButton');
     const tapCount = document.getElementById('tapCount');
     const tapButtonCount = document.getElementById('tapButtonCount');
@@ -516,7 +510,6 @@
     const menuOverlay = document.getElementById('menuOverlay');
     const resetGameBtn = document.getElementById('resetGameBtn');
     
-    // ÉTATS
     let isPlaying = false;
     let isPaid = false;
     let myPlayerId = null;
@@ -525,25 +518,19 @@
     let myToken = 'USDT';
     let gameStatus = "waiting";
     
-    // VARIABLES POUR LE CHRONOMÈTRE LOCAL
     let endsAt = null;
     let timerInterval = null;
     
-    // ✅ FONCTION DE MISE À JOUR DU TIMER (AMÉLIORÉE)
     function updateTimerDisplay() {
       const timerRuleValue = document.getElementById('timerRuleValue');
       if (!timerRuleValue) return;
-      if (!endsAt) {
-        timerRuleValue.innerText = '--:--';
-        return;
-      }
+      if (!endsAt) { timerRuleValue.innerText = '--:--'; return; }
       const now = Date.now();
       let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
       timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
       
-      // ✅ Mettre à jour le statut si le timer est écoulé
       if (remaining <= 0 && timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
@@ -565,17 +552,14 @@
       }, 200);
     }
     
-    // Démarrer le timer local
     startLocalTimer();
     
-    // HAPTIC
     function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
     function hapticMedium() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {} }
     function hapticHeavy() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {} }
     function hapticSuccess() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
     function hapticError() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {} }
     
-    // MODE DÉMO
     let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
     function updateDemoUI() {
       if (demoMode) {
@@ -606,7 +590,6 @@
       });
     }
     
-    // RESTAURER LA SESSION
     async function restoreSession() {
       const playerId = localStorage.getItem("miltape_player_id");
       const wallet = localStorage.getItem("miltape_player_wallet");
@@ -624,14 +607,10 @@
         }
       } catch (error) { console.error("❌ Erreur vérification statut :", error); return false; }
       socket.emit("player:restore", { playerId, wallet, deviceId: MY_DEVICE_ID });
-      
-      // ✅ Demander le timer immédiatement
       setTimeout(() => socket.emit("timer:request"), 200);
-      
       return true;
     }
     
-    // DEVICE ID
     function getOrCreateDeviceId() {
       let id = localStorage.getItem("miltape_device_id");
       if (id) return id;
@@ -641,7 +620,6 @@
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
     
-    // ===== GESTION DU TEMPS =====
     socket.on("timer:update", (data) => {
       console.log("⏱️ TIMER REÇU :", data);
       if (data.endsAt) {
@@ -688,14 +666,10 @@
       showNotification("success", "🚀 Le jeu a commencé !");
     });
     
-    // ===== SOCKET CONNEXION =====
     socket.on('connect', async () => {
       console.log('✅ Socket connecté avec ID :', socket.id);
       if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";
-      
-      // ✅ Demander le timer immédiatement
       socket.emit("timer:request");
-      
       await restoreSession();
     });
     
@@ -725,7 +699,6 @@
       } 
     });
     
-    // ===== REJOINDRE LA PARTIE =====
     async function joinGame() {
       const telegramName = getTelegramUser();
       let name = telegramName;
@@ -783,7 +756,6 @@
     if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
     if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
     
-    // ===== ÉVÉNEMENTS SOCKET : JOUEUR =====
     socket.on("player:joined", (data) => {
       console.log("✅ PLAYER JOINED :", data);
       if (data.success) {
@@ -849,11 +821,8 @@
         myBet = data.player.bet || 10; 
         myToken = data.player.token || 'USDT';
         
-        if (gameStatus === "running") {
-          updateTapCounter(data.player.taps);
-        } else {
-          updateTapCounter(0);
-        }
+        if (gameStatus === "running") updateTapCounter(data.player.taps);
+        else updateTapCounter(0);
 
         if (demoMode) {
           isPaid = true;
@@ -929,7 +898,6 @@
       localStorage.removeItem("miltape_player_token");
     });
     
-    // ===== CONFETTIS =====
     function launchConfetti() {
       const colors = ['#64b5f6', '#ffd700', '#2ecc71', '#42a5f5', '#ff6b6b', '#ffd93d', '#6c5ce7', '#fd79a8'];
       for (let i = 0; i < 60; i++) {
@@ -942,7 +910,6 @@
       }
     }
     
-    // ===== TAP =====
     function tapEffects() {
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
@@ -984,7 +951,6 @@
       if (el) el.textContent = taps || 0;
     }
     
-    // ===== GAME STATE =====
     socket.on("game:state", (data) => {
       if (data.game) {
         gameStatus = data.game.status;
@@ -1003,7 +969,6 @@
       }
     });
     
-    // ===== TOTAL DES MISES =====
     socket.on("totalStakes:update", (data) => {
       const displayBet = document.getElementById('displayBet');
       const displayBetTop = document.getElementById('displayBetTop');
@@ -1011,7 +976,6 @@
       if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);
     });
     
-    // ===== COMPTEUR EN LIGNE =====
     socket.on("online:count", (data) => {
       let count = data;
       if (typeof data === 'object' && data !== null && 'count' in data) count = data.count;
@@ -1022,7 +986,6 @@
     
     setInterval(() => { socket.emit('online:count'); }, 5000);
     
-    // ===== CLASSEMENT =====
     socket.on("leaderboard:update", (leaderboard) => {
       if (leaderboardList) {
         leaderboardList.innerHTML = "";
@@ -1047,7 +1010,6 @@
       }
     });
     
-    // ===== CHAT =====
     function sendMessage() {
       if (!chatInput) return;
       let text = chatInput.value.trim();
@@ -1076,7 +1038,6 @@
       showNotification("info", "💬 " + data.name + " a écrit un message");
     });
     
-    // ===== PAIEMENT =====
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
       fetch(BACKEND_URL + "/api/wallet").then(res => res.json()).then(data => {
@@ -1091,7 +1052,6 @@
       }).catch(err => { hapticError(); alert("❌ Erreur lors de la récupération du wallet."); });
     }
     
-    // ===== GESTION DES ERREURS SOCKET =====
     socket.on("error", (err) => {
       if (err.message === "Joueur introuvable.") {
         localStorage.removeItem("miltape_player_id");
@@ -1106,7 +1066,6 @@
       alert("⚠️ Erreur : " + err.message);
     });
     
-    // ===== NOTIFICATIONS =====
     let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
     const notifToggle = document.getElementById('notifToggle');
     if (notifToggle) {
@@ -1136,7 +1095,6 @@
     
     socket.on("notification:new", (data) => { showNotification(data.type, data.message, data.data); });
     
-    // ===== BANDEAU DES GAGNANTS =====
     const winnerTicker = document.getElementById('winnerTicker');
     const tickerTrack = document.getElementById('tickerTrack');
     let tickerItems = [];
@@ -1183,7 +1141,6 @@
       tickerTrack.appendChild(frag);
     }
     
-    // ===== MENU LATÉRAL =====
     function toggleMenu() {
       if (sideMenu && menuOverlay) { sideMenu.classList.toggle('show'); menuOverlay.classList.toggle('show'); }
     }
@@ -1215,7 +1172,6 @@
     const menuRulesBtn = document.getElementById('menuRulesBtn');
     if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
     
-    // ===== RESET GAME =====
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
         if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
@@ -1224,7 +1180,6 @@
       });
     }
     
-    // ===== TELEGRAM USER =====
     function getTelegramUser() {
       try {
         if (window.Telegram && window.Telegram.WebApp) {
@@ -1236,7 +1191,6 @@
       } catch (e) { return null; }
     }
     
-    // ===== JACKPOT =====
     let jackpotCountdownInterval = null;
     
     function updateJackpotCountdown(nextDrawTime) {
@@ -1282,7 +1236,6 @@
     
     socket.emit("jackpot:get");
     
-    // ===== UTILITAIRES =====
     function formatAmount(value) {
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
