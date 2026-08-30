@@ -447,6 +447,7 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
+            // ✅ CORRECTION : On lance la partie quand un joueur clique !
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
@@ -748,7 +749,7 @@ async function startServer() {
             console.log("🚀 BACKEND ONLINE (Sécurisé)");
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🔬 Mode Démo Gratuit : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIF' : 'INACTIF'}`);
-            // ✅ CORRECTION : On ne lance PAS la partie automatiquement !
+            // ✅ Le serveur attend qu'un joueur clique !
         });
     } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
 }
