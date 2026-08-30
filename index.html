@@ -38,6 +38,28 @@
       } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
     })();
   </script>
+
+  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE (POUR ÉVITER LES VERSIONS OBSOLÈTES) ===== -->
+  <script>
+    // Supprimer tous les caches existants
+    if ('caches' in window) {
+        caches.keys().then(function(names) {
+            names.forEach(function(name) {
+                caches.delete(name);
+            });
+        });
+    }
+    
+    // Désinstaller le Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (let registration of registrations) {
+                registration.unregister();
+                console.log('✅ Service Worker désinstallé.');
+            }
+        });
+    }
+  </script>
   
   <!-- 2. CDN Socket.IO -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -456,11 +478,12 @@
     // ⚠️ REMPLACEZ CETTE URL PAR CELLE DE VOTRE SERVICE RAILWAY
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
     
+    // ===== DÉSACTIVATION DU CACHE DANS LE SCRIPT =====
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for (let registration of registrations) {
           registration.unregister();
-          console.log('✅ Service Worker désactivé (cache vidé)');
+          console.log('✅ Service Worker désinstallé');
         }
       });
     }
@@ -932,9 +955,6 @@
         // ✅ CORRECTION : On retire la condition "!isPaid" pour autoriser le tap 
         // (nécessaire en mode démo et pour éviter les blocages)
         if (!isPlaying || tapButton.disabled) {
-          if (tapButton.disabled && tapMessage) {
-            tapMessage.innerText = "⏳ Le jeu n'a pas encore commencé !";
-          }
           return;
         }
         const now = Date.now();
@@ -946,6 +966,7 @@
     }
     
     socket.on("player:score", (data) => {
+      console.log("🖱️ SCORE REÇU :", data);
       if (tapCount) tapCount.innerText = data.taps;
       if (tapButtonCount) tapButtonCount.innerText = data.taps;
       updateTapCounter(data.taps);
