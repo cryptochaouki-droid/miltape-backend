@@ -537,6 +537,94 @@ io.on("connection", async (socket) => {
     });
 });
 
+// ===== MODE DUEL 1 VS 1 AVEC PAIEMENT (COMMISSION 10%) =====
+let duelQueue = [];
+let duelActive = null;
+
+// Ce bloc s'exécute pour chaque nouvelle connexion
+io.on("connection", (socket) => {
+    
+    // 1. Le joueur rejoint la file d'attente du duel
+    socket.on("duel:join", () => {
+        if (duelQueue.includes(socket.id)) return;
+        duelQueue.push(socket.id);
+        socket.emit("duel:queue", { message: "En attente d'un adversaire..." });
+
+        // Si 2 joueurs sont prêts, on lance le duel
+        if (duelQueue.length >= 2) {
+            const socket1 = duelQueue.shift();
+            const socket2 = duelQueue.shift();
+
+            duelActive = { 
+                socket1, socket2, 
+                endsAt: Date.now() + 60000, 
+                taps1: 0, taps2: 0 
+            };
+
+            io.to(socket1).emit("duel:started", { opponentName: "Adversaire", bet: 10 });
+            io.to(socket2).emit("duel:started", { opponentName: "Adversaire", bet: 10 });
+
+            // Fin du duel après 60 secondes
+            setTimeout(async () => {
+                if (!duelActive) return;
+
+                // Récupérer les infos des joueurs
+                const player1 = await Player.findOne({ _id: duelActive.socket1 }).select("name wallet");
+                const player2 = await Player.findOne({ _id: duelActive.socket2 }).select("name wallet");
+
+                // Déterminer le gagnant (basé sur les taps du duel)
+                const winnerSocket = duelActive.taps1 >= duelActive.taps2 ? socket1 : socket2;
+                const loserSocket = winnerSocket === socket1 ? socket2 : socket1;
+
+                // 💰 VOTRE COMMISSION : Vous gardez 2 USDT (10% de 20 USDT)
+                const totalBet = 20;
+                const yourCut = 2; // Votre profit
+                const winnerPrize = totalBet - yourCut; // 18 USDT
+
+                // Envoyer les gains au gagnant (si le wallet est disponible)
+                const winnerPlayer = await Player.findOne({ _id: winnerSocket });
+                if (winnerPlayer && winnerPlayer.wallet) {
+                    const txId = await sendPrizeToWinner({ 
+                        wallet: winnerPlayer.wallet, 
+                        gain: winnerPrize, 
+                        token: "USDT", 
+                        playerName: winnerPlayer.name 
+                    });
+
+                    // Annoncer les résultats
+                    io.to(winnerSocket).emit("duel:finished", { 
+                        winnerName: "Vous", 
+                        myTaps: duelActive.taps1 >= duelActive.taps2 ? duelActive.taps1 : duelActive.taps2,
+                        opponentTaps: duelActive.taps1 >= duelActive.taps2 ? duelActive.taps2 : duelActive.taps1,
+                        prize: winnerPrize, 
+                        txId 
+                    });
+                    io.to(loserSocket).emit("duel:finished", { 
+                        winnerName: "Adversaire", 
+                        myTaps: duelActive.taps1 >= duelActive.taps2 ? duelActive.taps2 : duelActive.taps1,
+                        opponentTaps: duelActive.taps1 >= duelActive.taps2 ? duelActive.taps1 : duelActive.taps2,
+                        prize: 0, 
+                        txId: null 
+                    });
+                }
+
+                duelActive = null;
+            }, 60000);
+        }
+    });
+
+    // 2. Compter les taps du duel
+    socket.on("duel:tap", () => {
+        if (duelActive) {
+            if (socket.id === duelActive.socket1) {
+                duelActive.taps1++;
+            } else if (socket.id === duelActive.socket2) {
+                duelActive.taps2++;
+            }
+        }
+    });
+});
+
 // ===== INTERVALLES =====
 setInterval(() => {
     if (game.status === "preparing" || game.status === "running") broadcastTimer();
