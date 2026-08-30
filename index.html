@@ -235,6 +235,13 @@
     .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }
     .online strong span:last-child { color: #fff; }
     .wallet-button { color: #fff; }
+
+    /* ===== BOUTON DUEL ===== */
+    #duelButton {
+      background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+      box-shadow: 0 8px 0 #4a148c, 0 10px 30px rgba(156, 39, 176, 0.5) !important;
+    }
+    #duelButton:active { box-shadow: 0 2px 0 #4a148c !important; }
   </style>
   <!-- ===== JACKPOT ===== -->
   <style>
@@ -431,6 +438,10 @@
     </div>
 
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
+    
+    <!-- ✅ AJOUT : BOUTON DUEL -->
+    <button id="duelButton" class="main-play-button" type="button">⚡ MODE DUEL 1 VS 1 (1 MINUTE)</button>
+    
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 
     <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
@@ -515,6 +526,7 @@
     const tapButtonCount = document.getElementById('tapButtonCount');
     const enterChallenge = document.getElementById('enterChallenge');
     const enterChallengeTop = document.getElementById('enterChallengeTop');
+    const duelButton = document.getElementById('duelButton'); // ✅ AJOUT
     const tapMessage = document.getElementById('tapMessage');
     const onlineCount = document.getElementById('onlineCount');
     const leaderboardList = document.getElementById('leaderboardList');
@@ -543,6 +555,9 @@
     
     let endsAt = null;
     let timerInterval = null;
+
+    // ✅ AJOUT : VARIABLES DU DUEL
+    let duelState = { active: false, endsAt: null, opponentName: null, myTaps: 0, opponentTaps: 0 };
     
     // ===== CORRECTION MAJEURE : Affichage par défaut (évite les carrés) =====
     function updateTimerDisplay() {
@@ -1261,6 +1276,52 @@
     });
     
     socket.emit("jackpot:get");
+    
+    // ===== AJOUT : LOGIQUE DU MODE DUEL =====
+    if (duelButton) {
+      duelButton.addEventListener('click', () => {
+        socket.emit('duel:join');
+        duelButton.innerText = "⏳ RECHERCHE D'UN ADVERSAIRE...";
+      });
+    }
+
+    socket.on('duel:queue', (data) => {
+      console.log("👥 File d'attente :", data);
+    });
+
+    socket.on('duel:started', (data) => {
+      duelState.active = true;
+      duelState.endsAt = Date.now() + 60000;
+      duelState.opponentName = data.opponentName;
+      duelButton.innerText = "⚔️ DUEL EN COURS...";
+      
+      // Démarrer le chrono du duel (celui du mode normal est séparé)
+      let duelTimer = setInterval(() => {
+        let remaining = Math.max(0, Math.floor((duelState.endsAt - Date.now()) / 1000));
+        duelButton.innerText = "⚔️ " + remaining + "s RESTANTES";
+        
+        if (remaining <= 0) {
+          clearInterval(duelTimer);
+          duelState.active = false;
+          duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+        }
+      }, 1000);
+    });
+
+    socket.on('duel:finished', (data) => {
+      duelState.active = false;
+      duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+      alert("🏆 Résultat : " + data.winnerName + " a gagné !\nTes taps : " + data.myTaps + "\nTaps adverse : " + data.opponentTaps + "\n💰 Gain : " + data.prize + " USDT");
+    });
+
+    // Réutiliser le bouton TAPE pour le duel
+    if (tapButton) {
+      tapButton.addEventListener('click', () => {
+        if (duelState.active) {
+          socket.emit('duel:tap');
+        }
+      });
+    }
     
     function formatAmount(value) {
       if (value === null || value === undefined || isNaN(value)) return "0";
