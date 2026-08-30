@@ -4,7 +4,8 @@
   "description": "Miltape World Challenge Backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "engines": {
     "node": "20.x"
@@ -18,5 +19,8 @@
     "node-cron": "^3.0.3",
     "socket.io": "^4.7.5",
     "tronweb": "^6.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
