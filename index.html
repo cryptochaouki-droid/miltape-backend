@@ -521,14 +521,13 @@
     let endsAt = null;
     let timerInterval = null;
     
-    // ===== CORRECTION MAJEURE DU CHRONO (AFFICHAGE SÉCURISÉ) =====
+    // ===== CORRECTION MAJEURE : Affichage par défaut (évite les carrés) =====
     function updateTimerDisplay() {
       const timerRuleValue = document.getElementById('timerRuleValue');
       if (!timerRuleValue) return;
       
-      // Si pas de date reçue, on affiche 10:00 par défaut (empêche les carrés)
       if (!endsAt) { 
-        timerRuleValue.innerText = "10:00"; 
+        timerRuleValue.innerText = "10:00"; // Affiche 10:00 si pas de données
         return; 
       }
       
@@ -537,14 +536,13 @@
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
       
-      // Formatage propre avec des zéros (ex: 09:05)
-      timerRuleValue.innerText = m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0');
+      timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
       
       if (remaining <= 0 && timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
         const timerSmall = document.querySelector('#timerRule small');
-        if (timerSmall) timerSmall.innerText = "PRÉPARATION"; // Ne reste pas bloqué sur "TERMINÉ"
+        if (timerSmall) timerSmall.innerText = "PRÉPARATION"; // Ne reste jamais bloqué sur TERMINÉ
       }
     }
     
@@ -629,7 +627,7 @@
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
     
-    // ===== CORRECTION DU CLIGNOTEMENT DU STATUT =====
+    // ===== CORRECTION DU CLIGNOTEMENT =====
     socket.on("timer:update", (data) => {
       console.log("⏱️ TIMER REÇU :", data);
       if (data.endsAt) {
@@ -641,11 +639,9 @@
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) {
         if (data.status === "running") timerSmall.innerText = "EN DIRECT";
-        else timerSmall.innerText = "PRÉPARATION"; // On évite "TERMINÉ" et "EN ATTENTE" pour ne pas clignoter
+        else timerSmall.innerText = "PRÉPARATION"; // On évite de clignoter entre plusieurs statuts
       }
-      if (data.status === "preparing" || data.status === "waiting") {
-        if (tapButton) tapButton.disabled = true;
-      }
+      if (data.status === "preparing" && tapButton) tapButton.disabled = true;
     });
     
     socket.on("game:preparing", (data) => {
