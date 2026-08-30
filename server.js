@@ -742,14 +742,22 @@ async function startServer() {
         await connectMongoDB();
         const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         if (!(await Jackpot.findOne({ weekStart }))) await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) });
+        
         server.listen(PORT, async () => {
             console.log("🚀 BACKEND ONLINE (Sécurisé)");
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🔬 Mode Démo Gratuit : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIF' : 'INACTIF'}`);
-            // ✅ Le serveur reste en vie !
+            
+            // ✅ DÉMARRAGE AUTOMATIQUE DE LA PREMIÈRE PARTIE
+            await startPreparationPhase();
+            console.log("🎮 Première partie lancée !");
         });
-    } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
+    } catch (error) { 
+        console.error("❌ Impossible de démarrer :", error); 
+        process.exit(1); 
+    }
 }
+
 startServer();
 
 // ✅ CORRECTION : On ne s'éteint PLUS JAMAIS !
