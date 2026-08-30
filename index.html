@@ -32,7 +32,8 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <!-- ⚠️ MODIFICATION IMPORTANTE : Socket.IO servi par votre serveur Railway -->
-  <script src="https://miltape-backend-production.up.railway.app/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   
   <style>
     /* ===== FOND BLEU SAPHIR HD ===== */
@@ -170,18 +171,17 @@
     .server-wallet-link { font-size: 10px; color: #64b5f6; text-decoration: none; display: inline-block; margin-top: 4px; }
     .trust-footer { text-align: center; padding: 12px; font-size: 11px; color: rgba(255, 255, 255, .3); font-family: 'Poppins', sans-serif; border-top: 1px solid rgba(255, 255, 255, .04); margin-top: 20px; }
     .trust-footer a { color: #64b5f6; text-decoration: none; }
-    /* ===== MODALE DE BIENVENUE (CORRIGÉE POUR QU'ELLE DÉFILE) ===== */
-    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 10px; backdrop-filter: blur(10px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 20px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); margin: auto; max-height: 90vh; overflow-y: auto; }
-    #welcomeModal .welcome-steps { text-align: left; font-size: 12px; line-height: 1.6; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 8px 10px; margin-bottom: 15px; }
+    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 30px 24px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+    #welcomeModal .welcome-icon { font-size: 48px; margin-bottom: 10px; }
+    #welcomeModal .welcome-title { margin: 0 0 8px; font-size: 22px; color: #64b5f6; }
+    #welcomeModal .welcome-sub { font-size: 14px; color: rgba(255, 255, 255, .8); margin: 0 0 20px; }
+    #welcomeModal .welcome-steps { text-align: left; font-size: 14px; line-height: 1.8; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 8px; }
+    #welcomeModal .welcome-steps strong { color: #64b5f6; }
+    #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
     #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
     #welcomeModal .welcome-btn:active { transform: scale(.96); }
-    /* ===== NOTIFICATIONS (AJOUTÉES POUR QU'ELLES S'AFFICHENT) ===== */
-    .notification { background: rgba(0, 0, 0, 0.9); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 15px; border-radius: 12px; font-size: 13px; font-weight: 600; width: 100%; box-sizing: border-box; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); text-align: center; margin-bottom: 8px; }
-    .notification.success { border-color: #2ecc71; color: #2ecc71; }
-    .notification.champion { border-color: #ffd700; color: #ffd700; }
-    .notification.error { border-color: #ff4444; color: #ff4444; }
-    .notification.info { border-color: #64b5f6; color: #64b5f6; }
     @media(max-width:430px) { .tap-button { width: clamp(150px, 38vw, 200px); height: clamp(150px, 38vw, 200px); } .tap-zone { min-height: 280px; } .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } #timerRuleValue { font-size: 20px !important; } .stat-box strong { font-size: 44px !important; } .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } .server-wallet-address { font-size: 13px !important; } }
     @media(max-width:360px) { .tap-button { width: clamp(120px, 32vw, 160px); height: clamp(120px, 32vw, 160px); } .tap-zone { min-height: 260px; } .chat-input-box input { font-size: 12px !important; } .chat-input-box button { width: 42px; min-width: 42px; } #timerRuleValue { font-size: 18px !important; } .stat-box strong { font-size: 38px !important; } .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } .server-wallet-address { font-size: 12px !important; } }
     @media(min-width:600px) { body { padding: 20px 0 40px; } .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } }
@@ -206,8 +206,6 @@
     .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }
     .online strong span:last-child { color: #fff; }
     .wallet-button { color: #fff; }
-    /* ===== AJOUT : BOUTON DUEL ===== */
-    #duelButton { width: 85%; max-width: 320px; margin-top: 10px; display: block; }
   </style>
   <!-- ===== JACKPOT ===== -->
   <style>
@@ -244,7 +242,7 @@
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
-  <!-- MODALE DE BIENVENUE (CORRIGÉE) -->
+  <!-- MODALE DE BIENVENUE -->
   <div id="welcomeModal">
     <div class="welcome-content">
       <div class="welcome-icon">🎮</div>
@@ -268,21 +266,12 @@
       <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
-  <!-- MODALE WALLET -->
+  <!-- MODALE WALLET (AJOUTÉE POUR ÉVITER LE BLOCAGE DU PROMPT) -->
   <div id="walletModal" class="legal-modal">
     <div class="legal-content">
       <h3>💰 Entrez votre adresse TRON</h3>
       <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
       <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
-    </div>
-  </div>
-  <!-- MODALE DUEL -->
-  <div id="duelModal" class="legal-modal">
-    <div class="legal-content">
-      <h3>🥊 Lancer un Duel</h3>
-      <p style="color: #b8b8b8;">Choisis la mise (1 à 100 USDT). L'autre joueur devra accepter avec la même mise !</p>
-      <input type="number" id="duelBetInput" min="1" max="100" value="10" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ffcc00; background:#0a2a5c; color:#fff; font-size:16px;">
-      <button id="duelSubmitBtn" class="main-play-button" style="padding:10px; background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);">🚀 LANCER LE DUEL</button>
     </div>
   </div>
   <!-- CONTENEUR DE NOTIFICATIONS -->
@@ -416,8 +405,6 @@
     <!-- BOUTON DE PAIEMENT ET JOUER -->
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
-    <!-- AJOUT : BOUTON DUEL -->
-    <button id="duelButton" class="main-play-button" type="button" style="background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%); box-shadow: 0 8px 0 #b36b00;"><span>🥊 DUEL 1VS1</span> <b>⚔️</b></button>
     <!-- MESSAGE D'ÉTAT -->
     <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
     <!-- ZONE DE TAP -->
@@ -460,9 +447,6 @@
   </main>
   <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->
   <script>
-    // ⚙️ URL du backend Railway
-    const API_URL = "https://miltape-backend-production.up.railway.app";
-
     // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -472,8 +456,32 @@
         }
       });
     }
-    // CONNEXION SOCKET.IO
-    const socket = io(API_URL);
+    // TON CONNECT (optionnel)
+    (function initTonConnect() {
+      try {
+        if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) {
+          console.warn("⚠️ TON Connect UI indisponible.");
+          return;
+        }
+        window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+          manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
+          buttonRootId: "ton-connect-button"
+        });
+        if (window.tonConnectUI && typeof window.tonConnectUI.onStatusChange === "function") {
+          window.tonConnectUI.onStatusChange(function(w) {
+            if (w && w.account) {
+              console.log("✅ Wallet TON connecté :", w.account.address);
+            }
+          });
+        }
+        console.log("✅ TON Connect initialisé.");
+      } catch (e) {
+        console.error("❌ Erreur TON Connect :", e);
+        window.tonConnectUI = null;
+      }
+    })();
+    // CONNEXION SOCKET.IO (UTILISE L'URL ACTUELLE DU SERVEUR)
+    const socket = io();
     // ÉLÉMENTS DOM
     const tapButton = document.getElementById('tapButton');
     const tapCount = document.getElementById('tapCount');
@@ -576,7 +584,7 @@
       const name = localStorage.getItem("miltape_player_name");
       if (!playerId || !wallet || !name) return false;
       try {
-        const res = await fetch(API_URL + "/api/status");
+        const res = await fetch("/api/status");
         const data = await res.json();
         if (data.status !== "running" && data.status !== "preparing") {
           localStorage.removeItem("miltape_player_id");
@@ -640,6 +648,7 @@
         } catch (e) { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
         proceedToJoin(name, wallet);
       } else {
+        // OUVERTURE DE LA FENÊTRE WALLET
         const walletModal = document.getElementById('walletModal');
         const walletInput = document.getElementById('walletInput');
         walletModal.style.display = 'flex';
@@ -695,7 +704,7 @@
           if (gameStatus === "running") tapButton.disabled = false;
           if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
-          fetch(API_URL + "/api/demo/verify", {
+          fetch("/api/demo/verify", {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id })
           }).catch(err => console.error(err));
         } else {
@@ -951,7 +960,7 @@
     // PAIEMENT
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
-      fetch(API_URL + "/api/wallet").then(res => res.json()).then(data => {
+      fetch("/api/wallet").then(res => res.json()).then(data => {
         if (data.success) {
           const serverWallet = data.wallet;
           const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + formatAmount(amount) + '-' + token);
@@ -989,7 +998,13 @@
       if (!container) return;
       const notif = document.createElement('div');
       notif.className = 'notification ' + type;
-      notif.textContent = message;
+      const wrapper = document.createElement('span');
+      wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'notif-text';
+      textSpan.textContent = message;
+      wrapper.appendChild(textSpan);
+      notif.appendChild(wrapper);
       container.appendChild(notif);
       if (type === 'champion') hapticHeavy();
       else if (type === 'success') hapticMedium();
@@ -1132,47 +1147,6 @@
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
-    
-    // ==========================================================
-    // AJOUT : DUEL 1VS1
-    // ==========================================================
-    const duelButton = document.getElementById('duelButton');
-    const duelModal = document.getElementById('duelModal');
-    const duelBetInput = document.getElementById('duelBetInput');
-    const duelSubmitBtn = document.getElementById('duelSubmitBtn');
-
-    if (duelButton) {
-      duelButton.addEventListener('click', () => {
-        duelModal.style.display = 'flex';
-      });
-    }
-
-    if (duelSubmitBtn) {
-      duelSubmitBtn.onclick = async () => {
-        const bet = parseFloat(duelBetInput.value);
-        if (!bet || bet < 1 || bet > 100) { alert("Mise invalide (1 à 100 USDT)"); return; }
-        
-        alert("💰 Envoie " + bet + " USDT au wallet du serveur pour lancer le duel !");
-        const txId = prompt("Colle l'ID de la transaction (txId) ici :");
-        if (!txId) return;
-
-        duelModal.style.display = 'none';
-        socket.emit('duel:create', { playerId: myPlayerId, bet: bet, txId: txId });
-      };
-    }
-
-    socket.on("duel:created", (data) => {
-      alert("🥊 Duel créé ! En attente d'un adversaire...");
-    });
-
-    socket.on("duel:started", (data) => {
-      alert("⚔️ Le duel a commencé ! Tape le plus vite possible !");
-    });
-
-    socket.on("duel:finished", (data) => {
-      alert("🏆 " + data.winnerName + " a gagné " + data.gain + " USDT !");
-    });
-
     console.log("✅ Script Miltape chargé avec succès.");
   </script>
 </body>
