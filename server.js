@@ -143,7 +143,7 @@ async function loadOrCreateGameState() {
         
         console.log("✅ État du jeu chargé :", { id: game.id, status: game.status });
 
-        // ✅ CORRECTION MAJEURE : On force le redémarrage automatique
+        // Si la partie est en attente ou finie, on relance une préparation
         if (game.status === 'waiting' || game.status === 'finished' || !game.id) {
             await startPreparationPhase();
         } else if (game.status === 'preparing' && game.preparationEndsAt) {
@@ -452,7 +452,6 @@ io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
 
-    // ✅ CORRECTION : Envoi immédiat du chrono au client qui se connecte
     socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
     socket.emit("jackpot:update", { prize: 0, nextDraw: await getNextSaturday() });
 
@@ -461,10 +460,11 @@ io.on("connection", async (socket) => {
 
     socket.on("timer:request", () => socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt }));
 
+    // ✅ CORRECTION MAJEURE : Restauration sans restriction stricte
     socket.on("player:restore", async (data) => {
         try {
             const player = await Player.findById(data.playerId);
-            if (player && (player.gameId === game.id)) { 
+            if (player) { 
                 socket.data.playerId = player._id.toString();
                 socket.data.playerName = player.name;
                 socket.emit("player:restored", { success: true, player });
@@ -496,11 +496,16 @@ io.on("connection", async (socket) => {
         } catch (error) { console.error("❌ player:join :", error?.message || error); socket.emit("error", { message: "Impossible de rejoindre la partie." }); }
     });
 
+    // ✅ CORRECTION MAJEURE : Autoriser le tap sans exiger "paid: true"
     socket.on("player:tap", async () => {
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
-            const result = await Player.findOneAndUpdate({ _id: playerId, gameId: game.id, paid: true }, { $inc: { taps: 1, weeklyTaps: 1 } }, { new: true }).select("name taps");
+            const result = await Player.findOneAndUpdate(
+                { _id: playerId, gameId: game.id }, 
+                { $inc: { taps: 1, weeklyTaps: 1 } }, 
+                { new: true }
+            ).select("name taps");
             if (!result) return;
             io.emit("player:score", { taps: result.taps });
             await emitLeaderboard();
