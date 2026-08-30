@@ -32,7 +32,7 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <!-- ⚠️ MODIFICATION IMPORTANTE : Socket.IO servi par votre serveur Railway -->
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://miltape-backend-production.up.railway.app/socket.io/socket.io.js"></script>
   
   <style>
     /* ===== FOND BLEU SAPHIR HD ===== */
@@ -460,6 +460,9 @@
   </main>
   <!-- ===== SCRIPT PRINCIPAL (TOUT-EN-UN) ===== -->
   <script>
+    // ⚙️ URL du backend Railway
+    const API_URL = "https://miltape-backend-production.up.railway.app";
+
     // FORCER LA DÉSACTIVATION DU SERVICE WORKER (CACHE)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -470,7 +473,7 @@
       });
     }
     // CONNEXION SOCKET.IO
-    const socket = io();
+    const socket = io(API_URL);
     // ÉLÉMENTS DOM
     const tapButton = document.getElementById('tapButton');
     const tapCount = document.getElementById('tapCount');
@@ -573,7 +576,7 @@
       const name = localStorage.getItem("miltape_player_name");
       if (!playerId || !wallet || !name) return false;
       try {
-        const res = await fetch("/api/status");
+        const res = await fetch(API_URL + "/api/status");
         const data = await res.json();
         if (data.status !== "running" && data.status !== "preparing") {
           localStorage.removeItem("miltape_player_id");
@@ -692,7 +695,7 @@
           if (gameStatus === "running") tapButton.disabled = false;
           if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
-          fetch("/api/demo/verify", {
+          fetch(API_URL + "/api/demo/verify", {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id })
           }).catch(err => console.error(err));
         } else {
@@ -948,7 +951,7 @@
     // PAIEMENT
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
-      fetch("/api/wallet").then(res => res.json()).then(data => {
+      fetch(API_URL + "/api/wallet").then(res => res.json()).then(data => {
         if (data.success) {
           const serverWallet = data.wallet;
           const startParam = encodeURIComponent('transfer-' + serverWallet + '-' + formatAmount(amount) + '-' + token);
