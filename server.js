@@ -13,8 +13,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60;
 const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
-const DUEL_DURATION_SECONDS = 60; // 1 minute pour un duel
-const DUEL_COMMISSION = 0.10; // 10% pour toi
+const DUEL_DURATION_SECONDS = 60;
+const DUEL_COMMISSION = 0.10;
 
 const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
@@ -95,21 +95,19 @@ const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }
 const historySchema = new mongoose.Schema({ playerId: mongoose.Schema.Types.ObjectId, playerName: String, wallet: String, gameId: String, rank: Number, bet: Number, gain: Number, taps: Number, token: String, paidOut: Boolean, payoutTxId: String }, { timestamps: true });
 const jackpotSchema = new mongoose.Schema({ weekStart: Date, weekEnd: Date, accumulatedFund: Number, winner: mongoose.Schema.Types.ObjectId, drawn: Boolean }, { timestamps: true });
 
-// ✅ AJOUT : Modèle pour les Duels 1vs1
 const duelSchema = new mongoose.Schema({
     player1: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
     player2: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
     bet: { type: Number, required: true },
     startTime: Date,
     endTime: Date,
-    status: { type: String, default: 'waiting' }, // waiting, active, finished
+    status: { type: String, default: 'waiting' },
     winner: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
     payoutTxId: String,
     taps_player1: { type: Number, default: 0 },
     taps_player2: { type: Number, default: 0 }
 }, { timestamps: true });
 
-// ✅ AJOUT : Modèle pour les paiements de Duel (anti-fraude)
 const duelPaymentSchema = new mongoose.Schema({
     duelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Duel', index: true },
     playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', index: true },
@@ -259,7 +257,6 @@ async function startPreparationPhase() {
     game.endsAt = null;
     game.preparationEndsAt = new Date(Date.now() + PREPARATION_DURATION_SECONDS * 1000);
 
-    // ✅ AJOUT IMPORTANT : REMETTRE LES TAPS À ZÉRO POUR LA NOUVELLE PARTIE
     await Player.updateMany({}, { $set: { taps: 0, weeklyTaps: 0 } });
 
     io.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
@@ -387,7 +384,6 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     } catch (e) { return false; }
 }
 
-// ✅ AJOUT : Vérification du paiement pour les Duels
 async function verifyDuelPayment(txId, expectedAmount, playerWallet) {
     try {
         const existingPayment = await DuelPayment.findOne({ txId });
@@ -447,7 +443,7 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ CORRECTION : On lance la partie quand un joueur clique !
+            // ✅ On lance la partie si elle est en attente !
             if (!game.id || game.status === "waiting") {
                 await startPreparationPhase();
             }
@@ -502,10 +498,6 @@ io.on("connection", async (socket) => {
             io.emit("chat:message", { id: msg._id, name, message, createdAt: msg.createdAt });
         } catch (error) { console.error("❌ chat:send :", error?.message || error); }
     });
-
-    // ==========================================================
-    // ✅ AJOUT : ROUTES POUR LES DUELS 1VS1
-    // ==========================================================
 
     socket.on("duel:create", async (data) => {
         try {
@@ -749,20 +741,13 @@ async function startServer() {
             console.log("🚀 BACKEND ONLINE (Sécurisé)");
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🔬 Mode Démo Gratuit : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIF' : 'INACTIF'}`);
-            // ✅ Le serveur attend qu'un joueur clique !
+            // ✅ Le serveur reste en vie !
         });
     } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
 }
 startServer();
 
-process.on("SIGTERM", async () => {
-    console.log("🛑 SIGTERM reçu. Fermeture propre...");
-    if (gameTimer) clearTimeout(gameTimer);
-    if (nextGameTimeout) clearTimeout(nextGameTimeout);
-    try {
-        await new Promise((resolve) => server.close(() => { console.log("🔌 Serveur fermé."); resolve(); }));
-        await mongoose.connection.close();
-        console.log("✅ Fermeture propre terminée.");
-        process.exit(0);
-    } catch (error) { console.error("❌ Erreur lors de la fermeture :", error?.message || error); process.exit(1); }
+// ✅ CORRECTION : On ne s'éteint PLUS JAMAIS !
+process.on("SIGTERM", () => {
+    console.log("🛑 Signal reçu, mais je reste en vie !");
 });
