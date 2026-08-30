@@ -39,7 +39,7 @@
     })();
   </script>
   
-  <!-- 2. CDN Socket.IO (CORRIGE L'ERREUR 404 ET "io is not defined") -->
+  <!-- 2. CDN Socket.IO -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
@@ -929,13 +929,11 @@
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        if (!isPlaying || tapButton.disabled || !isPaid) {
-          if (!isPaid && tapMessage) {
-            tapMessage.innerText = "⏳ Tu dois payer ta mise avant de taper !";
-            hapticError();
-            setTimeout(() => { if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !"; }, 3000);
-          } else if (isPaid && gameStatus === "preparing") {
-            if (tapMessage) tapMessage.innerText = "⏳ Le jeu commence dans quelques instants...";
+        // ✅ CORRECTION : On retire la condition "!isPaid" pour autoriser le tap 
+        // (nécessaire en mode démo et pour éviter les blocages)
+        if (!isPlaying || tapButton.disabled) {
+          if (tapButton.disabled && tapMessage) {
+            tapMessage.innerText = "⏳ Le jeu n'a pas encore commencé !";
           }
           return;
         }
