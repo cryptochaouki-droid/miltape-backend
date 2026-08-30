@@ -61,6 +61,11 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
+// ✅ SERT LE FICHIER SOCKET.IO (Pour éviter le 404 !)
+app.get("/socket.io/socket.io.js", (req, res) => {
+    res.sendFile(path.join(__dirname, "node_modules", "socket.io", "client-dist", "socket.io.js"));
+});
+
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
