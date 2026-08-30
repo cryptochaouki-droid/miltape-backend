@@ -1,5 +1,15 @@
 {
-  "url": "https://cryptochaouki-droid.github.io/miltape-backend/",
   "name": "Miltape World Challenge",
-  "iconUrl": "https://cryptochaouki-droid.github.io/miltape-backend/icon-192~2.jpg"
+  "short_name": "Miltape",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d47a1",
+  "theme_color": "#0d47a1",
+  "icons": [
+    {
+      "src": "icon-192~2.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    }
+  ]
 }
