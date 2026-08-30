@@ -127,7 +127,6 @@ let gameTimer = null, nextGameTimeout = null;
 const onlineSockets = new Set();
 let game = { id: null, status: "waiting", startedAt: null, endsAt: null, durationSeconds: GAME_DURATION_SECONDS, preparationEndsAt: null };
 
-// ===== CORRECTION MAJEURE : Le jeu se relance TOUJOURS au démarrage =====
 async function loadOrCreateGameState() {
     try {
         let gameState = await GameState.findOne().sort({ updatedAt: -1 });
@@ -144,7 +143,7 @@ async function loadOrCreateGameState() {
         
         console.log("✅ État du jeu chargé :", { id: game.id, status: game.status });
 
-        // SI le serveur redémarre en mode waiting ou finished, on relance une préparation automatiquement
+        // ✅ CORRECTION MAJEURE : On force le redémarrage automatique
         if (game.status === 'waiting' || game.status === 'finished' || !game.id) {
             await startPreparationPhase();
         } else if (game.status === 'preparing' && game.preparationEndsAt) {
@@ -181,6 +180,7 @@ async function saveGameState() {
             { status: game.status, startedAt: game.startedAt, endsAt: game.endsAt, preparationEndsAt: game.preparationEndsAt, durationSeconds: game.durationSeconds, updatedAt: new Date() },
             { upsert: true }
         );
+        console.log(`💾 État du jeu sauvegardé : ${game.status}`);
     } catch (error) { console.error("❌ Erreur sauvegarde état :", error); }
 }
 
@@ -200,7 +200,8 @@ function broadcastTimer() {
 }
 
 function broadcastOnlineCount() {
-    io.emit("online:count", { count: onlineSockets.size });
+    const count = onlineSockets.size;
+    io.emit("online:count", { count });
 }
 
 async function emitLeaderboard() {
@@ -277,11 +278,7 @@ async function finishGame() {
     broadcastTimer();
 
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
-    
-    // CORRECTION : Forcer le redémarrage après 3 secondes
-    nextGameTimeout = setTimeout(() => { 
-        startPreparationPhase().catch(err => console.error(err)); 
-    }, 3000);
+    nextGameTimeout = setTimeout(() => { startPreparationPhase().catch(err => console.error(err)); }, 3000);
 
     try {
         const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
@@ -324,12 +321,14 @@ async function finishGame() {
 async function sendPrizeToWinner(historyEntry) {
     try {
         const { wallet, gain, token, playerName } = historyEntry;
-        if (!wallet || gain <= 0 || !isValidTronAddress(wallet)) return false;
+        if (!wallet || gain <= 0) return false;
+        if (!isValidTronAddress(wallet)) return false;
         const tokenInfo = SUPPORTED_TOKENS[token];
         if (!tokenInfo) throw new Error("Token non supporté");
         let txId = null;
         if (token === "TRX") { const tx = await tronWeb.trx.sendTransaction(wallet, Math.floor(gain * 1e6)); txId = tx.txid; } 
         else { const contract = await tronWeb.contract().at(tokenInfo.contract); const tx = await contract.transfer(wallet, Math.floor(gain * Math.pow(10, tokenInfo.decimals))).send(); txId = tx.txid; }
+        console.log(`✅ Gain de ${gain} ${token} envoyé à ${playerName}`);
         return txId;
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
@@ -362,6 +361,20 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT") {
         if (!txInfo || txInfo.receipt?.result !== "SUCCESS") return false;
         return Math.abs(amount - Number(expectedAmount)) < 0.0000001;
     } catch (e) { return false; }
+}
+
+async function getNextSaturday() { 
+    const now = new Date(); const day = now.getDay(); const diff = (6 - day + 7) % 7; const next = new Date(now); 
+    next.setDate(now.getDate() + diff); next.setHours(0, 0, 0, 0); if (day === 6 && now.getHours() >= 0) next.setDate(next.getDate() + 7); return next.getTime(); 
+}
+
+async function emitJackpotUpdate() {
+    try {
+        const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        let jackpot = await Jackpot.findOne({ weekStart });
+        if (!jackpot) jackpot = await Jackpot.create({ weekStart, weekEnd: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000), accumulatedFund: 0, drawn: false });
+        io.emit("jackpot:update", { prize: jackpot ? jackpot.accumulatedFund : 0, nextDraw: await getNextSaturday() });
+    } catch (error) { console.error("❌ Erreur jackpot :", error?.message || error); }
 }
 
 async function getIncomingTrxTransactions(address) {
@@ -418,12 +431,31 @@ async function checkPendingPayments() {
     } catch (error) { console.error("❌ Erreur checkPendingPayments :", error?.message || error); }
 }
 
-// Socket.IO
+async function distributeWeeklyJackpot() {
+    try {
+        const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const jackpot = await Jackpot.findOne({ weekStart });
+        if (!jackpot || jackpot.drawn || jackpot.accumulatedFund <= 0) return;
+        const winner = await Player.findOne({}).sort({ weeklyTaps: -1 }).limit(1).select("name wallet weeklyTaps");
+        if (!winner || winner.weeklyTaps === 0) return;
+        jackpot.winner = winner._id; jackpot.drawn = true; await jackpot.save();
+        const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain: jackpot.accumulatedFund, token: "USDT", playerName: winner.name });
+        io.emit("jackpot:winner", { winner: winner.name, amount: jackpot.accumulatedFund, taps: winner.weeklyTaps, txId: txId || "pending" });
+        await Player.updateMany({}, { $set: { weeklyTaps: 0 } });
+    } catch (error) { console.error("❌ Erreur distribution jackpot :", error?.message || error); }
+}
+
+cron.schedule('0 0 * * 6', () => { distributeWeeklyJackpot().catch(err => console.error(err)); });
+
+// ===== SOCKET.IO (ENVOI IMMÉDIAT DU TIMER AUX CLIENTS) =====
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
 
+    // ✅ CORRECTION : Envoi immédiat du chrono au client qui se connecte
     socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
+    socket.emit("jackpot:update", { prize: 0, nextDraw: await getNextSaturday() });
+
     if (game.status === "preparing" && game.preparationEndsAt) socket.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
     if (game.status === "running" && game.endsAt) socket.emit("game:started", { gameId: game.id, startsAt: game.startedAt, endsAt: game.endsAt, duration: GAME_DURATION_SECONDS, remainingSeconds: getRemainingSeconds() });
 
@@ -448,17 +480,13 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // Si la partie est en attente ou finie, on force une préparation
             if (!game.id || game.status === "waiting" || game.status === "finished") await startPreparationPhase();
             
             if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
             let player = await Player.findOne({ wallet: wallet });
-            if (player) { 
-                player.gameId = game.id; player.bet = bet; player.token = token; player.paid = false; player.paymentTxId = undefined; player.depositAmount = bet; player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000); await player.save(); 
-            } else { 
-                player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) }); 
-            }
+            if (player) { player.gameId = game.id; player.bet = bet; player.token = token; player.paid = false; player.paymentTxId = undefined; player.depositAmount = bet; player.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000); await player.save(); }
+            else { player = await Player.create({ gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token, depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000) }); }
 
             socket.data.playerId = player._id.toString();
             socket.data.playerName = player.name;
@@ -496,23 +524,24 @@ io.on("connection", async (socket) => {
     });
 });
 
-// Intervalles
+// ===== INTERVALLES =====
 setInterval(() => {
     if (game.status === "preparing" || game.status === "running") broadcastTimer();
 }, 1000);
 
-// Routes API de base
+setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 * 1000);
+
+// ===== ROUTES API =====
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
 app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateObject() }));
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size }));
 app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 
-// CORRECTION 404 IO : Route pour servir le script Socket.IO (si besoin)
 app.get('/socket.io/socket.io.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'node_modules', 'socket.io', 'client-dist', 'socket.io.js'));
 });
 
-// DÉMARRAGE
+// ===== DÉMARRAGE =====
 async function startServer() {
     try {
         await connectMongoDB();
