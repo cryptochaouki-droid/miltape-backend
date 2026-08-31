@@ -1,4 +1,4 @@
-Const express = require("express");
+const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -14,6 +14,7 @@ const GAME_DURATION_SECONDS = 10 * 60;
 const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
+const DUEL_PAYMENT_TIMEOUT_MS = 120000; // ✅ FIX : 2 min pour payer (au lieu d'être couplé au démarrage du duel)
 
 // ✅ FIX CORS : domaine par défaut corrigé vers le vrai domaine du frontend
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
@@ -153,7 +154,8 @@ let game = { id: null, status: "waiting", startedAt: null, endsAt: null, duratio
 // Objet global pour les duels actifs, accessible partout
 const activeDuels = {}; // Clé : duelId (ex: socket1.id), Valeur : { socket1, socket2, player1Id, player2Id, bet, winnerPrize, endsAt, taps1, taps2 }
 const duelPools = {}; // { bet: [{ socketId, playerId }] }
-const pendingDuelPayments = {}; // { socketId: { bet, playerId } }
+const pendingDuelPayments = {}; // { socketId: { bet, playerId, matchId, duelPaid, duelPaymentTxId } }
+const duelMatches = {}; // ✅ FIX : matchId -> { entry1, entry2, bet, timeout, started } — pour démarrer le duel dès que les 2 ont payé
 
 async function loadOrCreateGameState() {
     try {
@@ -666,7 +668,21 @@ io.on("connection", async (socket) => {
             if (duelPools[bet].length === 0) delete duelPools[bet];
         }
 
-        // Nettoyage des paiements en attente
+        // ✅ FIX : nettoyage des matchs de duel en attente de paiement quand un des deux joueurs se déconnecte
+        for (const matchId in duelMatches) {
+            const match = duelMatches[matchId];
+            if (!match || match.started) continue;
+            if (match.entry1.socketId === socket.id || match.entry2.socketId === socket.id) {
+                clearTimeout(match.timeout);
+                const otherSocketId = match.entry1.socketId === socket.id ? match.entry2.socketId : match.entry1.socketId;
+                io.to(otherSocketId).emit("duel:cancelled", { message: "Ton adversaire s'est déconnecté. Le duel est annulé." });
+                delete pendingDuelPayments[match.entry1.socketId];
+                delete pendingDuelPayments[match.entry2.socketId];
+                delete duelMatches[matchId];
+            }
+        }
+
+        // Nettoyage des paiements en attente restants (sécurité)
         delete pendingDuelPayments[socket.id];
 
         // Gérer un duel actif si le joueur se déconnecte
@@ -702,6 +718,94 @@ async function isDuelTxUsed(txId) {
     return !!existingDuel;
 }
 
+// ✅ FIX : logique de démarrage du duel extraite dans sa propre fonction, appelée dès que
+// les deux joueurs ont payé (au lieu d'attendre systématiquement les 60s du timeout de paiement)
+async function tryStartDuel(matchId) {
+    const match = duelMatches[matchId];
+    if (!match || match.started) return;
+
+    const state1 = pendingDuelPayments[match.entry1.socketId];
+    const state2 = pendingDuelPayments[match.entry2.socketId];
+    if (!state1?.duelPaid || !state2?.duelPaid) return;
+
+    match.started = true;
+    clearTimeout(match.timeout);
+
+    const { entry1, entry2, bet } = match;
+
+    const player1 = await Player.findById(entry1.playerId);
+    const player2 = await Player.findById(entry2.playerId);
+    if (!player1 || !player2) { delete duelMatches[matchId]; return; }
+
+    const totalPot = bet * 2;
+    const yourCut = totalPot * DUEL_COMMISSION_PERCENT;
+    const winnerPrize = totalPot - yourCut;
+
+    io.to(entry1.socketId).emit("duel:started", { opponentName: player2.name, bet, prize: winnerPrize });
+    io.to(entry2.socketId).emit("duel:started", { opponentName: player1.name, bet, prize: winnerPrize });
+
+    const duelId = entry1.socketId;
+    activeDuels[duelId] = {
+        socket1: entry1.socketId,
+        socket2: entry2.socketId,
+        player1Id: entry1.playerId,
+        player2Id: entry2.playerId,
+        bet, winnerPrize,
+        endsAt: Date.now() + 60000,
+        taps1: 0, taps2: 0
+    };
+
+    delete pendingDuelPayments[entry1.socketId];
+    delete pendingDuelPayments[entry2.socketId];
+    delete duelMatches[matchId];
+
+    setTimeout(async () => {
+        if (!activeDuels[duelId]) return;
+
+        const duel = activeDuels[duelId];
+        const winnerId = duel.taps1 >= duel.taps2 ? duel.player1Id : duel.player2Id;
+        const loserId = winnerId === duel.player1Id ? duel.player2Id : duel.player1Id;
+
+        const winner = await Player.findById(winnerId);
+        const loser = await Player.findById(loserId);
+
+        if (winner) {
+            const txId = await sendPrizeToWinner({
+                wallet: winner.wallet,
+                gain: duel.winnerPrize,
+                token: "USDT",
+                playerName: winner.name
+            });
+
+            await Payment.create({ txId, from: MILTAPE_WALLET, to: winner.wallet, amount: duel.winnerPrize, verified: true, gameId: "DUEL", token: "USDT" });
+            if (loser) await DuelEntry.create({ playerId: loser._id, bet: duel.bet, token: "USDT", paid: false });
+
+            io.to(duel.socket1).emit("duel:finished", {
+                winnerName: winner.name,
+                myTaps: duel.taps1,
+                opponentTaps: duel.taps2,
+                prize: duel.winnerPrize,
+                txId
+            });
+            io.to(duel.socket2).emit("duel:finished", {
+                winnerName: winner.name,
+                myTaps: duel.taps2,
+                opponentTaps: duel.taps1,
+                prize: 0,
+                txId: null
+            });
+        }
+
+        // ✅ FIX : reset duelPaid/duelPaymentTxId pour les deux joueurs à la fin normale du duel
+        await Player.updateMany(
+            { _id: { $in: [duel.player1Id, duel.player2Id] } },
+            { $set: { duelPaid: false, duelPaymentTxId: null } }
+        );
+
+        delete activeDuels[duelId];
+    }, 60000);
+}
+
 io.on("connection", (socket) => {
 
     socket.on("duel:join", async (data) => {
@@ -732,96 +836,40 @@ io.on("connection", (socket) => {
 
             if (!player1 || !player2) return;
 
-            pendingDuelPayments[entry1.socketId] = { bet, playerId: entry1.playerId };
-            pendingDuelPayments[entry2.socketId] = { bet, playerId: entry2.playerId };
+            // ✅ FIX : matchId stable pour retrouver le match depuis duel:payment_verified
+            const matchId = entry1.socketId + '_' + entry2.socketId;
+
+            pendingDuelPayments[entry1.socketId] = { bet, playerId: entry1.playerId, matchId, duelPaid: false };
+            pendingDuelPayments[entry2.socketId] = { bet, playerId: entry2.playerId, matchId, duelPaid: false };
 
             io.to(entry1.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
             io.to(entry2.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
 
-            const paymentTimeout = setTimeout(async () => {
+            // ✅ FIX : timeout d'annulation seulement — le démarrage se fait via tryStartDuel dès que les 2 ont payé
+            const paymentTimeout = setTimeout(() => {
+                const match = duelMatches[matchId];
+                if (!match || match.started) return;
+
                 const state1 = pendingDuelPayments[entry1.socketId];
                 const state2 = pendingDuelPayments[entry2.socketId];
 
-                if (!state1?.duelPaid || !state2?.duelPaid) {
-                    io.to(entry1.socketId).emit("duel:cancelled", { message: "L'adversaire n'a pas payé. Tu es remis en file d'attente." });
-                    io.to(entry2.socketId).emit("duel:cancelled", { message: "Tu n'as pas payé à temps. Le duel est annulé." });
-                    if (state1?.duelPaid) duelPools[bet].push({ socketId: entry1.socketId, playerId: entry1.playerId });
-                    else if (state2?.duelPaid) duelPools[bet].push({ socketId: entry2.socketId, playerId: entry2.playerId });
+                io.to(entry1.socketId).emit("duel:cancelled", { message: state1?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." });
+                io.to(entry2.socketId).emit("duel:cancelled", { message: state2?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." });
 
-                    delete pendingDuelPayments[entry1.socketId];
-                    delete pendingDuelPayments[entry2.socketId];
-                    return;
+                if (state1?.duelPaid && !state2?.duelPaid) {
+                    if (!duelPools[bet]) duelPools[bet] = [];
+                    duelPools[bet].push({ socketId: entry1.socketId, playerId: entry1.playerId });
+                } else if (state2?.duelPaid && !state1?.duelPaid) {
+                    if (!duelPools[bet]) duelPools[bet] = [];
+                    duelPools[bet].push({ socketId: entry2.socketId, playerId: entry2.playerId });
                 }
-
-                const totalPot = bet * 2;
-                const yourCut = totalPot * DUEL_COMMISSION_PERCENT;
-                const winnerPrize = totalPot - yourCut;
-
-                io.to(entry1.socketId).emit("duel:started", { opponentName: player2.name, bet, prize: winnerPrize });
-                io.to(entry2.socketId).emit("duel:started", { opponentName: player1.name, bet, prize: winnerPrize });
-
-                const duelId = entry1.socketId;
-                activeDuels[duelId] = {
-                    socket1: entry1.socketId,
-                    socket2: entry2.socketId,
-                    player1Id: entry1.playerId,
-                    player2Id: entry2.playerId,
-                    bet, winnerPrize,
-                    endsAt: Date.now() + 60000,
-                    taps1: 0, taps2: 0
-                };
 
                 delete pendingDuelPayments[entry1.socketId];
                 delete pendingDuelPayments[entry2.socketId];
+                delete duelMatches[matchId];
+            }, DUEL_PAYMENT_TIMEOUT_MS);
 
-                setTimeout(async () => {
-                    if (!activeDuels[duelId]) return;
-
-                    const duel = activeDuels[duelId];
-                    const winnerId = duel.taps1 >= duel.taps2 ? duel.player1Id : duel.player2Id;
-                    const loserId = winnerId === duel.player1Id ? duel.player2Id : duel.player1Id;
-
-                    const winner = await Player.findById(winnerId);
-                    const loser = await Player.findById(loserId);
-
-                    if (winner) {
-                        const txId = await sendPrizeToWinner({
-                            wallet: winner.wallet,
-                            gain: duel.winnerPrize,
-                            token: "USDT",
-                            playerName: winner.name
-                        });
-
-                        await Payment.create({ txId, from: MILTAPE_WALLET, to: winner.wallet, amount: duel.winnerPrize, verified: true, gameId: "DUEL", token: "USDT" });
-                        await DuelEntry.create({ playerId: loser._id, bet: duel.bet, token: "USDT", paid: false });
-
-                        io.to(duel.socket1).emit("duel:finished", {
-                            winnerName: winner.name,
-                            myTaps: duel.taps1,
-                            opponentTaps: duel.taps2,
-                            prize: duel.winnerPrize,
-                            txId
-                        });
-                        io.to(duel.socket2).emit("duel:finished", {
-                            winnerName: winner.name,
-                            myTaps: duel.taps2,
-                            opponentTaps: duel.taps1,
-                            prize: 0,
-                            txId: null
-                        });
-                    }
-
-                    // ✅ FIX : reset duelPaid/duelPaymentTxId pour les deux joueurs à la fin normale du duel
-                    await Player.updateMany(
-                        { _id: { $in: [duel.player1Id, duel.player2Id] } },
-                        { $set: { duelPaid: false, duelPaymentTxId: null } }
-                    );
-
-                    delete activeDuels[duelId];
-                }, 60000);
-            }, 60000);
-
-            socket.data.paymentTimeout = paymentTimeout;
+            duelMatches[matchId] = { entry1, entry2, bet, timeout: paymentTimeout, started: false };
         }
     });
 
@@ -854,9 +902,12 @@ io.on("connection", (socket) => {
             pending.duelPaymentTxId = txId;
             pendingDuelPayments[socket.id] = pending;
 
-            await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" }); // ✅ "from" corrigé (était "Détecté")
+            await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
 
             socket.emit("duel:payment_success");
+
+            // ✅ FIX : démarre le duel immédiatement si l'adversaire a déjà payé, au lieu d'attendre le timeout complet
+            if (pending.matchId) await tryStartDuel(pending.matchId);
         } else {
             socket.emit("duel:payment_error", { message: "Transaction invalide." });
         }
