@@ -899,13 +899,17 @@
       hapticLight();
 
       // Fonction utilitaire pour remettre l'interface à zéro
+      // ✅ FIX : utilisation de document.getElementById au lieu de variables non déclarées
+      // (tapCounterDisplay / timerRuleValue / timerStatus n'existaient nulle part -> ReferenceError qui cassait toute la restauration de session)
       const resetUI = () => {
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (payButton) payButton.style.display = 'none';
         if (tapButton) tapButton.disabled = true;
-        if (tapCounterDisplay) tapCounterDisplay.textContent = "0";
-        if (timerRuleValue) timerRuleValue.innerText = "10:00";
-        if (timerStatus) timerStatus.innerText = "PRÉPARATION";
+        updateTapCounter(0);
+        const timerRuleValueEl = document.getElementById('timerRuleValue');
+        if (timerRuleValueEl) timerRuleValueEl.innerText = "10:00";
+        const timerSmallEl = document.querySelector('#timerRule small');
+        if (timerSmallEl) timerSmallEl.innerText = "PRÉPARATION";
         if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       };
 
@@ -1044,6 +1048,15 @@
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
+        if (duelState.active) {
+          // ✅ FIX : en duel, on ignore le flux "classique" (paiement/isPlaying) pour ne pas bloquer le tap
+          const now = Date.now();
+          if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
+          lastTapTime = now;
+          tapEffects();
+          socket.emit('duel:tap');
+          return;
+        }
         if (!isPlaying || tapButton.disabled) {
           return;
         }
@@ -1390,7 +1403,7 @@
     });
 
     socket.on('duel:payment_success', () => {
-      alert("✅ PAIEMENT VÉRIFIÉ AUTOMATIQUEMENT !\n⚡ Tu es maintenant en file d'attente !");
+      alert("✅ PAIEMENT VÉRIFIÉ AUTOMATIQUEMENT !\n⚡ Tu es maintenant en file d'attente, en attente de ton adversaire...");
     });
 
     socket.on('duel:payment_error', (data) => {
@@ -1401,10 +1414,24 @@
       console.log("👥 File d'attente :", data);
     });
 
+    // ✅ FIX : gestion de l'annulation du duel (timeout de paiement d'un des deux joueurs) — n'était pas écouté côté client, le bouton restait bloqué sur "RECHERCHE..."
+    socket.on('duel:cancelled', (data) => {
+      duelState.active = false;
+      if (duelButton) duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+      hapticError();
+      alert("⚠️ " + (data && data.message ? data.message : "Le duel a été annulé."));
+    });
+
     socket.on('duel:started', (data) => {
       duelState.active = true;
       duelState.opponentName = data.opponentName;
       duelState.endsAt = Date.now() + 60000;
+      duelState.myTaps = 0;
+      duelState.opponentTaps = 0;
+
+      // ✅ FIX : le bouton TAP restait "disabled" par défaut et n'était jamais réactivé pour le mode duel -> impossible de taper
+      if (tapButton) tapButton.disabled = false;
+      updateTapCounter(0);
       
       duelButton.innerText = "⚔️ " + duelState.opponentName + " | 1:00";
       
@@ -1425,16 +1452,10 @@
     socket.on('duel:finished', (data) => {
       duelState.active = false;
       duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+      // ✅ FIX : on remet le bouton TAP dans l'état correspondant au mode classique (désactivé sauf si payé + partie en cours)
+      if (tapButton) tapButton.disabled = !(isPaid && gameStatus === "running");
       alert("🏆 Résultat : " + data.winnerName + " a gagné !\nTes taps : " + data.myTaps + "\nTaps adverse : " + data.opponentTaps + "\n💰 Gain : " + data.prize + " USDT");
     });
-
-    if (tapButton) {
-      tapButton.addEventListener('click', () => {
-        if (duelState.active) {
-          socket.emit('duel:tap');
-        }
-      });
-    }
     
     function formatAmount(value) {
       if (value === null || value === undefined || isNaN(value)) return "0";
