@@ -16,6 +16,7 @@
   <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
   <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
   
+  <!-- 1. Script Telegram sécurisé -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function initTelegramWebApp() {
@@ -23,175 +24,383 @@
         if (window.Telegram && window.Telegram.WebApp) {
           const w = window.Telegram.WebApp;
           w.expand();
+          // Vérification de la version pour éviter l'erreur "BackButton not supported"
           try {
             if (w.version && parseFloat(w.version) >= 6.1) {
               w.BackButton.show();
               w.BackButton.onClick(function() { w.close(); });
             }
           } catch (e) { console.warn("⚠️ BackButton non supporté:", e); }
+          
           if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
+          console.log("✅ Telegram WebApp initialisée");
         }
       } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
     })();
   </script>
 
+  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE (POUR ÉVITER LES VERSIONS OBSOLÈTES) ===== -->
   <script>
+    // Supprimer tous les caches existants
     if ('caches' in window) {
         caches.keys().then(function(names) {
-            names.forEach(function(name) { caches.delete(name); });
+            names.forEach(function(name) {
+                caches.delete(name);
+            });
         });
     }
+    
+    // Désinstaller le Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for (let registration of registrations) { registration.unregister(); }
+            for (let registration of registrations) {
+                registration.unregister();
+                console.log('✅ Service Worker désinstallé.');
+            }
         });
     }
   </script>
   
+  <!-- 2. CDN Socket.IO -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   
   <style>
-    /* ===== FOND BLEU NUIT / VIOLET CYBER ARENA ===== */
+    /* ===== FOND BLEU SAPHIR HD ===== */
     body {
       font-family: 'Poppins', sans-serif;
-      background: radial-gradient(ellipse at 40% 30%, #2a0a4a 0%, #0d0630 35%, #04010a 65%, #000000 100%);
+      background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%);
       min-height: 100vh;
       margin: 0;
       padding: 0;
       overflow-x: hidden;
       overflow-y: auto;
-      color: #fff;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: auto;
       position: relative;
-      box-sizing: border-box;
     }
-    *, *::before, *::after { box-sizing: border-box; }
-
+    body::before { content: ""; position: fixed; top: -20%; right: -10%; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(100, 180, 255, 0.12), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow1 7s ease-in-out infinite alternate; }
+    body::after { content: ""; position: fixed; bottom: -20%; left: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(50, 120, 255, 0.08), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow2 9s ease-in-out infinite alternate; }
+    @keyframes hdGlow1 { 0% { transform: translate(0, 0) scale(1); opacity: .5; } 100% { transform: translate(-40px, 30px) scale(1.3); opacity: 1; } }
+    @keyframes hdGlow2 { 0% { transform: translate(0, 0) scale(1); opacity: .3; } 100% { transform: translate(30px, -40px) scale(1.4); opacity: .8; } }
+    .gem-sparkle { position: fixed; width: 4px; height: 4px; background: #64b5f6; border-radius: 50%; pointer-events: none; z-index: 0; box-shadow: 0 0 12px rgba(100, 181, 246, .4); animation: sparkleFloatHD 5s ease-in-out infinite alternate; }
+    .gem-sparkle:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
+    .gem-sparkle:nth-child(2) { top: 25%; left: 85%; animation-delay: 1.4s; width: 6px; height: 6px; }
+    .gem-sparkle:nth-child(3) { top: 55%; left: 8%; animation-delay: 2.8s; }
+    .gem-sparkle:nth-child(4) { top: 75%; left: 75%; animation-delay: .9s; width: 5px; height: 5px; }
+    .gem-sparkle:nth-child(5) { top: 40%; left: 55%; animation-delay: 2s; width: 8px; height: 8px; box-shadow: 0 0 20px rgba(100, 181, 246, .6); }
+    .gem-sparkle:nth-child(6) { top: 12%; left: 48%; animation-delay: 3.5s; }
+    .gem-sparkle:nth-child(7) { top: 65%; left: 32%; animation-delay: .6s; }
+    .gem-sparkle:nth-child(8) { top: 88%; left: 88%; animation-delay: 2.2s; }
+    @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }
     .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }
-
-    /* Glassmorphism */
-    .hero-banner-container, .leaderboard, .chat-messages, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content, #nameModal .legal-content, #walletModal .legal-content { border-radius: 18px !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content, #nameModal .legal-content, #walletModal .legal-content { border-radius: 24px !important; }
+    .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); }
     #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
-    
-    /* HEADER PREMIUM */
-    .top-header { background: rgba(10, 3, 30, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); position: sticky; top: 0; z-index: 100; padding: 12px 16px; align-items: center; }
-    .menu-button { color: #a855f7; font-size: 28px; padding: 5px; transition: all .2s ease; }
-    .menu-button:active { transform: scale(.9); color: #ff0080; }
-    .online { font-size: 11px; color: #4ade80; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
-    .wallet-box { text-align: right; }
-    .wallet-box small { font-size: 8px; color: rgba(255,255,255,0.5); }
-    .wallet-box strong { font-size: 15px; font-weight: 900; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.3); }
-    .wallet-button { background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 12px; color: #fff; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .2s ease; }
-    .wallet-button:active { background: rgba(168, 85, 247, 0.4); transform: scale(.95); }
-    
-    /* JACKPOT */
-    #jackpotDisplay { background: linear-gradient(145deg, rgba(70, 0, 20, 0.95) 0%, rgba(130, 20, 0, 0.95) 100%); border: 2px solid rgba(255, 102, 0, 0.8); box-shadow: 0 0 30px rgba(255, 102, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.5); overflow: hidden; position: relative; text-align: center; padding: 24px 16px; border-radius: 20px; margin-bottom: 15px; }
-    .jackpot-title { color: #ff4d4d; text-shadow: 0 0 20px rgba(255, 77, 77, 0.8); letter-spacing: 3px; }
-    #jackpotAmount { font-size: 42px; font-weight: 900; color: #facc15; text-shadow: 0 0 30px rgba(250, 204, 21, 0.7); line-height: 1.2; }
-    #jackpotCountdown { color: #4ade80; text-shadow: 0 0 15px rgba(74, 222, 128, 0.6); }
-    .jackpot-footer { border-top-color: rgba(255, 102, 0, 0.2); color: rgba(255, 255, 255, 0.75); }
-    
-    /* BANNIÈRE */
-    .hero-banner-container { background: rgba(10, 3, 30, 0.6); border: 1px solid rgba(168, 85, 247, 0.3); box-shadow: 0 0 30px rgba(168, 85, 247, 0.15), 0 8px 24px rgba(0, 0, 0, 0.5); overflow: hidden; margin: 12px 0; position: relative; }
+    html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }
+    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #64b5f6; border-radius: 999px; background: #051230; color: #64b5f6; font-size: 13px; font-weight: 900; box-shadow: 0 0 20px rgba(100, 181, 246, .2); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
+    .install-pwa-button.show { display: block; }
+    .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }
     .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }
-    .hero-header-overlay { position: absolute; top: 10px; right: 10px; }
-    .wallet-badge-top { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(168, 85, 247, 0.4); padding: 4px 8px; border-radius: 12px; text-align: right; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .hero-header-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: flex-end; align-items: center; z-index: 10; }
+    .wallet-badge-top { background: rgba(0, 0, 0, .5); backdrop-filter: blur(8px); border: 1px solid rgba(100, 181, 246, .3); padding: 4px 8px; border-radius: 12px; text-align: right; display: flex; align-items: center; gap: 6px; cursor: pointer; }
     .wallet-badge-top .wb-label { display: block; font-size: 7px; color: #ddd; }
-    .wallet-badge-top .wb-value { display: block; font-size: 13px; font-weight: 900; color: #facc15; }
-    
-    /* WALLET SERVEUR */
-    .server-wallet-box { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 16px; text-align: center; padding: 12px; margin: 10px 0; }
-    .server-wallet-address { color: #facc15 !important; font-size: 14px !important; word-break: break-all; }
-    .server-wallet-link { color: #a855f7; font-weight: 700; font-size: 10px; display: inline-block; margin-top: 4px; }
-    
-    /* BOUTONS ACTIONS */
-    .main-play-button { background: linear-gradient(135deg, #ff0080, #ff4d4d); box-shadow: 0 10px 0 #990000, 0 20px 40px rgba(255, 0, 128, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); border-radius: 18px; font-size: 20px; padding: 20px; letter-spacing: 2px; border: none; position: relative; overflow: hidden; width: 100%; margin: 10px 0; }
-    .main-play-button:active { transform: translateY(6px); box-shadow: 0 4px 0 #990000, 0 10px 20px rgba(255, 0, 128, 0.3); }
-    #duelButton { background: linear-gradient(135deg, #facc15, #ff9800); color: #000; box-shadow: 0 10px 0 #b45309, 0 20px 40px rgba(250, 204, 21, 0.3); font-weight: 900; font-family: 'Orbitron', sans-serif; font-size: 18px; }
-    #duelButton:active { transform: translateY(6px); box-shadow: 0 4px 0 #b45309, 0 10px 20px rgba(250, 204, 21, 0.3); }
-    #payButton { display: none; background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 15px 24px; font-weight: 900; border: none; cursor: pointer; margin: 10px auto; width: 85%; max-width: 320px; border-radius: 18px; font-size: 14px; }
-    
-    /* TAPE */
-    .tap-button { width: clamp(180px, 50vw, 280px); height: clamp(180px, 50vw, 280px); border: none; background: rgba(168, 85, 247, 0.1); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(168, 85, 247, 0.2); backdrop-filter: blur(10px); border: 2px solid rgba(168, 85, 247, 0.5); transition: all 0.1s ease; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; margin: 10px auto; }
-    .tap-button:active:not(:disabled) { transform: scale(.93); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 0, 128, 0.5); border-color: #ff0080; }
+    .wallet-badge-top .wb-value { display: block; font-size: 13px; font-weight: 900; color: #64b5f6; }
+    .wallet-badge-top .wallet-icon { font-size: 16px; background: #0a2a5c; padding: 4px; border-radius: 6px; }
+    .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }
+    .side-menu.show { left: 0; }
+    .close-menu { background: 0 0; border: none; color: #e0e0e0; font-size: 28px; cursor: pointer; }
+    .side-menu-content { margin-top: 40px; padding-bottom: 30px; }
+    .side-menu-content h3 { color: #64b5f6; margin-bottom: 20px; font-size: 16px; letter-spacing: 1px; }
+    .menu-block { margin-bottom: 15px; background: rgba(255, 255, 255, .03); padding: 12px; border-radius: 10px; }
+    .menu-block label, .menu-block h4 { display: block; font-size: 13px; color: #64b5f6; margin-bottom: 8px; font-weight: 700; }
+    .menu-block select { width: 100%; padding: 8px; border-radius: 6px; background: #0a2a5c; color: #e0e0e0; border: 1px solid rgba(100, 181, 246, .2); box-sizing: border-box; font-family: 'Poppins', sans-serif; font-size: 12px; }
+    .menu-nav-btn { display: block; width: 100%; background: 0 0; border: none; color: #e0e0e0; text-align: left; font-size: 14px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; border-radius: 8px; text-decoration: none; box-sizing: border-box; font-family: 'Poppins', sans-serif; transition: all .2s ease; }
+    .menu-nav-btn:hover, .menu-nav-btn:active { background: rgba(100, 181, 246, .12); color: #64b5f6; }
+    .trust-contact-box { border-left: 3px solid #2ecc71; }
+    .support-link { display: inline-block; padding: 8px 12px; background: #0088cc; color: #fff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 700; font-family: 'Poppins', sans-serif; }
+    .menu-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; z-index: 999; }
+    .menu-overlay.show { display: block; }
+    .legal-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; box-sizing: border-box; }
+    .legal-modal.show { display: flex; }
+    .legal-content { background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); border: 1px solid #64b5f6; max-width: 500px; width: 100%; max-height: 90vh; max-height: 90dvh; overflow-y: auto; padding: 20px; box-sizing: border-box; color: #e0e0e0; position: relative; animation: modalPop .4s cubic-bezier(.34, 1.56, .64, 1); }
+    .legal-content h3 { color: #64b5f6; margin-top: 0; }
+    .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
+    .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
+    .tap-zone { width: 100%; min-height: 310px; display: flex; align-items: center; justify-content: center; position: relative; padding: 10px 0; flex-direction: column; }
+    .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(100, 181, 246, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
+    .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 3vw, 20px); color: #0d47a1; }
+    .tap-zone #timerRule strong { font-size: clamp(20px, 5vw, 28px); color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); font-family: 'Orbitron', sans-serif; }
+    .tap-zone #timerRule small { font-size: clamp(10px, 2vw, 13px); color: #000000 !important; font-weight: 800; }
+    .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 4px; }
+    .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
+    .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
+    .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }
+    .tap-button:disabled { cursor: not-allowed; opacity: .6; }
+    .tap-button:active:not(:disabled) { transform: scale(.92); }
+    .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }
     .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }
-    
-    /* CHRONO */
-    #timerRule { background: rgba(10, 3, 30, 0.8); border: 1px solid rgba(168, 85, 247, 0.5); box-shadow: 0 0 25px rgba(168, 85, 247, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05); margin-bottom: 20px; padding: 6px 16px; border-radius: 16px; display: flex; align-items: center; gap: 10px; }
-    #timerRule strong { font-size: 28px; color: #facc15 !important; text-shadow: 0 0 20px rgba(250, 204, 21, 0.7); font-family: 'Orbitron', sans-serif; }
-    #timerRule small { font-size: 13px; color: #a855f7 !important; font-weight: 800; }
-    
-    /* CLASSEMENT / CHAT */
-    .leaderboard, .chat-messages { background: rgba(10, 3, 30, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(168, 85, 247, 0.3); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
-    .leaderboard .section-title, .chat-section .section-title { color: #a855f7 !important; }
-    .leaderboard-item { background: rgba(168, 85, 247, 0.1); border-left-color: #a855f7; color: #fff; }
-    .rank-badge { background: #a855f7 !important; }
-    .leaderboard-item:nth-child(1) .rank-badge { background: #facc15 !important; color: #000; }
-    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000; }
-    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff; }
-    .player-name { color: #e2e8f0 !important; }
-    .player-score { color: #facc15 !important; }
-    .chat-message { background: rgba(168, 85, 247, 0.1); color: #e2e8f0; }
-    .chat-input-box { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); }
-    .chat-input-box input { color: #fff; }
-    .chat-input-box button { background: #a855f7; }
-    
-    /* GRID DUEL */
-    .duelBetBtn { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #fff; border-radius: 14px; padding: 16px 10px; font-weight: 900; font-size: 15px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1); }
-    .duelBetBtn:active { transform: scale(.95); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-    .duelBetBtn.active { background: linear-gradient(135deg, #a855f7, #6366f1); border-color: #a855f7; box-shadow: 0 0 25px rgba(168, 85, 247, 0.6), inset 0 1px 0 rgba(255,255,255,0.2); transform: translateY(-2px); }
-    
-    /* INPUT */
-    #tokenSelect, #betInput { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #facc15; border-radius: 12px; font-weight: 700; padding: 10px; }
-    
-    @media(max-width:430px) { .tap-button { width: clamp(160px, 45vw, 220px); height: clamp(160px, 45vw, 220px); } }
+    .tap-button small { display: none; }
+    .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }
+    .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
+    .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+    .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }
+    .main-play-button b { margin-left: 8px; }
+    .tap-message, #tapMessage { display: none !important; }
+    .chat-messages { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; border-radius: 24px !important; padding: 12px !important; height: 180px !important; overflow-y: auto !important; overflow-x: hidden !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
+    .chat-message { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 10px !important; margin-bottom: 6px !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
+    .chat-input-box { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 5px; }
+    .leaderboard { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; box-shadow: 0 2px 12px rgba(0, 0, 0, .15) !important; border-radius: 24px !important; padding: 15px !important; }
+    .leaderboard .section-title { color: #222 !important; font-size: 14px !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
+    .leaderboard .section-title span { color: #222 !important; font-size: 14px !important; }
+    .leaderboard .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }
+    .leaderboard-item { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 12px !important; border-left: 3px solid #0d47a1 !important; margin-bottom: 4px !important; display: flex !important; align-items: center !important; gap: 10px !important; }
+    .rank-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 32px !important; height: 32px !important; min-width: 32px !important; border-radius: 50% !important; font-size: 14px !important; font-weight: 900 !important; color: #fff !important; background: #0d47a1 !important; flex-shrink: 0 !important; }
+    .leaderboard-item:nth-child(1) .rank-badge { background: #ffd700 !important; color: #000 !important; box-shadow: 0 0 20px rgba(255, 215, 0, .4) !important; }
+    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000 !important; box-shadow: 0 0 15px rgba(192, 192, 192, .3) !important; }
+    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff !important; box-shadow: 0 0 15px rgba(205, 127, 50, .3) !important; }
+    .leaderboard-item:nth-child(4) .rank-badge, .leaderboard-item:nth-child(5) .rank-badge { background: #0d47a1 !important; color: #fff !important; }
+    .leaderboard-item .player-name { color: #222 !important; font-weight: 600 !important; font-size: 14px !important; flex: 1 !important; }
+    .leaderboard-item .player-score { color: #0d47a1 !important; font-weight: 900 !important; font-size: 14px !important; }
+    .empty-ranking { color: #888 !important; font-size: 13px !important; }
+    .section-title { font-size: 14px !important; color: #222 !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
+    .section-title span { color: #222 !important; font-size: 14px !important; }
+    .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }
+    .stat-box { background: rgba(100, 181, 246, .06) !important; border: 1px solid rgba(100, 181, 246, .12) !important; padding: 20px !important; box-shadow: 0 0 40px rgba(100, 181, 246, .04) !important; border-radius: 24px !important; }
+    .stat-box small { display: block; font-size: 14px !important; color: rgba(255, 255, 255, .8) !important; font-family: 'Poppins', sans-serif; letter-spacing: 2px !important; font-weight: 700 !important; }
+    .stat-box strong { font-size: 56px !important; font-weight: 900 !important; color: #64b5f6 !important; font-family: 'Orbitron', sans-serif !important; text-shadow: 0 0 30px rgba(100, 181, 246, .25), 0 0 60px rgba(100, 181, 246, .08) !important; }
+    .stats { display: flex; justify-content: center; padding: 10px 0 5px; animation: slideUp .9s ease-out .4s both; }
+    .top-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, .05); position: relative; overflow: hidden; }
+    .top-header::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .05), transparent); animation: headerShine 6s ease-in-out infinite; pointer-events: none; }
+    @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }
+    .menu-button { background: 0 0; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px 8px; }
+    .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }
+    .wallet-box { text-align: right; font-family: 'Poppins', sans-serif; }
+    .wallet-box small { display: block; font-size: 8px; color: rgba(255, 255, 255, .5); }
+    .wallet-box strong { font-size: 14px; color: #64b5f6; }
+    .wallet-button { background: rgba(100, 181, 246, .12); border: 1px solid rgba(100, 181, 246, .2); border-radius: 10px; color: #fff; padding: 6px 12px; font-size: 12px; font-family: 'Poppins', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 25px !important; padding: 0 16px; animation: slideUp 1s ease-out .5s both; }
+    .rules { display: flex; justify-content: center; gap: 20px; padding: 15px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }
+    .rule { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .08); font-family: 'Poppins', sans-serif; font-size: 11px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .1); }
+    .rule .rule-icon { font-size: 18px; }
+    .rule strong { color: #64b5f6; font-size: 13px; }
+    .rule small { color: rgba(255, 255, 255, .6); font-size: 9px; }
+    .rules .rule:first-child { display: none !important; }
+    .tap-message { text-align: center; font-size: 15px !important; color: #fff; padding: 12px 20px !important; margin: 5px auto; font-family: 'Poppins', sans-serif; letter-spacing: .5px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(6px); border-radius: 20px; display: inline-block; max-width: 90%; border: 1px solid rgba(255, 255, 255, .06); font-weight: 700 !important; }
+    .steps-guide { display: none !important; justify-content: center; gap: 12px !important; padding: 12px 16px !important; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255, 255, 255, .05); flex-wrap: wrap; text-align: center; font-size: 11px !important; font-family: 'Poppins', sans-serif; color: rgba(255, 255, 255, .7); }
+    .step-item { display: flex; align-items: center; gap: 4px; }
+    .step-number { background: #64b5f6; color: #051230; border-radius: 50%; width: 20px !important; height: 20px !important; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px !important; flex-shrink: 0; }
+    .step-arrow { color: rgba(255, 255, 255, .2); }
+    .server-wallet-box { text-align: center; margin: 10px 12px !important; padding: 12px !important; border-radius: 16px; background: rgba(255, 255, 255, .04) !important; border: 1px solid rgba(255, 255, 255, .06) !important; }
+    .server-wallet-label { font-size: 11px; color: rgba(255, 255, 255, .4); }
+    .server-wallet-address { font-size: 15px !important; font-weight: 700; color: #64b5f6 !important; word-break: break-all; font-family: 'Poppins', sans-serif; background: rgba(0, 0, 0, .20) !important; padding: 4px 8px !important; border-radius: 6px !important; display: inline-block !important; }
+    .server-wallet-link { font-size: 10px; color: #64b5f6; text-decoration: none; display: inline-block; margin-top: 4px; }
+    .trust-footer { text-align: center; padding: 12px; font-size: 11px; color: rgba(255, 255, 255, .3); font-family: 'Poppins', sans-serif; border-top: 1px solid rgba(255, 255, 255, .04); margin-top: 20px; }
+    .trust-footer a { color: #64b5f6; text-decoration: none; }
+    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 30px 24px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+    #welcomeModal .welcome-icon { font-size: 48px; margin-bottom: 10px; }
+    #welcomeModal .welcome-title { margin: 0 0 8px; font-size: 22px; color: #64b5f6; }
+    #welcomeModal .welcome-sub { font-size: 14px; color: rgba(255, 255, 255, .8); margin: 0 0 20px; }
+    #welcomeModal .welcome-steps { text-align: left; font-size: 14px; line-height: 1.8; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 8px; }
+    #welcomeModal .welcome-steps strong { color: #64b5f6; }
+    #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
+    #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
+    #welcomeModal .welcome-btn:active { transform: scale(.96); }
+    @media(max-width:430px) { .tap-button { width: clamp(150px, 38vw, 200px); height: clamp(150px, 38vw, 200px); } .tap-zone { min-height: 280px; } .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } #timerRuleValue { font-size: 20px !important; } .stat-box strong { font-size: 44px !important; } .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } .server-wallet-address { font-size: 13px !important; } }
+    @media(max-width:360px) { .tap-button { width: clamp(120px, 32vw, 160px); height: clamp(120px, 32vw, 160px); } .tap-zone { min-height: 260px; } .chat-input-box input { font-size: 12px !important; } .chat-input-box button { width: 42px; min-width: 42px; } #timerRuleValue { font-size: 18px !important; } .stat-box strong { font-size: 38px !important; } .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } .server-wallet-address { font-size: 12px !important; } }
+    @media(min-width:600px) { body { padding: 20px 0 40px; } .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } }
     @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { 0% { opacity: 0; transform: translateY(30px) scale(.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes messageSlide { 0% { opacity: 0; transform: translateX(-10px); } 100% { opacity: 1; transform: translateX(0); } }
+    @keyframes modalPop { 0% { opacity: 0; transform: scale(.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes confettiFall { 0% { transform: translateY(0) rotate(0) scale(1); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg) scale(.5); opacity: 0; } }
+    #winnerTicker { width: 100%; max-width: 480px; margin: 0 auto; overflow: hidden; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(100, 181, 246, .12); border-top: 1px solid rgba(100, 181, 246, .12); height: 36px; position: sticky; top: 68px; z-index: 40; display: none; }
+    #winnerTicker.show { display: block; }
+    #tickerTrack { display: flex; align-items: center; height: 100%; white-space: nowrap; animation: tickerScroll 20s linear infinite; gap: 40px; padding-left: 100%; }
+    @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+    .ticker-item { display: inline-flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; font-size: 12px; color: #64b5f6; padding: 0 10px; text-shadow: 0 0 20px rgba(100, 181, 246, .05); flex-shrink: 0; }
+    .ticker-item .trophy { font-size: 14px; }
+    .ticker-item .name { color: #fff; font-weight: 700; }
+    .ticker-item .amount { color: #2ecc71; font-weight: 700; }
+    #winnerTicker:hover #tickerTrack { animation-play-state: paused; }
+    #tokenSelect { width: 140px; padding: 10px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255, 255, 255, .1); font-size: 14px; text-align: center; outline: 0; font-family: 'Poppins', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364b5f6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    #tokenSelect option { background: #0d47a1; color: #fff; }
+    .crypto-label { color: #fff; font-weight: 700; font-size: 14px; font-family: 'Poppins', sans-serif; }
+    @media(max-width:480px) { #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; } }
+    .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }
+    .online strong span:last-child { color: #fff; }
+    .wallet-button { color: #fff; }
+
+    /* ===== BOUTON DUEL ===== */
+    #duelButton {
+      background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+      box-shadow: 0 8px 0 #4a148c, 0 10px 30px rgba(156, 39, 176, 0.5) !important;
+    }
+    #duelButton:active { box-shadow: 0 2px 0 #4a148c !important; }
+
+    /* ===== BOUTONS DE MISE DUEL ===== */
+    .duelBetBtn {
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .duelBetBtn.active {
+      border-color: #9c27b0;
+      background: rgba(156, 39, 176, 0.3);
+      box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
+    }
+  </style>
+  <!-- ===== JACKPOT ===== -->
+  <style>
+    #jackpotDisplay { position: relative; width: calc(100% - 24px); margin: 12px auto; padding: 20px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%); border: 1px solid rgba(255, 80, 80, 0.8); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); overflow: hidden; text-align: center; animation: jackpotHaloPulse 3s ease-in-out infinite alternate; z-index: 1; }
+    #jackpotDisplay::before { content: ''; position: absolute; top: -50%; left: -20%; width: 140%; height: 200%; background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, rgba(255, 30, 30, 0.05) 40%, transparent 70%); pointer-events: none; z-index: -1; }
+    @keyframes jackpotHaloPulse { 0% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 15px rgba(255,30,30,0.4), inset 0 1px 0 rgba(255,255,255,0.2); } 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(255,30,30,0.7), inset 0 1px 0 rgba(255,255,255,0.2); } }
+    .jackpot-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.5); color: #ffd700; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+    .jackpot-title { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 900; color: #ffd700; letter-spacing: 2px; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.8); }
+    .jackpot-main-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .jackpot-left, .jackpot-right { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
+    .jackpot-divider { width: 2px; height: 60px; background: rgba(255, 215, 0, 0.5); border-radius: 2px; box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+    .jackpot-label { font-size: 10px; color: rgba(255,255,255,0.9); letter-spacing: 1px; text-transform: uppercase; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    #jackpotAmount { font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; transition: transform 0.2s ease; animation: amountGlow 2s ease-in-out infinite alternate; }
+    @keyframes amountGlow { 0% { text-shadow: 0 0 10px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1); } 100% { text-shadow: 0 0 25px rgba(255,255,255,1), 0 2px 4px rgba(0,0,0,0.8); transform: scale(1.02); } }
+    #jackpotCountdown { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; color: #2ecc71; text-shadow: 0 0 15px rgba(46, 204, 113, 0.8), 0 2px 4px rgba(0,0,0,0.8); line-height: 1.2; }
+    .jackpot-schedule { font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    .jackpot-winner-info { display: block; font-size: 11px; color: rgba(255, 215, 0, 0.85); margin-top: 6px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); letter-spacing: 0.3px; }
+    .jackpot-winner-info strong { color: #ffd700; font-weight: 700; }
+    .jackpot-footer { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 215, 0, 0.25); font-size: 11px; color: rgba(255, 255, 255, 0.75); text-align: center; font-weight: 400; letter-spacing: 0.3px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+    @media (max-width: 430px) { .jackpot-winner-info { font-size: 10px; } .jackpot-footer { font-size: 10px; padding-top: 8px; margin-top: 10px; } }
+    @media (max-width: 360px) { .jackpot-winner-info { font-size: 9px; } .jackpot-footer { font-size: 9px; } }
+    @media (max-width: 430px) { #jackpotAmount { font-size: 26px; } #jackpotCountdown { font-size: 20px; } .jackpot-title { font-size: 20px; } }
+    @media (max-width: 360px) { .jackpot-main-row { flex-direction: column; gap: 10px; } .jackpot-divider { width: 60%; height: 2px; } #jackpotAmount { font-size: 28px; } #jackpotCountdown { font-size: 18px; } }
   </style>
 </head>
 
 <body>
-  <!-- MODALES -->
-  <div id="nameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;align-items:center;justify-content:center;">
-    <div style="background:rgba(10,3,30,0.98);border:1px solid #a855f7;border-radius:18px;padding:20px;max-width:400px;width:90%;color:#fff;">
-      <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
-      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #a855f7;background:rgba(168,85,247,0.1);color:#fff;font-size:16px;">
-      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;font-size:16px;">✅ VALIDER</button>
-    </div>
-  </div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
 
-  <div id="walletModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;align-items:center;justify-content:center;">
-    <div style="background:rgba(10,3,30,0.98);border:1px solid #a855f7;border-radius:18px;padding:20px;max-width:400px;width:90%;color:#fff;">
-      <h3>💰 Entrez votre adresse TRON</h3>
-      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #a855f7;background:rgba(168,85,247,0.1);color:#fff;font-size:16px;">
-      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;font-size:16px;">✅ VALIDER</button>
-    </div>
-  </div>
-
-  <!-- SIDE MENU -->
-  <aside id="sideMenu" style="position:fixed;top:0;left:-300px;width:280px;height:100vh;background:rgba(10,3,30,0.98);z-index:1000;transition:left .3s ease;padding:20px;color:#e0e0e0;border-right:1px solid rgba(168,85,247,0.4);overflow-y:auto;">
-    <button id="closeMenu" style="background:transparent;border:none;color:#fff;font-size:28px;cursor:pointer;">×</button>
-    <div style="margin-top:40px;">
-      <h3 style="color:#facc15;">🧭 Menu Miltape</h3>
-      <button class="menu-nav-btn" id="menuGamesBtn" style="display:block;width:100%;background:transparent;border:none;color:#e2e8f0;text-align:left;font-size:14px;padding:10px;cursor:pointer;">🎮 Mes parties</button>
-      <button class="menu-nav-btn" id="menuRankingsBtn" style="display:block;width:100%;background:transparent;border:none;color:#e2e8f0;text-align:left;font-size:14px;padding:10px;cursor:pointer;">🏆 Mes classements</button>
-      <button class="menu-nav-btn" id="menuRulesBtn" style="display:block;width:100%;background:transparent;border:none;color:#e2e8f0;text-align:left;font-size:14px;padding:10px;cursor:pointer;">📜 Règles</button>
-      <div style="text-align:center;margin-top:20px;">
-        <button id="demomodebtn" style="background:rgba(168,85,247,0.2);color:#a855f7;border:1px solid rgba(168,85,247,0.4);padding:10px;width:100%;border-radius:10px;font-weight:700;cursor:pointer;">🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span></button>
-        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:6px;">🔒 Mode démo désactivé</div>
+  <div id="welcomeModal">
+    <div class="welcome-content">
+      <div class="welcome-icon">🎮</div>
+      <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
+      <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
+      <div class="welcome-steps">
+        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
+        <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet (2 min pour préparer)</div>
+        <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
+        <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
       </div>
-      <div style="text-align:center;margin-top:20px;">
-        <button id="resetGameBtn" style="background:rgba(255,77,77,0.2);color:#ff4d4d;border:1px solid rgba(255,77,77,0.4);padding:10px;width:100%;border-radius:10px;font-weight:700;cursor:pointer;">🔄 NOUVELLE PARTIE</button>
+      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
+      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
+    </div>
+  </div>
+
+  <div id="nameModal" class="legal-modal">
+    <div class="legal-content">
+      <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
+      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
+      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
+    </div>
+  </div>
+
+  <div id="walletModal" class="legal-modal">
+    <div class="legal-content">
+      <h3>💰 Entrez votre adresse TRON</h3>
+      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
+      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
+    </div>
+  </div>
+
+  <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
+  <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
+
+  <aside id="sideMenu" class="side-menu">
+    <button id="closeMenu" class="close-menu" type="button">×</button>
+    <div class="side-menu-content">
+      <h3>🧭 Menu Miltape</h3>
+      <div class="menu-block">
+        <button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button>
+        <button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button>
+        <button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button>
+        <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button>
+        <button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button>
+        <button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button>
+        <button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button>
+        <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
+      </div>
+      <div class="menu-block" style="text-align:center">
+        <button id="demomodebtn" class="menu-nav-btn" type="button" style="background:rgba(100,181,246,.12);color:#64b5f6;font-weight:700;text-align:center;border:1px solid rgba(100,181,246,.2);font-family:'Poppins',sans-serif;transition:all .3s ease">
+          🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span>
+        </button>
+        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;font-family:'Poppins',sans-serif">🔒 Mode démo désactivé</div>
+      </div>
+      <div class="menu-block" style="text-align:center">
+        <button id="resetGameBtn" class="menu-nav-btn" type="button" style="background:rgba(255,50,50,.12);color:#ff4444;border:1px solid rgba(255,50,50,.25);font-family:'Poppins',sans-serif;transition:all .3s ease">🔄 NOUVELLE PARTIE</button>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;font-family:'Poppins',sans-serif">Efface tes données locales</div>
+      </div>
+      <div class="menu-block">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <span style="color:#64b5f6;font-weight:700;font-size:13px">🔔 Notifications</span>
+          <input type="checkbox" id="notifToggle" checked style="width:40px;height:20px;cursor:pointer;accent-color:#64b5f6;background:rgba(255,255,255,.1);border-radius:10px">
+        </label>
+      </div>
+      <div class="menu-block">
+        <label for="languageSelect">🌐 Langue</label>
+        <select id="languageSelect">
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="menu-block trust-contact-box">
+        <h4>🛡️ Support & Confiance</h4>
+        <p style="font-size:12px;color:#b8b8b8;font-family:'Poppins',sans-serif">Une question ? Un problème ?</p>
+        <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
+        <div style="margin-top:8px;font-size:12px"><a href="mailto:miltapesupport@gmail.com" style="color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif">📧 miltapesupport@gmail.com</a></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)">
+          <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;transition:all .3s ease">🔍 Voir toutes les transactions sur TronScan</a>
+        </div>
       </div>
     </div>
   </aside>
-  <div id="menuOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;z-index:999;"></div>
+  <div id="menuOverlay" class="menu-overlay"></div>
 
-  <!-- APPLICATION -->
+  <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
+    <div class="legal-content">
+      <button id="closeDynamicModal" class="legal-close" type="button">×</button>
+      <h3 id="dynamicModalTitle">Miltape</h3>
+      <div id="dynamicModalBody"></div>
+    </div>
+  </div>
+
   <main class="app">
-    <header class="top-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <header class="top-header">
       <button class="menu-button" id="menuButton" type="button">☰</button>
-      <div class="online"><strong id="onlineCount">🟢 1 EN LIGNE</strong></div>
+      <div class="online">
+        <strong id="onlineCount">
+          <span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span>
+          <span>1 EN LIGNE</span>
+        </strong>
+      </div>
       <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
       <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
@@ -199,27 +408,30 @@
     <div id="jackpotDisplay">
       <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
       <div class="jackpot-title">🏆 JACKPOT</div>
-      <div class="jackpot-main-row" style="display:flex;justify-content:space-around;align-items:center;">
-        <div>
-          <div class="jackpot-label">💰 MONTANT</div>
-          <div id="jackpotAmount">0 USDT</div>
-          <div class="jackpot-winner-info">🏅 Meilleur tapeur de la semaine</div>
+      <div class="jackpot-main-row">
+        <div class="jackpot-left">
+          <span class="jackpot-label">💰 MONTANT</span>
+          <span id="jackpotAmount">0 USDT</span>
+          <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>
         </div>
-        <div style="width:1px;height:50px;background:rgba(255,215,0,0.4);"></div>
-        <div>
-          <div class="jackpot-label">⏳ TIRAGE DANS</div>
-          <div id="jackpotCountdown">--</div>
-          <div class="jackpot-schedule">📅 CHAQUE SAMEDI</div>
+        <div class="jackpot-divider"></div>
+        <div class="jackpot-right">
+          <span class="jackpot-label">⏳ TIRAGE DANS</span>
+          <span id="jackpotCountdown">--</span>
+          <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
         </div>
       </div>
-      <div class="jackpot-footer">💡 Cagnotte redistribuée chaque samedi au meilleur tapeur.</div>
+      <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
     </div>
+
+    <div id="winnerTicker"><div id="tickerTrack"></div></div>
 
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
       <div class="hero-header-overlay">
-        <div class="wallet-badge-top" id="enterChallengeTop">
+        <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
           <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
+          <div class="wallet-icon">👛</div>
         </div>
       </div>
     </section>
@@ -230,111 +442,105 @@
       <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
 
-    <!-- SÉLECTION CRYPTO / MISE (CORRECTION #6) -->
-    <div style="text-align:center;margin:15px 0;">
-      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:10px;">
-        <label>🪙 CRYPTO :</label>
-        <select id="tokenSelect">
-          <option value="USDT">USDT (TRC20)</option>
-          <option value="USDC">USDC (TRC20)</option>
-          <option value="TUSD">TUSD (TRC20)</option>
-          <option value="TRX">TRX</option>
-        </select>
-      </div>
-      <div style="display:flex;justify-content:center;gap:10px;">
-        <label>💰 MISE :</label>
-        <input type="number" inputmode="decimal" id="betInput" value="10">
-      </div>
-    </div>
-
-    <!-- EXPLICATION DUEL + CHOIX MISE -->
-    <div style="text-align:center;margin:15px 0;">
-      <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:18px;padding:20px;margin-bottom:15px;">
-        <h4 style="color:#facc15;text-shadow:0 0 10px rgba(250,204,21,0.5);margin:0 0 10px;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
-        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px;">
-          <span style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;">🔒 100% AUTOMATIQUE</span>
-          <span style="background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
+    <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
+    <div style="text-align:center;margin:15px 0">
+      <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(100, 181, 246, 0.3); border-radius: 15px; padding: 15px; margin-bottom: 15px;">
+        <h4 style="color: #fff; margin: 0 0 10px; font-family: 'Orbitron', sans-serif;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #2ecc71; color: #fff; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔒 100% AUTOMATIQUE</span>
+            <span style="background: #64b5f6; color: #051230; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
         </div>
-        <p style="color:#e2e8f0;font-size:13px;line-height:1.8;">
-          ⚡ <strong>Paiement instantané</strong> : Tu paies, le serveur vérifie en quelques secondes.<br><br>
-          💸 <strong>Gain instantané</strong> : L'argent est envoyé automatiquement sur ton wallet !<br><br>
-          🛡️ <strong>Sécurisé</strong> : Le système t'envoie exactement le montant gagné.
+
+        <p style="color: #eee; font-size: 13px; margin: 0; line-height: 1.8;">
+            ⚡ <strong>Le paiement est instantané</strong> : Tu paies, le serveur vérifie la transaction en quelques secondes, et tu es automatiquement mis en file d'attente.<br><br>
+            💸 <strong>Le gain est instantané</strong> : Dès que le duel se termine, le serveur t'envoie <strong>automatiquement</strong> ton argent sur ton wallet TRON !<br><br>
+            🛡️ <strong>Nous ne touchons pas à ton argent</strong> : Le système est programmé pour t'envoyer exactement le montant gagné.
         </p>
-        <div style="margin-top:10px;background:rgba(0,0,0,0.3);border-radius:10px;padding:10px;">
-          <strong style="color:#facc15;">💰 EXEMPLE :</strong><br>
-          <span style="color:#e2e8f0;font-size:12px;">Mise de <strong>1 USDT</strong> → Tu gagnes <strong style="color:#4ade80;">1.80 USDT</strong></span>
+
+        <div style="margin-top: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 10px;">
+            <strong style="color: #64b5f6;">💰 EXEMPLE :</strong><br>
+            <span style="color: #eee; font-size: 12px;">
+                Mise de <strong style="color: #fff;">1 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">1.80 USDT</strong><br>
+                Mise de <strong style="color: #fff;">10 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">18 USDT</strong>
+            </span>
         </div>
       </div>
 
-      <h4 style="color:#fff;margin:5px;">💰 CHOISIS TA MISE DUEL</h4>
-      <div id="duelBetsContainer" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;">
-        <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
-        <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
-        <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
-        <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
-        <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
-        <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
-        <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
-        <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
-        <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
+      <div style="margin: 10px 0;">
+        <h4 style="color:#fff; margin: 5px;">💰 CHOISIS TA MISE DUEL</h4>
+        <div id="duelBetsContainer" style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+            <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
+            <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
+            <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
+            <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
+            <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
+            <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
+            <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
+            <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
+            <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
+        </div>
       </div>
     </div>
+    <!-- ===== FIN SECTION DUEL ===== -->
 
-    <!-- BOUTONS ACTIONS -->
-    <button id="payButton">💳 PAYER MA MISE</button>
-    <button id="duelButton" class="main-play-button" type="button">⚔️ MODE DUEL 1 VS 1 (1 MINUTE)</button>
+    <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
+    
+    <!-- ✅ BOUTON DUEL -->
+    <button id="duelButton" class="main-play-button" type="button">⚡ MODE DUEL 1 VS 1 (1 MINUTE)</button>
+    
     <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 
-    <div id="tapMessage" class="tap-message" style="text-align:center;font-size:14px;font-weight:700;margin-bottom:10px;">⚡ ÉTAPE 1 : Rejoins la partie !</div>
+    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
 
-    <!-- ZONE TAP -->
-    <section class="tap-zone" style="display:flex;flex-direction:column;align-items:center;padding:10px 0;">
-      <div class="rule" id="timerRule" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+    <section class="tap-zone" aria-label="Zone de tap">
+      <div class="rule" id="timerRule">
         <span class="rule-icon">⏱️</span>
         <strong id="timerRuleValue">10:00</strong>
-        <small id="timerStatus">PRÉPARATION</small>
-        <span class="tap-counter" style="display:flex;align-items:center;gap:5px;">
-          <span>👆</span>
+        <small>PRÉPARATION</small>
+        <span class="tap-counter">
+          <span class="tap-icon">👆</span>
           <span id="tapCounterDisplay">0</span>
           <span class="tap-label">TAPS</span>
         </span>
       </div>
       <button id="tapButton" class="tap-button" type="button" disabled>
         <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">
+        <small style="display:none"><span id="tapButtonCount">0</span></small>
       </button>
     </section>
 
-    <!-- CLASSEMENT & CHAT -->
-    <div class="leaderboard-chat-wrapper" style="display:flex;flex-direction:column;gap:25px;padding:0 16px;">
-      <section class="leaderboard" style="padding:15px;">
-        <div class="section-title">🏆 CLASSEMENT <strong>TOP 5</strong></div>
-        <div id="leaderboardList"><div class="empty-ranking" style="color:#888;font-size:13px;">Aucun joueur pour le moment</div></div>
+    <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
+
+    <div class="leaderboard-chat-wrapper">
+      <section class="leaderboard">
+        <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
+        <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>
       </section>
       <section class="chat-section" id="globalChat">
-        <div class="section-title" style="margin:0 16px 14px;">💬 CHAT GLOBAL <strong>LIVE</strong></div>
-        <div id="chatMessages" class="chat-messages" style="padding:12px;height:180px;overflow-y:auto;">
-          <div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>
-        </div>
-        <div class="chat-input-box" style="display:flex;margin:10px 16px;padding:5px;">
-          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500">
-          <button id="chatSend">➤</button>
+        <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
+        <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
+        <div class="chat-input-box" id="chatInputBox">
+          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
+          <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
         </div>
       </section>
     </div>
 
-    <div class="trust-footer" style="text-align:center;padding:12px;font-size:11px;color:rgba(255,255,255,0.3);margin-top:20px;">
-      🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" style="color:#a855f7;">Conditions d'utilisation</a>
-    </div>
+    <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
+    <div style="width:100%;height:40px"></div>
   </main>
 
-  <!-- ============ SCRIPT COMPLET (INCHANGÉ ET CORRIGÉ) ============ -->
   <script>
     // ===== CONFIGURATION BACKEND =====
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
     
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) { registration.unregister(); }
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('✅ Service Worker désinstallé');
+        }
       });
     }
     
@@ -345,9 +551,13 @@
           manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
           buttonRootId: "ton-connect-button"
         });
-      } catch (e) { window.tonConnectUI = null; }
+        console.log("✅ TON Connect initialisé.");
+      } catch (e) {
+        console.error("❌ Erreur TON Connect :", e);
+        window.tonConnectUI = null;
+      }
     })();
-
+    
     const socket = io(BACKEND_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -355,7 +565,6 @@
         reconnectionDelay: 1000
     });
     
-    // IDs pour éléments de jeu classique
     const tapButton = document.getElementById('tapButton');
     const tapCount = document.getElementById('tapCount');
     const tapButtonCount = document.getElementById('tapButtonCount');
@@ -387,21 +596,31 @@
     let myWallet = null;
     let myToken = 'USDT';
     let gameStatus = "waiting";
+    
     let endsAt = null;
     let timerInterval = null;
+
     let duelState = { active: false, endsAt: null, opponentName: null, myTaps: 0, opponentTaps: 0 };
     
     function updateTimerDisplay() {
       const timerRuleValue = document.getElementById('timerRuleValue');
       if (!timerRuleValue) return;
-      if (!endsAt) { timerRuleValue.innerText = "10:00"; return; }
+      
+      if (!endsAt) { 
+        timerRuleValue.innerText = "10:00";
+        return; 
+      }
+      
       const now = Date.now();
       let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
+      
       timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+      
       if (remaining <= 0 && timerInterval) {
-        clearInterval(timerInterval); timerInterval = null;
+        clearInterval(timerInterval);
+        timerInterval = null;
         const timerSmall = document.querySelector('#timerRule small');
         if (timerSmall) timerSmall.innerText = "PRÉPARATION";
       }
@@ -412,10 +631,14 @@
       timerInterval = setInterval(() => {
         if (endsAt) {
           updateTimerDisplay();
-          if (Date.now() >= endsAt) { clearInterval(timerInterval); timerInterval = null; }
+          if (Date.now() >= endsAt) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
         }
       }, 200);
     }
+    
     startLocalTimer();
     
     function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
@@ -427,13 +650,13 @@
     let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
     function updateDemoUI() {
       if (demoMode) {
-        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ"; demoStatus.style.color = "#a855f7"; }
-        if (demoBtn) { demoBtn.style.background = "rgba(168,85,247,0.2)"; demoBtn.style.color = "#a855f7"; }
+        if (demoStatus) { demoStatus.textContent = "🔬 Mode démo ACTIVÉ (paiements simulés)"; demoStatus.style.color = "#64b5f6"; }
+        if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.2)"; demoBtn.style.borderColor = "rgba(100,181,246,0.4)"; demoBtn.style.color = "#64b5f6"; }
         if (demoToggleLabel) demoToggleLabel.textContent = "ON";
         if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO ACTIF – Tu peux jouer sans payer !";
       } else {
         if (demoStatus) { demoStatus.textContent = "🔒 Mode démo désactivé"; demoStatus.style.color = "rgba(255,255,255,0.4)"; }
-        if (demoBtn) { demoBtn.style.background = "rgba(168,85,247,0.1)"; demoBtn.style.color = "#a855f7"; }
+        if (demoBtn) { demoBtn.style.background = "rgba(100,181,246,0.12)"; demoBtn.style.borderColor = "rgba(100,181,246,0.2)"; demoBtn.style.color = "#64b5f6"; }
         if (demoToggleLabel) demoToggleLabel.textContent = "OFF";
         if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       }
@@ -444,18 +667,20 @@
       demoBtn.addEventListener('click', function() {
         demoMode = !demoMode;
         localStorage.setItem("miltape_demo", String(demoMode));
-        updateDemoUI(); hapticMedium();
+        updateDemoUI();
+        hapticMedium();
         if (!demoMode) {
           if (enterChallenge) enterChallenge.style.display = 'block';
           if (payButton) payButton.style.display = 'none';
         }
-        alert(demoMode ? "🔬 Mode démo ACTIVÉ !" : "🔒 Mode démo désactivé.");
+        alert(demoMode ? "🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !" : "🔒 Mode démo désactivé.");
       });
     }
     
     async function restoreSession() {
       const sessionToken = localStorage.getItem("miltape_session_token");
       if (!sessionToken) return false;
+
       socket.emit("player:restore", { sessionToken });
       return true;
     }
@@ -470,7 +695,12 @@
     const MY_DEVICE_ID = getOrCreateDeviceId();
     
     socket.on("timer:update", (data) => {
-      if (data.endsAt) { endsAt = new Date(data.endsAt).getTime(); updateTimerDisplay(); if (!timerInterval) startLocalTimer(); }
+      console.log("⏱️ TIMER REÇU :", data);
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+        if (!timerInterval) startLocalTimer();
+      }
       gameStatus = data.status || gameStatus;
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) {
@@ -481,8 +711,13 @@
     });
     
     socket.on("game:preparing", (data) => {
+      console.log("🔄 PRÉPARATION :", data);
       gameStatus = "preparing";
-      if (data.preparationEndsAt) { endsAt = new Date(data.preparationEndsAt).getTime(); updateTimerDisplay(); startLocalTimer(); }
+      if (data.preparationEndsAt) {
+        endsAt = new Date(data.preparationEndsAt).getTime();
+        updateTimerDisplay();
+        startLocalTimer();
+      }
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) timerSmall.innerText = "PRÉPARATION";
       if (tapButton) tapButton.disabled = true;
@@ -490,8 +725,13 @@
     });
     
     socket.on("game:started", (data) => {
+      console.log("🚀 JEU COMMENCÉ :", data);
       gameStatus = "running";
-      if (data.endsAt) { endsAt = new Date(data.endsAt).getTime(); updateTimerDisplay(); startLocalTimer(); }
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+        startLocalTimer();
+      }
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) timerSmall.innerText = "EN DIRECT";
       if (isPaid && tapButton) tapButton.disabled = false;
@@ -500,6 +740,7 @@
     });
     
     socket.on('connect', async () => {
+      console.log('✅ Socket connecté avec ID :', socket.id);
       if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";
       socket.emit("timer:request");
       await restoreSession();
@@ -511,13 +752,23 @@
       setTimeout(() => socket.emit('timer:request'), 500);
     });
     
-    socket.on('connect_error', (err) => { hapticError(); if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur."; });
+    socket.on('connect_error', (err) => { 
+      hapticError(); 
+      if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur.";
+      console.error("❌ Erreur connexion :", err);
+    });
     
-    socket.on('disconnect', (reason) => { if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur."; });
+    socket.on('disconnect', (reason) => { 
+      if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur.";
+      console.log("🔴 Déconnecté :", reason);
+    });
     
     document.addEventListener('visibilitychange', () => { 
       if (!document.hidden) { 
-        if (localStorage.getItem("miltape_session_token")) { restoreSession(); socket.emit('timer:request'); }
+        if (localStorage.getItem("miltape_session_token")) {
+          restoreSession();
+          socket.emit('timer:request');
+        }
       } 
     });
     
@@ -536,7 +787,9 @@
         };
         nameInput.onkeypress = (e) => { if(e.key === 'Enter') document.getElementById('nameSubmitBtn').click(); };
         return;
-      } else { await proceedJoin(name); }
+      } else {
+        await proceedJoin(name);
+      }
     }
     
     async function proceedJoin(name) {
@@ -581,6 +834,7 @@
     if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
     
     socket.on("player:joined", (data) => {
+      console.log("✅ PLAYER JOINED :", data);
       if (data.success) {
         isPlaying = true; isPaid = false;
         myPlayerId = data.player.id;
@@ -588,42 +842,63 @@
         if (tapButton) tapButton.disabled = true;
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
-        if (gameStatus === "running") updateTapCounter(data.player.taps);
-        else updateTapCounter(0);
+        
+        if (gameStatus === "running") {
+          updateTapCounter(data.player.taps);
+        } else {
+          updateTapCounter(0);
+        }
+
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
+        
         if (data.player.sessionToken) {
           localStorage.setItem("miltape_session_token", data.player.sessionToken);
           localStorage.setItem("miltape_session_wallet", data.player.wallet);
         }
+        
         showNotification("success", "🟢 " + data.player.name + " a rejoint la partie !");
+        
         if (chatMessages) {
           const msgDiv = document.createElement('div');
           msgDiv.className = 'chat-message';
           const strong = document.createElement('strong');
           strong.textContent = 'Système : ';
           const textNode = document.createTextNode('🟢 ' + data.player.name + ' a rejoint la partie !');
-          msgDiv.appendChild(strong); msgDiv.appendChild(textNode);
-          chatMessages.appendChild(msgDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
+          msgDiv.appendChild(strong);
+          msgDiv.appendChild(textNode);
+          chatMessages.appendChild(msgDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+        
         if (demoMode) {
           isPaid = true;
           if (gameStatus === "running") tapButton.disabled = false;
           if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
-          fetch(BACKEND_URL + "/api/demo/verify", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id }) }).catch(err => console.error(err));
+          fetch(BACKEND_URL + "/api/demo/verify", {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ playerId: data.player.id })
+          }).catch(err => console.error(err));
         } else {
-          if (payButton) { payButton.style.display = 'block'; payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet); }
+          if (payButton) {
+            payButton.style.display = 'block';
+            payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
+          }
         }
         hapticMedium();
       }
     });
     
     socket.on("player:restored", (data) => {
+      console.log("🔄 PLAYER RESTORED :", data);
       hapticLight();
+
+      // Fonction utilitaire pour remettre l'interface à zéro
       const resetUI = () => {
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (payButton) payButton.style.display = 'none';
@@ -633,19 +908,25 @@
         if (timerStatus) timerStatus.innerText = "PRÉPARATION";
         if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       };
+
+      // ============ CAS 1 : Session valide mais manche terminée (staleRound) ============
       if (data.staleRound === true) {
         resetUI();
         if (tapMessage) tapMessage.innerText = "⚡ Prêt à rejoindre la nouvelle manche ?";
         return;
       }
+
+      // ============ CAS 2 : Session valide et manche en cours (success) ============
       if (data.success) {
         isPlaying = true;
         myPlayerId = data.player.id; 
         myWallet = data.player.wallet; 
         myBet = data.player.bet || 10; 
         myToken = data.player.token || 'USDT';
+        
         if (gameStatus === "running") updateTapCounter(data.player.taps);
         else updateTapCounter(0);
+
         if (demoMode) {
           isPaid = true;
           if (gameStatus === "running") tapButton.disabled = false;
@@ -653,28 +934,40 @@
           if (payButton) payButton.style.display = 'none';
         } else {
           isPaid = data.player.paid || false;
+          
           if (gameStatus === "preparing" && !isPaid) {
             if (payButton) payButton.style.display = 'block';
             payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
-          } else { if (payButton) payButton.style.display = 'none'; }
+          } else {
+            if (payButton) payButton.style.display = 'none';
+          }
+          
           if (gameStatus === "running") tapButton.disabled = !isPaid;
           if (tapMessage) tapMessage.innerText = isPaid ? "✅ Revenu ! ÉTAPE 3 : Tape maintenant !" : "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         }
+
         if (gameStatus !== "running" && gameStatus !== "preparing") {
           if (enterChallenge) enterChallenge.style.display = "block";
-        } else { if (enterChallenge) enterChallenge.style.display = "none"; }
+        } else {
+          if (enterChallenge) enterChallenge.style.display = "none";
+        }
+
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
+        
         if (data.player.sessionToken) {
           localStorage.setItem("miltape_session_token", data.player.sessionToken);
           localStorage.setItem("miltape_session_wallet", data.player.wallet);
         }
+        
         hapticMedium();
         return;
       }
+
+      // ============ CAS 3 : Token totalement invalide ou inexistant (else) ============
       localStorage.removeItem("miltape_player_id");
       localStorage.removeItem("miltape_player_wallet");
       localStorage.removeItem("miltape_player_name");
@@ -683,12 +976,14 @@
       localStorage.removeItem("miltape_session_token");
       localStorage.removeItem("miltape_session_wallet");
       localStorage.removeItem("miltape_demo");
+      
       resetUI();
     });
     
     socket.on("payment:verified", (data) => {
       if (data.verified) {
-        isPaid = true; hapticSuccess();
+        isPaid = true;
+        hapticSuccess();
         if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Attends que le jeu commence !";
         if (payButton) payButton.style.display = 'none';
         showNotification("success", "✅ Paiement vérifié !");
@@ -710,7 +1005,9 @@
         launchConfetti(); hapticHeavy();
         data.winners.forEach((winner, index) => setTimeout(() => addWinnerToTicker(winner.name, formatAmount(winner.gain), winner.rank), index * 200));
         showNotification("champion", "🏆 La partie est terminée !");
-      } else { message += "❌ Aucun gagnant cette fois-ci.\n\n"; }
+      } else {
+        message += "❌ Aucun gagnant cette fois-ci.\n\n";
+      }
       alert(message);
       if (enterChallenge) enterChallenge.style.display = 'block';
       if (payButton) payButton.style.display = 'none';
@@ -720,10 +1017,11 @@
       localStorage.removeItem("miltape_player_name");
       localStorage.removeItem("miltape_player_bet");
       localStorage.removeItem("miltape_player_token");
+      // On ne supprime pas miltape_session_token / miltape_session_wallet ici
     });
     
     function launchConfetti() {
-      const colors = ['#a855f7', '#facc15', '#4ade80', '#6366f1', '#ff4d4d', '#ff0080', '#6c5ce7', '#fd79a8'];
+      const colors = ['#64b5f6', '#ffd700', '#2ecc71', '#42a5f5', '#ff6b6b', '#ffd93d', '#6c5ce7', '#fd79a8'];
       for (let i = 0; i < 60; i++) {
         const c = document.createElement('div');
         const size = 6 + Math.random() * 10;
@@ -746,15 +1044,19 @@
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        if (!isPlaying || tapButton.disabled) return;
+        if (!isPlaying || tapButton.disabled) {
+          return;
+        }
         const now = Date.now();
         if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
-        lastTapTime = now; tapEffects();
+        lastTapTime = now;
+        tapEffects();
         socket.emit("player:tap");
       });
     }
     
     socket.on("player:score", (data) => {
+      console.log("🖱️ SCORE REÇU :", data);
       if (tapCount) tapCount.innerText = data.taps;
       if (tapButtonCount) tapButtonCount.innerText = data.taps;
       updateTapCounter(data.taps);
@@ -793,7 +1095,9 @@
     socket.on("online:count", (data) => {
       let count = data;
       if (typeof data === 'object' && data !== null && 'count' in data) count = data.count;
-      if (onlineCount) onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#4ade80;border-radius:50%;margin-right:5px"></span><span>' + count + ' EN LIGNE</span>';
+      if (onlineCount) {
+        onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>' + count + ' EN LIGNE</span>';
+      }
     });
     
     setInterval(() => { socket.emit('online:count'); }, 5000);
@@ -814,7 +1118,9 @@
           const scoreSpan = document.createElement('span');
           scoreSpan.className = 'player-score';
           scoreSpan.textContent = player.taps;
-          div.appendChild(rankSpan); div.appendChild(nameSpan); div.appendChild(scoreSpan);
+          div.appendChild(rankSpan);
+          div.appendChild(nameSpan);
+          div.appendChild(scoreSpan);
           leaderboardList.appendChild(div);
         });
       }
@@ -840,8 +1146,10 @@
         const strong = document.createElement('strong');
         strong.textContent = data.name + ' :';
         const textNode = document.createTextNode(' ' + data.message);
-        msgDiv.appendChild(strong); msgDiv.appendChild(textNode);
-        chatMessages.appendChild(msgDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
+        msgDiv.appendChild(strong);
+        msgDiv.appendChild(textNode);
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
       }
       showNotification("info", "💬 " + data.name + " a écrit un message");
     });
@@ -866,8 +1174,15 @@
         alert("⚠️ Une session est peut-être encore active ailleurs (autre onglet, autre appareil).\nRejoins la partie avec le token de session existant pour continuer.");
         return;
       }
+      
       if (err.message === "Joueur introuvable.") {
-        localStorage.removeItem("miltape_player_id"); localStorage.removeItem("miltape_player_wallet"); localStorage.removeItem("miltape_player_name"); localStorage.removeItem("miltape_player_bet"); localStorage.removeItem("miltape_player_token"); localStorage.removeItem("miltape_session_token"); localStorage.removeItem("miltape_session_wallet");
+        localStorage.removeItem("miltape_player_id");
+        localStorage.removeItem("miltape_player_wallet");
+        localStorage.removeItem("miltape_player_name");
+        localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
+        localStorage.removeItem("miltape_session_token");
+        localStorage.removeItem("miltape_session_wallet");
         if (enterChallenge) enterChallenge.style.display = 'block';
         return;
       }
@@ -893,7 +1208,9 @@
       const textSpan = document.createElement('span');
       textSpan.className = 'notif-text';
       textSpan.textContent = message;
-      wrapper.appendChild(textSpan); notif.appendChild(wrapper); container.appendChild(notif);
+      wrapper.appendChild(textSpan);
+      notif.appendChild(wrapper);
+      container.appendChild(notif);
       if (type === 'champion') hapticHeavy();
       else if (type === 'success') hapticMedium();
       else hapticLight();
@@ -932,7 +1249,10 @@
       const amountSpan = document.createElement('span');
       amountSpan.className = 'amount';
       amountSpan.textContent = item.amount + ' USDT';
-      span.appendChild(trophy); span.appendChild(nameSpan); span.appendChild(arrow); span.appendChild(amountSpan);
+      span.appendChild(trophy);
+      span.appendChild(nameSpan);
+      span.appendChild(arrow);
+      span.appendChild(amountSpan);
       return span;
     }
     
@@ -971,14 +1291,16 @@
     if (menuGamesBtn) menuGamesBtn.addEventListener('click', () => showMenuMessage('🎮 Mes parties', '<p>Rejoins une partie pour commencer !</p>'));
     
     const menuRankingsBtn = document.getElementById('menuRankingsBtn');
-    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#a855f7;">' + score + '</strong> taps</p>'); });
+    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#0d47a1;">' + score + '</strong> taps</p>'); });
     
     const menuRulesBtn = document.getElementById('menuRulesBtn');
     if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
     
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
-        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) { localStorage.clear(); window.location.reload(); }
+        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
+          localStorage.clear(); window.location.reload();
+        }
       });
     }
     
@@ -1056,10 +1378,14 @@
       const serverWallet = data.wallet;
       const paymentUrl = 'https://t.me/wallet?start=transfer-' + serverWallet + '-' + data.amount + '-USDT';
       window.open(paymentUrl, '_blank');
+      
       alert("💰 PAYE " + data.amount + " USDT vers :\n" + serverWallet + "\n\n✅ DÈS QUE TU AS PAYÉ, ENTRE TON TxID.\n⚡ Le serveur vérifiera AUTOMATIQUEMENT ta transaction en quelques secondes !");
+      
       setTimeout(() => {
         const txId = prompt("✅ Entre l'ID de ta transaction (TxID) :");
-        if (txId) { socket.emit('duel:payment_verified', { txId }); }
+        if (txId) {
+          socket.emit('duel:payment_verified', { txId });
+        }
       }, 3000);
     });
 
@@ -1067,21 +1393,32 @@
       alert("✅ PAIEMENT VÉRIFIÉ AUTOMATIQUEMENT !\n⚡ Tu es maintenant en file d'attente !");
     });
 
-    socket.on('duel:payment_error', (data) => { alert("❌ " + data.message); });
+    socket.on('duel:payment_error', (data) => {
+      alert("❌ " + data.message);
+    });
 
-    socket.on('duel:queue', (data) => { console.log("👥 File d'attente :", data); });
+    socket.on('duel:queue', (data) => {
+      console.log("👥 File d'attente :", data);
+    });
 
     socket.on('duel:started', (data) => {
       duelState.active = true;
       duelState.opponentName = data.opponentName;
       duelState.endsAt = Date.now() + 60000;
+      
       duelButton.innerText = "⚔️ " + duelState.opponentName + " | 1:00";
+      
       let duelTimer = setInterval(() => {
         let remaining = Math.max(0, Math.floor((duelState.endsAt - Date.now()) / 1000));
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         duelButton.innerText = "⚔️ " + duelState.opponentName + " | " + m + ":" + (s < 10 ? "0" : "") + s;
-        if (remaining <= 0) { clearInterval(duelTimer); duelState.active = false; duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)"; }
+        
+        if (remaining <= 0) {
+          clearInterval(duelTimer);
+          duelState.active = false;
+          duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+        }
       }, 1000);
     });
 
@@ -1093,7 +1430,9 @@
 
     if (tapButton) {
       tapButton.addEventListener('click', () => {
-        if (duelState.active) { socket.emit('duel:tap'); }
+        if (duelState.active) {
+          socket.emit('duel:tap');
+        }
       });
     }
     
