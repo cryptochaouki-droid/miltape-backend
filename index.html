@@ -16,6 +16,7 @@
   <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
   <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
   
+  <!-- 1. Script Telegram sécurisé -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function initTelegramWebApp() {
@@ -29,25 +30,35 @@
               w.BackButton.onClick(function() { w.close(); });
             }
           } catch (e) { console.warn("⚠️ BackButton non supporté:", e); }
+          
           if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
+          console.log("✅ Telegram WebApp initialisée");
         }
       } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
     })();
   </script>
 
+  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE (POUR ÉVITER LES VERSIONS OBSOLÈTES) ===== -->
   <script>
     if ('caches' in window) {
         caches.keys().then(function(names) {
-            names.forEach(function(name) { caches.delete(name); });
+            names.forEach(function(name) {
+                caches.delete(name);
+            });
         });
     }
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for (let registration of registrations) { registration.unregister(); }
+            for (let registration of registrations) {
+                registration.unregister();
+                console.log('✅ Service Worker désinstallé.');
+            }
         });
     }
   </script>
   
+  <!-- 2. CDN Socket.IO -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -62,64 +73,206 @@
       padding: 0;
       overflow-x: hidden;
       overflow-y: auto;
-      color: #fff;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: auto;
       position: relative;
-      box-sizing: border-box;
+      color: #fff;
     }
-    *, *::before, *::after { box-sizing: border-box; }
-
+    body::before { content: ""; position: fixed; top: -20%; right: -10%; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(168, 85, 247, 0.15), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow1 7s ease-in-out infinite alternate; }
+    body::after { content: ""; position: fixed; bottom: -20%; left: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 0, 128, 0.1), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow2 9s ease-in-out infinite alternate; }
+    @keyframes hdGlow1 { 0% { transform: translate(0, 0) scale(1); opacity: .5; } 100% { transform: translate(-40px, 30px) scale(1.3); opacity: 1; } }
+    @keyframes hdGlow2 { 0% { transform: translate(0, 0) scale(1); opacity: .3; } 100% { transform: translate(30px, -40px) scale(1.4); opacity: .8; } }
+    .gem-sparkle { position: fixed; width: 4px; height: 4px; background: #a855f7; border-radius: 50%; pointer-events: none; z-index: 0; box-shadow: 0 0 12px rgba(168, 85, 247, .4); animation: sparkleFloatHD 5s ease-in-out infinite alternate; }
+    .gem-sparkle:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
+    .gem-sparkle:nth-child(2) { top: 25%; left: 85%; animation-delay: 1.4s; width: 6px; height: 6px; }
+    .gem-sparkle:nth-child(3) { top: 55%; left: 8%; animation-delay: 2.8s; }
+    .gem-sparkle:nth-child(4) { top: 75%; left: 75%; animation-delay: .9s; width: 5px; height: 5px; }
+    .gem-sparkle:nth-child(5) { top: 40%; left: 55%; animation-delay: 2s; width: 8px; height: 8px; box-shadow: 0 0 20px rgba(168, 85, 247, .6); }
+    .gem-sparkle:nth-child(6) { top: 12%; left: 48%; animation-delay: 3.5s; }
+    .gem-sparkle:nth-child(7) { top: 65%; left: 32%; animation-delay: .6s; }
+    .gem-sparkle:nth-child(8) { top: 88%; left: 88%; animation-delay: 2.2s; }
+    @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }
     .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }
-
-    /* Glassmorphism */
+    
+    /* Glassmorphism générique */
     .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content, #nameModal .legal-content, #walletModal .legal-content { border-radius: 18px !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
     .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
     #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
     
-    /* HEADER PREMIUM */
-    .top-header { background: rgba(10, 3, 30, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); position: sticky; top: 0; z-index: 100; padding: 12px 16px; align-items: center; }
+    html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }
+    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #a855f7; border-radius: 999px; background: #04010a; color: #a855f7; font-size: 13px; font-weight: 900; box-shadow: 0 0 20px rgba(168, 85, 247, .2); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
+    .install-pwa-button.show { display: block; }
+    
+    /* ===== HEADER GAMING PREMIUM ===== */
+    .top-header {
+      background: rgba(10, 3, 30, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(168, 85, 247, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 16px;
+      align-items: center;
+    }
     .menu-button { color: #a855f7; font-size: 28px; padding: 5px; transition: all .2s ease; }
     .menu-button:active { transform: scale(.9); color: #ff0080; }
     .online { font-size: 11px; color: #4ade80; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+    .online::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 12px #4ade80; animation: pulseGreen 1.5s infinite alternate; }
+    @keyframes pulseGreen { from { opacity: 1; } to { opacity: 0.5; } }
     .wallet-box { text-align: right; }
     .wallet-box small { font-size: 8px; color: rgba(255,255,255,0.5); }
     .wallet-box strong { font-size: 15px; font-weight: 900; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.3); }
     .wallet-button { background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 12px; color: #fff; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .2s ease; }
     .wallet-button:active { background: rgba(168, 85, 247, 0.4); transform: scale(.95); }
+    .wallet-button span { color: #facc15; }
     
-    /* JACKPOT */
-    #jackpotDisplay { background: linear-gradient(145deg, rgba(70, 0, 20, 0.95) 0%, rgba(130, 20, 0, 0.95) 100%); border: 2px solid rgba(255, 102, 0, 0.8); box-shadow: 0 0 30px rgba(255, 102, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.5); overflow: hidden; position: relative; text-align: center; padding: 24px 16px; border-radius: 20px; }
+    /* ===== CARTE JACKPOT NEON ROUGE/ORANGE ===== */
+    #jackpotDisplay {
+      background: linear-gradient(145deg, rgba(70, 0, 20, 0.95) 0%, rgba(130, 20, 0, 0.95) 100%);
+      border: 2px solid rgba(255, 102, 0, 0.8);
+      box-shadow: 0 0 30px rgba(255, 102, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      overflow: hidden;
+      position: relative;
+      text-align: center;
+      padding: 24px 16px;
+      border-radius: 20px;
+    }
+    #jackpotDisplay::before { content: ""; position: absolute; top: -50%; left: -20%; width: 140%; height: 200%; background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, transparent 70%); pointer-events: none; }
+    .jackpot-badge { background: rgba(250, 204, 21, 0.2); border: 1px solid rgba(250, 204, 21, 0.5); color: #facc15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.2); }
     .jackpot-title { color: #ff4d4d; text-shadow: 0 0 20px rgba(255, 77, 77, 0.8); letter-spacing: 3px; }
     #jackpotAmount { font-size: 42px; font-weight: 900; color: #facc15; text-shadow: 0 0 30px rgba(250, 204, 21, 0.7); line-height: 1.2; }
     #jackpotCountdown { color: #4ade80; text-shadow: 0 0 15px rgba(74, 222, 128, 0.6); }
+    .jackpot-winner-info { color: rgba(255, 204, 153, 0.9); }
     .jackpot-footer { border-top-color: rgba(255, 102, 0, 0.2); color: rgba(255, 255, 255, 0.75); }
     
-    /* BANNIÈRE */
-    .hero-banner-container { background: rgba(10, 3, 30, 0.6); border: 1px solid rgba(168, 85, 247, 0.3); box-shadow: 0 0 30px rgba(168, 85, 247, 0.15), 0 8px 24px rgba(0, 0, 0, 0.5); border-radius: 20px; overflow: hidden; }
-    .wallet-badge-top { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(168, 85, 247, 0.4); }
+    /* ===== BANNIÈRE PREMIUM ===== */
+    .hero-banner-container {
+      background: rgba(10, 3, 30, 0.6);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.15), 0 8px 24px rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .hero-bg-image { filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.3)); }
+    .wallet-badge-top { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 15px rgba(168, 85, 247, 0.2); }
     .wallet-badge-top .wb-value { color: #facc15; }
     
-    /* WALLET SERVEUR */
-    .server-wallet-box { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 16px; }
+    /* ===== ADRESSE WALLET PRO ===== */
+    .server-wallet-box {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.05);
+    }
     .server-wallet-address { color: #facc15 !important; font-size: 14px !important; word-break: break-all; }
     .server-wallet-link { color: #a855f7; font-weight: 700; }
     
-    /* BOUTONS */
-    .main-play-button { background: linear-gradient(135deg, #ff0080, #ff4d4d); box-shadow: 0 10px 0 #990000, 0 20px 40px rgba(255, 0, 128, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); border-radius: 18px; font-size: 20px; padding: 20px; letter-spacing: 2px; border: none; position: relative; overflow: hidden; }
+    /* ===== SÉLECTION CRYPTO / MISE ===== */
+    label { color: #e2e8f0 !important; }
+    #tokenSelect, #betInput {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #facc15;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+    
+    /* ===== EXPLICATION DUEL ET CHOIX DE MISE ===== */
+    .duel-explanation {
+      background: rgba(168, 85, 247, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 15px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    .duel-explanation h4 { color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+    .badge-automatique { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; }
+    .badge-verifie { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; border: none; }
+    
+    /* ===== GRILLE BOUTONS MISE ===== */
+    .duelBetBtn {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px 10px;
+      font-weight: 900;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .duelBetBtn:active { transform: scale(.95); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .duelBetBtn.active {
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      border-color: #a855f7;
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+      transform: translateY(-2px);
+    }
+    
+    /* ===== BOUTONS PRINCIPAUX ===== */
+    .main-play-button {
+      background: linear-gradient(135deg, #ff0080, #ff4d4d);
+      box-shadow: 0 10px 0 #990000, 0 20px 40px rgba(255, 0, 128, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      border-radius: 18px;
+      font-size: 20px;
+      padding: 20px;
+      letter-spacing: 2px;
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); transition: left 0.5s ease; }
+    .main-play-button:active::after { left: 100%; }
     .main-play-button:active { transform: translateY(6px); box-shadow: 0 4px 0 #990000, 0 10px 20px rgba(255, 0, 128, 0.3); }
-    #duelButton { background: linear-gradient(135deg, #facc15, #ff9800); color: #000; box-shadow: 0 10px 0 #b45309, 0 20px 40px rgba(250, 204, 21, 0.3); font-weight: 900; font-family: 'Orbitron', sans-serif; font-size: 18px; }
+    #duelButton {
+      background: linear-gradient(135deg, #facc15, #ff9800);
+      color: #000;
+      box-shadow: 0 10px 0 #b45309, 0 20px 40px rgba(250, 204, 21, 0.3);
+      font-weight: 900;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+    }
     #duelButton:active { transform: translateY(6px); box-shadow: 0 4px 0 #b45309, 0 10px 20px rgba(250, 204, 21, 0.3); }
     
-    /* TAPE */
-    .tap-button { width: clamp(180px, 50vw, 280px); height: clamp(180px, 50vw, 280px); border: none; background: rgba(168, 85, 247, 0.1); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(168, 85, 247, 0.2); backdrop-filter: blur(10px); border: 2px solid rgba(168, 85, 247, 0.5); transition: all 0.1s ease; }
+    /* ===== BOUTON TAPE XL ===== */
+    .tap-button {
+      width: clamp(200px, 55vw, 280px);
+      height: clamp(200px, 55vw, 280px);
+      border: none;
+      background: rgba(168, 85, 247, 0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(168, 85, 247, 0.2);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(168, 85, 247, 0.5);
+      transition: all 0.1s ease;
+    }
     .tap-button:active:not(:disabled) { transform: scale(.93); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 0, 128, 0.5); border-color: #ff0080; }
+    .tap-img-bg { opacity: 0.9; mix-blend-mode: screen; filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.5)); }
     
-    /* CHRONO */
-    #timerRule { background: rgba(10, 3, 30, 0.8); border: 1px solid rgba(168, 85, 247, 0.5); box-shadow: 0 0 25px rgba(168, 85, 247, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05); }
+    /* ===== CHRONO ===== */
+    #timerRule {
+      background: rgba(10, 3, 30, 0.8);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+    }
     #timerRule strong { color: #facc15 !important; text-shadow: 0 0 20px rgba(250, 204, 21, 0.7); }
     #timerRule small { color: #a855f7 !important; }
     
-    /* CLASSEMENT / CHAT */
-    .leaderboard, .chat-messages { background: rgba(10, 3, 30, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(168, 85, 247, 0.3); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+    /* ===== CLASSEMENT ET CHAT ===== */
+    .leaderboard, .chat-messages {
+      background: rgba(10, 3, 30, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
     .leaderboard .section-title, .chat-section .section-title { color: #a855f7 !important; }
     .leaderboard-item { background: rgba(168, 85, 247, 0.1); border-left-color: #a855f7; color: #fff; }
     .rank-badge { background: #a855f7 !important; }
@@ -133,225 +286,277 @@
     .chat-input-box input { color: #fff; }
     .chat-input-box button { background: #a855f7; }
     
-    /* GRID DUEL */
-    .duelBetBtn { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #fff; border-radius: 14px; padding: 16px 10px; font-weight: 900; font-size: 15px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden; }
-    .duelBetBtn:active { transform: scale(.95); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-    .duelBetBtn.active { background: linear-gradient(135deg, #a855f7, #6366f1); border-color: #a855f7; box-shadow: 0 0 25px rgba(168, 85, 247, 0.6), inset 0 1px 0 rgba(255,255,255,0.2); transform: translateY(-2px); }
+    /* ===== MENU LATÉRAL ===== */
+    .side-menu { background: rgba(10, 3, 30, 0.98); border-right: 1px solid rgba(168, 85, 247, 0.4); }
+    .side-menu-content h3 { color: #facc15; }
+    .menu-nav-btn { color: #e2e8f0; }
+    .menu-nav-btn:active { color: #a855f7; background: rgba(168, 85, 247, 0.1); }
     
-    /* INPUT */
-    #tokenSelect, #betInput { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #facc15; border-radius: 12px; font-weight: 700; }
+    /* ===== MODALES ===== */
+    .legal-content { background: rgba(10, 3, 30, 0.98); border: 1px solid #a855f7; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8); }
+    .legal-content h3 { color: #facc15; }
+    input { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #fff; }
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d0630, #2a0a4a); border: 1px solid #a855f7; }
+    #welcomeModal .welcome-btn { background: linear-gradient(135deg, #ff0080, #ff4d4d); color: #fff; }
     
-    @media(max-width:430px) { .tap-button { width: clamp(160px, 45vw, 220px); height: clamp(160px, 45vw, 220px); } }
+    @media(max-width:430px) { .tap-button { width: clamp(180px, 50vw, 220px); height: clamp(180px, 50vw, 220px); } }
     @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 
 <body>
-  <div id="welcomeModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px);">
-    <div class="welcome-content" style="background:linear-gradient(145deg,#0d0630,#2a0a4a);border-radius:24px;max-width:400px;width:100%;padding:30px 24px;color:#fff;text-align:center;border:1px solid #a855f7;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-      <div class="welcome-icon" style="font-size:48px;margin-bottom:10px;">🎮</div>
-      <h2 class="welcome-title" style="margin:0 0 8px;font-size:22px;color:#a855f7;">Bienvenue sur Miltape !</h2>
-      <p class="welcome-sub" style="font-size:14px;color:rgba(255,255,255,0.8);margin:0 0 20px;">Voici comment ça marche en 4 étapes :</p>
-      <div class="welcome-steps" style="text-align:left;font-size:14px;line-height:1.8;background:rgba(0,0,0,0.2);border-radius:12px;padding:12px 16px;margin-bottom:20px;">
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+
+  <div id="welcomeModal">
+    <div class="welcome-content">
+      <div class="welcome-icon">🎮</div>
+      <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
+      <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
+      <div class="welcome-steps">
         <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
         <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet (2 min pour préparer)</div>
         <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
         <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
       </div>
-      <div class="welcome-secure" style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:16px;">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
-      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'" style="background:linear-gradient(135deg,#ff0080,#ff4d4d);color:#fff;border:none;padding:12px 24px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;width:100%;">🔥 C'EST PARTI !</button>
+      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
+      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
     </div>
   </div>
 
-  <div id="nameModal" class="legal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:2000;padding:20px;">
-    <div class="legal-content" style="background:rgba(10,3,30,0.98);border:1px solid #a855f7;border-radius:18px;padding:20px;color:#fff;max-width:400px;width:100%;">
+  <div id="nameModal" class="legal-modal">
+    <div class="legal-content">
       <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
-      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #a855f7;background:rgba(168,85,247,0.1);color:#fff;font-size:16px;">
-      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;width:100%;font-size:16px;">✅ VALIDER</button>
+      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #a855f7; background:rgba(168,85,247,0.1); color:#fff; font-size:16px;">
+      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
 
-  <div id="walletModal" class="legal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:2000;padding:20px;">
-    <div class="legal-content" style="background:rgba(10,3,30,0.98);border:1px solid #a855f7;border-radius:18px;padding:20px;color:#fff;max-width:400px;width:100%;">
+  <div id="walletModal" class="legal-modal">
+    <div class="legal-content">
       <h3>💰 Entrez votre adresse TRON</h3>
-      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #a855f7;background:rgba(168,85,247,0.1);color:#fff;font-size:16px;">
-      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;width:100%;font-size:16px;">✅ VALIDER</button>
+      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #a855f7; background:rgba(168,85,247,0.1); color:#fff; font-size:16px;">
+      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
     </div>
   </div>
 
   <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
-  
-  <aside id="sideMenu" class="side-menu" style="position:fixed;top:0;left:-300px;width:280px;height:100vh;background:rgba(10,3,30,0.98);z-index:1000;transition:left .3s ease;padding:20px;color:#e0e0e0;border-right:1px solid rgba(168,85,247,0.4);">
-    <button id="closeMenu" style="background:transparent;border:none;color:#fff;font-size:28px;cursor:pointer;">×</button>
-    <div class="side-menu-content" style="margin-top:40px;">
-      <h3 style="color:#facc15;">🧭 Menu Miltape</h3>
+  <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
+
+  <aside id="sideMenu" class="side-menu">
+    <button id="closeMenu" class="close-menu" type="button">×</button>
+    <div class="side-menu-content">
+      <h3>🧭 Menu Miltape</h3>
       <div class="menu-block">
-        <button class="menu-nav-btn" id="menuGamesBtn" style="display:block;width:100%;background:transparent;border:none;color:#e2e8f0;text-align:left;font-size:14px;padding:10px;cursor:pointer;">🎮 Mes parties</button>
-        <button class="menu-nav-btn" id="menuRankingsBtn" style="display:block;width:100%;background:transparent;border:none;color:#e2e8f0;text-align:left;font-size:14px;padding:10px;cursor:pointer;">🏆 Mes classements</button>
-        <button class="menu-nav-btn" id="menuRulesBtn" style="display:block;width:100%;background:transparent;border:none;color:#e2e8f0;text-align:left;font-size:14px;padding:10px;cursor:pointer;">📜 Règles</button>
+        <button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button>
+        <button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button>
+        <button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button>
+        <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button>
+        <button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button>
+        <button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button>
+        <button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button>
+        <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
       </div>
-      <div class="menu-block" style="text-align:center;margin-top:20px;">
-        <button id="demomodebtn" style="background:rgba(168,85,247,0.2);color:#a855f7;border:1px solid rgba(168,85,247,0.4);padding:10px;width:100%;border-radius:10px;font-weight:700;cursor:pointer;">🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span></button>
-        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:6px;">🔒 Mode démo désactivé</div>
+      <div class="menu-block" style="text-align:center">
+        <button id="demomodebtn" class="menu-nav-btn" type="button" style="background:rgba(168,85,247,0.2);color:#a855f7;font-weight:700;text-align:center;border:1px solid rgba(168,85,247,0.4);font-family:'Poppins',sans-serif;transition:all .3s ease">
+          🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span>
+        </button>
+        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:6px;font-family:'Poppins',sans-serif">🔒 Mode démo désactivé</div>
       </div>
-      <div class="menu-block" style="text-align:center;margin-top:20px;">
-        <button id="resetGameBtn" style="background:rgba(255,77,77,0.2);color:#ff4d4d;border:1px solid rgba(255,77,77,0.4);padding:10px;width:100%;border-radius:10px;font-weight:700;cursor:pointer;">🔄 NOUVELLE PARTIE</button>
+      <div class="menu-block" style="text-align:center">
+        <button id="resetGameBtn" class="menu-nav-btn" type="button" style="background:rgba(255,77,77,0.2);color:#ff4d4d;border:1px solid rgba(255,77,77,0.4);font-family:'Poppins',sans-serif;transition:all .3s ease">🔄 NOUVELLE PARTIE</button>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px;font-family:'Poppins',sans-serif">Efface tes données locales</div>
+      </div>
+      <div class="menu-block">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <span style="color:#a855f7;font-weight:700;font-size:13px">🔔 Notifications</span>
+          <input type="checkbox" id="notifToggle" checked style="width:40px;height:20px;cursor:pointer;accent-color:#a855f7;background:rgba(255,255,255,.1);border-radius:10px">
+        </label>
+      </div>
+      <div class="menu-block">
+        <label for="languageSelect">🌐 Langue</label>
+        <select id="languageSelect" style="background:rgba(168,85,247,0.1);color:#fff;">
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="menu-block trust-contact-box">
+        <h4>🛡️ Support & Confiance</h4>
+        <p style="font-size:12px;color:#b8b8b8;font-family:'Poppins',sans-serif">Une question ? Un problème ?</p>
+        <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
+        <div style="margin-top:8px;font-size:12px"><a href="mailto:miltapesupport@gmail.com" style="color:#a855f7;text-decoration:none;font-family:'Poppins',sans-serif">📧 miltapesupport@gmail.com</a></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)">
+          <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#a855f7;text-decoration:none;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;transition:all .3s ease">🔍 Voir toutes les transactions sur TronScan</a>
+        </div>
       </div>
     </div>
   </aside>
-  <div id="menuOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;z-index:999;"></div>
+  <div id="menuOverlay" class="menu-overlay"></div>
+
+  <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
+    <div class="legal-content">
+      <button id="closeDynamicModal" class="legal-close" type="button">×</button>
+      <h3 id="dynamicModalTitle">Miltape</h3>
+      <div id="dynamicModalBody"></div>
+    </div>
+  </div>
 
   <main class="app">
-    <header class="top-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <header class="top-header">
       <button class="menu-button" id="menuButton" type="button">☰</button>
-      <div class="online"><strong id="onlineCount">🟢 1 EN LIGNE</strong></div>
+      <div class="online">
+        <strong id="onlineCount">
+          <span style="display:inline-block;width:8px;height:8px;background:#4ade80;border-radius:50%;margin-right:5px"></span>
+          <span>1 EN LIGNE</span>
+        </strong>
+      </div>
       <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
       <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
 
     <div id="jackpotDisplay">
-      <div class="jackpot-badge" style="background:rgba(255,215,0,0.2);border:1px solid rgba(255,215,0,0.5);color:#facc15;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">🎁 CAGNOTTE DU SAMEDI</div>
-      <div class="jackpot-title" style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;margin-bottom:15px;">🏆 JACKPOT</div>
-      <div class="jackpot-main-row" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
-        <div class="jackpot-left" style="flex:1;display:flex;flex-direction:column;align-items:center;">
-          <span class="jackpot-label" style="font-size:10px;color:rgba(255,255,255,0.9);letter-spacing:1px;text-transform:uppercase;font-weight:600;">💰 MONTANT</span>
+      <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
+      <div class="jackpot-title">🏆 JACKPOT</div>
+      <div class="jackpot-main-row">
+        <div class="jackpot-left">
+          <span class="jackpot-label">💰 MONTANT</span>
           <span id="jackpotAmount">0 USDT</span>
-          <span class="jackpot-winner-info" style="font-size:11px;color:rgba(255,215,0,0.85);margin-top:6px;">🏅 Attribué au <strong style="color:#facc15;">meilleur tapeur</strong> de la semaine</span>
+          <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong> de la semaine</span>
         </div>
-        <div class="jackpot-divider" style="width:2px;height:60px;background:rgba(255,215,0,0.5);border-radius:2px;"></div>
-        <div class="jackpot-right" style="flex:1;display:flex;flex-direction:column;align-items:center;">
-          <span class="jackpot-label" style="font-size:10px;color:rgba(255,255,255,0.9);letter-spacing:1px;text-transform:uppercase;font-weight:600;">⏳ TIRAGE DANS</span>
+        <div class="jackpot-divider"></div>
+        <div class="jackpot-right">
+          <span class="jackpot-label">⏳ TIRAGE DANS</span>
           <span id="jackpotCountdown">--</span>
-          <span class="jackpot-schedule" style="font-size:10px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:4px;">📅 CHAQUE SAMEDI</span>
+          <span class="jackpot-schedule">📅 CHAQUE SAMEDI</span>
         </div>
       </div>
-      <div class="jackpot-footer" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,215,0,0.25);font-size:11px;color:rgba(255,255,255,0.75);">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
+      <div class="jackpot-footer">💡 La cagnotte est redistribuée intégralement chaque samedi au joueur ayant tapé le plus.</div>
     </div>
 
-    <section class="hero-banner-container" style="margin:12px 0;position:relative;">
-      <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image" style="width:100%;display:block;opacity:.7;mix-blend-mode:screen;">
-      <div class="hero-header-overlay" style="position:absolute;top:10px;right:10px;">
-        <div class="wallet-badge-top" id="enterChallengeTop" style="background:rgba(0,0,0,0.5);border:1px solid rgba(168,85,247,0.3);padding:4px 8px;border-radius:12px;text-align:right;display:flex;align-items:center;gap:6px;cursor:pointer;">
-          <div><span class="wb-label" style="display:block;font-size:7px;color:#ddd;">MISE</span><span class="wb-value" id="displayBetTop" style="display:block;font-size:13px;font-weight:900;color:#facc15;">$0</span></div>
+    <div id="winnerTicker"><div id="tickerTrack"></div></div>
+
+    <section class="hero-banner-container">
+      <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
+      <div class="hero-header-overlay">
+        <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
+          <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
+          <div class="wallet-icon">👛</div>
         </div>
       </div>
     </section>
 
-    <div class="server-wallet-box" style="text-align:center;padding:12px;margin:10px 0;border-radius:16px;">
-      <div class="server-wallet-label" style="font-size:11px;color:rgba(255,255,255,0.4);">🛡️ Envoie ta mise vers</div>
-      <div class="server-wallet-address" id="serverWalletDisplay" style="font-size:15px;font-weight:700;word-break:break-all;background:rgba(0,0,0,0.2);padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px;">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
-      <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link" style="font-size:10px;display:inline-block;margin-top:4px;">🔍 Voir sur TronScan</a>
+    <div class="server-wallet-box">
+      <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
+      <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
+      <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
 
-    <!-- ===== SÉLECTION CRYPTO / MISE (CORRECTION #6) ===== -->
+    <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
     <div style="text-align:center;margin:15px 0">
-      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <label style="color:#fff;font-weight:700;font-size:14px;">🪙 CRYPTO :</label>
-        <select id="tokenSelect" style="width:140px;padding:10px;color:#fff;border:1px solid rgba(168,85,247,0.3);font-size:14px;text-align:center;outline:0;font-family:'Poppins',sans-serif;">
-          <option value="USDT">USDT (TRC20)</option>
-          <option value="USDC">USDC (TRC20)</option>
-          <option value="TUSD">TUSD (TRC20)</option>
-          <option value="TRX">TRX</option>
-        </select>
-      </div>
-      <div style="display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap">
-        <label style="color:#fff;font-weight:700;font-size:14px;">💰 MISE :</label>
-        <input type="number" inputmode="decimal" id="betInput" value="10" style="width:120px;padding:10px;color:#fff;border:1px solid rgba(168,85,247,0.3);font-size:16px;text-align:center;outline:0;font-family:'Poppins',sans-serif;border-radius:12px;">
-      </div>
-    </div>
-
-    <!-- ===== EXPLICATION DUEL + CHOIX DE MISE ===== -->
-    <div style="text-align:center;margin:15px 0">
-      <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:18px;padding:20px;margin-bottom:15px;text-align:center;">
-        <h4 style="color:#facc15;text-shadow:0 0 10px rgba(250,204,21,0.5);font-family:'Orbitron',sans-serif;margin:0 0 10px;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
-        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px;">
-          <span style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;">🔒 100% AUTOMATIQUE</span>
-          <span style="background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
+      <div class="duel-explanation">
+        <h4>⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="badge-automatique">🔒 100% AUTOMATIQUE</span>
+            <span class="badge-verifie">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
         </div>
-        <p style="color:#e2e8f0;font-size:13px;line-height:1.8;">
-          ⚡ <strong>Paiement instantané</strong> : Tu paies, le serveur vérifie en quelques secondes.<br><br>
-          💸 <strong>Gain instantané</strong> : L'argent est envoyé automatiquement sur ton wallet !<br><br>
-          🛡️ <strong>Sécurisé</strong> : Le système t'envoie exactement le montant gagné.
+
+        <p style="color: #e2e8f0; font-size: 13px; margin: 0; line-height: 1.8;">
+            ⚡ <strong>Le paiement est instantané</strong> : Tu paies, le serveur vérifie la transaction en quelques secondes, et tu es automatiquement mis en file d'attente.<br><br>
+            💸 <strong>Le gain est instantané</strong> : Dès que le duel se termine, le serveur t'envoie <strong>automatiquement</strong> ton argent sur ton wallet TRON !<br><br>
+            🛡️ <strong>Nous ne touchons pas à ton argent</strong> : Le système est programmé pour t'envoyer exactement le montant gagné.
         </p>
-        <div style="margin-top:10px;background:rgba(0,0,0,0.3);border-radius:10px;padding:10px;">
-          <strong style="color:#facc15;">💰 EXEMPLE :</strong><br>
-          <span style="color:#e2e8f0;font-size:12px;">Mise de <strong style="color:#fff;">1 USDT</strong> → Tu gagnes <strong style="color:#4ade80;">1.80 USDT</strong><br>Mise de <strong style="color:#fff;">10 USDT</strong> → Tu gagnes <strong style="color:#4ade80;">18 USDT</strong></span>
+
+        <div style="margin-top: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 10px;">
+            <strong style="color: #facc15;">💰 EXEMPLE :</strong><br>
+            <span style="color: #e2e8f0; font-size: 12px;">
+                Mise de <strong style="color: #fff;">1 USDT</strong> → Tu gagnes <strong style="color: #4ade80;">1.80 USDT</strong><br>
+                Mise de <strong style="color: #fff;">10 USDT</strong> → Tu gagnes <strong style="color: #4ade80;">18 USDT</strong>
+            </span>
         </div>
       </div>
 
-      <h4 style="color:#fff;margin:5px;">💰 CHOISIS TA MISE DUEL</h4>
-      <div id="duelBetsContainer" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;padding:0 5px;">
-        <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
-        <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
-        <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
-        <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
-        <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
-        <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
-        <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
-        <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
-        <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
+      <div style="margin: 10px 0;">
+        <h4 style="color:#fff; margin: 5px;">💰 CHOISIS TA MISE DUEL</h4>
+        <div id="duelBetsContainer" style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 5px;">
+            <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
+            <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
+            <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
+            <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
+            <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
+            <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
+            <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
+            <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
+            <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
+        </div>
       </div>
     </div>
+    <!-- ===== FIN SECTION DUEL ===== -->
 
-    <button id="payButton" style="display:none;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:15px 24px;font-weight:900;border:none;cursor:pointer;margin:10px auto;width:85%;max-width:320px;border-radius:18px;font-size:14px;">💳 PAYER MA MISE</button>
+    <button id="payButton" style="display:none;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:15px 24px;font-weight:900;border:none;cursor:pointer;margin:10px auto;width:85%;max-width:320px;border-radius:18px;box-shadow:0 8px 0 #047857, 0 15px 30px rgba(16,185,129,0.3);font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:14px;">💳 PAYER MA MISE</button>
     
-    <button id="duelButton" class="main-play-button" type="button" style="width:100%;margin:10px 0;padding:18px;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE)</button>
-    <button id="enterChallenge" class="main-play-button" type="button" style="width:100%;margin:10px 0;padding:18px;"><span>JOUER MAINTENANT</span> <b>➜</b></button>
+    <button id="duelButton" class="main-play-button" type="button" style="background:linear-gradient(135deg,#facc15,#ff9800);color:#000;font-weight:900;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE)</button>
+    
+    <button id="enterChallenge" class="main-play-button" type="button" style="background:linear-gradient(135deg,#ff0080,#ff4d4d);color:#fff;"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 
-    <div id="tapMessage" class="tap-message" style="text-align:center;font-size:14px;font-weight:700;margin-bottom:10px;">⚡ ÉTAPE 1 : Rejoins la partie !</div>
+    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
 
-    <section class="tap-zone" style="display:flex;flex-direction:column;align-items:center;padding:10px 0;">
-      <div class="rule" id="timerRule" style="margin-bottom:20px;padding:6px 16px;border-radius:16px;display:flex;align-items:center;gap:10px;">
-        <span class="rule-icon" style="font-size:20px;color:#facc15;">⏱️</span>
-        <strong id="timerRuleValue" style="font-size:28px;font-family:'Orbitron',sans-serif;">10:00</strong>
-        <small id="timerStatus" style="font-size:13px;font-weight:800;">PRÉPARATION</small>
-        <span class="tap-counter" style="display:flex;align-items:center;gap:4px;margin-left:10px;padding-left:10px;border-left:1px solid rgba(255,255,255,0.15);">
-          <span style="font-size:18px;">👆</span>
-          <span id="tapCounterDisplay" style="font-size:24px;font-weight:900;font-family:'Orbitron',sans-serif;color:#facc15;">0</span>
-          <span class="tap-label" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">TAPS</span>
+    <section class="tap-zone" aria-label="Zone de tap">
+      <div class="rule" id="timerRule">
+        <span class="rule-icon">⏱️</span>
+        <strong id="timerRuleValue">10:00</strong>
+        <small>PRÉPARATION</small>
+        <span class="tap-counter">
+          <span class="tap-icon">👆</span>
+          <span id="tapCounterDisplay">0</span>
+          <span class="tap-label">TAPS</span>
         </span>
       </div>
       <button id="tapButton" class="tap-button" type="button" disabled>
-        <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;z-index:0;display:block;mix-blend-mode:screen;opacity:.85;">
+        <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">
       </button>
     </section>
 
-    <section class="rules" style="display:flex;justify-content:center;gap:20px;padding:15px;flex-wrap:wrap;">
-      <div class="rule" style="display:flex;align-items:center;gap:8px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);padding:8px 14px;border-radius:12px;font-size:11px;color:#fff;">
-        <span class="rule-icon" style="font-size:18px;">🏆</span>
-        <strong style="color:#facc15;font-size:13px;">TOP 5</strong>
-        <small style="color:rgba(255,255,255,0.6);font-size:9px;">SEULEMENT</small>
-      </div>
-    </section>
+    <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
 
-    <div class="leaderboard-chat-wrapper" style="display:flex;flex-direction:column;gap:25px;padding:0 16px;">
-      <section class="leaderboard" style="padding:15px;border-radius:18px;">
-        <div class="section-title" style="font-size:14px;color:#a855f7;letter-spacing:.5px;margin-bottom:14px;">🏆 CLASSEMENT <strong style="color:#facc15;">TOP 5</strong></div>
-        <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking" style="color:#888;font-size:13px;">Aucun joueur pour le moment</div></div>
+    <div class="leaderboard-chat-wrapper">
+      <section class="leaderboard">
+        <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
+        <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>
       </section>
       <section class="chat-section" id="globalChat">
-        <div class="section-title" style="font-size:14px;color:#a855f7;letter-spacing:.5px;margin-bottom:14px;margin-left:16px;">💬 CHAT GLOBAL <strong style="color:#facc15;">LIVE</strong></div>
-        <div id="chatMessages" class="chat-messages" style="padding:12px;height:180px;overflow-y:auto;border-radius:18px;"><div class="chat-message" style="background:rgba(168,85,247,0.1);font-size:14px;padding:8px 12px;border-radius:10px;margin-bottom:6px;"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
-        <div class="chat-input-box" id="chatInputBox" style="display:flex;margin:10px 16px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:5px;">
-          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text" style="flex:1;border:none;background:transparent;padding:10px;outline:none;color:#fff;font-family:'Poppins',sans-serif;">
-          <button id="chatSend" type="button" style="background:#a855f7;color:#fff;border:none;border-radius:8px;padding:0 15px;cursor:pointer;font-weight:700;">➤</button>
+        <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
+        <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
+        <div class="chat-input-box" id="chatInputBox">
+          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
+          <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
         </div>
       </section>
     </div>
 
-    <div class="trust-footer" style="text-align:center;padding:12px;font-size:11px;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.04);margin-top:20px;">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank" style="color:#a855f7;">Conditions d'utilisation</a></div>
+    <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
+    <div style="width:100%;height:40px"></div>
   </main>
 
   <script>
     // ===== CONFIGURATION BACKEND =====
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
-
+    
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) { registration.unregister(); }
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('✅ Service Worker désinstallé');
+        }
       });
     }
-
+    
     (function initTonConnect() {
       try {
         if (typeof TON_CONNECT_UI === "undefined" || !TON_CONNECT_UI.TonConnectUI) return;
@@ -359,17 +564,20 @@
           manifestUrl: "https://miltape.vercel.app/tonconnect-manifest.json",
           buttonRootId: "ton-connect-button"
         });
-      } catch (e) { window.tonConnectUI = null; }
+        console.log("✅ TON Connect initialisé.");
+      } catch (e) {
+        console.error("❌ Erreur TON Connect :", e);
+        window.tonConnectUI = null;
+      }
     })();
-
+    
     const socket = io(BACKEND_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000
     });
-
-    // IDs pour éléments de jeu classique
+    
     const tapButton = document.getElementById('tapButton');
     const tapCount = document.getElementById('tapCount');
     const tapButtonCount = document.getElementById('tapButtonCount');
@@ -393,7 +601,7 @@
     const closeMenu = document.getElementById('closeMenu');
     const menuOverlay = document.getElementById('menuOverlay');
     const resetGameBtn = document.getElementById('resetGameBtn');
-
+    
     let isPlaying = false;
     let isPaid = false;
     let myPlayerId = null;
@@ -401,43 +609,57 @@
     let myWallet = null;
     let myToken = 'USDT';
     let gameStatus = "waiting";
+    
     let endsAt = null;
     let timerInterval = null;
-    let duelState = { active: false, endsAt: null, opponentName: null, myTaps: 0, opponentTaps: 0 };
 
+    let duelState = { active: false, endsAt: null, opponentName: null, myTaps: 0, opponentTaps: 0 };
+    
     function updateTimerDisplay() {
       const timerRuleValue = document.getElementById('timerRuleValue');
       if (!timerRuleValue) return;
-      if (!endsAt) { timerRuleValue.innerText = "10:00"; return; }
+      
+      if (!endsAt) { 
+        timerRuleValue.innerText = "10:00";
+        return; 
+      }
+      
       const now = Date.now();
       let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
       const m = Math.floor(remaining / 60);
       const s = remaining % 60;
+      
       timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+      
       if (remaining <= 0 && timerInterval) {
-        clearInterval(timerInterval); timerInterval = null;
+        clearInterval(timerInterval);
+        timerInterval = null;
         const timerSmall = document.querySelector('#timerRule small');
         if (timerSmall) timerSmall.innerText = "PRÉPARATION";
       }
     }
-
+    
     function startLocalTimer() {
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         if (endsAt) {
           updateTimerDisplay();
-          if (Date.now() >= endsAt) { clearInterval(timerInterval); timerInterval = null; }
+          if (Date.now() >= endsAt) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
         }
       }, 200);
     }
+    
     startLocalTimer();
-
+    
     function hapticLight() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
     function hapticMedium() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {} }
     function hapticHeavy() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch (e) {} }
     function hapticSuccess() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
     function hapticError() { try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch (e) {} }
-
+    
     let demoMode = localStorage.getItem("miltape_demo") === "true" || false;
     function updateDemoUI() {
       if (demoMode) {
@@ -453,12 +675,13 @@
       }
     }
     updateDemoUI();
-
+    
     if (demoBtn) {
       demoBtn.addEventListener('click', function() {
         demoMode = !demoMode;
         localStorage.setItem("miltape_demo", String(demoMode));
-        updateDemoUI(); hapticMedium();
+        updateDemoUI();
+        hapticMedium();
         if (!demoMode) {
           if (enterChallenge) enterChallenge.style.display = 'block';
           if (payButton) payButton.style.display = 'none';
@@ -466,15 +689,15 @@
         alert(demoMode ? "🔬 Mode démo ACTIVÉ – Tu peux jouer sans payer !" : "🔒 Mode démo désactivé.");
       });
     }
-
-    // ✅ FIX CLIENT : restoreSession utilisant le token stocké
+    
     async function restoreSession() {
       const sessionToken = localStorage.getItem("miltape_session_token");
       if (!sessionToken) return false;
+
       socket.emit("player:restore", { sessionToken });
       return true;
     }
-
+    
     function getOrCreateDeviceId() {
       let id = localStorage.getItem("miltape_device_id");
       if (id) return id;
@@ -483,9 +706,14 @@
       return id;
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
-
+    
     socket.on("timer:update", (data) => {
-      if (data.endsAt) { endsAt = new Date(data.endsAt).getTime(); updateTimerDisplay(); if (!timerInterval) startLocalTimer(); }
+      console.log("⏱️ TIMER REÇU :", data);
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+        if (!timerInterval) startLocalTimer();
+      }
       gameStatus = data.status || gameStatus;
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) {
@@ -494,48 +722,69 @@
       }
       if (data.status === "preparing" && tapButton) tapButton.disabled = true;
     });
-
+    
     socket.on("game:preparing", (data) => {
+      console.log("🔄 PRÉPARATION :", data);
       gameStatus = "preparing";
-      if (data.preparationEndsAt) { endsAt = new Date(data.preparationEndsAt).getTime(); updateTimerDisplay(); startLocalTimer(); }
+      if (data.preparationEndsAt) {
+        endsAt = new Date(data.preparationEndsAt).getTime();
+        updateTimerDisplay();
+        startLocalTimer();
+      }
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) timerSmall.innerText = "PRÉPARATION";
       if (tapButton) tapButton.disabled = true;
       if (tapMessage) tapMessage.innerText = "⏳ Phase de préparation (2 min) : Rejoins et paie ta mise !";
     });
-
+    
     socket.on("game:started", (data) => {
+      console.log("🚀 JEU COMMENCÉ :", data);
       gameStatus = "running";
-      if (data.endsAt) { endsAt = new Date(data.endsAt).getTime(); updateTimerDisplay(); startLocalTimer(); }
+      if (data.endsAt) {
+        endsAt = new Date(data.endsAt).getTime();
+        updateTimerDisplay();
+        startLocalTimer();
+      }
       const timerSmall = document.querySelector('#timerRule small');
       if (timerSmall) timerSmall.innerText = "EN DIRECT";
       if (isPaid && tapButton) tapButton.disabled = false;
       if (tapMessage) tapMessage.innerText = "✅ Le jeu a commencé ! Tape maintenant !";
       showNotification("success", "🚀 Le jeu a commencé !");
     });
-
+    
     socket.on('connect', async () => {
+      console.log('✅ Socket connecté avec ID :', socket.id);
       if (!demoMode && tapMessage) tapMessage.innerText = "✅ Connecté au serveur !";
       socket.emit("timer:request");
       await restoreSession();
     });
-
+    
     socket.on('reconnect', async () => { 
       await restoreSession(); 
       socket.emit('timer:request');
       setTimeout(() => socket.emit('timer:request'), 500);
     });
-
-    socket.on('connect_error', (err) => { hapticError(); if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur."; });
-
-    socket.on('disconnect', (reason) => { if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur."; });
-
+    
+    socket.on('connect_error', (err) => { 
+      hapticError(); 
+      if (tapMessage) tapMessage.innerText = "⚠️ Erreur de connexion au serveur.";
+      console.error("❌ Erreur connexion :", err);
+    });
+    
+    socket.on('disconnect', (reason) => { 
+      if (tapMessage) tapMessage.innerText = "🔴 Déconnecté du serveur.";
+      console.log("🔴 Déconnecté :", reason);
+    });
+    
     document.addEventListener('visibilitychange', () => { 
       if (!document.hidden) { 
-        if (localStorage.getItem("miltape_session_token")) { restoreSession(); socket.emit('timer:request'); }
+        if (localStorage.getItem("miltape_session_token")) {
+          restoreSession();
+          socket.emit('timer:request');
+        }
       } 
     });
-
+    
     async function joinGame() {
       const telegramName = getTelegramUser();
       let name = telegramName;
@@ -551,9 +800,11 @@
         };
         nameInput.onkeypress = (e) => { if(e.key === 'Enter') document.getElementById('nameSubmitBtn').click(); };
         return;
-      } else { await proceedJoin(name); }
+      } else {
+        await proceedJoin(name);
+      }
     }
-
+    
     async function proceedJoin(name) {
       let wallet;
       if (demoMode) {
@@ -577,8 +828,7 @@
         walletInput.onkeypress = (e) => { if(e.key === 'Enter') document.getElementById('walletSubmitBtn').click(); };
       }
     }
-
-    // ✅ FIX CLIENT : Envoi du sessionToken dans le payload player:join
+    
     async function proceedToJoin(name, wallet) {
       const token = tokenSelect ? tokenSelect.value : 'USDT';
       let bet = 10;
@@ -592,12 +842,12 @@
       socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, sessionToken });
       hapticMedium();
     }
-
+    
     if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
     if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
-
-    // ✅ FIX CLIENT : Stockage du sessionToken
+    
     socket.on("player:joined", (data) => {
+      console.log("✅ PLAYER JOINED :", data);
       if (data.success) {
         isPlaying = true; isPaid = false;
         myPlayerId = data.player.id;
@@ -606,8 +856,11 @@
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
         
-        if (gameStatus === "running") updateTapCounter(data.player.taps);
-        else updateTapCounter(0);
+        if (gameStatus === "running") {
+          updateTapCounter(data.player.taps);
+        } else {
+          updateTapCounter(0);
+        }
 
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
@@ -628,8 +881,10 @@
           const strong = document.createElement('strong');
           strong.textContent = 'Système : ';
           const textNode = document.createTextNode('🟢 ' + data.player.name + ' a rejoint la partie !');
-          msgDiv.appendChild(strong); msgDiv.appendChild(textNode);
-          chatMessages.appendChild(msgDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
+          msgDiv.appendChild(strong);
+          msgDiv.appendChild(textNode);
+          chatMessages.appendChild(msgDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
         if (demoMode) {
@@ -637,16 +892,23 @@
           if (gameStatus === "running") tapButton.disabled = false;
           if (tapMessage) tapMessage.innerText = "🔬 MODE DÉMO : " + data.player.name + ", tape !";
           if (payButton) payButton.style.display = 'none';
-          fetch(BACKEND_URL + "/api/demo/verify", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerId: data.player.id }) }).catch(err => console.error(err));
+          fetch(BACKEND_URL + "/api/demo/verify", {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ playerId: data.player.id })
+          }).catch(err => console.error(err));
         } else {
-          if (payButton) { payButton.style.display = 'block'; payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet); }
+          if (payButton) {
+            payButton.style.display = 'block';
+            payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
+          }
         }
         hapticMedium();
       }
     });
-
-    // ✅ FIX CLIENT : Gestion du cas "staleRound"
+    
     socket.on("player:restored", (data) => {
+      console.log("🔄 PLAYER RESTORED :", data);
       hapticLight();
 
       const resetUI = () => {
@@ -682,17 +944,23 @@
           if (payButton) payButton.style.display = 'none';
         } else {
           isPaid = data.player.paid || false;
+          
           if (gameStatus === "preparing" && !isPaid) {
             if (payButton) payButton.style.display = 'block';
             payButton.onclick = () => initiatePayment(data.player.wallet, data.player.bet);
-          } else { if (payButton) payButton.style.display = 'none'; }
+          } else {
+            if (payButton) payButton.style.display = 'none';
+          }
+          
           if (gameStatus === "running") tapButton.disabled = !isPaid;
           if (tapMessage) tapMessage.innerText = isPaid ? "✅ Revenu ! ÉTAPE 3 : Tape maintenant !" : "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         }
 
         if (gameStatus !== "running" && gameStatus !== "preparing") {
           if (enterChallenge) enterChallenge.style.display = "block";
-        } else { if (enterChallenge) enterChallenge.style.display = "none"; }
+        } else {
+          if (enterChallenge) enterChallenge.style.display = "none";
+        }
 
         localStorage.setItem("miltape_player_id", data.player.id);
         localStorage.setItem("miltape_player_wallet", data.player.wallet);
@@ -704,6 +972,7 @@
           localStorage.setItem("miltape_session_token", data.player.sessionToken);
           localStorage.setItem("miltape_session_wallet", data.player.wallet);
         }
+        
         hapticMedium();
         return;
       }
@@ -716,18 +985,20 @@
       localStorage.removeItem("miltape_session_token");
       localStorage.removeItem("miltape_session_wallet");
       localStorage.removeItem("miltape_demo");
+      
       resetUI();
     });
-
+    
     socket.on("payment:verified", (data) => {
       if (data.verified) {
-        isPaid = true; hapticSuccess();
+        isPaid = true;
+        hapticSuccess();
         if (tapMessage) tapMessage.innerText = "✅ Paiement vérifié ! Attends que le jeu commence !";
         if (payButton) payButton.style.display = 'none';
         showNotification("success", "✅ Paiement vérifié !");
       }
     });
-
+    
     socket.on("game:finished", (data) => {
       if (tapCount) tapCount.innerText = "0";
       if (tapButtonCount) tapButtonCount.innerText = "0";
@@ -743,7 +1014,9 @@
         launchConfetti(); hapticHeavy();
         data.winners.forEach((winner, index) => setTimeout(() => addWinnerToTicker(winner.name, formatAmount(winner.gain), winner.rank), index * 200));
         showNotification("champion", "🏆 La partie est terminée !");
-      } else { message += "❌ Aucun gagnant cette fois-ci.\n\n"; }
+      } else {
+        message += "❌ Aucun gagnant cette fois-ci.\n\n";
+      }
       alert(message);
       if (enterChallenge) enterChallenge.style.display = 'block';
       if (payButton) payButton.style.display = 'none';
@@ -753,9 +1026,9 @@
       localStorage.removeItem("miltape_player_name");
       localStorage.removeItem("miltape_player_bet");
       localStorage.removeItem("miltape_player_token");
-      // Ne pas supprimer miltape_session_token ici
+      // On ne supprime pas miltape_session_token / miltape_session_wallet ici
     });
-
+    
     function launchConfetti() {
       const colors = ['#a855f7', '#facc15', '#4ade80', '#6366f1', '#ff4d4d', '#ff0080', '#6c5ce7', '#fd79a8'];
       for (let i = 0; i < 60; i++) {
@@ -767,38 +1040,42 @@
         setTimeout(() => c.remove(), 4000);
       }
     }
-
+    
     function tapEffects() {
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
       setTimeout(() => tapButton.classList.remove('tap-active'), 100);
       hapticLight();
     }
-
+    
     let lastTapTime = 0;
     const MIN_TAP_INTERVAL_MS = 50;
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        if (!isPlaying || tapButton.disabled) return;
+        if (!isPlaying || tapButton.disabled) {
+          return;
+        }
         const now = Date.now();
         if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
-        lastTapTime = now; tapEffects();
+        lastTapTime = now;
+        tapEffects();
         socket.emit("player:tap");
       });
     }
-
+    
     socket.on("player:score", (data) => {
+      console.log("🖱️ SCORE REÇU :", data);
       if (tapCount) tapCount.innerText = data.taps;
       if (tapButtonCount) tapButtonCount.innerText = data.taps;
       updateTapCounter(data.taps);
     });
-
+    
     function updateTapCounter(taps) {
       const el = document.getElementById('tapCounterDisplay');
       if (el) el.textContent = taps || 0;
     }
-
+    
     socket.on("game:state", (data) => {
       if (data.game) {
         gameStatus = data.game.status;
@@ -816,22 +1093,24 @@
         }
       }
     });
-
+    
     socket.on("totalStakes:update", (data) => {
       const displayBet = document.getElementById('displayBet');
       const displayBetTop = document.getElementById('displayBetTop');
       if (displayBet) displayBet.textContent = "$" + formatAmount(data.totalStakes);
       if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);
     });
-
+    
     socket.on("online:count", (data) => {
       let count = data;
       if (typeof data === 'object' && data !== null && 'count' in data) count = data.count;
-      if (onlineCount) onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#4ade80;border-radius:50%;margin-right:5px"></span><span>' + count + ' EN LIGNE</span>';
+      if (onlineCount) {
+        onlineCount.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#4ade80;border-radius:50%;margin-right:5px"></span><span>' + count + ' EN LIGNE</span>';
+      }
     });
-
+    
     setInterval(() => { socket.emit('online:count'); }, 5000);
-
+    
     socket.on("leaderboard:update", (leaderboard) => {
       if (leaderboardList) {
         leaderboardList.innerHTML = "";
@@ -848,12 +1127,14 @@
           const scoreSpan = document.createElement('span');
           scoreSpan.className = 'player-score';
           scoreSpan.textContent = player.taps;
-          div.appendChild(rankSpan); div.appendChild(nameSpan); div.appendChild(scoreSpan);
+          div.appendChild(rankSpan);
+          div.appendChild(nameSpan);
+          div.appendChild(scoreSpan);
           leaderboardList.appendChild(div);
         });
       }
     });
-
+    
     function sendMessage() {
       if (!chatInput) return;
       let text = chatInput.value.trim();
@@ -863,10 +1144,10 @@
       socket.emit("chat:send", { message: text });
       chatInput.value = "";
     }
-
+    
     if (chatSend) chatSend.addEventListener('click', sendMessage);
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
+    
     socket.on("chat:message", (data) => {
       if (chatMessages) {
         const msgDiv = document.createElement('div');
@@ -874,12 +1155,14 @@
         const strong = document.createElement('strong');
         strong.textContent = data.name + ' :';
         const textNode = document.createTextNode(' ' + data.message);
-        msgDiv.appendChild(strong); msgDiv.appendChild(textNode);
-        chatMessages.appendChild(msgDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
+        msgDiv.appendChild(strong);
+        msgDiv.appendChild(textNode);
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
       }
       showNotification("info", "💬 " + data.name + " a écrit un message");
     });
-
+    
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
       fetch(BACKEND_URL + "/api/wallet").then(res => res.json()).then(data => {
@@ -893,29 +1176,36 @@
         } else { hapticError(); alert("❌ Impossible de récupérer le wallet du serveur."); }
       }).catch(err => { hapticError(); alert("❌ Erreur lors de la récupération du wallet."); });
     }
-
+    
     socket.on("error", (err) => {
       if (err.message === "Ce wallet est déjà utilisé dans cette manche. Connecte-toi avec ton token.") {
         hapticError();
         alert("⚠️ Une session est peut-être encore active ailleurs (autre onglet, autre appareil).\nRejoins la partie avec le token de session existant pour continuer.");
         return;
       }
+      
       if (err.message === "Joueur introuvable.") {
-        localStorage.removeItem("miltape_player_id"); localStorage.removeItem("miltape_player_wallet"); localStorage.removeItem("miltape_player_name"); localStorage.removeItem("miltape_player_bet"); localStorage.removeItem("miltape_player_token"); localStorage.removeItem("miltape_session_token"); localStorage.removeItem("miltape_session_wallet");
+        localStorage.removeItem("miltape_player_id");
+        localStorage.removeItem("miltape_player_wallet");
+        localStorage.removeItem("miltape_player_name");
+        localStorage.removeItem("miltape_player_bet");
+        localStorage.removeItem("miltape_player_token");
+        localStorage.removeItem("miltape_session_token");
+        localStorage.removeItem("miltape_session_wallet");
         if (enterChallenge) enterChallenge.style.display = 'block';
         return;
       }
       hapticError();
       alert("⚠️ Erreur : " + err.message);
     });
-
+    
     let notificationsEnabled = localStorage.getItem("miltape_notifications") !== "false";
     const notifToggle = document.getElementById('notifToggle');
     if (notifToggle) {
       notifToggle.checked = notificationsEnabled;
       notifToggle.addEventListener('change', function() { notificationsEnabled = this.checked; localStorage.setItem("miltape_notifications", this.checked.toString()); });
     }
-
+    
     function showNotification(type, message, data = {}) {
       if (!notificationsEnabled) return;
       const container = document.getElementById('notificationContainer');
@@ -927,20 +1217,22 @@
       const textSpan = document.createElement('span');
       textSpan.className = 'notif-text';
       textSpan.textContent = message;
-      wrapper.appendChild(textSpan); notif.appendChild(wrapper); container.appendChild(notif);
+      wrapper.appendChild(textSpan);
+      notif.appendChild(wrapper);
+      container.appendChild(notif);
       if (type === 'champion') hapticHeavy();
       else if (type === 'success') hapticMedium();
       else hapticLight();
       setTimeout(() => { if (notif.parentNode) notif.remove(); }, 4000);
     }
-
+    
     socket.on("notification:new", (data) => { showNotification(data.type, data.message, data.data); });
-
+    
     const winnerTicker = document.getElementById('winnerTicker');
     const tickerTrack = document.getElementById('tickerTrack');
     let tickerItems = [];
     const MAX_TICKER_ITEMS = 20;
-
+    
     function addWinnerToTicker(name, amount, rank) {
       if (!name) return;
       const existing = tickerItems.find(item => item.name === name);
@@ -951,7 +1243,7 @@
       updateTickerDisplay();
       if (winnerTicker) winnerTicker.classList.add('show');
     }
-
+    
     function buildTickerItemEl(item) {
       const span = document.createElement('span');
       span.className = 'ticker-item';
@@ -966,10 +1258,13 @@
       const amountSpan = document.createElement('span');
       amountSpan.className = 'amount';
       amountSpan.textContent = item.amount + ' USDT';
-      span.appendChild(trophy); span.appendChild(nameSpan); span.appendChild(arrow); span.appendChild(amountSpan);
+      span.appendChild(trophy);
+      span.appendChild(nameSpan);
+      span.appendChild(arrow);
+      span.appendChild(amountSpan);
       return span;
     }
-
+    
     function updateTickerDisplay() {
       if (!tickerTrack) return;
       tickerTrack.innerHTML = "";
@@ -978,14 +1273,14 @@
       doubled.forEach(item => frag.appendChild(buildTickerItemEl(item)));
       tickerTrack.appendChild(frag);
     }
-
+    
     function toggleMenu() {
       if (sideMenu && menuOverlay) { sideMenu.classList.toggle('show'); menuOverlay.classList.toggle('show'); }
     }
     if (menuButton) menuButton.addEventListener('click', toggleMenu);
     if (closeMenu) closeMenu.addEventListener('click', toggleMenu);
     if (menuOverlay) menuOverlay.addEventListener('click', toggleMenu);
-
+    
     function showMenuMessage(title, content) {
       const modal = document.getElementById('dynamicModal');
       const modalTitle = document.getElementById('dynamicModalTitle');
@@ -997,25 +1292,27 @@
         hapticLight();
       }
     }
-
+    
     const closeModalBtn = document.getElementById('closeDynamicModal');
     if (closeModalBtn) closeModalBtn.addEventListener('click', function() { const modal = document.getElementById('dynamicModal'); if (modal) modal.classList.remove('show'); });
-
+    
     const menuGamesBtn = document.getElementById('menuGamesBtn');
     if (menuGamesBtn) menuGamesBtn.addEventListener('click', () => showMenuMessage('🎮 Mes parties', '<p>Rejoins une partie pour commencer !</p>'));
-
+    
     const menuRankingsBtn = document.getElementById('menuRankingsBtn');
-    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#facc15;">' + score + '</strong> taps</p>'); });
-
+    if (menuRankingsBtn) menuRankingsBtn.addEventListener('click', () => { const score = tapCount ? tapCount.textContent : '0'; showMenuMessage('🏆 Mes classements', '<p>Ton score actuel : <strong style="color:#a855f7;">' + score + '</strong> taps</p>'); });
+    
     const menuRulesBtn = document.getElementById('menuRulesBtn');
     if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
-
+    
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
-        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) { localStorage.clear(); window.location.reload(); }
+        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
+          localStorage.clear(); window.location.reload();
+        }
       });
     }
-
+    
     function getTelegramUser() {
       try {
         if (window.Telegram && window.Telegram.WebApp) {
@@ -1026,9 +1323,9 @@
         return null;
       } catch (e) { return null; }
     }
-
+    
     let jackpotCountdownInterval = null;
-
+    
     function updateJackpotCountdown(nextDrawTime) {
       const el = document.getElementById('jackpotCountdown');
       if (!el) return;
@@ -1063,16 +1360,15 @@
       update();
       jackpotCountdownInterval = setInterval(update, 1000);
     }
-
+    
     socket.on("jackpot:update", (data) => {
       const prizeElement = document.getElementById('jackpotAmount');
       if (prizeElement) prizeElement.textContent = formatAmount(data.prize) + " USDT";
       if (data.nextDraw) updateJackpotCountdown(data.nextDraw);
     });
-
+    
     socket.emit("jackpot:get");
-
-    // ✅ FIX CLIENT : Vérification que le joueur a rejoint la partie classique avant le Duel
+    
     function selectDuelBet(btn) {
       document.querySelectorAll('.duelBetBtn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -1080,10 +1376,6 @@
 
     if (duelButton) {
       duelButton.addEventListener('click', () => {
-        if (!isPlaying || !myPlayerId) {
-          alert("⚠️ Rejoins d'abord la partie classique (JOUER MAINTENANT) pour pouvoir lancer un Duel !");
-          return;
-        }
         const activeBetBtn = document.querySelector('.duelBetBtn.active');
         const bet = activeBetBtn ? parseFloat(activeBetBtn.dataset.bet) : 1;
         socket.emit('duel:join', { bet: bet });
@@ -1095,10 +1387,14 @@
       const serverWallet = data.wallet;
       const paymentUrl = 'https://t.me/wallet?start=transfer-' + serverWallet + '-' + data.amount + '-USDT';
       window.open(paymentUrl, '_blank');
+      
       alert("💰 PAYE " + data.amount + " USDT vers :\n" + serverWallet + "\n\n✅ DÈS QUE TU AS PAYÉ, ENTRE TON TxID.\n⚡ Le serveur vérifiera AUTOMATIQUEMENT ta transaction en quelques secondes !");
+      
       setTimeout(() => {
         const txId = prompt("✅ Entre l'ID de ta transaction (TxID) :");
-        if (txId) { socket.emit('duel:payment_verified', { txId }); }
+        if (txId) {
+          socket.emit('duel:payment_verified', { txId });
+        }
       }, 3000);
     });
 
@@ -1106,21 +1402,32 @@
       alert("✅ PAIEMENT VÉRIFIÉ AUTOMATIQUEMENT !\n⚡ Tu es maintenant en file d'attente !");
     });
 
-    socket.on('duel:payment_error', (data) => { alert("❌ " + data.message); });
+    socket.on('duel:payment_error', (data) => {
+      alert("❌ " + data.message);
+    });
 
-    socket.on('duel:queue', (data) => { console.log("👥 File d'attente :", data); });
+    socket.on('duel:queue', (data) => {
+      console.log("👥 File d'attente :", data);
+    });
 
     socket.on('duel:started', (data) => {
       duelState.active = true;
       duelState.opponentName = data.opponentName;
       duelState.endsAt = Date.now() + 60000;
+      
       duelButton.innerText = "⚔️ " + duelState.opponentName + " | 1:00";
+      
       let duelTimer = setInterval(() => {
         let remaining = Math.max(0, Math.floor((duelState.endsAt - Date.now()) / 1000));
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         duelButton.innerText = "⚔️ " + duelState.opponentName + " | " + m + ":" + (s < 10 ? "0" : "") + s;
-        if (remaining <= 0) { clearInterval(duelTimer); duelState.active = false; duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)"; }
+        
+        if (remaining <= 0) {
+          clearInterval(duelTimer);
+          duelState.active = false;
+          duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+        }
       }, 1000);
     });
 
@@ -1132,15 +1439,17 @@
 
     if (tapButton) {
       tapButton.addEventListener('click', () => {
-        if (duelState.active) { socket.emit('duel:tap'); }
+        if (duelState.active) {
+          socket.emit('duel:tap');
+        }
       });
     }
-
+    
     function formatAmount(value) {
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
-
+    
     console.log("✅ Script Miltape chargé avec succès.");
     console.log("🔗 Backend URL :", BACKEND_URL);
   </script>
