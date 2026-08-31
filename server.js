@@ -15,8 +15,7 @@ const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
 
-// ✅ FIX 1 : Correction du domaine par défaut
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://uki-droid.github.io").split(",").map(o => o.trim());
 
 const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
@@ -59,17 +58,7 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
-// ✅ FIX 1 : CORS dynamique avec le nouveau domaine par défaut
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    }
-}));
-
+app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -105,7 +94,8 @@ const playerSchema = new mongoose.Schema({
     depositAmount: { type: Number, default: null },
     depositExpiresAt: { type: Date, default: null },
     sessionToken: { type: String, unique: true, sparse: true },
-    // Champs séparés pour le duel
+    
+    // Correction #4 : Champs séparés pour le duel (pour éviter les conflits avec le mode classique)
     duelPaid: { type: Boolean, default: false }, 
     duelPaymentTxId: { type: String, sparse: true }
 }, { timestamps: true });
@@ -159,9 +149,10 @@ let gameTimer = null, nextGameTimeout = null;
 const onlineSockets = new Set();
 let game = { id: null, status: "waiting", startedAt: null, endsAt: null, durationSeconds: GAME_DURATION_SECONDS, preparationEndsAt: null };
 
-const activeDuels = {};
-const duelPools = {};
-const pendingDuelPayments = {};
+// Correction #2 : Objet global pour les duels actifs, accessible partout
+const activeDuels = {}; // Clé : duelId (ex: socket1.id), Valeur : { socket1, socket2, player1Id, player2Id, bet, winnerPrize, endsAt, taps1, taps2 }
+const duelPools = {}; // { bet: [{ socketId, playerId }] }
+const pendingDuelPayments = {}; // { socketId: { bet, playerId } }
 
 async function loadOrCreateGameState() {
     try {
@@ -364,20 +355,18 @@ async function sendPrizeToWinner(historyEntry) {
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
 
-// ✅ FIX 2 : verifyOnChain accepte désormais expectedSender pour valider l'expéditeur
-async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSender = null) {
+async function verifyOnChain(txId, expectedAmount, token = "USDT") {
     try {
         const tx = await tronWeb.trx.getTransaction(txId); 
         if (!tx) return false;
         const contract = tx.raw_data?.contract?.[0]; 
         if (!contract) return false;
-        let amount = 0, sender = null;
+        let amount = 0;
         if (token === "TRX") {
             if (contract.type !== "TransferContract") return false;
             const value = contract.parameter?.value; 
             const recipient = tronWeb.address.fromHex(value.to_address); 
             if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
-            sender = tronWeb.address.fromHex(value.owner_address);
             amount = Number(value.amount) / 1e6;
         } else {
             if (contract.type !== "TriggerSmartContract") return false;
@@ -387,16 +376,11 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSende
             const data = String(value.data || ""); 
             const recipient = tronWeb.address.fromHex("41" + data.substring(32, 72)); 
             if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
-            sender = tronWeb.address.fromHex(value.owner_address); // ✅ FIX : Récupération expéditeur TRC20
             const rawAmount = BigInt("0x" + data.substring(72, 136)); 
             amount = Number(rawAmount) / Math.pow(10, SUPPORTED_TOKENS[token].decimals);
         }
         const txInfo = await tronWeb.trx.getTransactionInfo(txId); 
         if (!txInfo || txInfo.receipt?.result !== "SUCCESS") return false;
-        
-        // ✅ FIX 2 : Vérification de l'expéditeur si fourni
-        if (expectedSender && !sameWallet(sender, expectedSender)) return false;
-        
         return Math.abs(amount - Number(expectedAmount)) < 0.0000001;
     } catch (e) { return false; }
 }
@@ -433,6 +417,7 @@ async function getIncomingTrc20Transactions(address) {
     } catch (error) { return []; }
 }
 
+// Correction #1 : checkPendingPayments appelé régulièrement via setInterval
 async function checkPendingPayments() {
     if (game.status !== "preparing" && game.status !== "running") return;
     try {
@@ -664,18 +649,22 @@ io.on("connection", async (socket) => {
         } catch (error) { console.error("❌ chat:send :", error?.message || error); }
     });
 
+    // Correction #5 : Nettoyage des sockets déconnectés (dans tous les pools et duels actifs)
     socket.on("disconnect", async () => { 
         onlineSockets.delete(socket.id); 
         console.log(`🔴 Déconnexion Socket : ${socket.id}`); 
         broadcastOnlineCount(); 
 
+        // Nettoyage des pools de duel
         for (const bet in duelPools) {
             duelPools[bet] = duelPools[bet].filter(entry => entry.socketId !== socket.id);
             if (duelPools[bet].length === 0) delete duelPools[bet];
         }
 
+        // Nettoyage des paiements en attente
         delete pendingDuelPayments[socket.id];
 
+        // Gérer un duel actif si le joueur se déconnecte
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (duel.socket1 === socket.id || duel.socket2 === socket.id) {
@@ -687,12 +676,13 @@ io.on("connection", async (socket) => {
                     const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain, token: "USDT", playerName: winner.name });
                     io.to(opponentSocketId).emit("duel:finished", { winnerName: winner.name, myTaps: 0, opponentTaps: 0, prize: gain, txId });
                 }
-                delete activeDuels[duelId];
+                delete activeDuels[duelId]; // Nettoyage
             }
         }
     });
 });
 
+// ===== MODE DUEL =====
 const ALLOWED_BETS = [0.50, 1, 2, 4, 8, 16, 32, 64, 128];
 
 async function isDuelTxUsed(txId) {
@@ -711,6 +701,7 @@ io.on("connection", (socket) => {
             return socket.emit("error", { message: "Mise non autorisée." });
         }
 
+        // Correction #3 : On récupère le vrai playerId depuis le socket (socket.data.playerId)
         const playerId = socket.data.playerId;
         if (!playerId) return socket.emit("error", { message: "Rejoins d'abord le jeu principal." });
 
@@ -727,6 +718,7 @@ io.on("connection", (socket) => {
             const entry1 = duelPools[bet].shift();
             const entry2 = duelPools[bet].shift();
 
+            // Correction #3 : Utilisation de playerId pour les requêtes Mongo
             const player1 = await Player.findById(entry1.playerId);
             const player2 = await Player.findById(entry2.playerId);
 
@@ -760,6 +752,7 @@ io.on("connection", (socket) => {
                 io.to(entry1.socketId).emit("duel:started", { opponentName: player2.name, bet, prize: winnerPrize });
                 io.to(entry2.socketId).emit("duel:started", { opponentName: player1.name, bet, prize: winnerPrize });
 
+                // Correction #2 : Stockage du duel dans l'objet global activeDuels
                 const duelId = entry1.socketId;
                 activeDuels[duelId] = {
                     socket1: entry1.socketId,
@@ -811,12 +804,6 @@ io.on("connection", (socket) => {
                         });
                     }
 
-                    // ✅ FIX 4 : Réinitialisation des champs de paiement du duel pour les deux joueurs
-                    await Player.updateMany(
-                        { _id: { $in: [duel.player1Id, duel.player2Id] } },
-                        { $set: { duelPaid: false, duelPaymentTxId: null } }
-                    );
-
                     delete activeDuels[duelId];
                 }, 60000);
             }, 60000);
@@ -825,7 +812,7 @@ io.on("connection", (socket) => {
         }
     });
 
-    // ✅ FIX 2 : Vérification de l'expéditeur dans le paiement du duel
+    // Correction #4 : Paiement du duel vérifié, avec marquage sur un champ séparé (duelPaid)
     socket.on("duel:payment_verified", async (data) => {
         const { txId } = data;
         const playerId = socket.data.playerId;
@@ -841,22 +828,21 @@ io.on("connection", (socket) => {
             return socket.emit("duel:payment_error", { message: "Transaction déjà utilisée." });
         }
 
-        // ✅ FIX 2 : Récupération du joueur pour obtenir son wallet (expéditeur attendu)
-        const player = await Player.findById(playerId);
-        if (!player) return socket.emit("duel:payment_error", { message: "Joueur introuvable." });
-
-        // ✅ FIX 2 : Vérification on-chain avec expectedSender = player.wallet
-        const isValid = await verifyOnChain(txId, betAmount, "USDT", player.wallet);
+        const isValid = await verifyOnChain(txId, betAmount, "USDT");
         if (isValid) {
-            player.duelPaid = true;
-            player.duelPaymentTxId = txId;
-            await player.save();
+            // Correction #4 : Mise à jour du joueur avec duelPaid / duelPaymentTxId
+            const player = await Player.findById(playerId);
+            if (player) {
+                player.duelPaid = true;
+                player.duelPaymentTxId = txId;
+                await player.save();
+            }
 
             pending.duelPaid = true;
             pending.duelPaymentTxId = txId;
             pendingDuelPayments[socket.id] = pending;
 
-            await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
+            await Payment.create({ txId, from: "Détecté", to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
 
             socket.emit("duel:payment_success");
         } else {
@@ -864,6 +850,7 @@ io.on("connection", (socket) => {
         }
     });
 
+    // Correction #2 : Accès à l'objet global pour le tap du duel
     socket.on("duel:tap", () => {
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
@@ -876,6 +863,7 @@ io.on("connection", (socket) => {
     });
 });
 
+// Correction #1 : setInterval pour appeler checkPendingPayments toutes les 7 secondes
 setInterval(() => {
     checkPendingPayments().catch(err => console.error("Erreur checkPendingPayments :", err));
 }, 7000);
