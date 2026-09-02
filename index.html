@@ -966,7 +966,6 @@
       console.log("🔄 PLAYER RESTORED :", data);
       hapticLight();
 
-      // Fonction utilitaire pour remettre l'interface à zéro
       const resetUI = () => {
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (payButton) payButton.style.display = 'none';
@@ -1103,7 +1102,6 @@
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
       
-      // Effet de ripple (vague)
       const ripple = document.createElement('div');
       ripple.className = 'tap-ripple';
       const rect = tapButton.getBoundingClientRect();
@@ -1128,7 +1126,6 @@
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        // Incrémenter le compteur local à chaque tap
         localTaps++;
         updateTapCounter(localTaps);
         
@@ -1153,7 +1150,6 @@
     
     socket.on("player:score", (data) => {
       console.log("🖱️ SCORE REÇU :", data);
-      // Si le serveur répond, on prend son score
       if (data.taps > localTaps) {
         localTaps = data.taps;
       }
@@ -1263,6 +1259,7 @@
       showNotification("info", "💬 " + data.name + " a écrit un message");
     });
     
+    // ===== PAIEMENTS 100% INTACTS =====
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
       fetch(BACKEND_URL + "/api/wallet").then(res => res.json()).then(data => {
@@ -1556,13 +1553,11 @@
     }
 
     // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
-    let localTimer = 10 * 60; // 10 minutes
+    let localTimer = 10 * 60;
     let localTimerInterval = null;
 
     function startLocalBackupTimer() {
       if (localTimerInterval) clearInterval(localTimerInterval);
-      
-      // Si le serveur a déjà un timer, on ne fait rien
       if (endsAt && endsAt > Date.now()) return;
       
       localTimer = 10 * 60;
@@ -1578,7 +1573,6 @@
           if (localTimer <= 0) {
             clearInterval(localTimerInterval);
             localTimerInterval = null;
-            // Simuler la fin du jeu
             gameStatus = "waiting";
             if (tapButton) tapButton.disabled = true;
             alert("⏰ Temps écoulé ! (Mode démo local)");
@@ -1587,7 +1581,6 @@
       }, 1000);
     }
 
-    // Démarrer le timer local si le serveur ne répond pas après 5 secondes
     setTimeout(() => {
       if (!endsAt || endsAt <= Date.now()) {
         startLocalBackupTimer();
