@@ -130,56 +130,68 @@
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* ===== BOUTON TAP AMÉLIORÉ ===== */
-    .tap-button {
-      position: relative;
-      width: clamp(220px, 50vw, 320px) !important;
-      height: clamp(220px, 50vw, 320px) !important;
-      min-width: 180px;
-      min-height: 180px;
-      border: 4px solid rgba(100, 181, 246, 0.4) !important;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.2), rgba(255, 255, 255, 0.05)) !important;
-      box-shadow: 0 0 60px rgba(100, 181, 246, 0.15), 0 0 120px rgba(100, 181, 246, 0.05), inset 0 0 80px rgba(100, 181, 246, 0.05) !important;
-      transition: transform 0.05s ease-out, box-shadow 0.1s ease !important;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      touch-action: manipulation;
-      will-change: transform;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 10px auto;
-      padding: 0;
-      overflow: hidden;
-      outline: 0;
-      flex-shrink: 0;
-    }
-    .tap-button:disabled { cursor: not-allowed; opacity: .6; }
-    .tap-button:active:not(:disabled) { transform: scale(0.88) !important; box-shadow: 0 0 80px rgba(100, 181, 246, 0.3), 0 0 160px rgba(100, 181, 246, 0.1), inset 0 0 100px rgba(100, 181, 246, 0.1) !important; }
-    .tap-button.tap-active { transform: scale(0.88) !important; box-shadow: 0 0 80px rgba(100, 181, 246, 0.3), 0 0 160px rgba(100, 181, 246, 0.1), inset 0 0 100px rgba(100, 181, 246, 0.1) !important; }
-    .tap-button:not(:disabled):hover { transform: scale(1.02); box-shadow: 0 0 80px rgba(100, 181, 246, 0.2) !important; }
-    .tap-button:not(:disabled)::after {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      border: 2px solid rgba(100, 181, 246, 0.15);
-      animation: tapPulse 2s ease-in-out infinite;
-      pointer-events: none;
-    }
-    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 0; } 100% { transform: scale(1); opacity: 0.5; } }
-    .tap-img-bg { position: absolute; inset: 0; width: 100% !important; height: 100% !important; object-fit: contain !important; padding: 15%; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .9 !important; user-select: none; -webkit-user-drag: none; }
-    .tap-button small { display: none; }
-    .tap-ripple {
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid rgba(100, 181, 246, 0.6);
-      pointer-events: none;
-      animation: rippleOut 0.4s ease-out forwards;
-      z-index: 1;
-    }
+     /* ===== BOUTON TAP AMÉLIORÉ ===== */
+
+.tap-button {
+    position: relative;
+    width: clamp(220px, 50vw, 320px) !important;
+    height: clamp(220px, 50vw, 320px) !important;
+    min-width: 180px;
+    min-height: 180px;
+    border: 4px solid rgba(100, 181, 246, 0.4) !important;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.15), 0 0 60px rgba(100, 181, 246, 0.15), 0 0 120px);
+    transition: transform 0.05s ease-out, box-shadow 0.1s ease-in-out;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+    will-change: transform;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto;
+    padding: 0;
+    overflow: hidden;
+    outline: 0;
+    flex-shrink: 0;
+}
+
+.tap-button:disabled { cursor: not-allowed; opacity: .6; }
+.tap-button:active:not(:disabled) { transform: scale(0.88) !important; }
+.tap-button:not(:disabled):hover { transform: scale(1.02); }
+.tap-button:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(100, 181, 246, 0.15);
+    animation: tapPulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes tapPulse { 
+    0% { transform: scale(1); opacity: 0.5; } 
+    50% { transform: scale(1.15); opacity: 0; }
+    100% { transform: scale(1); opacity: 0.5; }
+}
+
+.tap-img-bg {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(0.85) !important;
+    width: 75% !important;
+    height: 75% !important;
+    object-fit: contain !important;
+    pointer-events: none;
+    z-index: 0;
+    display: block;
+    opacity: 1 !important;
+    user-select: none;
+    -webkit-user-drag: none;
+    mix-blend-mode: screen;
+}
     @keyframes rippleOut { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
 
     .main-play-button {
