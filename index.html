@@ -1074,6 +1074,13 @@
       if (tapButtonCount) tapButtonCount.innerText = data.taps;
       updateTapCounter(data.taps);
     });
+
+    // ✅ FIX : le serveur n'envoyait jamais le score en duel — compteur figé à 0
+    socket.on('duel:score', (data) => {
+      duelState.myTaps = data.myTaps;
+      duelState.opponentTaps = data.opponentTaps;
+      updateTapCounter(data.myTaps);
+    });
     
     function updateTapCounter(taps) {
       const el = document.getElementById('tapCounterDisplay');
