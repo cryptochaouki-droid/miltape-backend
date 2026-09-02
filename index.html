@@ -129,7 +129,8 @@
     .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-          /* ===== BOUTON TAP NET ET COLORÉ ===== */
+
+    /* ===== BOUTON TAP NET ET COLORÉ ===== */
     .tap-button {
       position: relative;
       width: clamp(220px, 50vw, 320px) !important;
@@ -171,7 +172,56 @@
       animation: ringPulse 2.5s ease-in-out infinite;
       pointer-events: none;
     }
+    @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.2); opacity: 0; } }
+    .tap-img-bg {
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) scale(0.85) !important;
+      width: 75% !important;
+      height: 75% !important;
+      object-fit: contain !important;
+      pointer-events: none;
+      z-index: 1;
+      display: block;
+      opacity: 0.95 !important;
+      user-select: none;
+      -webkit-user-drag: none;
+      filter: drop-shadow(0 0 30px rgba(100, 181, 246, 0.2));
+    }
+    .tap-ripple {
+      position: absolute;
+      border-radius: 50%;
+      border: 3px solid rgba(100, 181, 246, 0.9);
+      pointer-events: none;
+      animation: rippleOut 0.5s ease-out forwards;
+      z-index: 2;
+    }
+    @keyframes rippleOut { 0% { transform: scale(0.3); opacity: 0.8; } 100% { transform: scale(2.2); opacity: 0; } }
+    .tap-button small { display: none; }
 
+    .main-play-button {
+      display: block;
+      width: 85%;
+      max-width: 320px;
+      margin: 15px auto;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      border: none;
+      font-size: clamp(16px, 4vw, 20px);
+      font-weight: 900;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border-radius: 24px !important;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      position: relative;
+    }
     .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
     .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
     .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }
@@ -1088,15 +1138,9 @@
     
     let lastTapTime = 0;
     const MIN_TAP_INTERVAL_MS = 20;
-
-    // ===== COMPTEUR DE TAPS LOCAL (MÊME SI SERVEUR MORT) =====
-    let localTaps = 0;
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        localTaps++;
-        updateTapCounter(localTaps);
-        
         if (duelState.active) {
           const now = Date.now();
           if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
@@ -1118,21 +1162,15 @@
     
     socket.on("player:score", (data) => {
       console.log("🖱️ SCORE REÇU :", data);
-      if (data.taps > localTaps) {
-        localTaps = data.taps;
-      }
-      if (tapCount) tapCount.innerText = localTaps;
-      if (tapButtonCount) tapButtonCount.innerText = localTaps;
-      updateTapCounter(localTaps);
+      if (tapCount) tapCount.innerText = data.taps;
+      if (tapButtonCount) tapButtonCount.innerText = data.taps;
+      updateTapCounter(data.taps);
     });
 
     socket.on('duel:score', (data) => {
       duelState.myTaps = data.myTaps;
       duelState.opponentTaps = data.opponentTaps;
-      if (data.myTaps > localTaps) {
-        localTaps = data.myTaps;
-      }
-      updateTapCounter(localTaps);
+      updateTapCounter(data.myTaps);
     });
     
     function updateTapCounter(taps) {
@@ -1519,41 +1557,6 @@
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
-
-    // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
-    let localTimer = 10 * 60;
-    let localTimerInterval = null;
-
-    function startLocalBackupTimer() {
-      if (localTimerInterval) clearInterval(localTimerInterval);
-      if (endsAt && endsAt > Date.now()) return;
-      
-      localTimer = 10 * 60;
-      localTimerInterval = setInterval(() => {
-        if (gameStatus === "running") {
-          localTimer--;
-          const m = Math.floor(localTimer / 60);
-          const s = localTimer % 60;
-          const timerRuleValue = document.getElementById('timerRuleValue');
-          if (timerRuleValue) {
-            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-          }
-          if (localTimer <= 0) {
-            clearInterval(localTimerInterval);
-            localTimerInterval = null;
-            gameStatus = "waiting";
-            if (tapButton) tapButton.disabled = true;
-            alert("⏰ Temps écoulé ! (Mode démo local)");
-          }
-        }
-      }, 1000);
-    }
-
-    setTimeout(() => {
-      if (!endsAt || endsAt <= Date.now()) {
-        startLocalBackupTimer();
-      }
-    }, 5000);
     
     console.log("✅ Script Miltape chargé avec succès.");
     console.log("🔗 Backend URL :", BACKEND_URL);
