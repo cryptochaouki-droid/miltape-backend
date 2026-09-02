@@ -129,106 +129,93 @@
     .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-     
-     /* ===== FORCER LE CERCLE PARFAIT ===== */
+
+     /* ===== BOUTON TAP AMÉLIORÉ ===== */
+
 .tap-button {
-  width: 250px !important;
-  height: 250px !important;
-  min-width: 250px !important;
-  min-height: 250px !important;
-  max-width: 250px !important;
-  max-height: 250px !important;
-  border-radius: 50% !important;
-  aspect-ratio: 1/1 !important;
-  flex-shrink: 0 !important;
-  margin: 10px auto !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  overflow: hidden !important;
+    position: relative;
+    width: clamp(220px, 50vw, 320px) !important;
+    height: clamp(220px, 50vw, 320px) !important;
+    min-width: 180px;
+    min-height: 180px;
+    border: 4px solid rgba(100, 181, 246, 0.4) !important;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.15), 0 0 60px rgba(100, 181, 246, 0.15), 0 0 120px);
+    transition: transform 0.05s ease-out, box-shadow 0.1s ease-in-out;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+    will-change: transform;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto;
+    padding: 0;
+    overflow: hidden;
+    outline: 0;
+    flex-shrink: 0;
 }
 
-/* Forcer l'image à être bien centrée */
+.tap-button:disabled { cursor: not-allowed; opacity: .6; }
+.tap-button:active:not(:disabled) { transform: scale(0.88) !important; }
+.tap-button:not(:disabled):hover { transform: scale(1.02); }
+.tap-button:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(100, 181, 246, 0.15);
+    animation: tapPulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes tapPulse { 
+    0% { transform: scale(1); opacity: 0.5; } 
+    50% { transform: scale(1.15); opacity: 0; }
+    100% { transform: scale(1); opacity: 0.5; }
+}
+
 .tap-img-bg {
-  width: 75% !important;
-  height: 75% !important;
-  object-fit: contain !important;
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(0.85) !important;
+    width: 75% !important;
+    height: 75% !important;
+    object-fit: contain !important;
+    pointer-events: none;
+    z-index: 0;
+    display: block;
+    opacity: 1 !important;
+    user-select: none;
+    -webkit-user-drag: none;
+    mix-blend-mode: screen;
 }
+    @keyframes rippleOut { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
 
-/* ===== BOUTONS DUEL EN GRILLE ===== */
-#duelBetsContainer {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 8px !important;
-  max-width: 380px !important;
-  margin: 0 auto !important;
-  padding: 0 10px !important;
-}
-
-.duelBetBtn {
-  padding: 12px 8px !important;
-  font-size: 12px !important;
-  text-align: center !important;
-  border-radius: 10px !important;
-  min-height: 45px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border: 2px solid rgba(255, 255, 255, 0.15) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  color: #fff !important;
-  cursor: pointer !important;
-  transition: all 0.2s !important;
-  font-weight: 600 !important;
-}
-
-.duelBetBtn.active {
-  border-color: #9c27b0 !important;
-  background: rgba(156, 39, 176, 0.3) !important;
-  box-shadow: 0 0 15px rgba(156, 39, 176, 0.3) !important;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 430px) {
-  .tap-button {
-    width: 200px !important;
-    height: 200px !important;
-    min-width: 200px !important;
-    min-height: 200px !important;
-  }
-  #duelBetsContainer {
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-  }
-  .duelBetBtn {
-    font-size: 11px !important;
-    padding: 10px 6px !important;
-    min-height: 40px !important;
-  }
-}
-
-@media (max-width: 360px) {
-  .tap-button {
-    width: 170px !important;
-    height: 170px !important;
-    min-width: 170px !important;
-    min-height: 170px !important;
-  }
-  #duelBetsContainer {
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 4px !important;
-  }
-  .duelBetBtn {
-    font-size: 10px !important;
-    padding: 8px 4px !important;
-    min-height: 35px !important;
-  }
-}
+    .main-play-button {
+      display: block;
+      width: 85%;
+      max-width: 320px;
+      margin: 15px auto;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      border: none;
+      font-size: clamp(16px, 4vw, 20px);
+      font-weight: 900;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border-radius: 24px !important;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      position: relative;
+    }
     .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
     .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
     .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }
@@ -1145,9 +1132,15 @@
     
     let lastTapTime = 0;
     const MIN_TAP_INTERVAL_MS = 20;
+
+    // ===== COMPTEUR DE TAPS LOCAL (MÊME SI SERVEUR MORT) =====
+    let localTaps = 0;
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
+        localTaps++;
+        updateTapCounter(localTaps);
+        
         if (duelState.active) {
           const now = Date.now();
           if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
@@ -1169,15 +1162,21 @@
     
     socket.on("player:score", (data) => {
       console.log("🖱️ SCORE REÇU :", data);
-      if (tapCount) tapCount.innerText = data.taps;
-      if (tapButtonCount) tapButtonCount.innerText = data.taps;
-      updateTapCounter(data.taps);
+      if (data.taps > localTaps) {
+        localTaps = data.taps;
+      }
+      if (tapCount) tapCount.innerText = localTaps;
+      if (tapButtonCount) tapButtonCount.innerText = localTaps;
+      updateTapCounter(localTaps);
     });
 
     socket.on('duel:score', (data) => {
       duelState.myTaps = data.myTaps;
       duelState.opponentTaps = data.opponentTaps;
-      updateTapCounter(data.myTaps);
+      if (data.myTaps > localTaps) {
+        localTaps = data.myTaps;
+      }
+      updateTapCounter(localTaps);
     });
     
     function updateTapCounter(taps) {
@@ -1564,9 +1563,44 @@
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
+
+    // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
+    let localTimer = 10 * 60;
+    let localTimerInterval = null;
+
+    function startLocalBackupTimer() {
+      if (localTimerInterval) clearInterval(localTimerInterval);
+      if (endsAt && endsAt > Date.now()) return;
+      
+      localTimer = 10 * 60;
+      localTimerInterval = setInterval(() => {
+        if (gameStatus === "running") {
+          localTimer--;
+          const m = Math.floor(localTimer / 60);
+          const s = localTimer % 60;
+          const timerRuleValue = document.getElementById('timerRuleValue');
+          if (timerRuleValue) {
+            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+          }
+          if (localTimer <= 0) {
+            clearInterval(localTimerInterval);
+            localTimerInterval = null;
+            gameStatus = "waiting";
+            if (tapButton) tapButton.disabled = true;
+            alert("⏰ Temps écoulé ! (Mode démo local)");
+          }
+        }
+      }, 1000);
+    }
+
+    setTimeout(() => {
+      if (!endsAt || endsAt <= Date.now()) {
+        startLocalBackupTimer();
+      }
+    }, 5000);
     
     console.log("✅ Script Miltape chargé avec succès.");
     console.log("🔗 Backend URL :", BACKEND_URL);
   </script>
 </body>
-</html>
+</html> 
