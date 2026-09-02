@@ -232,7 +232,8 @@ function broadcastOnlineCount() {
 async function emitLeaderboard() {
     try {
         if (!game.id) return;
-        const players = await Player.find({ gameId: game.id }).select("name taps -wallet -_id").sort({ taps: -1 }).limit(50).lean();
+        // ✅ FIX : "-wallet" retiré — impossible de mélanger inclusion ("name taps") et exclusion d'un champ non inclus
+        const players = await Player.find({ gameId: game.id }).select("name taps -_id").sort({ taps: -1 }).limit(50).lean();
         io.emit("leaderboard:update", players.map((p, i) => ({ rank: i + 1, name: p.name, taps: p.taps })));
     } catch (error) { console.error("❌ Erreur emitLeaderboard :", error?.message || error); }
 }
@@ -247,7 +248,8 @@ async function emitTotalStakes() {
 async function broadcastGameState() {
     try {
         if (!game.id) return;
-        const players = await Player.find({ gameId: game.id }).select("name taps -wallet -_id").sort({ taps: -1 }).limit(50).lean();
+        // ✅ FIX : "-wallet" retiré — même erreur de projection que dans emitLeaderboard
+        const players = await Player.find({ gameId: game.id }).select("name taps -_id").sort({ taps: -1 }).limit(50).lean();
         io.emit("game:state", { game: getGameStateObject(), players });
         await emitLeaderboard();
         await emitTotalStakes();
@@ -642,7 +644,7 @@ io.on("connection", async (socket) => {
                 { new: true }
             ).select("name taps");
             if (!result) return;
-            io.emit("player:score", { taps: result.taps });
+            socket.emit("player:score", { taps: result.taps }); // ✅ FIX : socket.emit au lieu de io.emit — chaque joueur recevait le score de n'importe qui d'autre et le compteur restait écrasé/figé
             await emitLeaderboard();
         } catch (error) { console.error("❌ player:tap :", error?.message || error); }
     });
@@ -918,8 +920,15 @@ io.on("connection", (socket) => {
             const duel = activeDuels[duelId];
             if (socket.id === duel.socket1) {
                 duel.taps1++;
+                // ✅ FIX : le serveur incrémentait les taps mais ne renvoyait jamais rien au client -> compteur figé à 0 en duel
+                io.to(duel.socket1).emit("duel:score", { myTaps: duel.taps1, opponentTaps: duel.taps2 });
+                io.to(duel.socket2).emit("duel:score", { myTaps: duel.taps2, opponentTaps: duel.taps1 });
+                break;
             } else if (socket.id === duel.socket2) {
                 duel.taps2++;
+                io.to(duel.socket1).emit("duel:score", { myTaps: duel.taps1, opponentTaps: duel.taps2 });
+                io.to(duel.socket2).emit("duel:score", { myTaps: duel.taps2, opponentTaps: duel.taps1 });
+                break;
             }
         }
     });
