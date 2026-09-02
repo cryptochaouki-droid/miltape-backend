@@ -24,7 +24,6 @@
         if (window.Telegram && window.Telegram.WebApp) {
           const w = window.Telegram.WebApp;
           w.expand();
-          // Vérification de la version pour éviter l'erreur "BackButton not supported"
           try {
             if (w.version && parseFloat(w.version) >= 6.1) {
               w.BackButton.show();
@@ -39,9 +38,8 @@
     })();
   </script>
 
-  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE (POUR ÉVITER LES VERSIONS OBSOLÈTES) ===== -->
+  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE ===== -->
   <script>
-    // Supprimer tous les caches existants
     if ('caches' in window) {
         caches.keys().then(function(names) {
             names.forEach(function(name) {
@@ -50,7 +48,6 @@
         });
     }
     
-    // Désinstaller le Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
             for (let registration of registrations) {
@@ -63,7 +60,6 @@
   
   <!-- 2. CDN Socket.IO -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   
@@ -133,13 +129,81 @@
     .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }
+
+    /* ===== BOUTON TAP AMÉLIORÉ ===== */
+    .tap-button {
+      position: relative;
+      width: clamp(220px, 50vw, 320px) !important;
+      height: clamp(220px, 50vw, 320px) !important;
+      min-width: 180px;
+      min-height: 180px;
+      border: 4px solid rgba(100, 181, 246, 0.4) !important;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.2), rgba(255, 255, 255, 0.05)) !important;
+      box-shadow: 0 0 60px rgba(100, 181, 246, 0.15), 0 0 120px rgba(100, 181, 246, 0.05), inset 0 0 80px rgba(100, 181, 246, 0.05) !important;
+      transition: transform 0.05s ease-out, box-shadow 0.1s ease !important;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+      will-change: transform;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px auto;
+      padding: 0;
+      overflow: hidden;
+      outline: 0;
+      flex-shrink: 0;
+    }
     .tap-button:disabled { cursor: not-allowed; opacity: .6; }
-    .tap-button:active:not(:disabled) { transform: scale(.92); }
-    .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }
-    .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }
+    .tap-button:active:not(:disabled) { transform: scale(0.88) !important; box-shadow: 0 0 80px rgba(100, 181, 246, 0.3), 0 0 160px rgba(100, 181, 246, 0.1), inset 0 0 100px rgba(100, 181, 246, 0.1) !important; }
+    .tap-button.tap-active { transform: scale(0.88) !important; box-shadow: 0 0 80px rgba(100, 181, 246, 0.3), 0 0 160px rgba(100, 181, 246, 0.1), inset 0 0 100px rgba(100, 181, 246, 0.1) !important; }
+    .tap-button:not(:disabled):hover { transform: scale(1.02); box-shadow: 0 0 80px rgba(100, 181, 246, 0.2) !important; }
+    .tap-button:not(:disabled)::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 181, 246, 0.15);
+      animation: tapPulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 0; } 100% { transform: scale(1); opacity: 0.5; } }
+    .tap-img-bg { position: absolute; inset: 0; width: 100% !important; height: 100% !important; object-fit: contain !important; padding: 15%; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .9 !important; user-select: none; -webkit-user-drag: none; }
     .tap-button small { display: none; }
-    .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }
+    .tap-ripple {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 181, 246, 0.6);
+      pointer-events: none;
+      animation: rippleOut 0.4s ease-out forwards;
+      z-index: 1;
+    }
+    @keyframes rippleOut { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
+
+    .main-play-button {
+      display: block;
+      width: 85%;
+      max-width: 320px;
+      margin: 15px auto;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      border: none;
+      font-size: clamp(16px, 4vw, 20px);
+      font-weight: 900;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border-radius: 24px !important;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      position: relative;
+    }
     .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
     .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
     .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }
@@ -202,9 +266,32 @@
     #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
     #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
     #welcomeModal .welcome-btn:active { transform: scale(.96); }
-    @media(max-width:430px) { .tap-button { width: clamp(150px, 38vw, 200px); height: clamp(150px, 38vw, 200px); } .tap-zone { min-height: 280px; } .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } #timerRuleValue { font-size: 20px !important; } .stat-box strong { font-size: 44px !important; } .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } .server-wallet-address { font-size: 13px !important; } }
-    @media(max-width:360px) { .tap-button { width: clamp(120px, 32vw, 160px); height: clamp(120px, 32vw, 160px); } .tap-zone { min-height: 260px; } .chat-input-box input { font-size: 12px !important; } .chat-input-box button { width: 42px; min-width: 42px; } #timerRuleValue { font-size: 18px !important; } .stat-box strong { font-size: 38px !important; } .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } .server-wallet-address { font-size: 12px !important; } }
-    @media(min-width:600px) { body { padding: 20px 0 40px; } .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } }
+
+    /* ===== RESPONSIVE ===== */
+    @media(max-width:430px) { 
+      .tap-button { width: clamp(180px, 45vw, 240px) !important; height: clamp(180px, 45vw, 240px) !important; } 
+      .tap-zone { min-height: 280px; } 
+      .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } 
+      #timerRuleValue { font-size: 20px !important; } 
+      .stat-box strong { font-size: 44px !important; } 
+      .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } 
+      .server-wallet-address { font-size: 13px !important; } 
+    }
+    @media(max-width:360px) { 
+      .tap-button { width: clamp(150px, 40vw, 190px) !important; height: clamp(150px, 40vw, 190px) !important; } 
+      .tap-zone { min-height: 260px; } 
+      .chat-input-box input { font-size: 12px !important; } 
+      .chat-input-box button { width: 42px; min-width: 42px; } 
+      #timerRuleValue { font-size: 18px !important; } 
+      .stat-box strong { font-size: 38px !important; } 
+      .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } 
+      .server-wallet-address { font-size: 12px !important; } 
+    }
+    @media(min-width:600px) { 
+      body { padding: 20px 0 40px; } 
+      .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } 
+      .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } 
+    }
     @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
     @keyframes slideUp { 0% { opacity: 0; transform: translateY(30px) scale(.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes messageSlide { 0% { opacity: 0; transform: translateX(-10px); } 100% { opacity: 1; transform: translateX(0); } }
@@ -252,6 +339,7 @@
       box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
     }
   </style>
+  
   <!-- ===== JACKPOT ===== -->
   <style>
     #jackpotDisplay { position: relative; width: calc(100% - 24px); margin: 12px auto; padding: 20px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%); border: 1px solid rgba(255, 80, 80, 0.8); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); overflow: hidden; text-align: center; animation: jackpotHaloPulse 3s ease-in-out infinite alternate; z-index: 1; }
@@ -879,8 +967,6 @@
       hapticLight();
 
       // Fonction utilitaire pour remettre l'interface à zéro
-      // ✅ FIX : utilisation de document.getElementById au lieu de variables non déclarées
-      // (tapCounterDisplay / timerRuleValue / timerStatus n'existaient nulle part -> ReferenceError qui cassait toute la restauration de session)
       const resetUI = () => {
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (payButton) payButton.style.display = 'none';
@@ -893,14 +979,12 @@
         if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       };
 
-      // ============ CAS 1 : Session valide mais manche terminée (staleRound) ============
       if (data.staleRound === true) {
         resetUI();
         if (tapMessage) tapMessage.innerText = "⚡ Prêt à rejoindre la nouvelle manche ?";
         return;
       }
 
-      // ============ CAS 2 : Session valide et manche en cours (success) ============
       if (data.success) {
         isPlaying = true;
         myPlayerId = data.player.id; 
@@ -951,7 +1035,6 @@
         return;
       }
 
-      // ============ CAS 3 : Token totalement invalide ou inexistant (else) ============
       localStorage.removeItem("miltape_player_id");
       localStorage.removeItem("miltape_player_wallet");
       localStorage.removeItem("miltape_player_name");
@@ -1001,7 +1084,6 @@
       localStorage.removeItem("miltape_player_name");
       localStorage.removeItem("miltape_player_bet");
       localStorage.removeItem("miltape_player_token");
-      // On ne supprime pas miltape_session_token / miltape_session_wallet ici
     });
     
     function launchConfetti() {
@@ -1016,20 +1098,41 @@
       }
     }
     
+    // ===== TAP EFFECTS AMÉLIORÉ =====
     function tapEffects() {
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
-      setTimeout(() => tapButton.classList.remove('tap-active'), 100);
+      
+      // Effet de ripple (vague)
+      const ripple = document.createElement('div');
+      ripple.className = 'tap-ripple';
+      const rect = tapButton.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = size + 'px';
+      ripple.style.height = size + 'px';
+      ripple.style.left = '50%';
+      ripple.style.top = '50%';
+      ripple.style.transform = 'translate(-50%, -50%)';
+      tapButton.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 400);
+      
+      setTimeout(() => tapButton.classList.remove('tap-active'), 60);
       hapticLight();
     }
     
     let lastTapTime = 0;
-    const MIN_TAP_INTERVAL_MS = 50;
+    const MIN_TAP_INTERVAL_MS = 20;
+
+    // ===== COMPTEUR DE TAPS LOCAL (MÊME SI SERVEUR MORT) =====
+    let localTaps = 0;
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
+        // Incrémenter le compteur local à chaque tap
+        localTaps++;
+        updateTapCounter(localTaps);
+        
         if (duelState.active) {
-          // ✅ FIX : en duel, on ignore le flux "classique" (paiement/isPlaying) pour ne pas bloquer le tap
           const now = Date.now();
           if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
           lastTapTime = now;
@@ -1050,16 +1153,22 @@
     
     socket.on("player:score", (data) => {
       console.log("🖱️ SCORE REÇU :", data);
-      if (tapCount) tapCount.innerText = data.taps;
-      if (tapButtonCount) tapButtonCount.innerText = data.taps;
-      updateTapCounter(data.taps);
+      // Si le serveur répond, on prend son score
+      if (data.taps > localTaps) {
+        localTaps = data.taps;
+      }
+      if (tapCount) tapCount.innerText = localTaps;
+      if (tapButtonCount) tapButtonCount.innerText = localTaps;
+      updateTapCounter(localTaps);
     });
 
-    // ✅ FIX : le serveur n'envoyait jamais le score en duel — compteur figé à 0
     socket.on('duel:score', (data) => {
       duelState.myTaps = data.myTaps;
       duelState.opponentTaps = data.opponentTaps;
-      updateTapCounter(data.myTaps);
+      if (data.myTaps > localTaps) {
+        localTaps = data.myTaps;
+      }
+      updateTapCounter(localTaps);
     });
     
     function updateTapCounter(taps) {
@@ -1401,7 +1510,6 @@
       console.log("👥 File d'attente :", data);
     });
 
-    // ✅ FIX : gestion de l'annulation du duel (timeout de paiement d'un des deux joueurs) — n'était pas écouté côté client, le bouton restait bloqué sur "RECHERCHE..."
     socket.on('duel:cancelled', (data) => {
       duelState.active = false;
       if (duelButton) duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
@@ -1416,7 +1524,6 @@
       duelState.myTaps = 0;
       duelState.opponentTaps = 0;
 
-      // ✅ FIX : le bouton TAP restait "disabled" par défaut et n'était jamais réactivé pour le mode duel -> impossible de taper
       if (tapButton) tapButton.disabled = false;
       updateTapCounter(0);
       
@@ -1439,7 +1546,6 @@
     socket.on('duel:finished', (data) => {
       duelState.active = false;
       duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
-      // ✅ FIX : on remet le bouton TAP dans l'état correspondant au mode classique (désactivé sauf si payé + partie en cours)
       if (tapButton) tapButton.disabled = !(isPaid && gameStatus === "running");
       alert("🏆 Résultat : " + data.winnerName + " a gagné !\nTes taps : " + data.myTaps + "\nTaps adverse : " + data.opponentTaps + "\n💰 Gain : " + data.prize + " USDT");
     });
@@ -1448,10 +1554,48 @@
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
+
+    // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
+    let localTimer = 10 * 60; // 10 minutes
+    let localTimerInterval = null;
+
+    function startLocalBackupTimer() {
+      if (localTimerInterval) clearInterval(localTimerInterval);
+      
+      // Si le serveur a déjà un timer, on ne fait rien
+      if (endsAt && endsAt > Date.now()) return;
+      
+      localTimer = 10 * 60;
+      localTimerInterval = setInterval(() => {
+        if (gameStatus === "running") {
+          localTimer--;
+          const m = Math.floor(localTimer / 60);
+          const s = localTimer % 60;
+          const timerRuleValue = document.getElementById('timerRuleValue');
+          if (timerRuleValue) {
+            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+          }
+          if (localTimer <= 0) {
+            clearInterval(localTimerInterval);
+            localTimerInterval = null;
+            // Simuler la fin du jeu
+            gameStatus = "waiting";
+            if (tapButton) tapButton.disabled = true;
+            alert("⏰ Temps écoulé ! (Mode démo local)");
+          }
+        }
+      }, 1000);
+    }
+
+    // Démarrer le timer local si le serveur ne répond pas après 5 secondes
+    setTimeout(() => {
+      if (!endsAt || endsAt <= Date.now()) {
+        startLocalBackupTimer();
+      }
+    }, 5000);
     
     console.log("✅ Script Miltape chargé avec succès.");
     console.log("🔗 Backend URL :", BACKEND_URL);
   </script>
 </body>
 </html>
-Redonne le nouveau code complet corrigé 
