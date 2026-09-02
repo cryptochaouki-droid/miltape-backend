@@ -104,11 +104,6 @@
     .install-pwa-button.show { display: block; }
     .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }
     .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }
-    .hero-header-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: flex-end; align-items: center; z-index: 10; }
-    .wallet-badge-top { background: rgba(0, 0, 0, .5); backdrop-filter: blur(8px); border: 1px solid rgba(100, 181, 246, .3); padding: 4px 8px; border-radius: 12px; text-align: right; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-    .wallet-badge-top .wb-label { display: block; font-size: 7px; color: #ddd; }
-    .wallet-badge-top .wb-value { display: block; font-size: 13px; font-weight: 900; color: #64b5f6; }
-    .wallet-badge-top .wallet-icon { font-size: 16px; background: #0a2a5c; padding: 4px; border-radius: 6px; }
     .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }
     .side-menu.show { left: 0; }
     .close-menu { background: 0 0; border: none; color: #e0e0e0; font-size: 28px; cursor: pointer; }
@@ -178,10 +173,6 @@
     @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }
     .menu-button { background: 0 0; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px 8px; }
     .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }
-    .wallet-box { text-align: right; font-family: 'Poppins', sans-serif; }
-    .wallet-box small { display: block; font-size: 8px; color: rgba(255, 255, 255, .5); }
-    .wallet-box strong { font-size: 14px; color: #64b5f6; }
-    .wallet-button { background: rgba(100, 181, 246, .12); border: 1px solid rgba(100, 181, 246, .2); border-radius: 10px; color: #fff; padding: 6px 12px; font-size: 12px; font-family: 'Poppins', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; }
     .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 25px !important; padding: 0 16px; animation: slideUp 1s ease-out .5s both; }
     .rules { display: flex; justify-content: center; gap: 20px; padding: 15px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }
     .rule { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .08); font-family: 'Poppins', sans-serif; font-size: 11px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .1); }
@@ -232,9 +223,6 @@
     #tokenSelect option { background: #0d47a1; color: #fff; }
     .crypto-label { color: #fff; font-weight: 700; font-size: 14px; font-family: 'Poppins', sans-serif; }
     @media(max-width:480px) { #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; } }
-    .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }
-    .online strong span:last-child { color: #fff; }
-    .wallet-button { color: #fff; }
 
     /* ===== BOUTON DUEL ===== */
     #duelButton {
@@ -401,8 +389,6 @@
           <span>1 EN LIGNE</span>
         </strong>
       </div>
-      <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
-      <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
 
     <div id="jackpotDisplay">
@@ -428,12 +414,6 @@
 
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
-      <div class="hero-header-overlay">
-        <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
-          <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
-          <div class="wallet-icon">👛</div>
-        </div>
-      </div>
     </section>
 
     <div class="server-wallet-box">
