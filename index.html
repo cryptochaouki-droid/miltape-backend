@@ -512,6 +512,11 @@
       <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
 
+    <div class="server-wallet-box" style="margin-top:8px;">
+      <div class="server-wallet-label">💰 Total misé cette manche</div>
+      <div class="server-wallet-address" id="displayBet">0 USDT</div>
+    </div>
+
     <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
     <div style="text-align:center;margin:15px 0">
       <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(100, 181, 246, 0.3); border-radius: 15px; padding: 15px; margin-bottom: 15px;">
@@ -763,6 +768,48 @@
       return id;
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
+
+    // ✅ FIX CRITIQUE : avant, si tronWeb.createAccount() échouait (fréquent sur mobile),
+    // TOUS les appareils retombaient sur la MÊME adresse fixe "T9yD14...". Le serveur
+    // identifie les joueurs par wallet -> tous les appareils devenaient LE MÊME joueur
+    // (même pseudo, mêmes taps, peu importe qui joue). Ici on génère un wallet différent
+    // par appareil et on le garde en cache local pour qu'il reste stable.
+    async function getOrCreateDemoWallet() {
+      const cached = localStorage.getItem("miltape_demo_wallet");
+      if (cached) return cached;
+
+      let wallet = null;
+
+      try {
+        if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
+          const account = await tronWeb.createAccount();
+          wallet = account?.address?.base58 || null;
+        }
+      } catch (e) { console.warn("⚠️ tronWeb.createAccount() a échoué :", e); }
+
+      if (!wallet) {
+        try {
+          // Génération 100% locale (aucun appel réseau), plus fiable sur mobile.
+          if (typeof TronWeb !== 'undefined' && TronWeb.utils?.crypto?.genPriKey) {
+            const priKeyBytes = TronWeb.utils.crypto.genPriKey();
+            const priKeyHex = typeof priKeyBytes === 'string'
+              ? priKeyBytes
+              : Array.from(priKeyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            wallet = tronWeb.address.fromPrivateKey(priKeyHex);
+          }
+        } catch (e) { console.warn("⚠️ Génération locale du wallet démo a échoué :", e); }
+      }
+
+      if (!wallet) {
+        // Dernier recours : jamais une constante partagée — on dérive au moins
+        // quelque chose de propre à cet appareil pour éviter la fusion de comptes.
+        wallet = "DEMO_FALLBACK_" + MY_DEVICE_ID;
+        console.warn("⚠️ Wallet démo de secours (non valide TRON) — le serveur rejettera la connexion. Vérifie le chargement de TronWeb.");
+      }
+
+      localStorage.setItem("miltape_demo_wallet", wallet);
+      return wallet;
+    }
     
     socket.on("timer:update", (data) => {
       console.log("⏱️ TIMER REÇU :", data);
@@ -865,12 +912,7 @@
     async function proceedJoin(name) {
       let wallet;
       if (demoMode) {
-        try {
-          if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
-            const account = await tronWeb.createAccount();
-            wallet = account.address.base58;
-          } else { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
-        } catch (e) { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
+        wallet = await getOrCreateDemoWallet();
         proceedToJoin(name, wallet);
       } else {
         const walletModal = document.getElementById('walletModal');
@@ -1190,8 +1232,8 @@
     socket.on("totalStakes:update", (data) => {
       const displayBet = document.getElementById('displayBet');
       const displayBetTop = document.getElementById('displayBetTop');
-      if (displayBet) displayBet.textContent = "$" + formatAmount(data.totalStakes);
-      if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);
+      if (displayBet) displayBet.textContent = formatAmount(data.totalStakes) + " USDT";
+      if (displayBetTop) displayBetTop.textContent = formatAmount(data.totalStakes) + " USDT";
     });
     
     socket.on("online:count", (data) => {
