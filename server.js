@@ -15,6 +15,10 @@ const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
 const DUEL_PAYMENT_TIMEOUT_MS = 120000; // ✅ FIX : 2 min pour payer (au lieu d'être couplé au démarrage du duel)
+// ✅ FIX SÉCURITÉ : avant, la seule limite de fréquence des taps était côté client (contournable
+// en se connectant directement en Socket.io avec un script). C'est désormais la source de vérité :
+// tout tap plus rapproché que ça est silencieusement ignoré, quel que soit le client utilisé.
+const MIN_TAP_INTERVAL_MS = 20;
 
 // ✅ FIX CORS : domaine par défaut corrigé vers le vrai domaine du frontend
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
@@ -156,6 +160,9 @@ const activeDuels = {}; // Clé : duelId (ex: socket1.id), Valeur : { socket1, s
 const duelPools = {}; // { bet: [{ socketId, playerId }] }
 const pendingDuelPayments = {}; // { socketId: { bet, playerId, matchId, duelPaid, duelPaymentTxId } }
 const duelMatches = {}; // ✅ FIX : matchId -> { entry1, entry2, bet, timeout, started } — pour démarrer le duel dès que les 2 ont payé
+// ✅ FIX SÉCURITÉ : anti-spam de taps appliqué côté serveur (voir MIN_TAP_INTERVAL_MS)
+const lastTapTimestamps = new Map();     // playerId -> timestamp du dernier tap classique accepté
+const lastDuelTapTimestamps = new Map(); // socket.id -> timestamp du dernier tap de duel accepté
 
 async function loadOrCreateGameState() {
     try {
@@ -643,6 +650,14 @@ io.on("connection", async (socket) => {
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
+
+            // ✅ FIX SÉCURITÉ : rejet silencieux des taps trop rapprochés, quelle que soit
+            // leur origine (page normale ou client Socket.io fait maison / bot).
+            const now = Date.now();
+            const lastTap = lastTapTimestamps.get(playerId) || 0;
+            if (now - lastTap < MIN_TAP_INTERVAL_MS) return;
+            lastTapTimestamps.set(playerId, now);
+
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: 1, weeklyTaps: 1 } },
@@ -668,6 +683,7 @@ io.on("connection", async (socket) => {
         onlineSockets.delete(socket.id);
         console.log(`🔴 Déconnexion Socket : ${socket.id}`);
         broadcastOnlineCount();
+        lastDuelTapTimestamps.delete(socket.id); // ✅ nettoyage — clé éphémère liée à ce socket
 
         // Nettoyage des pools de duel
         for (const bet in duelPools) {
@@ -921,6 +937,12 @@ io.on("connection", (socket) => {
     });
 
     socket.on("duel:tap", () => {
+        // ✅ FIX SÉCURITÉ : même principe qu'en mode classique — limite appliquée côté serveur.
+        const now = Date.now();
+        const lastTap = lastDuelTapTimestamps.get(socket.id) || 0;
+        if (now - lastTap < MIN_TAP_INTERVAL_MS) return;
+        lastDuelTapTimestamps.set(socket.id, now);
+
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (socket.id === duel.socket1) {
