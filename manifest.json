@@ -1,15 +1,25 @@
 {
   "name": "Miltape World Challenge",
   "short_name": "Miltape",
+  "description": "Tape, classe-toi et gagne des USDT sur Miltape World Challenge !",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0d47a1",
   "theme_color": "#0d47a1",
+  "categories": ["game", "entertainment", "social"],
   "icons": [
     {
       "src": "icon-192~2.jpg",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
   ]
 }
