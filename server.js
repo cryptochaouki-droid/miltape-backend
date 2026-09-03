@@ -361,19 +361,27 @@ function broadcastOnlineCount() {
     io.emit("online:count", { count: onlineSockets.size });
 }
 
+// ✅ FIX : emitLeaderboard avec log pour debug
 async function emitLeaderboard() {
     try {
-        if (!game.id) return;
+        if (!game.id) {
+            console.log("⚠️ emitLeaderboard : game.id est null");
+            return;
+        }
         const players = await Player.find({ gameId: game.id })
             .select("name taps -_id")
             .sort({ taps: -1 })
             .limit(50)
             .lean();
-        io.emit("leaderboard:update", players.map((p, i) => ({ 
+        
+        const data = players.map((p, i) => ({ 
             rank: i + 1, 
             name: p.name, 
             taps: p.taps 
-        })));
+        }));
+        
+        io.emit("leaderboard:update", data);
+        console.log(`📊 Leaderboard mis à jour : ${data.length} joueurs`);
     } catch (error) { 
         console.error("❌ Erreur emitLeaderboard :", error?.message || error); 
     }
@@ -1158,18 +1166,36 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // ===== TAP =====
+    // ===== TAP — CORRIGÉ AVEC LOGS =====
     socket.on("player:tap", async () => {
         try {
             const playerId = socket.data.playerId;
-            if (!playerId || game.status !== "running") return;
+            if (!playerId) {
+                console.log("⚠️ Tap ignoré : pas de playerId");
+                return;
+            }
+            if (game.status !== "running") {
+                console.log("⚠️ Tap ignoré : jeu pas en cours");
+                return;
+            }
+            
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: 1, weeklyTaps: 1 } },
                 { new: true }
             ).select("name taps");
-            if (!result) return;
+            
+            if (!result) {
+                console.log("⚠️ Tap ignoré : joueur non trouvé ou non payé");
+                return;
+            }
+            
+            console.log(`🖱️ ${result.name} → ${result.taps} taps`);
+            
+            // ✅ Envoi individuel du score
             socket.emit("player:score", { taps: result.taps });
+            
+            // ✅ Mise à jour du classement pour tous
             await emitLeaderboard();
         } catch (error) { 
             console.error("❌ player:tap :", error?.message || error); 
