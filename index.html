@@ -607,7 +607,83 @@
   </main>
 
   <script>
-    // ===== CONFIGURATION BACKEND =====
+    // ============================================================
+    // 1. IDENTIFIANT UNIQUE PAR APPAREIL (MÊME SUR MOBILE)
+    // ============================================================
+    function getOrCreateDeviceId() {
+      let id = localStorage.getItem("miltape_device_id");
+      if (id) return id;
+      
+      // Générer un ID unique (UUID v4 si disponible)
+      if (window.crypto && crypto.randomUUID) {
+        id = crypto.randomUUID();
+      } else {
+        id = "dev_" + Date.now() + "_" + Math.random().toString(36).substring(2, 15);
+      }
+      
+      localStorage.setItem("miltape_device_id", id);
+      return id;
+    }
+    const MY_DEVICE_ID = getOrCreateDeviceId();
+    console.log("🆔 Device ID :", MY_DEVICE_ID);
+
+    // ============================================================
+    // 2. WALLET DÉMO — UNIQUE PAR APPAREIL (PAS DE FUSION DE COMPTES)
+    // ============================================================
+    async function getOrCreateDemoWallet() {
+      // Vérifier si on a déjà un wallet démo pour CET appareil
+      const cached = localStorage.getItem("miltape_demo_wallet");
+      if (cached && cached.startsWith("T")) {
+        console.log("✅ Wallet démo récupéré du cache :", cached);
+        return cached;
+      }
+
+      let wallet = null;
+
+      // Essayer avec TronWeb (si disponible)
+      try {
+        if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
+          const account = await tronWeb.createAccount();
+          wallet = account?.address?.base58 || null;
+        }
+      } catch (e) {
+        console.warn("⚠️ tronWeb.createAccount() a échoué :", e);
+      }
+
+      // Si échec, essayer en générant localement
+      if (!wallet) {
+        try {
+          if (typeof TronWeb !== 'undefined' && TronWeb.utils?.crypto?.genPriKey) {
+            const priKeyBytes = TronWeb.utils.crypto.genPriKey();
+            const priKeyHex = typeof priKeyBytes === 'string'
+              ? priKeyBytes
+              : Array.from(priKeyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            wallet = tronWeb.address.fromPrivateKey(priKeyHex);
+          }
+        } catch (e) {
+          console.warn("⚠️ Génération locale du wallet démo a échoué :", e);
+        }
+      }
+
+      // ❌ JAMAIS une constante partagée — on génère quelque chose d'unique
+      if (!wallet || !wallet.startsWith("T")) {
+        // Dernier recours : un identifiant basé sur deviceId + timestamp
+        // ⚠️ Ce n'est PAS une adresse TRON valide, le serveur la rejettera.
+        // Mais au moins, deux appareils différents auront des valeurs différentes.
+        wallet = "DEMO_" + MY_DEVICE_ID.substring(0, 10);
+        console.warn("⚠️ Wallet démo de secours (non TRON) :", wallet);
+      }
+
+      // Sauvegarder pour les prochaines fois
+      localStorage.setItem("miltape_demo_wallet", wallet);
+      console.log("💾 Wallet démo sauvegardé :", wallet);
+
+      return wallet;
+    }
+
+    // ============================================================
+    // 3. CONFIGURATION BACKEND
+    // ============================================================
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
     
     if ('serviceWorker' in navigator) {
@@ -758,57 +834,6 @@
 
       socket.emit("player:restore", { sessionToken });
       return true;
-    }
-    
-    function getOrCreateDeviceId() {
-      let id = localStorage.getItem("miltape_device_id");
-      if (id) return id;
-      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ("dev_" + Date.now() + "_" + Math.random().toString(36).substring(2, 15));
-      localStorage.setItem("miltape_device_id", id);
-      return id;
-    }
-    const MY_DEVICE_ID = getOrCreateDeviceId();
-
-    // ✅ FIX CRITIQUE : avant, si tronWeb.createAccount() échouait (fréquent sur mobile),
-    // TOUS les appareils retombaient sur la MÊME adresse fixe "T9yD14...". Le serveur
-    // identifie les joueurs par wallet -> tous les appareils devenaient LE MÊME joueur
-    // (même pseudo, mêmes taps, peu importe qui joue). Ici on génère un wallet différent
-    // par appareil et on le garde en cache local pour qu'il reste stable.
-    async function getOrCreateDemoWallet() {
-      const cached = localStorage.getItem("miltape_demo_wallet");
-      if (cached) return cached;
-
-      let wallet = null;
-
-      try {
-        if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
-          const account = await tronWeb.createAccount();
-          wallet = account?.address?.base58 || null;
-        }
-      } catch (e) { console.warn("⚠️ tronWeb.createAccount() a échoué :", e); }
-
-      if (!wallet) {
-        try {
-          // Génération 100% locale (aucun appel réseau), plus fiable sur mobile.
-          if (typeof TronWeb !== 'undefined' && TronWeb.utils?.crypto?.genPriKey) {
-            const priKeyBytes = TronWeb.utils.crypto.genPriKey();
-            const priKeyHex = typeof priKeyBytes === 'string'
-              ? priKeyBytes
-              : Array.from(priKeyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-            wallet = tronWeb.address.fromPrivateKey(priKeyHex);
-          }
-        } catch (e) { console.warn("⚠️ Génération locale du wallet démo a échoué :", e); }
-      }
-
-      if (!wallet) {
-        // Dernier recours : jamais une constante partagée — on dérive au moins
-        // quelque chose de propre à cet appareil pour éviter la fusion de comptes.
-        wallet = "DEMO_FALLBACK_" + MY_DEVICE_ID;
-        console.warn("⚠️ Wallet démo de secours (non valide TRON) — le serveur rejettera la connexion. Vérifie le chargement de TronWeb.");
-      }
-
-      localStorage.setItem("miltape_demo_wallet", wallet);
-      return wallet;
     }
     
     socket.on("timer:update", (data) => {
@@ -1166,8 +1191,6 @@
     const MIN_TAP_INTERVAL_MS = 20;
 
     // ===== COMPTEUR DE TAPS — SOURCE UNIQUE : LE SERVEUR =====
-    // Le compteur n'est plus incrémenté localement au clic : il n'est mis à jour
-    // que par les événements "player:score" / "duel:score" renvoyés par le serveur.
     let localTaps = 0;
     
     if (tapButton) {
