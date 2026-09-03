@@ -227,6 +227,20 @@
     .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
     @keyframes modalPop { 0% { opacity: 0; transform: scale(.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
     
+    /* ===== MODALE BIENVENUE ===== */
+    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
+    #welcomeModal.show { display: flex; }
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 30px 24px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+    #welcomeModal .welcome-icon { font-size: 48px; margin-bottom: 10px; }
+    #welcomeModal .welcome-title { margin: 0 0 8px; font-size: 22px; color: #64b5f6; }
+    #welcomeModal .welcome-sub { font-size: 14px; color: rgba(255, 255, 255, .8); margin: 0 0 20px; }
+    #welcomeModal .welcome-steps { text-align: left; font-size: 14px; line-height: 1.8; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 8px; }
+    #welcomeModal .welcome-steps strong { color: #64b5f6; }
+    #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
+    #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
+    #welcomeModal .welcome-btn:active { transform: scale(.96); }
+    
     /* ===== NOTIFICATIONS ===== */
     #notificationContainer { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; pointer-events: none; display: flex; flex-direction: column; gap: 8px; align-items: center; }
     .notification { padding: 12px 20px; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 600; background: rgba(0, 0, 0, .8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .1); animation: slideDown .3s ease-out; box-shadow: 0 4px 20px rgba(0,0,0,0.3); width: 100%; text-align: center; }
@@ -243,6 +257,23 @@
     .menu-overlay.show { display: block; }
     .menu-nav-btn { display: block; width: 100%; background: 0 0; border: none; color: #e0e0e0; text-align: left; font-size: 14px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; border-radius: 8px; font-family: 'Poppins', sans-serif; transition: all .2s ease; }
     .menu-nav-btn:hover, .menu-nav-btn:active { background: rgba(100, 181, 246, .12); color: #64b5f6; }
+    .menu-block { margin-bottom: 15px; background: rgba(255, 255, 255, .03); padding: 12px; border-radius: 10px; }
+    
+    /* ===== BANNIÈRE D'ACCUEIL DISCRÈTE ===== */
+    #welcomeBanner {
+      background: rgba(100, 181, 246, 0.12);
+      border-bottom: 1px solid rgba(100, 181, 246, 0.2);
+      padding: 6px 16px;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #welcomeBanner.show { display: flex; }
+    #welcomeBanner .banner-text { flex: 1; }
+    #welcomeBanner .banner-close { background: transparent; border: none; color: #64b5f6; font-size: 16px; cursor: pointer; padding: 0 8px; }
     
     /* ===== RESPONSIVE ===== */
     @media(max-width:430px) { 
@@ -264,7 +295,7 @@
 
 <body>
 
-  <!-- ===== MODALES ===== -->
+  <!-- ===== MODALE BIENVENUE (UNE SEULE FOIS) ===== -->
   <div id="welcomeModal">
     <div class="welcome-content">
       <div class="welcome-icon">🎮</div>
@@ -276,10 +307,18 @@
         <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
         <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
       </div>
-      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
+      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
+      <button class="welcome-btn" id="welcomeCloseBtn">🔥 C'EST PARTI !</button>
     </div>
   </div>
 
+  <!-- ===== BANNIÈRE D'ACCUEIL DISCRÈTE ===== -->
+  <div id="welcomeBanner">
+    <span class="banner-text">🎮 <strong>Nouveau ?</strong> Tape, classe-toi, gagne ×2 en 4 étapes !</span>
+    <button class="banner-close" id="bannerCloseBtn">✕</button>
+  </div>
+
+  <!-- ===== MODALES PSEUDO & WALLET ===== -->
   <div id="nameModal" class="legal-modal">
     <div class="legal-content">
       <h3>👤 Entre ton pseudo</h3>
@@ -296,6 +335,7 @@
     </div>
   </div>
 
+  <!-- ===== NOTIFICATIONS ===== -->
   <div id="notificationContainer"></div>
 
   <!-- ===== MENU ===== -->
@@ -311,6 +351,15 @@
           🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span>
         </button>
         <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;">🔒 Mode démo désactivé</div>
+      </div>
+      <div class="menu-block" style="border-left: 3px solid #64b5f6; padding-left: 12px; margin-top: 10px;">
+        <h4 style="color:#64b5f6;font-size:13px;margin:0 0 8px 0;">🎮 Bienvenue sur Miltape !</h4>
+        <p style="font-size:11px;color:#b8b8b8;line-height:1.6;margin:0;">
+          1. Rejoins la partie<br>
+          2. Paie en 1 clic<br>
+          3. Tape 10 minutes<br>
+          4. Gagne ×2 si Top 5
+        </p>
       </div>
     </div>
   </aside>
@@ -416,6 +465,42 @@
     });
 
     // ============================================================
+    // GESTION DE LA MODALE DE BIENVENUE (UNE SEULE FOIS)
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
+      const welcomeModal = document.getElementById('welcomeModal');
+      const welcomeBanner = document.getElementById('welcomeBanner');
+      const hasSeenWelcome = localStorage.getItem('miltape_welcome_seen');
+      
+      if (!hasSeenWelcome) {
+        // ✅ Afficher la modale UNE SEULE FOIS
+        if (welcomeModal) welcomeModal.classList.add('show');
+        localStorage.setItem('miltape_welcome_seen', 'true');
+      } else {
+        // ✅ Afficher une petite bannière discrète à la place
+        if (welcomeModal) welcomeModal.classList.remove('show');
+        if (welcomeBanner) welcomeBanner.classList.add('show');
+      }
+      
+      // ✅ Bouton "C'EST PARTI !" cache la modale et affiche la bannière
+      const welcomeBtn = document.getElementById('welcomeCloseBtn');
+      if (welcomeBtn) {
+        welcomeBtn.addEventListener('click', function() {
+          if (welcomeModal) welcomeModal.classList.remove('show');
+          if (welcomeBanner) welcomeBanner.classList.add('show');
+        });
+      }
+      
+      // ✅ Fermer la bannière
+      const bannerClose = document.getElementById('bannerCloseBtn');
+      if (bannerClose) {
+        bannerClose.addEventListener('click', function() {
+          if (welcomeBanner) welcomeBanner.classList.remove('show');
+        });
+      }
+    });
+
+    // ============================================================
     // ÉLÉMENTS DOM
     // ============================================================
     const tapButton = document.getElementById('tapButton');
@@ -445,7 +530,7 @@
     let myTaps = 0;
 
     // ============================================================
-    // HA PTIC FEEDBACK
+    // HAPTIC FEEDBACK
     // ============================================================
     function hapticLight() { try { if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch(e) {} }
     function hapticMedium() { try { if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch(e) {} }
@@ -641,6 +726,14 @@
       }
     });
 
+    socket.on('demo:activated', (data) => {
+      showToast('🔬 ' + data.message, 'success');
+      if (gameStatus === 'running') tapButton.disabled = false;
+      if (payButton) payButton.style.display = 'none';
+      document.getElementById('demoStatus').textContent = '🔬 Mode démo ACTIVÉ';
+      document.getElementById('demoStatus').style.color = '#64b5f6';
+    });
+
     socket.on('player:restored', (data) => {
       if (data.success) {
         isPlaying = true;
@@ -770,7 +863,7 @@
     async function proceedJoin(name) {
       let wallet;
       if (demoMode) {
-        wallet = await getOrCreateDemoWallet();
+        wallet = 'DEMO_' + MY_DEVICE_ID + '_' + Date.now().toString(36);
         proceedToJoin(name, wallet);
       } else {
         const modal = document.getElementById('walletModal');
@@ -779,6 +872,7 @@
         document.getElementById('walletSubmitBtn').onclick = function() {
           wallet = input.value.trim();
           if (!wallet) { alert('Entre une adresse valide !'); return; }
+          if (!wallet.startsWith('T')) { alert('L\'adresse doit commencer par T'); return; }
           modal.style.display = 'none';
           proceedToJoin(name, wallet);
         };
@@ -787,12 +881,21 @@
     }
 
     function proceedToJoin(name, wallet) {
+      if (!name || name.trim().length < 2) {
+        showToast('❌ Pseudo invalide (minimum 2 caractères)', 'error');
+        return;
+      }
+      if (!wallet || (wallet.trim().length < 10 && !wallet.startsWith('DEMO_'))) {
+        showToast('❌ Adresse wallet invalide !', 'error');
+        return;
+      }
+      
       const bet = 10;
       const token = 'USDT';
       const sessionToken = localStorage.getItem('miltape_session_token');
       socket.emit('player:join', {
-        name,
-        wallet,
+        name: name.trim(),
+        wallet: wallet.trim(),
         bet,
         token,
         deviceId: MY_DEVICE_ID,
@@ -845,7 +948,6 @@
         }
         socket.emit('player:tap');
         hapticLight();
-        // Effet visuel local
         this.classList.add('tap-active');
         setTimeout(() => this.classList.remove('tap-active'), 60);
       });
@@ -853,7 +955,7 @@
 
     if (duelButton) {
       duelButton.addEventListener('click', () => {
-        const bet = 1; // Valeur par défaut
+        const bet = 1;
         socket.emit('duel:join', { bet });
         duelButton.textContent = '⏳ RECHERCHE...';
       });
@@ -930,7 +1032,6 @@
         updateDemoUI();
         showToast(demoMode ? '🔬 Mode démo activé' : '🔒 Mode démo désactivé', 'info');
         if (demoMode) {
-          // Rejoindre automatiquement en mode démo
           setTimeout(() => {
             if (enterChallenge) enterChallenge.click();
           }, 500);
@@ -945,10 +1046,8 @@
     console.log('🆔 Device ID:', MY_DEVICE_ID);
     console.log('🔗 Backend:', BACKEND_URL);
 
-    // Demander le timer au démarrage
     socket.emit('timer:request');
 
-    // Si mode démo activé au chargement, rejoindre automatiquement
     if (demoMode) {
       setTimeout(() => {
         if (enterChallenge) enterChallenge.click();
