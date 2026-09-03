@@ -944,6 +944,38 @@ setInterval(() => {
 
 setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 * 1000);
 
+// ✅ FIX : cette route était appelée par le frontend en mode démo (fetch "/api/demo/verify")
+// mais n'existait pas côté serveur. Résultat : player.paid restait à false, et player:tap
+// (qui filtre sur { paid: true }) ignorait silencieusement tous les taps — d'où le compteur
+// serveur bloqué à 0 alors que l'affichage local du client montait quand même.
+app.post("/api/demo/verify", async (req, res) => {
+    try {
+        if (!DEMO_MODE_ENABLED_ON_SERVER) {
+            return res.status(403).json({ success: false, message: "Mode démo désactivé sur le serveur (variable ALLOW_DEMO_MODE)." });
+        }
+        const { playerId } = req.body || {};
+        if (!playerId) return res.status(400).json({ success: false, message: "playerId manquant." });
+
+        const player = await Player.findById(playerId);
+        if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
+        if (player.gameId !== game.id) return res.status(409).json({ success: false, message: "La manche a changé, rejoins à nouveau." });
+
+        player.paid = true;
+        player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        player.depositAmount = null;
+        player.depositExpiresAt = null;
+        await player.save();
+
+        io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
+        await broadcastGameState();
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("❌ Erreur /api/demo/verify :", error?.message || error);
+        res.status(500).json({ success: false, message: "Erreur serveur." });
+    }
+});
+
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
 app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateObject() }));
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size }));
