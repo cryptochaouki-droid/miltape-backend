@@ -130,68 +130,58 @@
     .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
     .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-     /* ===== BOUTON TAP AMÉLIORÉ ===== */
-
-.tap-button {
-    position: relative;
-    width: clamp(220px, 50vw, 320px) !important;
-    height: clamp(220px, 50vw, 320px) !important;
-    min-width: 180px;
-    min-height: 180px;
-    border: 4px solid rgba(100, 181, 246, 0.4) !important;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.15), 0 0 60px rgba(100, 181, 246, 0.15), 0 0 120px);
-    transition: transform 0.05s ease-out, box-shadow 0.1s ease-in-out;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    touch-action: manipulation;
-    will-change: transform;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 10px auto;
-    padding: 0;
-    overflow: hidden;
-    outline: 0;
-    flex-shrink: 0;
-}
-
-.tap-button:disabled { cursor: not-allowed; opacity: .6; }
-.tap-button:active:not(:disabled) { transform: scale(0.88) !important; }
-.tap-button:not(:disabled):hover { transform: scale(1.02); }
-.tap-button:not(:disabled)::after {
-    content: '';
-    position: absolute;
-    inset: -8px;
-    border-radius: 50%;
-    border: 2px solid rgba(100, 181, 246, 0.15);
-    animation: tapPulse 2s ease-in-out infinite;
-    pointer-events: none;
-}
-
-@keyframes tapPulse { 
-    0% { transform: scale(1); opacity: 0.5; } 
-    50% { transform: scale(1.15); opacity: 0; }
-    100% { transform: scale(1); opacity: 0.5; }
-}
-
-.tap-img-bg {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) scale(0.85) !important;
-    width: 75% !important;
-    height: 75% !important;
-    object-fit: contain !important;
-    pointer-events: none;
-    z-index: 0;
-    display: block;
-    opacity: 1 !important;
-    user-select: none;
-    -webkit-user-drag: none;
-    mix-blend-mode: screen;
-}
+    /* ===== BOUTON TAP AMÉLIORÉ ===== */
+    .tap-button {
+      position: relative;
+      width: clamp(240px, 62vw, 360px) !important;
+      height: clamp(240px, 62vw, 360px) !important;
+      aspect-ratio: 1 / 1;
+      min-width: 200px;
+      min-height: 200px;
+      border: 4px solid rgba(100, 181, 246, 0.4) !important;
+      border-radius: 50% !important;
+      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.2), rgba(255, 255, 255, 0.05)) !important;
+      box-shadow: 0 0 60px rgba(100, 181, 246, 0.15), 0 0 120px rgba(100, 181, 246, 0.05), inset 0 0 80px rgba(100, 181, 246, 0.05) !important;
+      transition: transform 0.05s ease-out, box-shadow 0.1s ease !important;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+      will-change: transform;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px auto;
+      padding: 0;
+      overflow: hidden;
+      outline: 0;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .tap-button:disabled { cursor: not-allowed; opacity: .6; }
+    .tap-button:active:not(:disabled) { transform: scale(0.88) !important; box-shadow: 0 0 80px rgba(100, 181, 246, 0.3), 0 0 160px rgba(100, 181, 246, 0.1), inset 0 0 100px rgba(100, 181, 246, 0.1) !important; }
+    .tap-button.tap-active { transform: scale(0.88) !important; box-shadow: 0 0 80px rgba(100, 181, 246, 0.3), 0 0 160px rgba(100, 181, 246, 0.1), inset 0 0 100px rgba(100, 181, 246, 0.1) !important; }
+    .tap-button:not(:disabled):hover { transform: scale(1.02); box-shadow: 0 0 80px rgba(100, 181, 246, 0.2) !important; }
+    .tap-button:not(:disabled)::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 181, 246, 0.15);
+      animation: tapPulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 0; } 100% { transform: scale(1); opacity: 0.5; } }
+    .tap-img-bg { position: absolute; inset: 0; width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 50%; padding: 0; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .9 !important; user-select: none; -webkit-user-drag: none; }
+    .tap-button small { display: none; }
+    .tap-ripple {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 181, 246, 0.6);
+      pointer-events: none;
+      animation: rippleOut 0.4s ease-out forwards;
+      z-index: 1;
+    }
     @keyframes rippleOut { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
 
     .main-play-button {
@@ -281,8 +271,8 @@
 
     /* ===== RESPONSIVE ===== */
     @media(max-width:430px) { 
-      .tap-button { width: clamp(180px, 45vw, 240px) !important; height: clamp(180px, 45vw, 240px) !important; } 
-      .tap-zone { min-height: 280px; } 
+      .tap-button { width: clamp(200px, 58vw, 280px) !important; height: clamp(200px, 58vw, 280px) !important; } 
+      .tap-zone { min-height: 300px; } 
       .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } 
       #timerRuleValue { font-size: 20px !important; } 
       .stat-box strong { font-size: 44px !important; } 
@@ -290,8 +280,8 @@
       .server-wallet-address { font-size: 13px !important; } 
     }
     @media(max-width:360px) { 
-      .tap-button { width: clamp(150px, 40vw, 190px) !important; height: clamp(150px, 40vw, 190px) !important; } 
-      .tap-zone { min-height: 260px; } 
+      .tap-button { width: clamp(180px, 54vw, 230px) !important; height: clamp(180px, 54vw, 230px) !important; } 
+      .tap-zone { min-height: 280px; } 
       .chat-input-box input { font-size: 12px !important; } 
       .chat-input-box button { width: 42px; min-width: 42px; } 
       #timerRuleValue { font-size: 18px !important; } 
@@ -1133,14 +1123,13 @@
     let lastTapTime = 0;
     const MIN_TAP_INTERVAL_MS = 20;
 
-    // ===== COMPTEUR DE TAPS LOCAL (MÊME SI SERVEUR MORT) =====
+    // ===== COMPTEUR DE TAPS — SOURCE UNIQUE : LE SERVEUR =====
+    // Le compteur n'est plus incrémenté localement au clic : il n'est mis à jour
+    // que par les événements "player:score" / "duel:score" renvoyés par le serveur.
     let localTaps = 0;
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
-        localTaps++;
-        updateTapCounter(localTaps);
-        
         if (duelState.active) {
           const now = Date.now();
           if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
@@ -1161,10 +1150,8 @@
     }
     
     socket.on("player:score", (data) => {
-      console.log("🖱️ SCORE REÇU :", data);
-      if (data.taps > localTaps) {
-        localTaps = data.taps;
-      }
+      console.log("🖱️ SCORE REÇU (serveur) :", data);
+      localTaps = data.taps || 0;
       if (tapCount) tapCount.innerText = localTaps;
       if (tapButtonCount) tapButtonCount.innerText = localTaps;
       updateTapCounter(localTaps);
@@ -1173,9 +1160,7 @@
     socket.on('duel:score', (data) => {
       duelState.myTaps = data.myTaps;
       duelState.opponentTaps = data.opponentTaps;
-      if (data.myTaps > localTaps) {
-        localTaps = data.myTaps;
-      }
+      localTaps = data.myTaps || 0;
       updateTapCounter(localTaps);
     });
     
@@ -1603,4 +1588,4 @@
     console.log("🔗 Backend URL :", BACKEND_URL);
   </script>
 </body>
-</html> 
+</html>
