@@ -504,6 +504,9 @@ cron.schedule('0 0 * * 6', () => { distributeWeeklyJackpot().catch(err => consol
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
+    // ✅ FIX : sans ça, personne ne recevait le nouveau total de joueurs en ligne
+    // tant que quelqu'un ne se déconnectait pas — l'affichage restait figé.
+    broadcastOnlineCount();
 
     socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
     socket.emit("jackpot:update", { prize: 0, nextDraw: await getNextSaturday() });
@@ -559,6 +562,7 @@ io.on("connection", async (socket) => {
                 socket.data.playerName = existingPlayer.name;
                 socket.data.sessionToken = existingPlayer.sessionToken;
 
+                existingPlayer.name = name; // ✅ FIX : le pseudo n'était jamais mis à jour, l'ancien restait affiché
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
@@ -577,6 +581,7 @@ io.on("connection", async (socket) => {
             const sessionToken = generateSessionToken();
 
             if (existingPlayer) {
+                existingPlayer.name = name; // ✅ FIX : idem, pseudo mis à jour sur ce chemin aussi
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
