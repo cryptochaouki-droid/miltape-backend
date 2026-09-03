@@ -8,6 +8,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cron = require("node-cron");
 const path = require("path");
+const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60;
@@ -15,6 +16,12 @@ const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
 const DUEL_PAYMENT_TIMEOUT_MS = 120000;
+
+// ✅ Anti-triche : Délai minimum entre deux taps (100ms)
+const MIN_TAP_INTERVAL_MS = 100; 
+
+// ✅ Sécurité : Durée de vie de la session (24h)
+const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
 
@@ -71,6 +78,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// Rate Limiting HTTP
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
@@ -79,6 +87,20 @@ const io = new Server(server, {
     pingInterval: 25000, 
     pingTimeout: 60000 
 });
+
+// ✅ RATE LIMITER SOCKET.IO (Anti-Spam)
+const socketRateLimit = new Map();
+function socketRateLimiter(socket, eventName, maxCalls, timeWindowMs) {
+    const now = Date.now();
+    if (!socket.data.rateLimits) socket.data.rateLimits = {};
+    if (!socket.data.rateLimits[eventName]) socket.data.rateLimits[eventName] = [];
+    
+    socket.data.rateLimits[eventName] = socket.data.rateLimits[eventName].filter(t => now - t < timeWindowMs);
+    if (socket.data.rateLimits[eventName].length >= maxCalls) return false;
+    
+    socket.data.rateLimits[eventName].push(now);
+    return true;
+}
 
 mongoose.set("strictQuery", true);
 mongoose.set("bufferTimeoutMS", 10000);
@@ -103,6 +125,7 @@ const playerSchema = new mongoose.Schema({
     depositAmount: { type: Number, default: null },
     depositExpiresAt: { type: Date, default: null },
     sessionToken: { type: String, unique: true, sparse: true },
+    sessionExpiresAt: { type: Date, default: null }, // ✅ Nouveau : Expiration de session
     duelPaid: { type: Boolean, default: false },
     duelPaymentTxId: { type: String, sparse: true },
     isDemo: { type: Boolean, default: false }
@@ -174,7 +197,7 @@ const Jackpot = mongoose.model("Jackpot", jackpotSchema);
 const GameState = mongoose.model("GameState", gameStateSchema);
 
 // ============================================================
-// FONCTIONS UTILITAIRES
+// FONCTIONS UTILITAIRES & ÉTAT DU JEU
 // ============================================================
 
 async function connectMongoDB() {
@@ -212,7 +235,7 @@ function generateGameId() {
 }
 
 function generateSessionToken() { 
-    return require('crypto').randomBytes(32).toString('hex'); 
+    return crypto.randomBytes(32).toString('hex'); 
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) { 
@@ -233,27 +256,6 @@ function getRemainingSeconds() {
     return Math.max(0, Math.ceil((game.endsAt.getTime() - Date.now()) / 1000));
 }
 
-function getGameStateObject() {
-    return { 
-        id: game.id, 
-        status: game.status, 
-        startsAt: game.startedAt, 
-        endsAt: game.endsAt, 
-        remainingSeconds: getRemainingSeconds(), 
-        durationSeconds: game.status === "preparing" ? PREPARATION_DURATION_SECONDS : game.durationSeconds, 
-        preparationEndsAt: game.preparationEndsAt 
-    };
-}
-
-function formatAmount(value) {
-    if (value === null || value === undefined || isNaN(value)) return "0";
-    return Number(parseFloat(value).toFixed(8)).toString();
-}
-
-// ============================================================
-// ÉTAT DU JEU
-// ============================================================
-
 let gameTimer = null, nextGameTimeout = null;
 const onlineSockets = new Set();
 let game = { 
@@ -264,10 +266,6 @@ let game = {
     durationSeconds: GAME_DURATION_SECONDS, 
     preparationEndsAt: null 
 };
-
-// ============================================================
-// DUELS — ÉTAT GLOBAL
-// ============================================================
 
 const activeDuels = {};
 const duelPools = {};
@@ -413,10 +411,6 @@ async function broadcastGameState() {
     }
 }
 
-// ============================================================
-// PHASES DE LA PARTIE
-// ============================================================
-
 async function startPreparationPhase() {
     console.log("⏳ Démarrage de la phase de préparation (2 minutes)...");
     if (gameTimer) { clearTimeout(gameTimer); gameTimer = null; }
@@ -494,7 +488,8 @@ async function finishGame() {
     }, 3000);
 
     try {
-        const players = await Player.find({ gameId: game.id, paid: true }).sort({ taps: -1 });
+        // ✅ EXCLURE LES COMPTES DEMO ET NON PAYÉS DU CLASSEMENT FINAL
+        const players = await Player.find({ gameId: game.id, paid: true, isDemo: false }).sort({ taps: -1 });
         if (players.length === 0) {
             io.emit("game:finished", { gameId: game.id, winners: [] });
             io.emit("chat:message", { 
@@ -505,7 +500,6 @@ async function finishGame() {
             return;
         }
 
-        const isDemoGame = players.some(p => p.paymentTxId && p.paymentTxId.startsWith('DEMO_'));
         const totalPot = players.reduce((sum, p) => sum + Number(p.bet || 0), 0);
         const topPlayers = players.slice(0, 5);
         const winners = [];
@@ -528,31 +522,24 @@ async function finishGame() {
             winners.push({ player: p, gain, history });
         }
 
-        if (isDemoGame) {
-            for (const { history } of winners) { 
-                history.paidOut = true; 
-                history.payoutTxId = "DEMO_TX_" + Date.now().toString(36); 
-                await history.save(); 
-            }
-        } else {
-            for (const { player, gain, history } of winners) {
-                try {
-                    const txId = await sendPrizeToWinner({ 
-                        wallet: player.wallet, 
-                        gain, 
-                        token: player.token, 
-                        playerName: player.name 
-                    });
-                    if (txId) { 
-                        history.paidOut = true; 
-                        history.payoutTxId = txId; 
-                        await history.save(); 
-                    }
-                } catch (e) { 
-                    console.error(e); 
+        // ✅ ENVOI DES GAINS RÉELS
+        for (const { player, gain, history } of winners) {
+            try {
+                const txId = await sendPrizeToWinner({ 
+                    wallet: player.wallet, 
+                    gain, 
+                    token: player.token, 
+                    playerName: player.name 
+                });
+                if (txId) { 
+                    history.paidOut = true; 
+                    history.payoutTxId = txId; 
+                    await history.save(); 
                 }
-                await new Promise(r => setTimeout(r, 2000));
+            } catch (e) { 
+                console.error(e); 
             }
+            await new Promise(r => setTimeout(r, 2000));
         }
 
         const winnersList = topPlayers.map((p, i) => ({ 
@@ -574,10 +561,6 @@ async function finishGame() {
         console.error("❌ Erreur finishGame :", error?.message || error); 
     }
 }
-
-// ============================================================
-// PAIEMENTS ET GAINS
-// ============================================================
 
 async function sendPrizeToWinner(historyEntry) {
     try {
@@ -639,10 +622,6 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSende
     }
 }
 
-// ============================================================
-// VÉRIFICATION DES PAIEMENTS EN ATTENTE
-// ============================================================
-
 async function checkPendingPayments() {
     if (game.status !== "preparing" && game.status !== "running") return;
     try {
@@ -651,7 +630,7 @@ async function checkPendingPayments() {
             paid: false, 
             bet: { $gt: 0 }, 
             depositAmount: { $ne: null },
-            isDemo: false // ✅ Ignorer les joueurs démo
+            isDemo: false
         });
         if (unpaidPlayers.length === 0) return;
         
@@ -761,7 +740,7 @@ async function getIncomingTrc20Transactions(address) {
 }
 
 // ============================================================
-// JACKPOT
+// JACKPOT (SÉCURISÉ)
 // ============================================================
 
 async function getNextSaturday() {
@@ -803,8 +782,11 @@ async function distributeWeeklyJackpot() {
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const jackpot = await Jackpot.findOne({ weekStart });
         if (!jackpot || jackpot.drawn || jackpot.accumulatedFund <= 0) return;
-        const winner = await Player.findOne({}).sort({ weeklyTaps: -1 }).limit(1).select("name wallet weeklyTaps");
+        
+        // ✅ IGNORER LES COMPTES DEMO ET NON PAYÉS POUR LE JACKPOT
+        const winner = await Player.findOne({ paid: true, isDemo: false, paymentTxId: { $ne: null } }).sort({ weeklyTaps: -1 }).limit(1).select("name wallet weeklyTaps");
         if (!winner || winner.weeklyTaps === 0) return;
+        
         jackpot.winner = winner._id; 
         jackpot.drawn = true; 
         await jackpot.save();
@@ -831,7 +813,7 @@ cron.schedule('0 0 * * 6', () => {
 });
 
 // ============================================================
-// DUELS 1V1
+// DUELS 1V1 (SÉCURISÉ)
 // ============================================================
 
 const ALLOWED_BETS = [0.50, 1, 2, 4, 8, 16, 32, 64, 128];
@@ -992,7 +974,6 @@ io.on("connection", async (socket) => {
         });
     }
 
-    // ===== TIMER =====
     socket.on("timer:request", () => {
         socket.emit("timer:update", { 
             gameId: game.id, 
@@ -1002,7 +983,7 @@ io.on("connection", async (socket) => {
         });
     });
 
-    // ===== RESTAURATION DE SESSION =====
+    // ===== RESTAURATION DE SESSION (AVEC EXPIRATION) =====
     socket.on("player:restore", async (data) => {
         try {
             const token = data.sessionToken;
@@ -1010,6 +991,14 @@ io.on("connection", async (socket) => {
 
             const player = await Player.findOne({ sessionToken: token });
             if (!player) return socket.emit("player:restored", { success: false });
+
+            // ✅ Vérification de l'expiration de la session
+            if (player.sessionExpiresAt && player.sessionExpiresAt.getTime() < Date.now()) {
+                player.sessionToken = undefined;
+                player.sessionExpiresAt = undefined;
+                await player.save();
+                return socket.emit("player:restored", { success: false });
+            }
 
             socket.data.playerId = player._id.toString();
             socket.data.playerName = player.name;
@@ -1031,6 +1020,11 @@ io.on("connection", async (socket) => {
 
     // ===== REJOINDRE LA PARTIE (AVEC MODE DÉMO) =====
     socket.on("player:join", async (data) => {
+        // ✅ Rate Limiter : Maximum 5 tentatives en 10 secondes
+        if (!socketRateLimiter(socket, 'join', 5, 10000)) {
+            return socket.emit("error", { message: "Trop de tentatives de connexion. Patientez." });
+        }
+
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
             let wallet = normalizeWallet(data?.wallet);
@@ -1038,44 +1032,33 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet) || 10;
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            // ✅ Vérifier que le nom est valide
             if (!name || name.length < 2) {
                 return socket.emit("error", { message: "Pseudo invalide (minimum 2 caractères)." });
             }
 
-            // ✅ DÉTECTION MODE DÉMO
             const isDemo = wallet && wallet.startsWith('DEMO_');
 
-            // ✅ Si mode démo ET autorisé sur le serveur
             if (isDemo) {
                 if (!DEMO_MODE_ENABLED_ON_SERVER) {
                     return socket.emit("error", { 
                         message: "❌ Mode démo désactivé sur le serveur." 
                     });
                 }
-
-                // ✅ Générer un vrai wallet TRON pour le mode démo
                 try {
                     const demoAccount = await tronWeb.createAccount();
                     wallet = demoAccount.address.base58;
-                    console.log(`🔬 Mode démo : wallet généré pour ${name} → ${wallet}`);
                 } catch (e) {
-                    console.warn("⚠️ Échec génération wallet démo, utilisation d'une adresse temporaire");
+                    console.warn("⚠️ Échec génération wallet démo");
                     wallet = "T" + Math.random().toString(36).substring(2, 15).toUpperCase();
                 }
             }
 
-            // ✅ Vérifier que le wallet est valide (sauf si déjà accepté)
             if (!isValidTronAddress(wallet) && !isDemo) {
                 return socket.emit("error", { message: "Adresse TRON invalide." });
             }
-
-            // ✅ Vérifier que la mise est valide
             if (!Number.isFinite(bet) || bet <= 0) {
                 return socket.emit("error", { message: "Mise invalide." });
             }
-
-            // ✅ Vérifier que le token est supporté
             if (!SUPPORTED_TOKENS[token]) {
                 return socket.emit("error", { message: "Token non supporté." });
             }
@@ -1084,11 +1067,13 @@ io.on("connection", async (socket) => {
                 await startPreparationPhase();
             }
 
-            // ✅ Vérifier si le joueur existe déjà
             const existingPlayer = await Player.findOne({ wallet });
             const isSameActiveRound = existingPlayer && 
                                      existingPlayer.gameId === game.id &&
                                      (game.status === "preparing" || game.status === "running");
+
+            const sessionToken = generateSessionToken();
+            const sessionExpiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
                 if (!data.sessionToken || data.sessionToken !== existingPlayer.sessionToken) {
@@ -1106,7 +1091,6 @@ io.on("connection", async (socket) => {
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
                 
-                // ✅ Mode démo : marquer comme payé automatiquement
                 if (isDemo) {
                     existingPlayer.paid = true;
                     existingPlayer.isDemo = true;
@@ -1135,13 +1119,10 @@ io.on("connection", async (socket) => {
                     endsAt: game.endsAt || game.preparationEndsAt 
                 });
                 
-                // ✅ Mise à jour du classement
                 await broadcastGameState();
                 await emitLeaderboard();
                 return;
             }
-
-            const sessionToken = generateSessionToken();
 
             if (existingPlayer) {
                 existingPlayer.name = name;
@@ -1149,7 +1130,6 @@ io.on("connection", async (socket) => {
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
                 
-                // ✅ Mode démo : marquer comme payé automatiquement
                 if (isDemo) {
                     existingPlayer.paid = true;
                     existingPlayer.isDemo = true;
@@ -1165,6 +1145,7 @@ io.on("connection", async (socket) => {
                 }
                 
                 existingPlayer.sessionToken = sessionToken;
+                existingPlayer.sessionExpiresAt = sessionExpiresAt;
                 await existingPlayer.save();
 
                 socket.data.playerId = existingPlayer._id.toString();
@@ -1185,12 +1166,13 @@ io.on("connection", async (socket) => {
                     taps: 0,
                     weeklyTaps: 0,
                     bet,
-                    paid: isDemo, // ✅ true en mode démo
+                    paid: isDemo,
                     isDemo: isDemo,
                     token,
                     depositAmount: isDemo ? null : bet,
                     depositExpiresAt: isDemo ? null : new Date(Date.now() + 10 * 60 * 1000),
                     sessionToken: sessionToken,
+                    sessionExpiresAt: sessionExpiresAt,
                     paymentTxId: isDemo ? "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase() : undefined
                 });
 
@@ -1216,7 +1198,6 @@ io.on("connection", async (socket) => {
                 });
             }
 
-            // ✅ Si mode démo, notifier le client
             if (isDemo) {
                 socket.emit("demo:activated", { 
                     message: "🔬 Mode démo activé ! Tu peux jouer sans payer." 
@@ -1228,7 +1209,6 @@ io.on("connection", async (socket) => {
                     playerName: name, 
                     token: token 
                 });
-                // ✅ Mettre à jour l'affichage du classement
                 await emitLeaderboard();
             }
 
@@ -1248,11 +1228,22 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // ===== TAP =====
+    // ===== TAP (ANTI-TRICHE STRICT) =====
     socket.on("player:tap", async () => {
+        // ✅ Rate Limiter : Maximum 20 taps en 2 secondes (Protection supp)
+        if (!socketRateLimiter(socket, 'tap', 20, 2000)) return;
+
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
+
+            // ✅ ANTI-TRICHE CRUCIAL : Vérifier le délai minimum entre chaque tap
+            const now = Date.now();
+            if (socket.data.lastTapTime && (now - socket.data.lastTapTime) < MIN_TAP_INTERVAL_MS) {
+                return; // Rejet silencieux
+            }
+            socket.data.lastTapTime = now;
+
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: 1, weeklyTaps: 1 } },
@@ -1266,8 +1257,13 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // ===== CHAT =====
+    // ===== CHAT (LIMITÉ) =====
     socket.on("chat:send", async (data) => {
+        // ✅ Rate Limiter : Maximum 3 messages en 5 secondes
+        if (!socketRateLimiter(socket, 'chat', 3, 5000)) {
+            return socket.emit("error", { message: "Trop de messages. Patientez." });
+        }
+
         try {
             const name = socket.data.playerName || "Anonyme";
             const message = String(data?.message || "").trim().substring(0, 300);
@@ -1294,7 +1290,6 @@ io.on("connection", async (socket) => {
         const playerId = socket.data.playerId;
         if (!playerId) return socket.emit("error", { message: "Rejoins d'abord le jeu principal." });
 
-        // ✅ Bloquer les joueurs démo en duel
         const player = await Player.findById(playerId);
         if (player && player.isDemo) {
             return socket.emit("error", { message: "❌ Mode démo : les duels ne sont pas disponibles." });
@@ -1376,6 +1371,11 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("duel:payment_verified", async (data) => {
+        // ✅ Rate Limiter : Vérification maximum 2 fois par minute
+        if (!socketRateLimiter(socket, 'duelPay', 2, 60000)) {
+            return socket.emit("duel:payment_error", { message: "Trop de tentatives." });
+        }
+
         const { txId } = data;
         const playerId = socket.data.playerId;
 
@@ -1423,6 +1423,11 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("duel:tap", () => {
+        // ✅ Anti-triche duel : 100ms minimum entre taps
+        const now = Date.now();
+        if (socket.data.lastDuelTapTime && (now - socket.data.lastDuelTapTime) < MIN_TAP_INTERVAL_MS) return;
+        socket.data.lastDuelTapTime = now;
+
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (socket.id === duel.socket1) {
@@ -1451,7 +1456,7 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // ===== DÉCONNEXION =====
+    // ===== DÉCONNEXION (SÉCURISÉE - PAS DE VOL DE GAIN) =====
     socket.on("disconnect", async () => {
         onlineSockets.delete(socket.id);
         console.log(`🔴 Déconnexion Socket : ${socket.id}`);
@@ -1479,28 +1484,21 @@ io.on("connection", async (socket) => {
 
         delete pendingDuelPayments[socket.id];
 
+        // ✅ SÉCURITÉ DUEL : On ne récompense PAS automatiquement sur déconnexion.
+        // On annule le duel et on permet au joueur restant de rejoindre la file.
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (duel.socket1 === socket.id || duel.socket2 === socket.id) {
                 const opponentSocketId = duel.socket1 === socket.id ? duel.socket2 : duel.socket1;
-                const winnerId = duel.socket1 === socket.id ? duel.player2Id : duel.player1Id;
-                const winner = await Player.findById(winnerId);
-                if (winner) {
-                    const gain = duel.bet * 2 - (duel.bet * 2 * DUEL_COMMISSION_PERCENT);
-                    const txId = await sendPrizeToWinner({ 
-                        wallet: winner.wallet, 
-                        gain, 
-                        token: "USDT", 
-                        playerName: winner.name 
-                    });
-                    io.to(opponentSocketId).emit("duel:finished", { 
-                        winnerName: winner.name, 
-                        myTaps: 0, 
-                        opponentTaps: 0, 
-                        prize: gain, 
-                        txId 
-                    });
-                }
+                
+                // Remboursement si possible (ou simple annulation)
+                io.to(opponentSocketId).emit("duel:cancelled", { 
+                    message: "Ton adversaire s'est déconnecté. Tu es remboursé et remis en file." 
+                });
+
+                if (!duelPools[duel.bet]) duelPools[duel.bet] = [];
+                duelPools[duel.bet].push({ socketId: opponentSocketId, playerId: duel.player1Id === socket.data.playerId ? duel.player2Id : duel.player1Id });
+
                 await Player.updateMany(
                     { _id: { $in: [duel.player1Id, duel.player2Id] } },
                     { $set: { duelPaid: false, duelPaymentTxId: null } }
