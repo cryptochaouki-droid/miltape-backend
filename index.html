@@ -671,6 +671,11 @@
     let myWallet = null;
     let myToken = 'USDT';
     let gameStatus = "waiting";
+    // ✅ NOUVEAU : état du système de parrainage
+    let myReferralCode = null;
+    let myReferralEarnings = 0;
+    let myReferralCount = 0;
+    const REFERRAL_PERCENT_DISPLAY = 3;
     
     let endsAt = null;
     let timerInterval = null;
@@ -768,6 +773,19 @@
       return id;
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
+
+    // ✅ NOUVEAU : capture le code de parrainage depuis l'URL (?ref=CODE), une seule fois —
+    // le premier lien utilisé pour arriver sur le site fait foi, même si l'utilisateur revient
+    // ensuite sans le paramètre.
+    (function captureReferralCodeFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        if (ref && !localStorage.getItem('miltape_referral_code')) {
+          localStorage.setItem('miltape_referral_code', ref.trim().toUpperCase());
+        }
+      } catch (e) { console.warn('⚠️ Capture du code de parrainage a échoué :', e); }
+    })();
 
     // ✅ FIX CRITIQUE : avant, si tronWeb.createAccount() échouait (fréquent sur mobile),
     // TOUS les appareils retombaient sur la MÊME adresse fixe "T9yD14...". Le serveur
@@ -948,8 +966,9 @@
       const storedWallet = localStorage.getItem("miltape_session_wallet");
       const storedToken = localStorage.getItem("miltape_session_token");
       const sessionToken = (storedWallet && storedWallet === wallet) ? storedToken : null;
+      const referralCode = localStorage.getItem("miltape_referral_code") || null; // ✅ NOUVEAU
 
-      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, sessionToken });
+      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, sessionToken, referralCode });
       hapticMedium();
     }
     
@@ -962,6 +981,9 @@
         isPlaying = true; isPaid = false;
         myPlayerId = data.player.id;
         myToken = data.player.token || 'USDT';
+        myReferralCode = data.player.referralCode || null; // ✅ NOUVEAU
+        myReferralEarnings = data.player.referralEarnings || 0;
+        myReferralCount = data.player.referralCount || 0;
         if (tapButton) tapButton.disabled = true;
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
@@ -1045,6 +1067,9 @@
         myWallet = data.player.wallet; 
         myBet = data.player.bet || 10; 
         myToken = data.player.token || 'USDT';
+        myReferralCode = data.player.referralCode || null; // ✅ NOUVEAU
+        myReferralEarnings = data.player.referralEarnings || 0;
+        myReferralCount = data.player.referralCount || 0;
         
         if (gameStatus === "running") updateTapCounter(data.player.taps);
         else updateTapCounter(0);
@@ -1099,6 +1124,16 @@
       localStorage.removeItem("miltape_demo");
       
       resetUI();
+    });
+
+    // ✅ NOUVEAU : réception des stats de parrainage rafraîchies à la demande
+    socket.on("referral:stats", (data) => {
+      if (data && data.success) {
+        myReferralCode = data.referralCode || myReferralCode;
+        myReferralEarnings = data.referralEarnings || 0;
+        myReferralCount = data.referralCount || 0;
+        renderReferralModal();
+      }
     });
     
     socket.on("payment:verified", (data) => {
@@ -1451,6 +1486,61 @@
     
     const menuRulesBtn = document.getElementById('menuRulesBtn');
     if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
+
+    // ✅ NOUVEAU : système de parrainage
+    function copyToClipboard(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text);
+        } else {
+          const el = document.createElement('textarea');
+          el.value = text;
+          el.style.position = 'fixed';
+          el.style.opacity = '0';
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand('copy');
+          document.body.removeChild(el);
+        }
+      } catch (e) { console.warn('⚠️ Copie du lien impossible :', e); }
+    }
+
+    function renderReferralModal() {
+      let content;
+      if (myReferralCode) {
+        const link = window.location.origin + window.location.pathname + '?ref=' + myReferralCode;
+        content =
+          '<p style="color:#eee;font-size:13px;">Partage ton lien : chaque fois qu\'un ami rejoint avec et mise en réel, tu touches automatiquement <strong style="color:#64b5f6;">' + REFERRAL_PERCENT_DISPLAY + '%</strong> de chacune de ses mises, envoyé direct sur ton wallet.</p>' +
+          '<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;margin:10px 0;word-break:break-all;font-size:12px;color:#64b5f6;">' + link + '</div>' +
+          '<button id="copyReferralBtn" class="main-play-button" style="padding:10px;margin:0 0 10px;">📋 COPIER LE LIEN</button>' +
+          '<div style="display:flex;justify-content:space-around;text-align:center;margin-top:10px;">' +
+            '<div><div style="font-size:22px;font-weight:900;color:#64b5f6;">' + myReferralCount + '</div><div style="font-size:11px;color:#999;">FILLEULS</div></div>' +
+            '<div><div style="font-size:22px;font-weight:900;color:#2ecc71;">' + formatAmount(myReferralEarnings) + '</div><div style="font-size:11px;color:#999;">USDT GAGNÉS</div></div>' +
+          '</div>';
+      } else {
+        content = '<p style="color:#eee;font-size:13px;">Rejoins une partie une première fois (démo ou réel) pour débloquer ton lien de parrainage personnel.</p>';
+      }
+
+      showMenuMessage('👥 Parrainage', content);
+
+      const copyBtn = document.getElementById('copyReferralBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          const link = window.location.origin + window.location.pathname + '?ref=' + myReferralCode;
+          copyToClipboard(link);
+          showNotification('success', '🔗 Lien copié !');
+          hapticLight();
+        });
+      }
+    }
+
+    function openReferralModal() {
+      if (myPlayerId) socket.emit('referral:stats'); // rafraîchit les chiffres si connu du serveur
+      renderReferralModal(); // affiche tout de suite avec les valeurs déjà en mémoire
+    }
+
+    const menuReferralBtn = document.getElementById('menuReferralBtn');
+    if (menuReferralBtn) menuReferralBtn.addEventListener('click', openReferralModal);
     
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
