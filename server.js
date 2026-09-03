@@ -11,17 +11,11 @@ const path = require("path");
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
-const GAME_DURATION_SECONDS = 10 * 60;
-const PREPARATION_DURATION_SECONDS = 2 * 60;
+const GAME_DURATION_SECONDS = 10 * 60; // 10 minutes
+const PREPARATION_DURATION_SECONDS = 2 * 60; // 2 minutes
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
 const DUEL_PAYMENT_TIMEOUT_MS = 120000;
-
-// ✅ Anti-triche : Délai minimum entre deux taps (100ms)
-const MIN_TAP_INTERVAL_MS = 100; 
-
-// ✅ Sécurité : Durée de vie de la session (24h)
-const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
 
@@ -37,9 +31,6 @@ const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
 const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
-
-process.on("uncaughtException", (err) => console.error("❌", err?.message || err));
-process.on("unhandledRejection", (reason) => console.error("❌", reason));
 
 if (!MONGODB_URI || !PRIVATE_KEY || !ADMIN_PASSWORD) {
     console.error("❌ Variables d'environnement manquantes.");
@@ -65,52 +56,28 @@ const app = express();
 const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(helmet({ crossOriginResourcePolicy: false }));
-
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-app.use((req, res, next) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    next();
-});
-
-// Rate Limiting HTTP
+// Rate Limiting HTTP simple
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
+// Configuration Socket.IO SOUPLE (pas de blocage)
 const io = new Server(server, { 
     cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"] }, 
     pingInterval: 25000, 
     pingTimeout: 60000 
 });
 
-// ✅ RATE LIMITER SOCKET.IO (Anti-Spam)
-const socketRateLimit = new Map();
-function socketRateLimiter(socket, eventName, maxCalls, timeWindowMs) {
-    const now = Date.now();
-    if (!socket.data.rateLimits) socket.data.rateLimits = {};
-    if (!socket.data.rateLimits[eventName]) socket.data.rateLimits[eventName] = [];
-    
-    socket.data.rateLimits[eventName] = socket.data.rateLimits[eventName].filter(t => now - t < timeWindowMs);
-    if (socket.data.rateLimits[eventName].length >= maxCalls) return false;
-    
-    socket.data.rateLimits[eventName].push(now);
-    return true;
-}
-
 mongoose.set("strictQuery", true);
 mongoose.set("bufferTimeoutMS", 10000);
-mongoose.connection.on("connected", () => console.log("✅ Mongoose connecté."));
-mongoose.connection.on("error", (err) => console.error("❌ Mongoose erreur :", err?.message || err));
 
 // ============================================================
 // SCHÉMAS MONGODB
 // ============================================================
-
 const playerSchema = new mongoose.Schema({
     gameId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -125,7 +92,6 @@ const playerSchema = new mongoose.Schema({
     depositAmount: { type: Number, default: null },
     depositExpiresAt: { type: Date, default: null },
     sessionToken: { type: String, unique: true, sparse: true },
-    sessionExpiresAt: { type: Date, default: null }, // ✅ Nouveau : Expiration de session
     duelPaid: { type: Boolean, default: false },
     duelPaymentTxId: { type: String, sparse: true },
     isDemo: { type: Boolean, default: false }
@@ -197,9 +163,8 @@ const Jackpot = mongoose.model("Jackpot", jackpotSchema);
 const GameState = mongoose.model("GameState", gameStateSchema);
 
 // ============================================================
-// FONCTIONS UTILITAIRES & ÉTAT DU JEU
+// FONCTIONS UTILITAIRES
 // ============================================================
-
 async function connectMongoDB() {
     try {
         await mongoose.connect(MONGODB_URI, { 
@@ -217,7 +182,6 @@ async function connectMongoDB() {
 function normalizeWallet(address) { 
     return String(address || "").trim(); 
 }
-
 function isValidTronAddress(address) { 
     try { 
         return tronWeb.isAddress(normalizeWallet(address)); 
@@ -225,19 +189,15 @@ function isValidTronAddress(address) {
         return false; 
     } 
 }
-
 function sameWallet(a, b) { 
     return normalizeWallet(a) === normalizeWallet(b); 
 }
-
 function generateGameId() { 
     return "GAME-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).substring(2, 8).toUpperCase(); 
 }
-
 function generateSessionToken() { 
     return crypto.randomBytes(32).toString('hex'); 
 }
-
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) { 
     const controller = new AbortController(); 
     const id = setTimeout(() => controller.abort(), timeoutMs); 
@@ -267,15 +227,9 @@ let game = {
     preparationEndsAt: null 
 };
 
-const activeDuels = {};
-const duelPools = {};
-const pendingDuelPayments = {};
-const duelMatches = {};
-
 // ============================================================
-// FONCTIONS DU JEU
+// GESTION DU JEU (TIMERS & CHRONO)
 // ============================================================
-
 async function loadOrCreateGameState() {
     try {
         let gameState = await GameState.findOne().sort({ updatedAt: -1 });
@@ -392,25 +346,6 @@ async function emitTotalStakes() {
     }
 }
 
-async function broadcastGameState() {
-    try {
-        if (!game.id) return;
-        const players = await Player.find({ gameId: game.id })
-            .select("name taps -_id")
-            .sort({ taps: -1 })
-            .limit(50)
-            .lean();
-        io.emit("game:state", { 
-            game: getGameStateObject(), 
-            players 
-        });
-        await emitLeaderboard();
-        await emitTotalStakes();
-    } catch (error) { 
-        console.error("❌ Erreur broadcastGameState :", error?.message || error); 
-    }
-}
-
 async function startPreparationPhase() {
     console.log("⏳ Démarrage de la phase de préparation (2 minutes)...");
     if (gameTimer) { clearTimeout(gameTimer); gameTimer = null; }
@@ -436,12 +371,9 @@ async function startPreparationPhase() {
         beginActualGame().catch(err => console.error(err)); 
     }, PREPARATION_DURATION_SECONDS * 1000);
 
-    try { 
-        await broadcastGameState(); 
-        await emitJackpotUpdate(); 
-    } catch (error) { 
-        console.error("❌ Erreur post-préparation :", error?.message || error); 
-    }
+    await emitLeaderboard(); 
+    await emitTotalStakes(); 
+    await emitJackpotUpdate();
 }
 
 async function beginActualGame() {
@@ -466,12 +398,8 @@ async function beginActualGame() {
         finishGame().catch(err => console.error(err)); 
     }, GAME_DURATION_SECONDS * 1000);
     
-    try { 
-        await broadcastGameState(); 
-        await emitJackpotUpdate(); 
-    } catch (error) { 
-        console.error("❌ Erreur post-démarrage :", error?.message || error); 
-    }
+    await emitLeaderboard();
+    await emitJackpotUpdate();
 }
 
 async function finishGame() {
@@ -488,7 +416,6 @@ async function finishGame() {
     }, 3000);
 
     try {
-        // ✅ EXCLURE LES COMPTES DEMO ET NON PAYÉS DU CLASSEMENT FINAL
         const players = await Player.find({ gameId: game.id, paid: true, isDemo: false }).sort({ taps: -1 });
         if (players.length === 0) {
             io.emit("game:finished", { gameId: game.id, winners: [] });
@@ -522,7 +449,6 @@ async function finishGame() {
             winners.push({ player: p, gain, history });
         }
 
-        // ✅ ENVOI DES GAINS RÉELS
         for (const { player, gain, history } of winners) {
             try {
                 const txId = await sendPrizeToWinner({ 
@@ -740,7 +666,7 @@ async function getIncomingTrc20Transactions(address) {
 }
 
 // ============================================================
-// JACKPOT (SÉCURISÉ)
+// JACKPOT & CHRONO (CORRIGÉ)
 // ============================================================
 
 async function getNextSaturday() {
@@ -782,11 +708,8 @@ async function distributeWeeklyJackpot() {
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const jackpot = await Jackpot.findOne({ weekStart });
         if (!jackpot || jackpot.drawn || jackpot.accumulatedFund <= 0) return;
-        
-        // ✅ IGNORER LES COMPTES DEMO ET NON PAYÉS POUR LE JACKPOT
         const winner = await Player.findOne({ paid: true, isDemo: false, paymentTxId: { $ne: null } }).sort({ weeklyTaps: -1 }).limit(1).select("name wallet weeklyTaps");
         if (!winner || winner.weeklyTaps === 0) return;
-        
         jackpot.winner = winner._id; 
         jackpot.drawn = true; 
         await jackpot.save();
@@ -813,9 +736,8 @@ cron.schedule('0 0 * * 6', () => {
 });
 
 // ============================================================
-// DUELS 1V1 (SÉCURISÉ)
+// DUELS 1V1
 // ============================================================
-
 const ALLOWED_BETS = [0.50, 1, 2, 4, 8, 16, 32, 64, 128];
 
 async function isDuelTxUsed(txId) {
@@ -828,49 +750,32 @@ async function isDuelTxUsed(txId) {
 async function tryStartDuel(matchId) {
     const match = duelMatches[matchId];
     if (!match || match.started) return;
-
     const state1 = pendingDuelPayments[match.entry1.socketId];
     const state2 = pendingDuelPayments[match.entry2.socketId];
     if (!state1?.duelPaid || !state2?.duelPaid) return;
 
     match.started = true;
     clearTimeout(match.timeout);
-
     const { entry1, entry2, bet } = match;
 
     const player1 = await Player.findById(entry1.playerId);
     const player2 = await Player.findById(entry2.playerId);
-    if (!player1 || !player2) { 
-        delete duelMatches[matchId]; 
-        return; 
-    }
+    if (!player1 || !player2) { delete duelMatches[matchId]; return; }
 
     const totalPot = bet * 2;
     const yourCut = totalPot * DUEL_COMMISSION_PERCENT;
     const winnerPrize = totalPot - yourCut;
 
-    io.to(entry1.socketId).emit("duel:started", { 
-        opponentName: player2.name, 
-        bet, 
-        prize: winnerPrize 
-    });
-    io.to(entry2.socketId).emit("duel:started", { 
-        opponentName: player1.name, 
-        bet, 
-        prize: winnerPrize 
-    });
+    io.to(entry1.socketId).emit("duel:started", { opponentName: player2.name, bet, prize: winnerPrize });
+    io.to(entry2.socketId).emit("duel:started", { opponentName: player1.name, bet, prize: winnerPrize });
 
     const duelId = entry1.socketId;
     activeDuels[duelId] = {
-        socket1: entry1.socketId,
-        socket2: entry2.socketId,
-        player1Id: entry1.playerId,
-        player2Id: entry2.playerId,
-        bet, 
-        winnerPrize,
+        socket1: entry1.socketId, socket2: entry2.socketId,
+        player1Id: entry1.playerId, player2Id: entry2.playerId,
+        bet, winnerPrize,
         endsAt: Date.now() + 60000,
-        taps1: 0, 
-        taps2: 0
+        taps1: 0, taps2: 0
     };
 
     delete pendingDuelPayments[entry1.socketId];
@@ -879,66 +784,31 @@ async function tryStartDuel(matchId) {
 
     setTimeout(async () => {
         if (!activeDuels[duelId]) return;
-
         const duel = activeDuels[duelId];
         const winnerId = duel.taps1 >= duel.taps2 ? duel.player1Id : duel.player2Id;
         const loserId = winnerId === duel.player1Id ? duel.player2Id : duel.player1Id;
-
         const winner = await Player.findById(winnerId);
         const loser = await Player.findById(loserId);
 
         if (winner) {
-            const txId = await sendPrizeToWinner({
-                wallet: winner.wallet,
-                gain: duel.winnerPrize,
-                token: "USDT",
-                playerName: winner.name
-            });
-
-            await Payment.create({ 
-                txId, 
-                from: MILTAPE_WALLET, 
-                to: winner.wallet, 
-                amount: duel.winnerPrize, 
-                verified: true, 
-                gameId: "DUEL", 
-                token: "USDT" 
-            });
-            
-            if (loser) await DuelEntry.create({ 
-                playerId: loser._id, 
-                bet: duel.bet, 
-                token: "USDT", 
-                paid: false 
-            });
-
-            io.to(duel.socket1).emit("duel:finished", {
-                winnerName: winner.name,
-                myTaps: duel.taps1,
-                opponentTaps: duel.taps2,
-                prize: duel.winnerPrize,
-                txId
-            });
-            io.to(duel.socket2).emit("duel:finished", {
-                winnerName: winner.name,
-                myTaps: duel.taps2,
-                opponentTaps: duel.taps1,
-                prize: 0,
-                txId: null
-            });
+            const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain: duel.winnerPrize, token: "USDT", playerName: winner.name });
+            await Payment.create({ txId, from: MILTAPE_WALLET, to: winner.wallet, amount: duel.winnerPrize, verified: true, gameId: "DUEL", token: "USDT" });
+            if (loser) await DuelEntry.create({ playerId: loser._id, bet: duel.bet, token: "USDT", paid: false });
+            io.to(duel.socket1).emit("duel:finished", { winnerName: winner.name, myTaps: duel.taps1, opponentTaps: duel.taps2, prize: duel.winnerPrize, txId });
+            io.to(duel.socket2).emit("duel:finished", { winnerName: winner.name, myTaps: duel.taps2, opponentTaps: duel.taps1, prize: 0, txId: null });
         }
-
-        await Player.updateMany(
-            { _id: { $in: [duel.player1Id, duel.player2Id] } },
-            { $set: { duelPaid: false, duelPaymentTxId: null } }
-        );
-
+        await Player.updateMany({ _id: { $in: [duel.player1Id, duel.player2Id] } }, { $set: { duelPaid: false, duelPaymentTxId: null } });
         delete activeDuels[duelId];
     }, 60000);
 }
 
+const activeDuels = {};
+const duelPools = {};
+const pendingDuelPayments = {};
+const duelMatches = {};
+
 // ============================================================
-// SOCKET.IO — ÉVÉNEMENTS
+// SOCKET.IO — ÉVÉNEMENTS (SIMPLIFIÉS & FONCTIONNELS)
 // ============================================================
 
 io.on("connection", async (socket) => {
@@ -958,73 +828,33 @@ io.on("connection", async (socket) => {
     });
 
     if (game.status === "preparing" && game.preparationEndsAt) {
-        socket.emit("game:preparing", { 
-            gameId: game.id, 
-            preparationEndsAt: game.preparationEndsAt, 
-            duration: PREPARATION_DURATION_SECONDS 
-        });
+        socket.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
     }
     if (game.status === "running" && game.endsAt) {
-        socket.emit("game:started", { 
-            gameId: game.id, 
-            startsAt: game.startedAt, 
-            endsAt: game.endsAt, 
-            duration: GAME_DURATION_SECONDS, 
-            remainingSeconds: getRemainingSeconds() 
-        });
+        socket.emit("game:started", { gameId: game.id, startsAt: game.startedAt, endsAt: game.endsAt, duration: GAME_DURATION_SECONDS, remainingSeconds: getRemainingSeconds() });
     }
 
     socket.on("timer:request", () => {
-        socket.emit("timer:update", { 
-            gameId: game.id, 
-            status: game.status, 
-            remainingSeconds: getRemainingSeconds(), 
-            endsAt: game.endsAt || game.preparationEndsAt 
-        });
+        socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
     });
 
-    // ===== RESTAURATION DE SESSION (AVEC EXPIRATION) =====
     socket.on("player:restore", async (data) => {
         try {
             const token = data.sessionToken;
             if (!token) return socket.emit("player:restored", { success: false });
-
             const player = await Player.findOne({ sessionToken: token });
             if (!player) return socket.emit("player:restored", { success: false });
-
-            // ✅ Vérification de l'expiration de la session
-            if (player.sessionExpiresAt && player.sessionExpiresAt.getTime() < Date.now()) {
-                player.sessionToken = undefined;
-                player.sessionExpiresAt = undefined;
-                await player.save();
-                return socket.emit("player:restored", { success: false });
-            }
-
             socket.data.playerId = player._id.toString();
             socket.data.playerName = player.name;
             socket.data.sessionToken = token;
-
             if (player.gameId !== game.id) {
-                return socket.emit("player:restored", { 
-                    success: false, 
-                    staleRound: true, 
-                    player: { name: player.name, wallet: player.wallet } 
-                });
+                return socket.emit("player:restored", { success: false, staleRound: true, player: { name: player.name, wallet: player.wallet } });
             }
-
             socket.emit("player:restored", { success: true, player });
-        } catch (e) { 
-            socket.emit("player:restored", { success: false }); 
-        }
+        } catch (e) { socket.emit("player:restored", { success: false }); }
     });
 
-    // ===== REJOINDRE LA PARTIE (AVEC MODE DÉMO) =====
     socket.on("player:join", async (data) => {
-        // ✅ Rate Limiter : Maximum 5 tentatives en 10 secondes
-        if (!socketRateLimiter(socket, 'join', 5, 10000)) {
-            return socket.emit("error", { message: "Trop de tentatives de connexion. Patientez." });
-        }
-
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
             let wallet = normalizeWallet(data?.wallet);
@@ -1032,95 +862,43 @@ io.on("connection", async (socket) => {
             const bet = Number(data?.bet) || 10;
             const token = String(data?.token || "USDT").trim().toUpperCase();
 
-            if (!name || name.length < 2) {
-                return socket.emit("error", { message: "Pseudo invalide (minimum 2 caractères)." });
-            }
+            if (!name || name.length < 2) return socket.emit("error", { message: "Pseudo invalide (minimum 2 caractères)." });
 
             const isDemo = wallet && wallet.startsWith('DEMO_');
-
             if (isDemo) {
-                if (!DEMO_MODE_ENABLED_ON_SERVER) {
-                    return socket.emit("error", { 
-                        message: "❌ Mode démo désactivé sur le serveur." 
-                    });
-                }
-                try {
-                    const demoAccount = await tronWeb.createAccount();
-                    wallet = demoAccount.address.base58;
-                } catch (e) {
-                    console.warn("⚠️ Échec génération wallet démo");
-                    wallet = "T" + Math.random().toString(36).substring(2, 15).toUpperCase();
-                }
+                if (!DEMO_MODE_ENABLED_ON_SERVER) return socket.emit("error", { message: "❌ Mode démo désactivé sur le serveur." });
+                try { const demoAccount = await tronWeb.createAccount(); wallet = demoAccount.address.base58; }
+                catch (e) { wallet = "T" + Math.random().toString(36).substring(2, 15).toUpperCase(); }
             }
 
-            if (!isValidTronAddress(wallet) && !isDemo) {
-                return socket.emit("error", { message: "Adresse TRON invalide." });
-            }
-            if (!Number.isFinite(bet) || bet <= 0) {
-                return socket.emit("error", { message: "Mise invalide." });
-            }
-            if (!SUPPORTED_TOKENS[token]) {
-                return socket.emit("error", { message: "Token non supporté." });
-            }
+            if (!isValidTronAddress(wallet) && !isDemo) return socket.emit("error", { message: "Adresse TRON invalide." });
+            if (!Number.isFinite(bet) || bet <= 0) return socket.emit("error", { message: "Mise invalide." });
+            if (!SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Token non supporté." });
 
-            if (!game.id || game.status === "waiting" || game.status === "finished") {
-                await startPreparationPhase();
-            }
+            if (!game.id || game.status === "waiting" || game.status === "finished") await startPreparationPhase();
 
             const existingPlayer = await Player.findOne({ wallet });
-            const isSameActiveRound = existingPlayer && 
-                                     existingPlayer.gameId === game.id &&
-                                     (game.status === "preparing" || game.status === "running");
+            const isSameActiveRound = existingPlayer && existingPlayer.gameId === game.id && (game.status === "preparing" || game.status === "running");
 
             const sessionToken = generateSessionToken();
-            const sessionExpiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
                 if (!data.sessionToken || data.sessionToken !== existingPlayer.sessionToken) {
-                    return socket.emit("error", { 
-                        message: "Ce wallet est déjà utilisé dans cette manche. Connecte-toi avec ton token." 
-                    });
+                    return socket.emit("error", { message: "Ce wallet est déjà utilisé dans cette manche. Connecte-toi avec ton token." });
                 }
-
                 socket.data.playerId = existingPlayer._id.toString();
                 socket.data.playerName = existingPlayer.name;
                 socket.data.sessionToken = existingPlayer.sessionToken;
-
                 existingPlayer.name = name;
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
-                
-                if (isDemo) {
-                    existingPlayer.paid = true;
-                    existingPlayer.isDemo = true;
-                    existingPlayer.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
-                    existingPlayer.depositAmount = null;
-                    existingPlayer.depositExpiresAt = null;
-                } else {
-                    existingPlayer.paid = false;
-                    existingPlayer.isDemo = false;
-                    existingPlayer.paymentTxId = undefined;
-                    existingPlayer.depositAmount = bet;
-                    existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-                }
-                
+                if (isDemo) { existingPlayer.paid = true; existingPlayer.isDemo = true; existingPlayer.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase(); existingPlayer.depositAmount = null; existingPlayer.depositExpiresAt = null; }
+                else { existingPlayer.paid = false; existingPlayer.isDemo = false; existingPlayer.paymentTxId = undefined; existingPlayer.depositAmount = bet; existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000); }
                 await existingPlayer.save();
-
-                socket.emit("player:joined", { 
-                    success: true, 
-                    player: existingPlayer, 
-                    game: getGameStateObject() 
-                });
-                socket.emit("timer:update", { 
-                    gameId: game.id, 
-                    status: game.status, 
-                    remainingSeconds: getRemainingSeconds(), 
-                    endsAt: game.endsAt || game.preparationEndsAt 
-                });
-                
-                await broadcastGameState();
-                await emitLeaderboard();
+                socket.emit("player:joined", { success: true, player: existingPlayer, game: getGameStateObject() });
+                socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
+                await emitLeaderboard(); await emitTotalStakes();
                 return;
             }
 
@@ -1129,121 +907,45 @@ io.on("connection", async (socket) => {
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
-                
-                if (isDemo) {
-                    existingPlayer.paid = true;
-                    existingPlayer.isDemo = true;
-                    existingPlayer.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
-                    existingPlayer.depositAmount = null;
-                    existingPlayer.depositExpiresAt = null;
-                } else {
-                    existingPlayer.paid = false;
-                    existingPlayer.isDemo = false;
-                    existingPlayer.paymentTxId = undefined;
-                    existingPlayer.depositAmount = bet;
-                    existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-                }
-                
+                if (isDemo) { existingPlayer.paid = true; existingPlayer.isDemo = true; existingPlayer.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase(); existingPlayer.depositAmount = null; existingPlayer.depositExpiresAt = null; }
+                else { existingPlayer.paid = false; existingPlayer.isDemo = false; existingPlayer.paymentTxId = undefined; existingPlayer.depositAmount = bet; existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000); }
                 existingPlayer.sessionToken = sessionToken;
-                existingPlayer.sessionExpiresAt = sessionExpiresAt;
                 await existingPlayer.save();
-
                 socket.data.playerId = existingPlayer._id.toString();
                 socket.data.playerName = existingPlayer.name;
                 socket.data.sessionToken = sessionToken;
-
-                socket.emit("player:joined", { 
-                    success: true, 
-                    player: existingPlayer, 
-                    game: getGameStateObject() 
-                });
+                socket.emit("player:joined", { success: true, player: existingPlayer, game: getGameStateObject() });
             } else {
                 const player = await Player.create({
-                    gameId: game.id,
-                    name,
-                    wallet,
-                    deviceId,
-                    taps: 0,
-                    weeklyTaps: 0,
-                    bet,
-                    paid: isDemo,
-                    isDemo: isDemo,
-                    token,
+                    gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet,
+                    paid: isDemo, isDemo: isDemo, token,
                     depositAmount: isDemo ? null : bet,
                     depositExpiresAt: isDemo ? null : new Date(Date.now() + 10 * 60 * 1000),
                     sessionToken: sessionToken,
-                    sessionExpiresAt: sessionExpiresAt,
                     paymentTxId: isDemo ? "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase() : undefined
                 });
-
                 socket.data.playerId = player._id.toString();
                 socket.data.playerName = player.name;
                 socket.data.sessionToken = sessionToken;
-
-                socket.emit("player:joined", {
-                    success: true,
-                    player: {
-                        id: player._id,
-                        name: player.name,
-                        wallet: player.wallet,
-                        taps: player.taps,
-                        bet: player.bet,
-                        paid: player.paid,
-                        token: player.token,
-                        depositAmount: player.depositAmount,
-                        sessionToken: sessionToken,
-                        isDemo: isDemo
-                    },
-                    game: getGameStateObject()
-                });
+                socket.emit("player:joined", { success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid, token: player.token, depositAmount: player.depositAmount, sessionToken: sessionToken, isDemo: isDemo }, game: getGameStateObject() });
             }
 
             if (isDemo) {
-                socket.emit("demo:activated", { 
-                    message: "🔬 Mode démo activé ! Tu peux jouer sans payer." 
-                });
-                socket.emit("payment:verified", { 
-                    verified: true, 
-                    wallet: wallet, 
-                    amount: bet, 
-                    playerName: name, 
-                    token: token 
-                });
+                socket.emit("demo:activated", { message: "🔬 Mode démo activé ! Tu peux jouer sans payer." });
+                socket.emit("payment:verified", { verified: true, wallet: wallet, amount: bet, playerName: name, token: token });
                 await emitLeaderboard();
             }
-
-            socket.emit("timer:update", { 
-                gameId: game.id, 
-                status: game.status, 
-                remainingSeconds: getRemainingSeconds(), 
-                endsAt: game.endsAt || game.preparationEndsAt 
-            });
+            socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
+            await emitLeaderboard(); await emitTotalStakes();
             
-            await broadcastGameState();
-            await emitLeaderboard();
-            
-        } catch (error) { 
-            console.error("❌ player:join :", error?.message || error); 
-            socket.emit("error", { message: "Impossible de rejoindre la partie." }); 
-        }
+        } catch (error) { console.error("❌ player:join :", error?.message || error); socket.emit("error", { message: "Impossible de rejoindre la partie." }); }
     });
 
-    // ===== TAP (ANTI-TRICHE STRICT) =====
+    // ✅ LE TAP MARCHE (AUCUNE RESTRICTION TEMPORELLE BLOQUANTE)
     socket.on("player:tap", async () => {
-        // ✅ Rate Limiter : Maximum 20 taps en 2 secondes (Protection supp)
-        if (!socketRateLimiter(socket, 'tap', 20, 2000)) return;
-
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
-
-            // ✅ ANTI-TRICHE CRUCIAL : Vérifier le délai minimum entre chaque tap
-            const now = Date.now();
-            if (socket.data.lastTapTime && (now - socket.data.lastTapTime) < MIN_TAP_INTERVAL_MS) {
-                return; // Rejet silencieux
-            }
-            socket.data.lastTapTime = now;
-
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: 1, weeklyTaps: 1 } },
@@ -1252,401 +954,166 @@ io.on("connection", async (socket) => {
             if (!result) return;
             socket.emit("player:score", { taps: result.taps });
             await emitLeaderboard();
-        } catch (error) { 
-            console.error("❌ player:tap :", error?.message || error); 
-        }
+        } catch (error) { console.error("❌ player:tap :", error?.message || error); }
     });
 
-    // ===== CHAT (LIMITÉ) =====
     socket.on("chat:send", async (data) => {
-        // ✅ Rate Limiter : Maximum 3 messages en 5 secondes
-        if (!socketRateLimiter(socket, 'chat', 3, 5000)) {
-            return socket.emit("error", { message: "Trop de messages. Patientez." });
-        }
-
         try {
             const name = socket.data.playerName || "Anonyme";
             const message = String(data?.message || "").trim().substring(0, 300);
             if (!message) return;
             const msg = await Message.create({ name, message, gameId: game.id });
-            io.emit("chat:message", { 
-                id: msg._id, 
-                name, 
-                message, 
-                createdAt: msg.createdAt 
-            });
-        } catch (error) { 
-            console.error("❌ chat:send :", error?.message || error); 
-        }
+            io.emit("chat:message", { id: msg._id, name, message, createdAt: msg.createdAt });
+        } catch (error) { console.error("❌ chat:send :", error?.message || error); }
     });
 
-    // ===== DUEL =====
     socket.on("duel:join", async (data) => {
         const bet = parseFloat(data.bet);
-        if (!ALLOWED_BETS.includes(bet)) {
-            return socket.emit("error", { message: "Mise non autorisée." });
-        }
-
+        if (!ALLOWED_BETS.includes(bet)) return socket.emit("error", { message: "Mise non autorisée." });
         const playerId = socket.data.playerId;
         if (!playerId) return socket.emit("error", { message: "Rejoins d'abord le jeu principal." });
-
         const player = await Player.findById(playerId);
-        if (player && player.isDemo) {
-            return socket.emit("error", { message: "❌ Mode démo : les duels ne sont pas disponibles." });
-        }
-
+        if (player && player.isDemo) return socket.emit("error", { message: "❌ Mode démo : les duels ne sont pas disponibles." });
         if (!duelPools[bet]) duelPools[bet] = [];
         if (duelPools[bet].some(entry => entry.socketId === socket.id)) return;
-
         duelPools[bet].push({ socketId: socket.id, playerId });
         socket.emit("duel:queue", { message: "En attente d'un adversaire à " + bet + " USDT..." });
-
         if (duelPools[bet].length >= 2) {
             const entry1 = duelPools[bet].shift();
             const entry2 = duelPools[bet].shift();
-
             const player1 = await Player.findById(entry1.playerId);
             const player2 = await Player.findById(entry2.playerId);
             if (!player1 || !player2) return;
-
             const matchId = entry1.socketId + '_' + entry2.socketId;
-
-            pendingDuelPayments[entry1.socketId] = { 
-                bet, 
-                playerId: entry1.playerId, 
-                matchId, 
-                duelPaid: false 
-            };
-            pendingDuelPayments[entry2.socketId] = { 
-                bet, 
-                playerId: entry2.playerId, 
-                matchId, 
-                duelPaid: false 
-            };
-
-            io.to(entry1.socketId).emit("duel:need_payment", { 
-                amount: bet, 
-                wallet: MILTAPE_WALLET 
-            });
-            io.to(entry2.socketId).emit("duel:need_payment", { 
-                amount: bet, 
-                wallet: MILTAPE_WALLET 
-            });
-
+            pendingDuelPayments[entry1.socketId] = { bet, playerId: entry1.playerId, matchId, duelPaid: false };
+            pendingDuelPayments[entry2.socketId] = { bet, playerId: entry2.playerId, matchId, duelPaid: false };
+            io.to(entry1.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
+            io.to(entry2.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
             const paymentTimeout = setTimeout(() => {
                 const match = duelMatches[matchId];
                 if (!match || match.started) return;
-
                 const state1 = pendingDuelPayments[entry1.socketId];
                 const state2 = pendingDuelPayments[entry2.socketId];
-
-                io.to(entry1.socketId).emit("duel:cancelled", { 
-                    message: state1?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." 
-                });
-                io.to(entry2.socketId).emit("duel:cancelled", { 
-                    message: state2?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." 
-                });
-
-                if (state1?.duelPaid && !state2?.duelPaid) {
-                    if (!duelPools[bet]) duelPools[bet] = [];
-                    duelPools[bet].push({ socketId: entry1.socketId, playerId: entry1.playerId });
-                } else if (state2?.duelPaid && !state1?.duelPaid) {
-                    if (!duelPools[bet]) duelPools[bet] = [];
-                    duelPools[bet].push({ socketId: entry2.socketId, playerId: entry2.playerId });
-                }
-
-                delete pendingDuelPayments[entry1.socketId];
-                delete pendingDuelPayments[entry2.socketId];
-                delete duelMatches[matchId];
+                io.to(entry1.socketId).emit("duel:cancelled", { message: state1?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." });
+                io.to(entry2.socketId).emit("duel:cancelled", { message: state2?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." });
+                if (state1?.duelPaid && !state2?.duelPaid) { if (!duelPools[bet]) duelPools[bet] = []; duelPools[bet].push({ socketId: entry1.socketId, playerId: entry1.playerId }); }
+                else if (state2?.duelPaid && !state1?.duelPaid) { if (!duelPools[bet]) duelPools[bet] = []; duelPools[bet].push({ socketId: entry2.socketId, playerId: entry2.playerId }); }
+                delete pendingDuelPayments[entry1.socketId]; delete pendingDuelPayments[entry2.socketId]; delete duelMatches[matchId];
             }, DUEL_PAYMENT_TIMEOUT_MS);
-
-            duelMatches[matchId] = { 
-                entry1, 
-                entry2, 
-                bet, 
-                timeout: paymentTimeout, 
-                started: false 
-            };
+            duelMatches[matchId] = { entry1, entry2, bet, timeout: paymentTimeout, started: false };
         }
     });
 
     socket.on("duel:payment_verified", async (data) => {
-        // ✅ Rate Limiter : Vérification maximum 2 fois par minute
-        if (!socketRateLimiter(socket, 'duelPay', 2, 60000)) {
-            return socket.emit("duel:payment_error", { message: "Trop de tentatives." });
-        }
-
         const { txId } = data;
         const playerId = socket.data.playerId;
-
         if (!playerId) return socket.emit("duel:payment_error", { message: "Non autorisé." });
         if (!txId) return socket.emit("duel:payment_error", { message: "Transaction manquante." });
-
         const pending = pendingDuelPayments[socket.id];
         if (!pending) return socket.emit("duel:payment_error", { message: "Aucun duel en attente de paiement." });
-        
         const betAmount = pending.bet;
-
-        if (await isDuelTxUsed(txId)) {
-            return socket.emit("duel:payment_error", { message: "Transaction déjà utilisée." });
-        }
-
+        if (await isDuelTxUsed(txId)) return socket.emit("duel:payment_error", { message: "Transaction déjà utilisée." });
         const player = await Player.findById(playerId);
         if (!player) return socket.emit("duel:payment_error", { message: "Joueur introuvable." });
-
         const isValid = await verifyOnChain(txId, betAmount, "USDT", player.wallet);
         if (isValid) {
-            player.duelPaid = true;
-            player.duelPaymentTxId = txId;
-            await player.save();
-
-            pending.duelPaid = true;
-            pending.duelPaymentTxId = txId;
-            pendingDuelPayments[socket.id] = pending;
-
-            await Payment.create({ 
-                txId, 
-                from: player.wallet, 
-                to: MILTAPE_WALLET, 
-                amount: betAmount, 
-                verified: true, 
-                gameId: "DUEL", 
-                token: "USDT" 
-            });
-
+            player.duelPaid = true; player.duelPaymentTxId = txId; await player.save();
+            pending.duelPaid = true; pending.duelPaymentTxId = txId; pendingDuelPayments[socket.id] = pending;
+            await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
             socket.emit("duel:payment_success");
-
             if (pending.matchId) await tryStartDuel(pending.matchId);
-        } else {
-            socket.emit("duel:payment_error", { message: "Transaction invalide." });
-        }
+        } else { socket.emit("duel:payment_error", { message: "Transaction invalide." }); }
     });
 
     socket.on("duel:tap", () => {
-        // ✅ Anti-triche duel : 100ms minimum entre taps
-        const now = Date.now();
-        if (socket.data.lastDuelTapTime && (now - socket.data.lastDuelTapTime) < MIN_TAP_INTERVAL_MS) return;
-        socket.data.lastDuelTapTime = now;
-
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (socket.id === duel.socket1) {
                 duel.taps1++;
-                io.to(duel.socket1).emit("duel:score", { 
-                    myTaps: duel.taps1, 
-                    opponentTaps: duel.taps2 
-                });
-                io.to(duel.socket2).emit("duel:score", { 
-                    myTaps: duel.taps2, 
-                    opponentTaps: duel.taps1 
-                });
+                io.to(duel.socket1).emit("duel:score", { myTaps: duel.taps1, opponentTaps: duel.taps2 });
+                io.to(duel.socket2).emit("duel:score", { myTaps: duel.taps2, opponentTaps: duel.taps1 });
                 break;
             } else if (socket.id === duel.socket2) {
                 duel.taps2++;
-                io.to(duel.socket1).emit("duel:score", { 
-                    myTaps: duel.taps1, 
-                    opponentTaps: duel.taps2 
-                });
-                io.to(duel.socket2).emit("duel:score", { 
-                    myTaps: duel.taps2, 
-                    opponentTaps: duel.taps1 
-                });
+                io.to(duel.socket1).emit("duel:score", { myTaps: duel.taps1, opponentTaps: duel.taps2 });
+                io.to(duel.socket2).emit("duel:score", { myTaps: duel.taps2, opponentTaps: duel.taps1 });
                 break;
             }
         }
     });
 
-    // ===== DÉCONNEXION (SÉCURISÉE - PAS DE VOL DE GAIN) =====
     socket.on("disconnect", async () => {
         onlineSockets.delete(socket.id);
         console.log(`🔴 Déconnexion Socket : ${socket.id}`);
         broadcastOnlineCount();
-
         for (const bet in duelPools) {
             duelPools[bet] = duelPools[bet].filter(entry => entry.socketId !== socket.id);
             if (duelPools[bet].length === 0) delete duelPools[bet];
         }
-
         for (const matchId in duelMatches) {
             const match = duelMatches[matchId];
             if (!match || match.started) continue;
             if (match.entry1.socketId === socket.id || match.entry2.socketId === socket.id) {
                 clearTimeout(match.timeout);
                 const otherSocketId = match.entry1.socketId === socket.id ? match.entry2.socketId : match.entry1.socketId;
-                io.to(otherSocketId).emit("duel:cancelled", { 
-                    message: "Ton adversaire s'est déconnecté. Le duel est annulé." 
-                });
-                delete pendingDuelPayments[match.entry1.socketId];
-                delete pendingDuelPayments[match.entry2.socketId];
-                delete duelMatches[matchId];
+                io.to(otherSocketId).emit("duel:cancelled", { message: "Ton adversaire s'est déconnecté. Le duel est annulé." });
+                delete pendingDuelPayments[match.entry1.socketId]; delete pendingDuelPayments[match.entry2.socketId]; delete duelMatches[matchId];
             }
         }
-
         delete pendingDuelPayments[socket.id];
-
-        // ✅ SÉCURITÉ DUEL : On ne récompense PAS automatiquement sur déconnexion.
-        // On annule le duel et on permet au joueur restant de rejoindre la file.
-        for (const duelId in activeDuels) {
-            const duel = activeDuels[duelId];
-            if (duel.socket1 === socket.id || duel.socket2 === socket.id) {
-                const opponentSocketId = duel.socket1 === socket.id ? duel.socket2 : duel.socket1;
-                
-                // Remboursement si possible (ou simple annulation)
-                io.to(opponentSocketId).emit("duel:cancelled", { 
-                    message: "Ton adversaire s'est déconnecté. Tu es remboursé et remis en file." 
-                });
-
-                if (!duelPools[duel.bet]) duelPools[duel.bet] = [];
-                duelPools[duel.bet].push({ socketId: opponentSocketId, playerId: duel.player1Id === socket.data.playerId ? duel.player2Id : duel.player1Id });
-
-                await Player.updateMany(
-                    { _id: { $in: [duel.player1Id, duel.player2Id] } },
-                    { $set: { duelPaid: false, duelPaymentTxId: null } }
-                );
-                delete activeDuels[duelId];
-            }
-        }
     });
 });
 
 // ============================================================
 // INTERVALLES
 // ============================================================
-
-setInterval(() => {
-    checkPendingPayments().catch(err => console.error("Erreur checkPendingPayments :", err));
-}, 7000);
-
-setInterval(() => {
-    if (game.status === "preparing" || game.status === "running") broadcastTimer();
-}, 1000);
-
-setInterval(() => { 
-    emitJackpotUpdate().catch(err => console.error(err)); 
-}, 60 * 1000);
+setInterval(() => { checkPendingPayments().catch(err => console.error("Erreur checkPendingPayments :", err)); }, 7000);
+setInterval(() => { if (game.status === "preparing" || game.status === "running") broadcastTimer(); }, 1000);
+setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 * 1000);
 
 // ============================================================
 // ROUTES API
 // ============================================================
-
-// ✅ Vérifier si le mode démo est disponible
-app.get("/api/demo/status", (req, res) => {
-    res.json({ 
-        enabled: DEMO_MODE_ENABLED_ON_SERVER,
-        message: DEMO_MODE_ENABLED_ON_SERVER ? "Mode démo disponible" : "Mode démo désactivé"
-    });
-});
-
+app.get("/api/demo/status", (req, res) => { res.json({ enabled: DEMO_MODE_ENABLED_ON_SERVER, message: DEMO_MODE_ENABLED_ON_SERVER ? "Mode démo disponible" : "Mode démo désactivé" }); });
 app.post("/api/demo/verify", async (req, res) => {
     try {
-        if (!DEMO_MODE_ENABLED_ON_SERVER) {
-            return res.status(403).json({ 
-                success: false, 
-                message: "Mode démo désactivé sur le serveur (variable ALLOW_DEMO_MODE)." 
-            });
-        }
+        if (!DEMO_MODE_ENABLED_ON_SERVER) return res.status(403).json({ success: false, message: "Mode démo désactivé sur le serveur (variable ALLOW_DEMO_MODE)." });
         const { playerId } = req.body || {};
-        if (!playerId) return res.status(400).json({ 
-            success: false, 
-            message: "playerId manquant." 
-        });
-
+        if (!playerId) return res.status(400).json({ success: false, message: "playerId manquant." });
         const player = await Player.findById(playerId);
-        if (!player) return res.status(404).json({ 
-            success: false, 
-            message: "Joueur introuvable." 
-        });
-        if (player.gameId !== game.id) return res.status(409).json({ 
-            success: false, 
-            message: "La manche a changé, rejoins à nouveau." 
-        });
-
-        player.paid = true;
-        player.isDemo = true;
-        player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
-        player.depositAmount = null;
-        player.depositExpiresAt = null;
-        await player.save();
-
-        io.emit("payment:verified", { 
-            verified: true, 
-            wallet: player.wallet, 
-            amount: player.bet, 
-            playerName: player.name, 
-            token: player.token 
-        });
-        await broadcastGameState();
+        if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
+        if (player.gameId !== game.id) return res.status(409).json({ success: false, message: "La manche a changé, rejoins à nouveau." });
+        player.paid = true; player.isDemo = true; player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase(); player.depositAmount = null; player.depositExpiresAt = null; await player.save();
+        io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
         await emitLeaderboard();
-
         res.json({ success: true });
-    } catch (error) {
-        console.error("❌ Erreur /api/demo/verify :", error?.message || error);
-        res.status(500).json({ success: false, message: "Erreur serveur." });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
-
-app.get("/api/wallet", (req, res) => res.json({ 
-    success: true, 
-    wallet: MILTAPE_WALLET 
-}));
-
-app.get("/api/game", (req, res) => res.json({ 
-    success: true, 
-    game: getGameStateObject() 
-}));
-
-app.get("/api/status", (req, res) => res.json({ 
-    success: true, 
-    status: "online", 
-    gameStatus: game.status, 
-    gameId: game.id, 
-    remainingSeconds: getRemainingSeconds(), 
-    online: onlineSockets.size,
-    demoMode: DEMO_MODE_ENABLED_ON_SERVER
-}));
-
-app.get("/health", (req, res) => res.json({ 
-    success: true, 
-    status: "ok" 
-}));
-
-app.get('/socket.io/socket.io.js', (req, res) => {
-    res.sendFile(path.join(__dirname, 'node_modules', 'socket.io', 'client-dist', 'socket.io.js'));
-});
+app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
+app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateObject() }));
+app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size, demoMode: DEMO_MODE_ENABLED_ON_SERVER }));
+app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
+app.get('/socket.io/socket.io.js', (req, res) => { res.sendFile(path.join(__dirname, 'node_modules', 'socket.io', 'client-dist', 'socket.io.js')); });
 
 // ============================================================
 // DÉMARRAGE
 // ============================================================
-
 async function startServer() {
     try {
         await connectMongoDB();
         await loadOrCreateGameState();
         server.listen(PORT, async () => {
-            console.log("🚀 BACKEND ONLINE (Sécurisé)");
+            console.log("🚀 BACKEND ONLINE");
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🎮 État initial du jeu : ${game.status}`);
-            console.log(`📊 Online : ${onlineSockets.size}`);
-            console.log(`🔬 Mode démo : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
         });
-    } catch (error) { 
-        console.error("❌ Impossible de démarrer :", error); 
-        process.exit(1); 
-    }
+    } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
 }
-
 startServer();
 
 process.on("SIGTERM", async () => {
     console.log("🛑 SIGTERM reçu. Fermeture propre...");
     if (gameTimer) clearTimeout(gameTimer);
     if (nextGameTimeout) clearTimeout(nextGameTimeout);
-    try { 
-        await new Promise((resolve) => server.close(() => resolve())); 
-        await mongoose.connection.close(); 
-        process.exit(0); 
-    } catch (error) { 
-        console.error("❌ Erreur fermeture :", error?.message || error); 
-        process.exit(1); 
-    }
+    try { await new Promise((resolve) => server.close(() => resolve())); await mongoose.connection.close(); process.exit(0); } catch (error) { process.exit(1); }
 });
