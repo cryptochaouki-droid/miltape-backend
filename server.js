@@ -104,7 +104,8 @@ const playerSchema = new mongoose.Schema({
     depositExpiresAt: { type: Date, default: null },
     sessionToken: { type: String, unique: true, sparse: true },
     duelPaid: { type: Boolean, default: false },
-    duelPaymentTxId: { type: String, sparse: true }
+    duelPaymentTxId: { type: String, sparse: true },
+    isDemo: { type: Boolean, default: false }
 }, { timestamps: true });
 
 const duelEntrySchema = new mongoose.Schema({
@@ -361,27 +362,19 @@ function broadcastOnlineCount() {
     io.emit("online:count", { count: onlineSockets.size });
 }
 
-// ✅ FIX : emitLeaderboard avec log pour debug
 async function emitLeaderboard() {
     try {
-        if (!game.id) {
-            console.log("⚠️ emitLeaderboard : game.id est null");
-            return;
-        }
+        if (!game.id) return;
         const players = await Player.find({ gameId: game.id })
             .select("name taps -_id")
             .sort({ taps: -1 })
             .limit(50)
             .lean();
-        
-        const data = players.map((p, i) => ({ 
+        io.emit("leaderboard:update", players.map((p, i) => ({ 
             rank: i + 1, 
             name: p.name, 
             taps: p.taps 
-        }));
-        
-        io.emit("leaderboard:update", data);
-        console.log(`📊 Leaderboard mis à jour : ${data.length} joueurs`);
+        })));
     } catch (error) { 
         console.error("❌ Erreur emitLeaderboard :", error?.message || error); 
     }
@@ -657,7 +650,8 @@ async function checkPendingPayments() {
             gameId: game.id, 
             paid: false, 
             bet: { $gt: 0 }, 
-            depositAmount: { $ne: null } 
+            depositAmount: { $ne: null },
+            isDemo: false // ✅ Ignorer les joueurs démo
         });
         if (unpaidPlayers.length === 0) return;
         
@@ -1035,23 +1029,62 @@ io.on("connection", async (socket) => {
         }
     });
 
-    // ===== REJOINDRE LA PARTIE =====
+    // ===== REJOINDRE LA PARTIE (AVEC MODE DÉMO) =====
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
-            const wallet = normalizeWallet(data?.wallet);
+            let wallet = normalizeWallet(data?.wallet);
             const deviceId = normalizeWallet(data?.deviceId);
-            const bet = Number(data?.bet);
+            const bet = Number(data?.bet) || 10;
             const token = String(data?.token || "USDT").trim().toUpperCase();
+
+            // ✅ Vérifier que le nom est valide
+            if (!name || name.length < 2) {
+                return socket.emit("error", { message: "Pseudo invalide (minimum 2 caractères)." });
+            }
+
+            // ✅ DÉTECTION MODE DÉMO
+            const isDemo = wallet && wallet.startsWith('DEMO_');
+
+            // ✅ Si mode démo ET autorisé sur le serveur
+            if (isDemo) {
+                if (!DEMO_MODE_ENABLED_ON_SERVER) {
+                    return socket.emit("error", { 
+                        message: "❌ Mode démo désactivé sur le serveur." 
+                    });
+                }
+
+                // ✅ Générer un vrai wallet TRON pour le mode démo
+                try {
+                    const demoAccount = await tronWeb.createAccount();
+                    wallet = demoAccount.address.base58;
+                    console.log(`🔬 Mode démo : wallet généré pour ${name} → ${wallet}`);
+                } catch (e) {
+                    console.warn("⚠️ Échec génération wallet démo, utilisation d'une adresse temporaire");
+                    wallet = "T" + Math.random().toString(36).substring(2, 15).toUpperCase();
+                }
+            }
+
+            // ✅ Vérifier que le wallet est valide (sauf si déjà accepté)
+            if (!isValidTronAddress(wallet) && !isDemo) {
+                return socket.emit("error", { message: "Adresse TRON invalide." });
+            }
+
+            // ✅ Vérifier que la mise est valide
+            if (!Number.isFinite(bet) || bet <= 0) {
+                return socket.emit("error", { message: "Mise invalide." });
+            }
+
+            // ✅ Vérifier que le token est supporté
+            if (!SUPPORTED_TOKENS[token]) {
+                return socket.emit("error", { message: "Token non supporté." });
+            }
 
             if (!game.id || game.status === "waiting" || game.status === "finished") {
                 await startPreparationPhase();
             }
 
-            if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) {
-                return socket.emit("error", { message: "Données invalides." });
-            }
-
+            // ✅ Vérifier si le joueur existe déjà
             const existingPlayer = await Player.findOne({ wallet });
             const isSameActiveRound = existingPlayer && 
                                      existingPlayer.gameId === game.id &&
@@ -1072,10 +1105,22 @@ io.on("connection", async (socket) => {
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
-                existingPlayer.paid = false;
-                existingPlayer.paymentTxId = undefined;
-                existingPlayer.depositAmount = bet;
-                existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                
+                // ✅ Mode démo : marquer comme payé automatiquement
+                if (isDemo) {
+                    existingPlayer.paid = true;
+                    existingPlayer.isDemo = true;
+                    existingPlayer.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    existingPlayer.depositAmount = null;
+                    existingPlayer.depositExpiresAt = null;
+                } else {
+                    existingPlayer.paid = false;
+                    existingPlayer.isDemo = false;
+                    existingPlayer.paymentTxId = undefined;
+                    existingPlayer.depositAmount = bet;
+                    existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                }
+                
                 await existingPlayer.save();
 
                 socket.emit("player:joined", { 
@@ -1089,7 +1134,10 @@ io.on("connection", async (socket) => {
                     remainingSeconds: getRemainingSeconds(), 
                     endsAt: game.endsAt || game.preparationEndsAt 
                 });
+                
+                // ✅ Mise à jour du classement
                 await broadcastGameState();
+                await emitLeaderboard();
                 return;
             }
 
@@ -1100,10 +1148,22 @@ io.on("connection", async (socket) => {
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
-                existingPlayer.paid = false;
-                existingPlayer.paymentTxId = undefined;
-                existingPlayer.depositAmount = bet;
-                existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                
+                // ✅ Mode démo : marquer comme payé automatiquement
+                if (isDemo) {
+                    existingPlayer.paid = true;
+                    existingPlayer.isDemo = true;
+                    existingPlayer.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    existingPlayer.depositAmount = null;
+                    existingPlayer.depositExpiresAt = null;
+                } else {
+                    existingPlayer.paid = false;
+                    existingPlayer.isDemo = false;
+                    existingPlayer.paymentTxId = undefined;
+                    existingPlayer.depositAmount = bet;
+                    existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                }
+                
                 existingPlayer.sessionToken = sessionToken;
                 await existingPlayer.save();
 
@@ -1125,11 +1185,13 @@ io.on("connection", async (socket) => {
                     taps: 0,
                     weeklyTaps: 0,
                     bet,
-                    paid: false,
+                    paid: isDemo, // ✅ true en mode démo
+                    isDemo: isDemo,
                     token,
-                    depositAmount: bet,
-                    depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
-                    sessionToken: sessionToken
+                    depositAmount: isDemo ? null : bet,
+                    depositExpiresAt: isDemo ? null : new Date(Date.now() + 10 * 60 * 1000),
+                    sessionToken: sessionToken,
+                    paymentTxId: isDemo ? "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase() : undefined
                 });
 
                 socket.data.playerId = player._id.toString();
@@ -1147,10 +1209,27 @@ io.on("connection", async (socket) => {
                         paid: player.paid,
                         token: player.token,
                         depositAmount: player.depositAmount,
-                        sessionToken: sessionToken
+                        sessionToken: sessionToken,
+                        isDemo: isDemo
                     },
                     game: getGameStateObject()
                 });
+            }
+
+            // ✅ Si mode démo, notifier le client
+            if (isDemo) {
+                socket.emit("demo:activated", { 
+                    message: "🔬 Mode démo activé ! Tu peux jouer sans payer." 
+                });
+                socket.emit("payment:verified", { 
+                    verified: true, 
+                    wallet: wallet, 
+                    amount: bet, 
+                    playerName: name, 
+                    token: token 
+                });
+                // ✅ Mettre à jour l'affichage du classement
+                await emitLeaderboard();
             }
 
             socket.emit("timer:update", { 
@@ -1159,43 +1238,28 @@ io.on("connection", async (socket) => {
                 remainingSeconds: getRemainingSeconds(), 
                 endsAt: game.endsAt || game.preparationEndsAt 
             });
+            
             await broadcastGameState();
+            await emitLeaderboard();
+            
         } catch (error) { 
             console.error("❌ player:join :", error?.message || error); 
             socket.emit("error", { message: "Impossible de rejoindre la partie." }); 
         }
     });
 
-    // ===== TAP — CORRIGÉ AVEC LOGS =====
+    // ===== TAP =====
     socket.on("player:tap", async () => {
         try {
             const playerId = socket.data.playerId;
-            if (!playerId) {
-                console.log("⚠️ Tap ignoré : pas de playerId");
-                return;
-            }
-            if (game.status !== "running") {
-                console.log("⚠️ Tap ignoré : jeu pas en cours");
-                return;
-            }
-            
+            if (!playerId || game.status !== "running") return;
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: 1, weeklyTaps: 1 } },
                 { new: true }
             ).select("name taps");
-            
-            if (!result) {
-                console.log("⚠️ Tap ignoré : joueur non trouvé ou non payé");
-                return;
-            }
-            
-            console.log(`🖱️ ${result.name} → ${result.taps} taps`);
-            
-            // ✅ Envoi individuel du score
+            if (!result) return;
             socket.emit("player:score", { taps: result.taps });
-            
-            // ✅ Mise à jour du classement pour tous
             await emitLeaderboard();
         } catch (error) { 
             console.error("❌ player:tap :", error?.message || error); 
@@ -1229,6 +1293,12 @@ io.on("connection", async (socket) => {
 
         const playerId = socket.data.playerId;
         if (!playerId) return socket.emit("error", { message: "Rejoins d'abord le jeu principal." });
+
+        // ✅ Bloquer les joueurs démo en duel
+        const player = await Player.findById(playerId);
+        if (player && player.isDemo) {
+            return socket.emit("error", { message: "❌ Mode démo : les duels ne sont pas disponibles." });
+        }
 
         if (!duelPools[bet]) duelPools[bet] = [];
         if (duelPools[bet].some(entry => entry.socketId === socket.id)) return;
@@ -1461,6 +1531,14 @@ setInterval(() => {
 // ROUTES API
 // ============================================================
 
+// ✅ Vérifier si le mode démo est disponible
+app.get("/api/demo/status", (req, res) => {
+    res.json({ 
+        enabled: DEMO_MODE_ENABLED_ON_SERVER,
+        message: DEMO_MODE_ENABLED_ON_SERVER ? "Mode démo disponible" : "Mode démo désactivé"
+    });
+});
+
 app.post("/api/demo/verify", async (req, res) => {
     try {
         if (!DEMO_MODE_ENABLED_ON_SERVER) {
@@ -1486,6 +1564,7 @@ app.post("/api/demo/verify", async (req, res) => {
         });
 
         player.paid = true;
+        player.isDemo = true;
         player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
         player.depositAmount = null;
         player.depositExpiresAt = null;
@@ -1499,6 +1578,7 @@ app.post("/api/demo/verify", async (req, res) => {
             token: player.token 
         });
         await broadcastGameState();
+        await emitLeaderboard();
 
         res.json({ success: true });
     } catch (error) {
@@ -1523,7 +1603,8 @@ app.get("/api/status", (req, res) => res.json({
     gameStatus: game.status, 
     gameId: game.id, 
     remainingSeconds: getRemainingSeconds(), 
-    online: onlineSockets.size 
+    online: onlineSockets.size,
+    demoMode: DEMO_MODE_ENABLED_ON_SERVER
 }));
 
 app.get("/health", (req, res) => res.json({ 
@@ -1548,6 +1629,7 @@ async function startServer() {
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🎮 État initial du jeu : ${game.status}`);
             console.log(`📊 Online : ${onlineSockets.size}`);
+            console.log(`🔬 Mode démo : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
         });
     } catch (error) { 
         console.error("❌ Impossible de démarrer :", error); 
