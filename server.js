@@ -30,6 +30,7 @@ const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").tri
 const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
 const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+// ✅ MODE DÉMO RÉACTIVÉ
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 
 if (!MONGODB_URI || !PRIVATE_KEY || !ADMIN_PASSWORD) {
@@ -61,11 +62,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-// Rate Limiting HTTP simple
+// Rate Limiting HTTP
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
-// Configuration Socket.IO SOUPLE (pas de blocage)
 const io = new Server(server, { 
     cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"] }, 
     pingInterval: 25000, 
@@ -226,6 +226,11 @@ let game = {
     durationSeconds: GAME_DURATION_SECONDS, 
     preparationEndsAt: null 
 };
+
+const activeDuels = {};
+const duelPools = {};
+const pendingDuelPayments = {};
+const duelMatches = {};
 
 // ============================================================
 // GESTION DU JEU (TIMERS & CHRONO)
@@ -666,7 +671,7 @@ async function getIncomingTrc20Transactions(address) {
 }
 
 // ============================================================
-// JACKPOT & CHRONO (CORRIGÉ)
+// JACKPOT & CHRONO
 // ============================================================
 
 async function getNextSaturday() {
@@ -802,13 +807,8 @@ async function tryStartDuel(matchId) {
     }, 60000);
 }
 
-const activeDuels = {};
-const duelPools = {};
-const pendingDuelPayments = {};
-const duelMatches = {};
-
 // ============================================================
-// SOCKET.IO — ÉVÉNEMENTS (SIMPLIFIÉS & FONCTIONNELS)
+// SOCKET.IO — ÉVÉNEMENTS
 // ============================================================
 
 io.on("connection", async (socket) => {
@@ -864,11 +864,17 @@ io.on("connection", async (socket) => {
 
             if (!name || name.length < 2) return socket.emit("error", { message: "Pseudo invalide (minimum 2 caractères)." });
 
+            // ✅ MODE DÉMO : Détection et validation
             const isDemo = wallet && wallet.startsWith('DEMO_');
             if (isDemo) {
                 if (!DEMO_MODE_ENABLED_ON_SERVER) return socket.emit("error", { message: "❌ Mode démo désactivé sur le serveur." });
-                try { const demoAccount = await tronWeb.createAccount(); wallet = demoAccount.address.base58; }
-                catch (e) { wallet = "T" + Math.random().toString(36).substring(2, 15).toUpperCase(); }
+                try { 
+                    const demoAccount = await tronWeb.createAccount(); 
+                    wallet = demoAccount.address.base58; 
+                    console.log(`🔬 Mode démo : wallet généré pour ${name} -> ${wallet}`);
+                } catch (e) { 
+                    wallet = "T" + Math.random().toString(36).substring(2, 15).toUpperCase(); 
+                }
             }
 
             if (!isValidTronAddress(wallet) && !isDemo) return socket.emit("error", { message: "Adresse TRON invalide." });
@@ -930,6 +936,7 @@ io.on("connection", async (socket) => {
                 socket.emit("player:joined", { success: true, player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid, token: player.token, depositAmount: player.depositAmount, sessionToken: sessionToken, isDemo: isDemo }, game: getGameStateObject() });
             }
 
+            // ✅ NOTIFICATION MODE DÉMO AU CLIENT
             if (isDemo) {
                 socket.emit("demo:activated", { message: "🔬 Mode démo activé ! Tu peux jouer sans payer." });
                 socket.emit("payment:verified", { verified: true, wallet: wallet, amount: bet, playerName: name, token: token });
@@ -941,7 +948,7 @@ io.on("connection", async (socket) => {
         } catch (error) { console.error("❌ player:join :", error?.message || error); socket.emit("error", { message: "Impossible de rejoindre la partie." }); }
     });
 
-    // ✅ LE TAP MARCHE (AUCUNE RESTRICTION TEMPORELLE BLOQUANTE)
+    // ✅ TAPS ACTIFS (Aucune restriction bloquante)
     socket.on("player:tap", async () => {
         try {
             const playerId = socket.data.playerId;
@@ -1074,7 +1081,15 @@ setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 
 // ============================================================
 // ROUTES API
 // ============================================================
-app.get("/api/demo/status", (req, res) => { res.json({ enabled: DEMO_MODE_ENABLED_ON_SERVER, message: DEMO_MODE_ENABLED_ON_SERVER ? "Mode démo disponible" : "Mode démo désactivé" }); });
+// ✅ ROUTE MODE DÉMO : STATUT
+app.get("/api/demo/status", (req, res) => { 
+    res.json({ 
+        enabled: DEMO_MODE_ENABLED_ON_SERVER, 
+        message: DEMO_MODE_ENABLED_ON_SERVER ? "Mode démo disponible" : "Mode démo désactivé" 
+    }); 
+});
+
+// ✅ ROUTE MODE DÉMO : VÉRIFICATION
 app.post("/api/demo/verify", async (req, res) => {
     try {
         if (!DEMO_MODE_ENABLED_ON_SERVER) return res.status(403).json({ success: false, message: "Mode démo désactivé sur le serveur (variable ALLOW_DEMO_MODE)." });
@@ -1083,12 +1098,18 @@ app.post("/api/demo/verify", async (req, res) => {
         const player = await Player.findById(playerId);
         if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
         if (player.gameId !== game.id) return res.status(409).json({ success: false, message: "La manche a changé, rejoins à nouveau." });
-        player.paid = true; player.isDemo = true; player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase(); player.depositAmount = null; player.depositExpiresAt = null; await player.save();
+        player.paid = true; 
+        player.isDemo = true; 
+        player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase(); 
+        player.depositAmount = null; 
+        player.depositExpiresAt = null; 
+        await player.save();
         io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
         await emitLeaderboard();
         res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
+
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
 app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateObject() }));
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size, demoMode: DEMO_MODE_ENABLED_ON_SERVER }));
@@ -1106,6 +1127,7 @@ async function startServer() {
             console.log("🚀 BACKEND ONLINE");
             console.log(`🌐 Port : ${PORT}`);
             console.log(`🎮 État initial du jeu : ${game.status}`);
+            console.log(`🔬 Mode démo : ${DEMO_MODE_ENABLED_ON_SERVER ? 'ACTIVÉ' : 'DÉSACTIVÉ'}`);
         });
     } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
 }
