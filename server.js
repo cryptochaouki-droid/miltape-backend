@@ -19,6 +19,9 @@ const DUEL_PAYMENT_TIMEOUT_MS = 120000; // ✅ FIX : 2 min pour payer (au lieu d
 // en se connectant directement en Socket.io avec un script). C'est désormais la source de vérité :
 // tout tap plus rapproché que ça est silencieusement ignoré, quel que soit le client utilisé.
 const MIN_TAP_INTERVAL_MS = 20;
+// ✅ NOUVEAU : commission de parrainage, payée par la maison sur chaque mise réelle
+// d'un joueur parrainé — ne réduit jamais le gain du joueur lui-même.
+const REFERRAL_PERCENT = 0.03;
 
 // ✅ FIX CORS : domaine par défaut corrigé vers le vrai domaine du frontend
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
@@ -103,7 +106,14 @@ const playerSchema = new mongoose.Schema({
 
     // Champs séparés pour le duel (pour éviter les conflits avec le mode classique)
     duelPaid: { type: Boolean, default: false },
-    duelPaymentTxId: { type: String, sparse: true }
+    duelPaymentTxId: { type: String, sparse: true },
+
+    // ✅ NOUVEAU : système de parrainage
+    referralCode: { type: String, unique: true, sparse: true },
+    referredByCode: { type: String, default: null },
+    referralCounted: { type: Boolean, default: false }, // pour ne compter qu'une fois ce filleul dans referralCount
+    referralEarnings: { type: Number, default: 0 },
+    referralCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
 const duelEntrySchema = new mongoose.Schema({
@@ -115,6 +125,20 @@ const duelEntrySchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const DuelEntry = mongoose.model("DuelEntry", duelEntrySchema);
+
+// ✅ NOUVEAU : historique transparent des commissions de parrainage versées
+const referralPayoutSchema = new mongoose.Schema({
+    referrerId: mongoose.Schema.Types.ObjectId,
+    referrerWallet: String,
+    referredPlayerId: mongoose.Schema.Types.ObjectId,
+    referredName: String,
+    referredWallet: String,
+    betAmount: Number,
+    commission: Number,
+    token: String,
+    txId: String
+}, { timestamps: true });
+const ReferralPayout = mongoose.model("ReferralPayout", referralPayoutSchema);
 
 const messageSchema = new mongoose.Schema({ name: String, message: String, gameId: String }, { timestamps: true });
 const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }, from: String, to: String, amount: Number, verified: Boolean, gameId: String, token: String }, { timestamps: true });
@@ -149,6 +173,15 @@ function isValidTronAddress(address) { try { return tronWeb.isAddress(normalizeW
 function sameWallet(a, b) { return normalizeWallet(a) === normalizeWallet(b); }
 function generateGameId() { return "GAME-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).substring(2, 8).toUpperCase(); }
 function generateSessionToken() { return require('crypto').randomBytes(32).toString('hex'); }
+// ✅ NOUVEAU : code de parrainage court et unique, réessayé en cas de collision improbable
+async function generateUniqueReferralCode() {
+    for (let i = 0; i < 10; i++) {
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const exists = await Player.findOne({ referralCode: code });
+        if (!exists) return code;
+    }
+    return "R" + Date.now().toString(36).toUpperCase();
+}
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) { const controller = new AbortController(); const id = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { ...options, signal: controller.signal }); } finally { clearTimeout(id); } }
 
 let gameTimer = null, nextGameTimeout = null;
@@ -367,6 +400,40 @@ async function sendPrizeToWinner(historyEntry) {
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
 
+// ✅ NOUVEAU : verse la commission de parrainage au parrain quand son filleul confirme
+// une mise réelle (mode classique ou duel). N'est jamais appelé sur les mises démo.
+async function payReferralCommission(referredPlayer, betAmount, token) {
+    try {
+        if (!referredPlayer.referredByCode) return;
+        const referrer = await Player.findOne({ referralCode: referredPlayer.referredByCode });
+        if (!referrer) return;
+        if (sameWallet(referrer.wallet, referredPlayer.wallet)) return; // sécurité anti auto-parrainage
+
+        const commission = Number((Number(betAmount) * REFERRAL_PERCENT).toFixed(6));
+        if (commission <= 0) return;
+
+        const txId = await sendPrizeToWinner({ wallet: referrer.wallet, gain: commission, token, playerName: referrer.name });
+
+        referrer.referralEarnings = Number((Number(referrer.referralEarnings || 0) + commission).toFixed(6));
+        if (!referredPlayer.referralCounted) {
+            referrer.referralCount = Number(referrer.referralCount || 0) + 1;
+            referredPlayer.referralCounted = true;
+            await referredPlayer.save();
+        }
+        await referrer.save();
+
+        await ReferralPayout.create({
+            referrerId: referrer._id,
+            referrerWallet: referrer.wallet,
+            referredPlayerId: referredPlayer._id,
+            referredName: referredPlayer.name,
+            referredWallet: referredPlayer.wallet,
+            betAmount, commission, token,
+            txId: txId || null
+        });
+    } catch (error) { console.error("❌ Erreur payReferralCommission :", error?.message || error); }
+}
+
 // ✅ FIX SÉCURITÉ DUEL : ajout du paramètre expectedSender pour vérifier l'expéditeur de la transaction
 async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSender = null) {
     try {
@@ -478,6 +545,7 @@ async function checkPendingPayments() {
             matchingPlayer.depositExpiresAt = null;
             await matchingPlayer.save();
             await Payment.create({ txId, from: senderAddress, to: MILTAPE_WALLET, amount, verified: true, gameId: game.id, token });
+            await payReferralCommission(matchingPlayer, matchingPlayer.bet, token); // ✅ NOUVEAU
             io.emit("payment:verified", { verified: true, wallet: matchingPlayer.wallet, amount: matchingPlayer.bet, playerName: matchingPlayer.name, token });
             io.emit("chat:message", { name: "🟢 Système", message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token}`, createdAt: new Date() });
 
@@ -543,6 +611,17 @@ io.on("connection", async (socket) => {
         } catch (e) { socket.emit("player:restored", { success: false }); }
     });
 
+    // ✅ NOUVEAU : rafraîchit les stats de parrainage à la demande (ouverture de la modale côté client)
+    socket.on("referral:stats", async () => {
+        try {
+            const playerId = socket.data.playerId;
+            if (!playerId) return socket.emit("referral:stats", { success: false });
+            const player = await Player.findById(playerId).select("referralCode referralEarnings referralCount");
+            if (!player) return socket.emit("referral:stats", { success: false });
+            socket.emit("referral:stats", { success: true, referralCode: player.referralCode, referralEarnings: player.referralEarnings, referralCount: player.referralCount });
+        } catch (e) { socket.emit("referral:stats", { success: false }); }
+    });
+
     socket.on("player:join", async (data) => {
         try {
             const name = String(data?.name || "").trim().substring(0, 30);
@@ -550,6 +629,7 @@ io.on("connection", async (socket) => {
             const deviceId = normalizeWallet(data?.deviceId);
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
+            const referralCodeInput = String(data?.referralCode || "").trim().toUpperCase(); // ✅ NOUVEAU
 
             if (!game.id || game.status === "waiting" || game.status === "finished") await startPreparationPhase();
 
@@ -577,6 +657,7 @@ io.on("connection", async (socket) => {
                 existingPlayer.paymentTxId = undefined;
                 existingPlayer.depositAmount = bet;
                 existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode(); // ✅ backfill
                 await existingPlayer.save();
 
                 socket.emit("player:joined", { success: true, player: existingPlayer, game: getGameStateObject() });
@@ -597,6 +678,7 @@ io.on("connection", async (socket) => {
                 existingPlayer.depositAmount = bet;
                 existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 existingPlayer.sessionToken = sessionToken;
+                if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode(); // ✅ backfill
                 await existingPlayer.save();
 
                 socket.data.playerId = existingPlayer._id.toString();
@@ -605,6 +687,16 @@ io.on("connection", async (socket) => {
 
                 socket.emit("player:joined", { success: true, player: existingPlayer, game: getGameStateObject() });
             } else {
+                // ✅ NOUVEAU : génère le code de parrainage propre au nouveau joueur, et
+                // rattache son parrain si un code valide a été fourni (auto-parrainage impossible ici,
+                // le wallet n'existe pas encore en base).
+                const ownReferralCode = await generateUniqueReferralCode();
+                let referredByCode = null;
+                if (referralCodeInput) {
+                    const referrer = await Player.findOne({ referralCode: referralCodeInput });
+                    if (referrer) referredByCode = referralCodeInput;
+                }
+
                 const player = await Player.create({
                     gameId: game.id,
                     name,
@@ -617,7 +709,9 @@ io.on("connection", async (socket) => {
                     token,
                     depositAmount: bet,
                     depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
-                    sessionToken: sessionToken
+                    sessionToken: sessionToken,
+                    referralCode: ownReferralCode,
+                    referredByCode
                 });
 
                 socket.data.playerId = player._id.toString();
@@ -635,7 +729,10 @@ io.on("connection", async (socket) => {
                         paid: player.paid,
                         token: player.token,
                         depositAmount: player.depositAmount,
-                        sessionToken: sessionToken
+                        sessionToken: sessionToken,
+                        referralCode: player.referralCode,
+                        referralEarnings: player.referralEarnings,
+                        referralCount: player.referralCount
                     },
                     game: getGameStateObject()
                 });
@@ -926,6 +1023,7 @@ io.on("connection", (socket) => {
             pendingDuelPayments[socket.id] = pending;
 
             await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
+            await payReferralCommission(player, betAmount, "USDT"); // ✅ NOUVEAU
 
             socket.emit("duel:payment_success");
 
