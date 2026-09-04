@@ -16,7 +16,6 @@
   <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
   <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
   
-  <!-- 1. Script Telegram sécurisé avec gestion d'erreur améliorée -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function initTelegramWebApp() {
@@ -649,7 +648,6 @@
       100% { transform: scale(1.8); opacity: 0; } 
     }
 
-    /* ===== BOUTON PRINCIPAL CORRIGÉ - REMONTÉ ===== */
     .main-play-button {
       display: block;
       width: 85%;
@@ -1052,7 +1050,7 @@
       color: #64b5f6; 
       text-decoration: none; 
     }
-    
+
     /* ===== MODALE DE BIENVENUE CORRIGÉE ===== */
     #welcomeModal { 
       position: fixed; 
@@ -1097,11 +1095,10 @@
       margin: 0 0 20px; 
     }
     
-    /* ===== ALIGNEMENT PARFAIT DES ÉTAPES ===== */
     #welcomeModal .welcome-steps { 
       text-align: left; 
       font-size: 14px; 
-      line-height: 1.8; 
+      line-height: 2; 
       background: rgba(0, 0, 0, .2); 
       border-radius: 12px; 
       padding: 12px 16px; 
@@ -1111,18 +1108,11 @@
     #welcomeModal .welcome-steps div { 
       display: flex; 
       align-items: flex-start; 
-      gap: 8px; 
-      padding: 3px 0;
+      gap: 6px; 
     }
     
     #welcomeModal .welcome-steps strong { 
       color: #64b5f6; 
-    }
-    
-    #welcomeModal .welcome-secure { 
-      font-size: 12px; 
-      color: rgba(255, 255, 255, .6); 
-      margin-bottom: 16px; 
     }
     
     #welcomeModal .welcome-btn { 
@@ -1147,7 +1137,6 @@
       box-shadow: 0 2px 0 #990000;
     }
 
-    /* ===== JACKPOT ===== */
     #jackpotDisplay { 
       position: relative; 
       width: calc(100% - 24px); 
@@ -1579,19 +1568,19 @@
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
 
-  <!-- ===== MODALE DE BIENVENUE AVEC LES 4 ÉTAPES CORRIGÉES ===== -->
+  <!-- ===== MODALE DE BIENVENUE - TEXTE EXACT DE LA CAPTURE ===== -->
   <div id="welcomeModal">
     <div class="welcome-content">
       <div class="welcome-icon">🎮</div>
       <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
       <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
       <div class="welcome-steps">
-        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise en 1 clic via Telegram Wallet (2 min pour préparer)</div>
-        <div>2️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
-        <div>3️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
-        <div>4️⃣ <strong>Paiements et gains 100% automatiques</strong> et sécurisés</div>
+        <div>1. <strong>Rejoins</strong> la partie avec ta mise en 1 clic via Telegram Wallet (2 min pour préparer)</div>
+        <div>2. <strong>Tape</strong> le plus vite possible pendant 10 min</div>
+        <div>3. <strong>Gagne</strong> ta mise si tu es ×2 dans le Top 5</div>
+        <div>4. <strong>Paiements et gains 100% automatiques</strong></div>
       </div>
-      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
+      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🎉 C'EST PARTI !</button>
     </div>
   </div>
 
@@ -1780,7 +1769,7 @@
       </div>
     </div>
 
-    <!-- Boutons principaux - remontés -->
+    <!-- Boutons principaux -->
     <button id="payButton" 
             style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px;border-radius:24px;">
       💳 PAYER MA MISE
