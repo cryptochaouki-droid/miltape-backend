@@ -27,8 +27,12 @@ const REFERRAL_PERCENT = 0.03;
 // Le client doit résoudre un petit défi de hachage avant de pouvoir rejoindre une partie.
 const POW_DIFFICULTY = 4; // nombre de zéros hexadécimaux requis en tête du hash (quasi instantané pour un vrai navigateur)
 // ✅ NOUVEAU : anti-flood Socket.io par IP
-const MAX_SOCKETS_PER_IP = 8;               // connexions simultanées max depuis une même adresse
-const MAX_NEW_CONNECTIONS_PER_IP_PER_MIN = 30; // nouvelles connexions max par minute depuis une même adresse
+// ✅ CORRIGÉ EN URGENCE : les seuils initiaux étaient bien trop bas — plusieurs appareils
+// derrière une même box Wi-Fi ou un même partage de connexion 4G partagent la MÊME IP
+// publique. Avec l'ancien seuil, quelques téléphones testant ensemble suffisaient à tout
+// bloquer pour tout le monde derrière cette IP (chrono, chat, tout).
+const MAX_SOCKETS_PER_IP = 40;                  // connexions simultanées max depuis une même adresse
+const MAX_NEW_CONNECTIONS_PER_IP_PER_MIN = 120; // nouvelles connexions max par minute depuis une même adresse
 
 // ✅ FIX CORS : domaine par défaut corrigé vers le vrai domaine du frontend
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
@@ -96,6 +100,10 @@ const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET"
 io.use((socket, next) => {
     const ip = getClientIp(socket);
     socket.data.clientIp = ip;
+
+    // ✅ FIX : sans IP fiable, on ne limite pas (voir getClientIp) — mieux vaut ne pas
+    // protéger cette connexion que de risquer de bloquer tout le monde par erreur.
+    if (!ip) return next();
 
     const activeForIp = socketsByIp.get(ip);
     if (activeForIp && activeForIp.size >= MAX_SOCKETS_PER_IP) {
@@ -247,7 +255,10 @@ const connectionAttemptsByIp = new Map(); // ip -> { count, windowStart }
 function getClientIp(socket) {
     const forwarded = socket.handshake.headers['x-forwarded-for'];
     if (forwarded) return String(forwarded).split(',')[0].trim();
-    return socket.handshake.address;
+    // ✅ FIX : pas de repli sur socket.handshake.address — derrière le proxy de Railway,
+    // cette adresse peut être identique pour tout le monde, ce qui regrouperait
+    // tous les joueurs sous une seule IP et les bloquerait tous ensemble.
+    return null;
 }
 
 // ✅ NOUVEAU : émet un petit défi de preuve de travail (anti-bot invisible) au socket donné
@@ -646,8 +657,10 @@ io.on("connection", async (socket) => {
 
     // ✅ NOUVEAU : suivi par IP (anti-flood) + défi anti-bot invisible
     const clientIp = socket.data.clientIp;
-    if (!socketsByIp.has(clientIp)) socketsByIp.set(clientIp, new Set());
-    socketsByIp.get(clientIp).add(socket.id);
+    if (clientIp) {
+        if (!socketsByIp.has(clientIp)) socketsByIp.set(clientIp, new Set());
+        socketsByIp.get(clientIp).add(socket.id);
+    }
     issuePowChallenge(socket);
 
     socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
