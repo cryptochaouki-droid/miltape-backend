@@ -26,7 +26,6 @@
           w.ready();
           w.expand();
           
-          // Configuration des boutons avec vérification
           try {
             if (w.version && parseFloat(w.version) >= 6.1) {
               w.BackButton.show();
@@ -40,12 +39,10 @@
             console.warn("⚠️ BackButton non supporté:", e); 
           }
           
-          // Configuration du thème
           if (w.colorScheme) {
             document.documentElement.setAttribute('data-telegram-theme', w.colorScheme);
           }
           
-          // Activation du mode plein écran si disponible
           try {
             if (w.requestFullscreen && w.isExpanded === false) {
               w.requestFullscreen();
@@ -62,7 +59,6 @@
     })();
   </script>
 
-  <!-- ===== SÉCURITÉ CSP (Content Security Policy) ===== -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.socket.io https://cdn.jsdelivr.net https://unpkg.com https://telegram.org;
@@ -73,7 +69,6 @@
     frame-src 'self' https://telegram.org https://t.me;
   ">
   
-  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE AMÉLIORÉE ===== -->
   <script>
     (function clearCache() {
       try {
@@ -97,7 +92,6 @@
           });
         }
         
-        // Ajout d'un timestamp pour éviter le cache
         if (!localStorage.getItem('miltape_version')) {
           localStorage.setItem('miltape_version', Date.now().toString());
         }
@@ -107,13 +101,11 @@
     })();
   </script>
   
-  <!-- 2. CDN Socket.IO avec timeout -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   
   <style>
-    /* ===== VARIABLES CSS ===== */
     :root {
       --primary-blue: #0d47a1;
       --primary-light: #64b5f6;
@@ -130,7 +122,6 @@
       --transition-speed: 0.3s;
     }
 
-    /* ===== FOND BLEU SAPHIR HD ===== */
     body {
       font-family: 'Poppins', sans-serif;
       background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%);
@@ -197,7 +188,6 @@
       animation: sparkleFloatHD 5s ease-in-out infinite alternate; 
     }
     
-    /* Positions des sparkles */
     .gem-sparkle:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
     .gem-sparkle:nth-child(2) { top: 25%; left: 85%; animation-delay: 1.4s; width: 6px; height: 6px; }
     .gem-sparkle:nth-child(3) { top: 55%; left: 8%; animation-delay: 2.8s; }
@@ -224,7 +214,6 @@
       animation: fadeIn .6s ease-out; 
     }
     
-    /* Classes utilitaires */
     .glass-card {
       background: var(--glass-bg);
       backdrop-filter: blur(16px);
@@ -237,7 +226,6 @@
       border-radius: var(--border-radius) !important;
     }
     
-    /* Cache les éléments TON Connect */
     #ton-connect-button, 
     div[id^="tc-widget"], 
     iframe[id^="tc-widget"], 
@@ -560,7 +548,6 @@
       letter-spacing: 0.5px; 
     }
 
-    /* ===== BOUTON TAP AMÉLIORÉ ===== */
     .tap-button {
       position: relative;
       width: clamp(240px, 62vw, 360px) !important;
@@ -662,12 +649,12 @@
       100% { transform: scale(1.8); opacity: 0; } 
     }
 
-    /* ===== BOUTON ENTRER EN JEU CORRIGÉ ===== */
+    /* ===== BOUTON PRINCIPAL CORRIGÉ - REMONTÉ ===== */
     .main-play-button {
       display: block;
       width: 85%;
       max-width: 320px;
-      margin: 10px auto 15px;  /* Réduit la marge du haut pour remonter le bouton */
+      margin: 8px auto 12px;
       padding: 16px 20px;
       background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
       color: #fff;
@@ -684,23 +671,6 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       position: relative;
-    }
-
-    /* ===== ALIGNEMENT DES PHRASES DANS LA MODALE DE BIENVENUE ===== */
-    #welcomeModal .welcome-steps div {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    #welcomeModal .welcome-steps {
-      text-align: left;
-      font-size: 14px;
-      line-height: 1.8;
-      background: rgba(0, 0, 0, .2);
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 20px;
     }
     
     .main-play-button::after { 
@@ -1083,6 +1053,7 @@
       text-decoration: none; 
     }
     
+    /* ===== MODALE DE BIENVENUE CORRIGÉE ===== */
     #welcomeModal { 
       position: fixed; 
       inset: 0; 
@@ -1126,6 +1097,7 @@
       margin: 0 0 20px; 
     }
     
+    /* ===== ALIGNEMENT PARFAIT DES ÉTAPES ===== */
     #welcomeModal .welcome-steps { 
       text-align: left; 
       font-size: 14px; 
@@ -1138,8 +1110,9 @@
     
     #welcomeModal .welcome-steps div { 
       display: flex; 
-      align-items: center; 
+      align-items: flex-start; 
       gap: 8px; 
+      padding: 3px 0;
     }
     
     #welcomeModal .welcome-steps strong { 
@@ -1153,21 +1126,25 @@
     }
     
     #welcomeModal .welcome-btn { 
-      background: #64b5f6; 
-      color: #051230; 
-      border: none; 
-      padding: 12px 24px; 
-      border-radius: 12px; 
-      font-size: 16px; 
-      font-weight: 700; 
-      cursor: pointer; 
-      width: 100%; 
-      font-family: 'Poppins', sans-serif; 
-      transition: transform .15s ease; 
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      width: 100%;
+      font-family: 'Poppins', sans-serif;
+      transition: transform .15s ease;
+      box-shadow: 0 6px 0 #990000, 0 8px 25px rgba(255, 65, 108, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
     
     #welcomeModal .welcome-btn:active { 
-      transform: scale(.96); 
+      transform: scale(.96) translateY(4px);
+      box-shadow: 0 2px 0 #990000;
     }
 
     /* ===== JACKPOT ===== */
@@ -1328,7 +1305,6 @@
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); 
     }
 
-    /* ===== BOUTON DUEL ===== */
     #duelButton {
       background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
       box-shadow: 0 8px 0 #4a148c, 0 10px 30px rgba(156, 39, 176, 0.5) !important;
@@ -1338,7 +1314,6 @@
       box-shadow: 0 2px 0 #4a148c !important; 
     }
 
-    /* ===== BOUTONS DE MISE DUEL ===== */
     .duelBetBtn {
       border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
@@ -1361,7 +1336,6 @@
       box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
     }
 
-    /* ===== NOTIFICATIONS ===== */
     .notification {
       background: rgba(5, 18, 48, 0.95);
       color: #fff;
@@ -1406,7 +1380,6 @@
       }
     }
 
-    /* ===== RESPONSIVE ===== */
     @media(max-width:430px) { 
       .tap-button { 
         width: clamp(200px, 58vw, 280px) !important; 
@@ -1503,7 +1476,6 @@
       } 
     }
     
-    /* ===== ANIMATIONS GLOBALES ===== */
     @keyframes fadeIn { 
       0% { opacity: 0; transform: translateY(20px); } 
       100% { opacity: 1; transform: translateY(0); } 
@@ -1529,7 +1501,6 @@
       100% { transform: translateY(100vh) rotate(720deg) scale(.5); opacity: 0; } 
     }
     
-    /* ===== TICKER ===== */
     #winnerTicker { 
       width: 100%; 
       max-width: 480px; 
@@ -1608,19 +1579,18 @@
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
 
-  <!-- Modal de bienvenue -->
+  <!-- ===== MODALE DE BIENVENUE AVEC LES 4 ÉTAPES CORRIGÉES ===== -->
   <div id="welcomeModal">
     <div class="welcome-content">
       <div class="welcome-icon">🎮</div>
       <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
       <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
       <div class="welcome-steps">
-        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
-        <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet (2 min pour préparer)</div>
-        <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
-        <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
+        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise en 1 clic via Telegram Wallet (2 min pour préparer)</div>
+        <div>2️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
+        <div>3️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
+        <div>4️⃣ <strong>Paiements et gains 100% automatiques</strong> et sécurisés</div>
       </div>
-      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong> et sécurisés</div>
       <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
     </div>
   </div>
@@ -1810,7 +1780,7 @@
       </div>
     </div>
 
-    <!-- Boutons principaux -->
+    <!-- Boutons principaux - remontés -->
     <button id="payButton" 
             style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px;border-radius:24px;">
       💳 PAYER MA MISE
@@ -2056,7 +2026,6 @@
       
       let wallet = null;
       
-      // 1) Wallet injecté par une extension
       try {
         if (typeof tronWeb !== 'undefined' && tronWeb?.createAccount) {
           const account = await tronWeb.createAccount();
@@ -2066,7 +2035,6 @@
         console.warn("⚠️ tronWeb (extension) indisponible :", e); 
       }
       
-      // 2) Génération locale via la librairie TronWeb
       if (!wallet) {
         try {
           const TW = (typeof TronWeb !== 'undefined') ? (TronWeb.TronWeb || TronWeb) : null;
@@ -2090,7 +2058,6 @@
         return wallet;
       }
       
-      // 3) Échec complet
       showNotification("error", "⚠️ Impossible d'initialiser le mode démo. Recharge la page.");
       throw new Error("DEMO_WALLET_GENERATION_FAILED");
     }
@@ -2943,7 +2910,6 @@
       });
     }
     
-    // Fermer les modals en cliquant à l'extérieur
     document.querySelectorAll('.legal-modal').forEach(modal => {
       modal.addEventListener('click', function(e) {
         if (e.target === this) {
