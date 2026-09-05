@@ -1250,7 +1250,7 @@
     }
     
     let lastTapTime = 0;
-    const MIN_TAP_INTERVAL_MS = 20;
+    const MIN_TAP_INTERVAL_MS = 60; // ✅ aligné avec le nouveau seuil serveur (anti-bot renforcé)
 
     // ===== COMPTEUR DE TAPS — SOURCE UNIQUE : LE SERVEUR =====
     // Le compteur n'est plus incrémenté localement au clic : il n'est mis à jour
@@ -1751,5 +1751,4 @@
           if (timerRuleValue) {
             timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
           }
-          if (localTimer <= 0) {
-            clearInterval(loca
+ 
