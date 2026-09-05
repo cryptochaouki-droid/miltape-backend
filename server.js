@@ -19,10 +19,19 @@ const DUEL_PAYMENT_TIMEOUT_MS = 120000; // ✅ FIX : 2 min pour payer (au lieu d
 // ✅ FIX SÉCURITÉ : avant, la seule limite de fréquence des taps était côté client (contournable
 // en se connectant directement en Socket.io avec un script). C'est désormais la source de vérité :
 // tout tap plus rapproché que ça est silencieusement ignoré, quel que soit le client utilisé.
-const MIN_TAP_INTERVAL_MS = 20;
+// ✅ RENFORCÉ : 20ms autorisait ~50 taps/seconde, largement au-dessus de ce qu'un humain
+// peut soutenir sur 10 minutes — un bot qui contournerait l'anti-bot aurait un avantage
+// écrasant. 60ms plafonne à ~16 taps/seconde, généreux pour un humain rapide mais bien
+// moins exploitable mécaniquement.
+const MIN_TAP_INTERVAL_MS = 60;
+// ✅ NOUVEAU : anti-spam du chat
+const MIN_CHAT_INTERVAL_MS = 2000; // 1 message max toutes les 2 secondes par connexion
 // ✅ NOUVEAU : commission de parrainage, payée par la maison sur chaque mise réelle
 // d'un joueur parrainé — ne réduit jamais le gain du joueur lui-même.
 const REFERRAL_PERCENT = 0.03;
+// ✅ RENFORCÉ : garde-fous anti-abus du parrainage (argent réel)
+const REFERRAL_MIN_BET = 1;          // aucune commission en dessous de cette mise (anti farming de micro-mises)
+const REFERRAL_DAILY_CAP_PER_REFERRER = 20; // au-delà de ce total de commissions/24h pour un même parrain, on suspend et on journalise pour revue manuelle
 // ✅ NOUVEAU : anti-bot léger — preuve de travail invisible (aucun service tiers requis).
 // Le client doit résoudre un petit défi de hachage avant de pouvoir rejoindre une partie.
 const POW_DIFFICULTY = 4; // nombre de zéros hexadécimaux requis en tête du hash (quasi instantané pour un vrai navigateur)
@@ -177,7 +186,8 @@ const referralPayoutSchema = new mongoose.Schema({
     betAmount: Number,
     commission: Number,
     token: String,
-    txId: String
+    txId: String,
+    held: { type: Boolean, default: false } // ✅ NOUVEAU : true = plafond dépassé, en attente de revue admin
 }, { timestamps: true });
 const ReferralPayout = mongoose.model("ReferralPayout", referralPayoutSchema);
 
@@ -187,6 +197,16 @@ const bannedWalletSchema = new mongoose.Schema({
     reason: { type: String, default: "" }
 }, { timestamps: true });
 const BannedWallet = mongoose.model("BannedWallet", bannedWalletSchema);
+
+// ✅ NOUVEAU : journal d'audit des actions admin — trace qui a fait quoi et quand,
+// même si le panneau admin repose sur un seul mot de passe partagé.
+const adminAuditLogSchema = new mongoose.Schema({
+    route: String,
+    method: String,
+    ip: String,
+    payload: mongoose.Schema.Types.Mixed
+}, { timestamps: true });
+const AdminAuditLog = mongoose.model("AdminAuditLog", adminAuditLogSchema);
 
 const messageSchema = new mongoose.Schema({ name: String, message: String, gameId: String }, { timestamps: true });
 const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }, from: String, to: String, amount: Number, verified: Boolean, gameId: String, token: String }, { timestamps: true });
@@ -244,6 +264,7 @@ const duelMatches = {}; // ✅ FIX : matchId -> { entry1, entry2, bet, timeout, 
 // ✅ FIX SÉCURITÉ : anti-spam de taps appliqué côté serveur (voir MIN_TAP_INTERVAL_MS)
 const lastTapTimestamps = new Map();     // playerId -> timestamp du dernier tap classique accepté
 const lastDuelTapTimestamps = new Map(); // socket.id -> timestamp du dernier tap de duel accepté
+const lastChatTimestamps = new Map();    // socket.id -> timestamp du dernier message accepté
 
 // ✅ NOUVEAU : cache mémoire des wallets bannis (source de vérité = MongoDB, rechargé au démarrage)
 const bannedWallets = new Set();
@@ -477,22 +498,47 @@ async function sendPrizeToWinner(historyEntry) {
 async function payReferralCommission(referredPlayer, betAmount, token) {
     try {
         if (!referredPlayer.referredByCode) return;
+
+        // ✅ RENFORCÉ : commission unique par filleul, jamais répétée — supprime tout intérêt
+        // à faire rejouer un même filleul en boucle pour extraire de l'argent réel.
+        if (referredPlayer.referralCounted) return;
+
+        // ✅ RENFORCÉ : aucune commission sur les micro-mises (anti farming à l'échelle)
+        if (Number(betAmount) < REFERRAL_MIN_BET) return;
+
         const referrer = await Player.findOne({ referralCode: referredPlayer.referredByCode });
         if (!referrer) return;
-        if (sameWallet(referrer.wallet, referredPlayer.wallet)) return; // sécurité anti auto-parrainage
+
+        // ✅ RENFORCÉ : trois vérifications anti-abus cumulatives
+        if (sameWallet(referrer.wallet, referredPlayer.wallet)) return; // même wallet
+        if (referrer.deviceId && referredPlayer.deviceId && referrer.deviceId === referredPlayer.deviceId) return; // même appareil
+        if (referrer.referredByCode && referrer.referredByCode === referredPlayer.referralCode) return; // parrainage réciproque A<->B
 
         const commission = Number((Number(betAmount) * REFERRAL_PERCENT).toFixed(6));
         if (commission <= 0) return;
 
-        const txId = await sendPrizeToWinner({ wallet: referrer.wallet, gain: commission, token, playerName: referrer.name });
+        // ✅ RENFORCÉ : plafond glissant sur 24h — au-delà, on ne paie plus automatiquement,
+        // on journalise "held" pour qu'un admin valide manuellement via le panneau admin.
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentAgg = await ReferralPayout.aggregate([
+            { $match: { referrerId: referrer._id, createdAt: { $gte: since }, held: false } },
+            { $group: { _id: null, total: { $sum: "$commission" } } }
+        ]);
+        const alreadyPaid24h = recentAgg.length ? recentAgg[0].total : 0;
+        const held = (alreadyPaid24h + commission) > REFERRAL_DAILY_CAP_PER_REFERRER;
 
-        referrer.referralEarnings = Number((Number(referrer.referralEarnings || 0) + commission).toFixed(6));
-        if (!referredPlayer.referralCounted) {
+        let txId = null;
+        if (!held) {
+            txId = await sendPrizeToWinner({ wallet: referrer.wallet, gain: commission, token, playerName: referrer.name });
+            referrer.referralEarnings = Number((Number(referrer.referralEarnings || 0) + commission).toFixed(6));
             referrer.referralCount = Number(referrer.referralCount || 0) + 1;
-            referredPlayer.referralCounted = true;
-            await referredPlayer.save();
+            await referrer.save();
+        } else {
+            console.warn(`⚠️ Commission de parrainage mise en attente (plafond 24h dépassé) pour ${referrer.wallet}`);
         }
-        await referrer.save();
+
+        referredPlayer.referralCounted = true; // consommé quoi qu'il arrive — un seul essai par filleul
+        await referredPlayer.save();
 
         await ReferralPayout.create({
             referrerId: referrer._id,
@@ -501,7 +547,8 @@ async function payReferralCommission(referredPlayer, betAmount, token) {
             referredName: referredPlayer.name,
             referredWallet: referredPlayer.wallet,
             betAmount, commission, token,
-            txId: txId || null
+            txId: txId || null,
+            held
         });
     } catch (error) { console.error("❌ Erreur payReferralCommission :", error?.message || error); }
 }
@@ -866,6 +913,12 @@ io.on("connection", async (socket) => {
 
     socket.on("chat:send", async (data) => {
         try {
+            // ✅ NOUVEAU : anti-spam — rejet silencieux des messages trop rapprochés
+            const now = Date.now();
+            const lastChat = lastChatTimestamps.get(socket.id) || 0;
+            if (now - lastChat < MIN_CHAT_INTERVAL_MS) return;
+            lastChatTimestamps.set(socket.id, now);
+
             const name = socket.data.playerName || "Anonyme";
             const message = String(data?.message || "").trim().substring(0, 300);
             if (!message) return;
@@ -879,6 +932,7 @@ io.on("connection", async (socket) => {
         console.log(`🔴 Déconnexion Socket : ${socket.id}`);
         broadcastOnlineCount();
         lastDuelTapTimestamps.delete(socket.id); // ✅ nettoyage — clé éphémère liée à ce socket
+        lastChatTimestamps.delete(socket.id); // ✅ nettoyage — idem pour l'anti-spam chat
 
         // ✅ NOUVEAU : nettoyage du suivi par IP
         const ip = socket.data.clientIp;
@@ -1214,11 +1268,32 @@ app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 // query "?adminPassword=...", soit dans le corps JSON de la requête.
 const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de tentatives admin." } });
 
+// ✅ RENFORCÉ : comparaison en temps constant (résiste aux attaques par mesure de timing)
+function safeCompare(a, b) {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) {
+        crypto.timingSafeEqual(bufA, bufA); // même coût de calcul pour ne pas fuiter la longueur
+        return false;
+    }
+    return crypto.timingSafeEqual(bufA, bufB);
+}
+
 function requireAdmin(req, res, next) {
     const provided = req.headers['x-admin-password'] || req.query.adminPassword || (req.body && req.body.adminPassword);
-    if (!provided || provided !== ADMIN_PASSWORD) {
+    if (!provided || !safeCompare(provided, ADMIN_PASSWORD)) {
         return res.status(401).json({ success: false, message: "Non autorisé." });
     }
+    // ✅ NOUVEAU : journalisation asynchrone, ne bloque jamais la requête en cours
+    const rawPayload = req.method === 'GET' ? req.query : req.body;
+    const payload = { ...rawPayload };
+    delete payload.adminPassword; // jamais le mot de passe en clair dans le journal
+    AdminAuditLog.create({
+        route: req.originalUrl,
+        method: req.method,
+        ip: req.ip,
+        payload
+    }).catch(err => console.error("❌ Erreur log admin :", err?.message || err));
     next();
 }
 
@@ -1305,6 +1380,47 @@ app.get("/api/admin/banned", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const banned = await BannedWallet.find({}).sort({ createdAt: -1 }).lean();
         res.json({ success: true, banned });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+// ✅ NOUVEAU : commissions de parrainage mises en attente (plafond 24h dépassé) — à valider manuellement
+// ✅ NOUVEAU : journal d'audit des actions admin
+app.get("/api/admin/audit-log", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const logs = await AdminAuditLog.find({}).sort({ createdAt: -1 }).limit(200).lean();
+        res.json({ success: true, logs });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+app.get("/api/admin/referrals/held", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const held = await ReferralPayout.find({ held: true, txId: null }).sort({ createdAt: -1 }).lean();
+        res.json({ success: true, held });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+// Débloque et paie manuellement une commission de parrainage mise en attente
+app.post("/api/admin/referrals/release", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const payoutId = req.body?.payoutId;
+        if (!payoutId) return res.status(400).json({ success: false, message: "payoutId manquant." });
+
+        const payout = await ReferralPayout.findById(payoutId);
+        if (!payout) return res.status(404).json({ success: false, message: "Commission introuvable." });
+        if (payout.txId) return res.status(409).json({ success: false, message: "Déjà payée." });
+
+        const txId = await sendPrizeToWinner({ wallet: payout.referrerWallet, gain: payout.commission, token: payout.token, playerName: payout.referrerWallet });
+        if (!txId) return res.status(500).json({ success: false, message: "Échec de l'envoi on-chain." });
+
+        payout.txId = txId;
+        payout.held = false;
+        await payout.save();
+
+        await Player.findByIdAndUpdate(payout.referrerId, {
+            $inc: { referralEarnings: payout.commission }
+        });
+
+        res.json({ success: true, txId });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
