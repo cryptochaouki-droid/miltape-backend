@@ -8,18 +8,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5  # ✅ v4 → v5
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5  # ✅ v4 → v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
 
-      - uses: actions/setup-java@v5  # ✅ v4 → v5
+      - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4  # ✅ v3 → v4
 
       - name: Installer les dépendances
         run: npm install
@@ -44,7 +44,7 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Publier l'APK comme fichier téléchargeable
-        uses: actions/upload-artifact@v4  # 🔹 Celui-ci reste en v4 (pas de v5 pour upload-artifact, utilise v4)
+        uses: actions/upload-artifact@v4
         with:
           name: miltape-apk
           path: android/app/build/outputs/apk/release/app-release.apk
