@@ -15,7 +15,7 @@ const GAME_DURATION_SECONDS = 10 * 60;
 const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
-const DUEL_PAYMENT_TIMEOUT_MS = 120000; // ✅ FIX : 2 min pour payer (au lieu d'être couplé au démarrage du duel)
+const DUEL_PAYMENT_TIMEOUT_MS = 60000; // ✅ RÉDUIT : 1 min pour payer (au lieu de 2 min)
 // ✅ FIX SÉCURITÉ : avant, la seule limite de fréquence des taps était côté client (contournable
 // en se connectant directement en Socket.io avec un script). C'est désormais la source de vérité :
 // tout tap plus rapproché que ça est silencieusement ignoré, quel que soit le client utilisé.
@@ -31,6 +31,10 @@ const MIN_CHAT_INTERVAL_MS = 2000; // 1 message max toutes les 2 secondes par co
 const REFERRAL_PERCENT = 0.03;
 // ✅ RENFORCÉ : garde-fous anti-abus du parrainage (argent réel)
 const REFERRAL_MIN_BET = 1;          // aucune commission en dessous de cette mise (anti farming de micro-mises)
+// ✅ NOUVEAU : plafond de sécurité sur la mise (rejette les valeurs aberrantes/absurdes en amont)
+const MAX_BET = 100000;
+// ✅ NOUVEAU : format strict du pseudo — lettres (accents compris), chiffres, espaces, - _ '
+const NAME_REGEX = /^[\p{L}\p{N} _'-]{1,30}$/u;
 const REFERRAL_DAILY_CAP_PER_REFERRER = 20; // au-delà de ce total de commissions/24h pour un même parrain, on suspend et on journalise pour revue manuelle
 // ✅ NOUVEAU : anti-bot léger — preuve de travail invisible (aucun service tiers requis).
 // Le client doit résoudre un petit défi de hachage avant de pouvoir rejoindre une partie.
@@ -59,10 +63,32 @@ const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 
+// ✅ NOUVEAU : clé privée chiffrée (optionnel — voir encrypt-key.js). Tant que ces deux
+// variables ne sont pas configurées, le serveur continue de fonctionner avec
+// MILTAPE_PRIVATE_KEY en clair (comportement inchangé, aucune casse au redéploiement).
+// Une fois migré, retire MILTAPE_PRIVATE_KEY de Railway et ne garde que ces deux-là.
+const MASTER_KEY = (process.env.MASTER_KEY || "").trim();
+const ENCRYPTED_PRIVATE_KEY = (process.env.ENCRYPTED_PRIVATE_KEY || "").trim();
+const USE_ENCRYPTED_KEY = !!(MASTER_KEY && ENCRYPTED_PRIVATE_KEY);
+
+// ✅ NOUVEAU : ne déchiffre la clé qu'au moment précis de signer une transaction (voir
+// sendPrizeToWinner) — jamais conservée en clair en mémoire tout le long de vie du process.
+function decryptPrivateKey() {
+    if (!USE_ENCRYPTED_KEY) return PRIVATE_KEY; // repli tant que la migration n'est pas faite
+    const key = Buffer.from(MASTER_KEY, 'hex');
+    const encrypted = Buffer.from(ENCRYPTED_PRIVATE_KEY, 'hex');
+    const iv = encrypted.slice(0, 16);
+    const data = encrypted.slice(16);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(data);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString('utf8');
+}
+
 process.on("uncaughtException", (err) => console.error("❌", err?.message || err));
 process.on("unhandledRejection", (reason) => console.error("❌", reason));
 
-if (!MONGODB_URI || !PRIVATE_KEY || !ADMIN_PASSWORD) {
+if (!MONGODB_URI || (!PRIVATE_KEY && !USE_ENCRYPTED_KEY) || !ADMIN_PASSWORD) {
     console.error("❌ Variables d'environnement manquantes.");
     process.exit(1);
 }
@@ -74,9 +100,11 @@ try {
         fullHost: "https://api.trongrid.io",
         headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {}
     });
-    tronWeb.setPrivateKey(PRIVATE_KEY);
-    MILTAPE_WALLET = tronWeb.address.fromPrivateKey(PRIVATE_KEY);
-    console.log("✅ Wallet Miltape :", MILTAPE_WALLET);
+    // ✅ RENFORCÉ : on ne fait JAMAIS tronWeb.setPrivateKey() sur cette instance longue
+    // durée — elle sert uniquement aux lectures on-chain (adresses, transactions...).
+    // La clé n'est déchiffrée qu'une fois ici, juste pour calculer l'adresse publique.
+    MILTAPE_WALLET = tronWeb.address.fromPrivateKey(decryptPrivateKey());
+    console.log("✅ Wallet Miltape :", MILTAPE_WALLET, USE_ENCRYPTED_KEY ? "(clé chiffrée)" : "(clé en clair — migration recommandée)");
 } catch (error) {
     console.error("❌ Erreur initialisation TronWeb :", error?.message || error);
     process.exit(1);
@@ -87,7 +115,7 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
-app.use(cors({ origin: ALLOWED_ORIGINS }));
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true })); // ✅ RENFORCÉ : credentials requis pour les cookies HttpOnly cross-site
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -102,13 +130,18 @@ app.use((req, res, next) => {
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de requêtes." } });
 app.use("/api/", limiter);
 
-const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"] }, pingInterval: 25000, pingTimeout: 60000 });
+const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"], credentials: true }, pingInterval: 25000, pingTimeout: 60000 });
 
 // ✅ NOUVEAU : anti-flood/DoS — limite les connexions simultanées et la fréquence de
 // nouvelles connexions par adresse IP, avant même que la connexion Socket.io soit établie.
 io.use((socket, next) => {
     const ip = getClientIp(socket);
     socket.data.clientIp = ip;
+
+    // ✅ NOUVEAU : lit le token de session depuis le cookie HttpOnly, jamais depuis
+    // un champ envoyé par le client — c'est la seule source de vérité désormais.
+    const cookies = parseCookies(socket.handshake.headers.cookie);
+    socket.data.cookieSessionToken = cookies['miltape_session'] || null;
 
     // ✅ FIX : sans IP fiable, on ne limite pas (voir getClientIp) — mieux vaut ne pas
     // protéger cette connexion que de risquer de bloquer tout le monde par erreur.
@@ -237,6 +270,16 @@ async function connectMongoDB() {
 }
 
 function normalizeWallet(address) { return String(address || "").trim(); }
+// ✅ NOUVEAU : sanitisation partagée des champs texte venant du client — retire les
+// caractères de contrôle et invisibles (zero-width), quel que soit ce que le client envoie.
+function sanitizeText(str, maxLength) {
+    if (typeof str !== "string") return "";
+    return str
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // caractères de contrôle
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")         // caractères invisibles (zero-width)
+        .trim()
+        .substring(0, maxLength);
+}
 function isValidTronAddress(address) { try { return tronWeb.isAddress(normalizeWallet(address)); } catch { return false; } }
 function sameWallet(a, b) { return normalizeWallet(a) === normalizeWallet(b); }
 function generateGameId() { return "GAME-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).substring(2, 8).toUpperCase(); }
@@ -272,6 +315,22 @@ const bannedWallets = new Set();
 // ✅ NOUVEAU : anti-flood Socket.io par IP
 const socketsByIp = new Map();            // ip -> Set(socket.id) connexions actives
 const connectionAttemptsByIp = new Map(); // ip -> { count, windowStart }
+
+// ✅ NOUVEAU : parseur de cookies minimal (pas besoin de cookie-parser — res.cookie()
+// pour ÉCRIRE un cookie est déjà natif à Express ; ceci ne sert qu'à LIRE le cookie
+// brut reçu lors du handshake Socket.io).
+function parseCookies(cookieHeader) {
+    const out = {};
+    if (!cookieHeader) return out;
+    String(cookieHeader).split(';').forEach(pair => {
+        const idx = pair.indexOf('=');
+        if (idx === -1) return;
+        const key = pair.slice(0, idx).trim();
+        const val = pair.slice(idx + 1).trim();
+        if (key) { try { out[key] = decodeURIComponent(val); } catch { out[key] = val; } }
+    });
+    return out;
+}
 
 function getClientIp(socket) {
     const forwarded = socket.handshake.headers['x-forwarded-for'];
@@ -485,9 +544,19 @@ async function sendPrizeToWinner(historyEntry) {
         if (!isValidTronAddress(wallet)) return false;
         const tokenInfo = SUPPORTED_TOKENS[token];
         if (!tokenInfo) throw new Error("Token non supporté");
+
+        // ✅ RENFORCÉ : clé déchiffrée uniquement ici, sur une instance TronWeb éphémère
+        // qui sort de portée juste après cette fonction — jamais gardée en mémoire en
+        // permanence comme c'était le cas avec tronWeb.setPrivateKey() au démarrage.
+        const signingTronWeb = new TronWeb({
+            fullHost: "https://api.trongrid.io",
+            headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {}
+        });
+        signingTronWeb.setPrivateKey(decryptPrivateKey());
+
         let txId = null;
-        if (token === "TRX") { const tx = await tronWeb.trx.sendTransaction(wallet, Math.floor(gain * 1e6)); txId = tx.txid; }
-        else { const contract = await tronWeb.contract().at(tokenInfo.contract); const tx = await contract.transfer(wallet, Math.floor(gain * Math.pow(10, tokenInfo.decimals))).send(); txId = tx.txid; }
+        if (token === "TRX") { const tx = await signingTronWeb.trx.sendTransaction(wallet, Math.floor(gain * 1e6)); txId = tx.txid; }
+        else { const contract = await signingTronWeb.contract().at(tokenInfo.contract); const tx = await contract.transfer(wallet, Math.floor(gain * Math.pow(10, tokenInfo.decimals))).send(); txId = tx.txid; }
         console.log(`✅ Gain de ${gain} ${token} envoyé à ${playerName}`);
         return txId;
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
@@ -720,10 +789,12 @@ io.on("connection", async (socket) => {
 
     socket.on("player:restore", async (data) => {
         try {
-            const token = data.sessionToken;
+            // ✅ RENFORCÉ : le token vient exclusivement du cookie HttpOnly lu au handshake —
+            // un champ envoyé manuellement par le client n'est plus pris en compte du tout.
+            const token = socket.data.cookieSessionToken;
             if (!token) return socket.emit("player:restored", { success: false });
 
-            const player = await Player.findOne({ sessionToken: token });
+            const player = await Player.findOne({ sessionToken: token }).select("-sessionToken");
             if (!player) return socket.emit("player:restored", { success: false });
 
             socket.data.playerId = player._id.toString();
@@ -751,12 +822,16 @@ io.on("connection", async (socket) => {
 
     socket.on("player:join", async (data) => {
         try {
-            const name = String(data?.name || "").trim().substring(0, 30);
+            const name = sanitizeText(data?.name, 30);
             const wallet = normalizeWallet(data?.wallet);
             const deviceId = normalizeWallet(data?.deviceId);
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
-            const referralCodeInput = String(data?.referralCode || "").trim().toUpperCase(); // ✅ NOUVEAU
+            // ✅ RENFORCÉ : format strict (les codes générés sont alphanumériques, 5-20 caractères)
+            const referralCodeRaw = sanitizeText(data?.referralCode, 20).toUpperCase();
+            const referralCodeInput = /^[A-Z0-9]+$/.test(referralCodeRaw) ? referralCodeRaw : "";
+
+            if (!name || !NAME_REGEX.test(name)) return socket.emit("error", { message: "Pseudo invalide (lettres, chiffres, espaces, - _ ' uniquement, 30 caractères max)." }); // ✅ RENFORCÉ
 
             // ✅ NOUVEAU : vérification anti-bot (preuve de travail). Rejeté avant toute
             // autre validation pour ne pas gaspiller de ressources sur des requêtes automatisées.
@@ -778,7 +853,7 @@ io.on("connection", async (socket) => {
 
             if (!game.id || game.status === "waiting" || game.status === "finished") await startPreparationPhase();
 
-            if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
+            if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || bet > MAX_BET || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
             const existingPlayer = await Player.findOne({ wallet });
 
@@ -786,8 +861,9 @@ io.on("connection", async (socket) => {
                                      (game.status === "preparing" || game.status === "running");
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
-                if (!data.sessionToken || data.sessionToken !== existingPlayer.sessionToken) {
-                    return socket.emit("error", { message: "Ce wallet est déjà utilisé dans cette manche. Connecte-toi avec ton token." });
+                // ✅ RENFORCÉ : preuve de propriété via le cookie HttpOnly, plus via un champ manuel
+                if (!socket.data.cookieSessionToken || socket.data.cookieSessionToken !== existingPlayer.sessionToken) {
+                    return socket.emit("error", { message: "Ce wallet est déjà utilisé dans cette manche depuis un autre appareil/navigateur." });
                 }
 
                 socket.data.playerId = existingPlayer._id.toString();
@@ -920,7 +996,9 @@ io.on("connection", async (socket) => {
             lastChatTimestamps.set(socket.id, now);
 
             const name = socket.data.playerName || "Anonyme";
-            const message = String(data?.message || "").trim().substring(0, 300);
+            // ✅ RENFORCÉ : le client bloquait déjà '<'/'>' mais uniquement côté client
+            // (contournable en émettant directement l'événement Socket.io). Revalidé ici.
+            const message = sanitizeText(data?.message, 300).replace(/[<>]/g, "");
             if (!message) return;
             const msg = await Message.create({ name, message, gameId: game.id });
             io.emit("chat:message", { id: msg._id, name, message, createdAt: msg.createdAt });
@@ -1258,6 +1336,32 @@ app.post("/api/demo/verify", async (req, res) => {
     }
 });
 
+// ✅ NOUVEAU : bootstrap du cookie de session HttpOnly. Le client appelle cette route une
+// seule fois juste après avoir reçu son sessionToken via Socket.io (player:joined), pour que
+// le navigateur le stocke dans un cookie HttpOnly — inaccessible à JavaScript à partir de là.
+app.post("/api/session/store", (req, res) => {
+    try {
+        const sessionToken = String(req.body?.sessionToken || "").trim();
+        if (!sessionToken || sessionToken.length < 20) {
+            return res.status(400).json({ success: false, message: "Token invalide." });
+        }
+        res.cookie('miltape_session', sessionToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none', // requis : frontend (GitHub Pages) et backend (Railway) sont sur des domaines différents
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
+            path: '/'
+        });
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+// Efface le cookie de session (utilisé par "Nouvelle partie")
+app.post("/api/session/clear", (req, res) => {
+    res.clearCookie('miltape_session', { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
+    res.json({ success: true });
+});
+
 app.get("/api/wallet", (req, res) => res.json({ success: true, wallet: MILTAPE_WALLET }));
 app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateObject() }));
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size }));
@@ -1344,7 +1448,7 @@ app.post("/api/admin/force-next-round", adminLimiter, requireAdmin, async (req, 
 app.post("/api/admin/ban", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const wallet = normalizeWallet(req.body?.wallet);
-        const reason = String(req.body?.reason || "").trim().substring(0, 200);
+        const reason = sanitizeText(req.body?.reason, 200);
         if (!wallet) return res.status(400).json({ success: false, message: "Wallet manquant." });
 
         await BannedWallet.findOneAndUpdate({ wallet }, { wallet, reason }, { upsert: true });
