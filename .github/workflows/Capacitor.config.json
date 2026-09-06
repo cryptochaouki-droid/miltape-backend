@@ -1,0 +1,8 @@
+{
+  "appId": "com.miltape.app",
+  "appName": "Miltape",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
