@@ -340,6 +340,61 @@
       background: rgba(156, 39, 176, 0.3);
       box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
     }
+
+    /* ===== NOUVEAU DESIGN EXPLICATION DUEL ===== */
+    .duel-info-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(100, 181, 246, 0.3);
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .duel-badge {
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: bold;
+      font-family: 'Poppins', sans-serif;
+    }
+    .duel-badge-green { background: #2ecc71; color: #fff; }
+    .duel-badge-blue { background: #64b5f6; color: #051230; }
+    .duel-steps {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .duel-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 76px;
+      max-width: 92px;
+    }
+    .duel-step-icon { font-size: 22px; }
+    .duel-step-text {
+      font-size: 11px;
+      color: #eee;
+      line-height: 1.3;
+      font-family: 'Poppins', sans-serif;
+    }
+    .duel-step-arrow {
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 16px;
+      padding: 0 2px;
+    }
+    .duel-payout-preview {
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      color: #eee;
+      font-family: 'Poppins', sans-serif;
+    }
+    .duel-payout-preview strong { font-weight: 900; }
   </style>
   
   <!-- ===== JACKPOT ===== -->
@@ -519,26 +574,20 @@
 
     <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
     <div style="text-align:center;margin:15px 0">
-      <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(100, 181, 246, 0.3); border-radius: 15px; padding: 15px; margin-bottom: 15px;">
-        <h4 style="color: #fff; margin: 0 0 10px; font-family: 'Orbitron', sans-serif;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
-        
-        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <span style="background: #2ecc71; color: #fff; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔒 100% AUTOMATIQUE</span>
-            <span style="background: #64b5f6; color: #051230; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
+      <div class="duel-info-card">
+        <h4 style="color: #fff; margin: 0 0 12px; font-family: 'Orbitron', sans-serif;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
+
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap:wrap;">
+            <span class="duel-badge duel-badge-green">🔒 100% AUTOMATIQUE</span>
+            <span class="duel-badge duel-badge-blue">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
         </div>
 
-        <p style="color: #eee; font-size: 13px; margin: 0; line-height: 1.8;">
-            ⚡ <strong>Le paiement est instantané</strong> : Tu paies, le serveur vérifie la transaction en quelques secondes, et tu es automatiquement mis en file d'attente.<br><br>
-            💸 <strong>Le gain est instantané</strong> : Dès que le duel se termine, le serveur t'envoie <strong>automatiquement</strong> ton argent sur ton wallet TRON !<br><br>
-            🛡️ <strong>Nous ne touchons pas à ton argent</strong> : Le système est programmé pour t'envoyer exactement le montant gagné.
-        </p>
-
-        <div style="margin-top: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 10px;">
-            <strong style="color: #64b5f6;">💰 EXEMPLE :</strong><br>
-            <span style="color: #eee; font-size: 12px;">
-                Mise de <strong style="color: #fff;">1 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">1.80 USDT</strong><br>
-                Mise de <strong style="color: #fff;">10 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">18 USDT</strong>
-            </span>
+        <div class="duel-steps">
+          <div class="duel-step"><span class="duel-step-icon">💳</span><span class="duel-step-text">Paye ta mise</span></div>
+          <div class="duel-step-arrow">→</div>
+          <div class="duel-step"><span class="duel-step-icon">⚔️</span><span class="duel-step-text">Affronte ton adversaire</span></div>
+          <div class="duel-step-arrow">→</div>
+          <div class="duel-step"><span class="duel-step-icon">💸</span><span class="duel-step-text">Gain envoyé automatiquement</span></div>
         </div>
       </div>
 
@@ -555,9 +604,11 @@
             <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
             <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
         </div>
+        <div id="duelPayoutPreview" class="duel-payout-preview"></div>
       </div>
     </div>
     <!-- ===== FIN SECTION DUEL ===== -->
+
 
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
     
@@ -637,7 +688,8 @@
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 10,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
+        withCredentials: true // ✅ NOUVEAU : nécessaire pour envoyer le cookie de session cross-domain
     });
     
     const tapButton = document.getElementById('tapButton');
@@ -758,10 +810,9 @@
     }
     
     async function restoreSession() {
-      const sessionToken = localStorage.getItem("miltape_session_token");
-      if (!sessionToken) return false;
-
-      socket.emit("player:restore", { sessionToken });
+      // ✅ RENFORCÉ : le serveur lit le cookie HttpOnly directement, on ne peut (et ne doit)
+      // plus lire de token nous-mêmes — on tente systématiquement, le serveur tranche.
+      socket.emit("player:restore", {});
       return true;
     }
     
@@ -940,10 +991,10 @@
     
     document.addEventListener('visibilitychange', () => { 
       if (!document.hidden) { 
-        if (localStorage.getItem("miltape_session_token")) {
-          restoreSession();
-          socket.emit('timer:request');
-        }
+        // ✅ RENFORCÉ : le token vit dans un cookie HttpOnly, illisible en JS — on ne peut
+        // plus vérifier sa présence localement, on tente systématiquement, le serveur tranche.
+        restoreSession();
+        socket.emit('timer:request');
       } 
     });
     
@@ -996,15 +1047,14 @@
       if (betInput) { const rawBet = parseFloat(betInput.value); if (!isNaN(rawBet) && rawBet > 0) bet = rawBet; }
       myBet = bet; myWallet = wallet; myToken = token;
 
-      const storedWallet = localStorage.getItem("miltape_session_wallet");
-      const storedToken = localStorage.getItem("miltape_session_token");
-      const sessionToken = (storedWallet && storedWallet === wallet) ? storedToken : null;
+      // ✅ RENFORCÉ : plus de sessionToken lu/envoyé manuellement — le serveur vérifie
+      // désormais la propriété du wallet via le cookie HttpOnly, jamais via un champ du client.
       const referralCode = localStorage.getItem("miltape_referral_code") || null;
 
       // ✅ NOUVEAU : s'assure que le défi anti-bot est résolu avant d'envoyer la demande
       if (powReadyPromise) { try { await powReadyPromise; } catch (e) {} }
 
-      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, sessionToken, referralCode, powNonce: currentPowNonce || "" });
+      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, referralCode, powNonce: currentPowNonce || "" });
       hapticMedium();
     }
     
@@ -1036,12 +1086,17 @@
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
         
+        // ✅ RENFORCÉ : le sessionToken n'est plus jamais stocké en localStorage (lisible par
+        // n'importe quel script). Il est transmis une seule fois au serveur, qui le pose
+        // lui-même dans un cookie HttpOnly — inaccessible à JavaScript à partir de là.
         if (data.player.sessionToken) {
-          localStorage.setItem("miltape_session_token", data.player.sessionToken);
-          localStorage.setItem("miltape_session_wallet", data.player.wallet);
+          fetch(BACKEND_URL + "/api/session/store", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionToken: data.player.sessionToken })
+          }).catch(err => console.warn("⚠️ Impossible de sécuriser la session :", err));
         }
-        
-        showNotification("success", "🟢 " + data.player.name + " a rejoint la partie !");
         
         if (chatMessages) {
           const msgDiv = document.createElement('div');
@@ -1092,11 +1147,9 @@
       };
 
       if (data.staleRound === true) {
-        // ✅ FIX : sans ça, l'ancien token de session périmé restait en cache et était
-        // renvoyé à chaque reconnexion -> l'utilisateur se faisait recaler en boucle
-        // à chaque actualisation au lieu de pouvoir rejoindre proprement.
-        localStorage.removeItem("miltape_session_token");
-        localStorage.removeItem("miltape_session_wallet");
+        // ✅ RENFORCÉ : la session est désormais un cookie HttpOnly côté serveur — on
+        // demande explicitement son effacement pour ne pas rester bloqué sur un token périmé.
+        fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {});
         resetUI();
         if (tapMessage) tapMessage.innerText = "⚡ Prêt à rejoindre la nouvelle manche ?";
         return;
@@ -1145,11 +1198,8 @@
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
-        
-        if (data.player.sessionToken) {
-          localStorage.setItem("miltape_session_token", data.player.sessionToken);
-          localStorage.setItem("miltape_session_wallet", data.player.wallet);
-        }
+        // ✅ RENFORCÉ : rien à faire ici pour la session — le cookie HttpOnly posé lors du
+        // join initial reste valide tel quel, le serveur ne renvoie plus le token à la restauration.
         
         hapticMedium();
         return;
@@ -1160,9 +1210,8 @@
       localStorage.removeItem("miltape_player_name");
       localStorage.removeItem("miltape_player_bet");
       localStorage.removeItem("miltape_player_token");
-      localStorage.removeItem("miltape_session_token");
-      localStorage.removeItem("miltape_session_wallet");
       localStorage.removeItem("miltape_demo");
+      fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {}); // ✅ RENFORCÉ
       
       resetUI();
     });
@@ -1401,9 +1450,9 @@
     }
     
     socket.on("error", (err) => {
-      if (err.message === "Ce wallet est déjà utilisé dans cette manche. Connecte-toi avec ton token.") {
+      if (err.message === "Ce wallet est déjà utilisé dans cette manche depuis un autre appareil/navigateur.") {
         hapticError();
-        alert("⚠️ Une session est peut-être encore active ailleurs (autre onglet, autre appareil).\nRejoins la partie avec le token de session existant pour continuer.");
+        alert("⚠️ Ce wallet joue déjà cette manche depuis un autre appareil ou navigateur. Reviens sur celui utilisé pour rejoindre initialement.");
         return;
       }
       
@@ -1413,8 +1462,7 @@
         localStorage.removeItem("miltape_player_name");
         localStorage.removeItem("miltape_player_bet");
         localStorage.removeItem("miltape_player_token");
-        localStorage.removeItem("miltape_session_token");
-        localStorage.removeItem("miltape_session_wallet");
+        fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {}); // ✅ RENFORCÉ
         if (enterChallenge) enterChallenge.style.display = 'block';
         return;
       }
@@ -1586,7 +1634,9 @@
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
         if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
-          localStorage.clear(); window.location.reload();
+          fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" })
+            .catch(() => {})
+            .finally(() => { localStorage.clear(); window.location.reload(); });
         }
       });
     }
@@ -1647,10 +1697,26 @@
     
     socket.emit("jackpot:get");
     
+    const DUEL_COMMISSION_PERCENT_DISPLAY = 0.10; // doit rester synchro avec DUEL_COMMISSION_PERCENT côté serveur
+
+    function updateDuelPayoutPreview(bet) {
+      const preview = document.getElementById('duelPayoutPreview');
+      if (!preview) return;
+      const payout = (bet * 2 * (1 - DUEL_COMMISSION_PERCENT_DISPLAY)).toFixed(2);
+      preview.innerHTML = 'Mise sélectionnée : <strong>' + formatAmount(bet) + ' USDT</strong> → Gain potentiel : <strong style="color:#2ecc71;">' + payout + ' USDT</strong>';
+    }
+
     function selectDuelBet(btn) {
       document.querySelectorAll('.duelBetBtn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      updateDuelPayoutPreview(parseFloat(btn.dataset.bet));
     }
+
+    // ✅ Initialise l'aperçu avec la mise active par défaut (1 USDT)
+    (function initDuelPayoutPreview() {
+      const activeBtn = document.querySelector('.duelBetBtn.active');
+      if (activeBtn) updateDuelPayoutPreview(parseFloat(activeBtn.dataset.bet));
+    })();
 
     if (duelButton) {
       duelButton.addEventListener('click', () => {
@@ -1698,57 +1764,4 @@
     socket.on('duel:started', (data) => {
       duelState.active = true;
       duelState.opponentName = data.opponentName;
-      duelState.endsAt = Date.now() + 60000;
-      duelState.myTaps = 0;
-      duelState.opponentTaps = 0;
-
-      if (tapButton) tapButton.disabled = false;
-      updateTapCounter(0);
-      
-      duelButton.innerText = "⚔️ " + duelState.opponentName + " | 1:00";
-      
-      let duelTimer = setInterval(() => {
-        let remaining = Math.max(0, Math.floor((duelState.endsAt - Date.now()) / 1000));
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        duelButton.innerText = "⚔️ " + duelState.opponentName + " | " + m + ":" + (s < 10 ? "0" : "") + s;
-        
-        if (remaining <= 0) {
-          clearInterval(duelTimer);
-          duelState.active = false;
-          duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
-        }
-      }, 1000);
-    });
-
-    socket.on('duel:finished', (data) => {
-      duelState.active = false;
-      duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
-      if (tapButton) tapButton.disabled = !(isPaid && gameStatus === "running");
-      alert("🏆 Résultat : " + data.winnerName + " a gagné !\nTes taps : " + data.myTaps + "\nTaps adverse : " + data.opponentTaps + "\n💰 Gain : " + data.prize + " USDT");
-    });
-    
-    function formatAmount(value) {
-      if (value === null || value === undefined || isNaN(value)) return "0";
-      return Number(parseFloat(value).toFixed(8)).toString();
-    }
-
-    // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
-    let localTimer = 10 * 60;
-    let localTimerInterval = null;
-
-    function startLocalBackupTimer() {
-      if (localTimerInterval) clearInterval(localTimerInterval);
-      if (endsAt && endsAt > Date.now()) return;
-      
-      localTimer = 10 * 60;
-      localTimerInterval = setInterval(() => {
-        if (gameStatus === "running") {
-          localTimer--;
-          const m = Math.floor(localTimer / 60);
-          const s = localTimer % 60;
-          const timerRuleValue = document.getElementById('timerRuleValue');
-          if (timerRuleValue) {
-            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-          }
- 
+      duelState.endsAt = Dat
