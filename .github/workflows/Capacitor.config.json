@@ -2,6 +2,7 @@
   "appId": "com.miltape.app",
   "appName": "Miltape",
   "webDir": "www",
+  "icon": "resources/icon.png",
   "server": {
     "androidScheme": "https"
   }
