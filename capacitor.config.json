@@ -1,0 +1,6 @@
+{
+  "appId": "com.miltape.worldchallenge",
+  "appName": "Miltape",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
