@@ -1,6 +1,6 @@
 {
   "appId": "com.miltape.app",
-  "appName": "Miltape",
+  "appName": "Miltape NEW",    ← change ici
   "webDir": "www",
   "icon": "resources/icon.png",
   "server": {
