@@ -24,6 +24,9 @@ jobs:
       - name: Installer les dépendances
         run: npm install
 
+      - name: Générer les icônes
+        run: npm run generate-icons
+
       - name: Ajouter la plateforme Android si absente
         run: test -d android || npx cap add android
 
@@ -46,7 +49,7 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Publier l'APK comme fichier téléchargeable
-        uses: actions/upload-artifact@v7  # ✅ v4 → v7
+        uses: actions/upload-artifact@v7
         with:
           name: miltape-apk
           path: android/app/build/outputs/apk/release/app-release.apk
