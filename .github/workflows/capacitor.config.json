@@ -1,9 +1,0 @@
-{
-  "appId": "com.miltape.app",
-  "appName": "Miltape NEW",
-  "webDir": "www",
-  "icon": "resources/icon.png",
-  "server": {
-    "androidScheme": "https"
-  }
-}
