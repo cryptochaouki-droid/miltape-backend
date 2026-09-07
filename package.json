@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Wrapper Android (Capacitor) pour Miltape World Challenge",
+  "scripts": {
+    "generate-icons": "npx capacitor-assets generate"
+  },
   "dependencies": {
     "@capacitor/core": "^8.3.1",
     "@capacitor/android": "^8.3.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.3.1"
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/assets": "^3.0.5"
   }
 }
