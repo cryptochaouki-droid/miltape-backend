@@ -257,84 +257,17 @@
     .server-wallet-link { font-size: 10px; color: #64b5f6; text-decoration: none; display: inline-block; margin-top: 4px; }
     .trust-footer { text-align: center; padding: 12px; font-size: 11px; color: rgba(255, 255, 255, .3); font-family: 'Poppins', sans-serif; border-top: 1px solid rgba(255, 255, 255, .04); margin-top: 20px; }
     .trust-footer a { color: #64b5f6; text-decoration: none; }
-
-    /* ===== WELCOME MODAL (Version compacte) ===== */
-    #welcomeModal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .88);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      backdrop-filter: blur(10px);
-    }
-    #welcomeModal .welcome-content {
-      background: linear-gradient(145deg, #0d47a1, #1565c0);
-      border-radius: 20px;
-      max-width: 360px;
-      width: 100%;
-      padding: 20px 16px;
-      color: #fff;
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-      border: 1px solid rgba(100, 181, 246, .2);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
-      animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1);
-    }
-    #welcomeModal .welcome-icon {
-      font-size: 32px;
-      margin-bottom: 4px;
-    }
-    #welcomeModal .welcome-title {
-      margin: 0 0 4px;
-      font-size: 18px;
-      color: #64b5f6;
-    }
-    #welcomeModal .welcome-sub {
-      font-size: 12px;
-      color: rgba(255, 255, 255, .8);
-      margin: 0 0 12px;
-    }
-    #welcomeModal .welcome-steps {
-      text-align: left;
-      font-size: 13px;
-      line-height: 1.8;
-      background: rgba(0, 0, 0, .2);
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-    }
-    #welcomeModal .welcome-steps div {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    #welcomeModal .welcome-steps strong {
-      color: #64b5f6;
-    }
-    #welcomeModal .welcome-secure {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .6);
-      margin-bottom: 12px;
-    }
-    #welcomeModal .welcome-btn {
-      background: #64b5f6;
-      color: #051230;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      font-family: 'Poppins', sans-serif;
-      transition: transform .15s ease;
-    }
-    #welcomeModal .welcome-btn:active {
-      transform: scale(.96);
-    }
+    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(10px); }
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 24px; max-width: 400px; width: 100%; padding: 30px 24px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+    #welcomeModal .welcome-icon { font-size: 48px; margin-bottom: 10px; }
+    #welcomeModal .welcome-title { margin: 0 0 8px; font-size: 22px; color: #64b5f6; }
+    #welcomeModal .welcome-sub { font-size: 14px; color: rgba(255, 255, 255, .8); margin: 0 0 20px; }
+    #welcomeModal .welcome-steps { text-align: left; font-size: 14px; line-height: 1.8; background: rgba(0, 0, 0, .2); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 8px; }
+    #welcomeModal .welcome-steps strong { color: #64b5f6; }
+    #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
+    #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
+    #welcomeModal .welcome-btn:active { transform: scale(.96); }
 
     /* ===== RESPONSIVE ===== */
     @media(max-width:430px) { 
@@ -344,11 +277,7 @@
       #timerRuleValue { font-size: 20px !important; } 
       .stat-box strong { font-size: 44px !important; } 
       .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } 
-      .server-wallet-address { font-size: 13px !important; }
-      #welcomeModal .welcome-content { max-width: 320px; padding: 16px 12px; }
-      #welcomeModal .welcome-title { font-size: 16px; }
-      #welcomeModal .welcome-steps { font-size: 12px; padding: 8px 10px; }
-      #welcomeModal .welcome-btn { font-size: 13px; padding: 6px 10px; }
+      .server-wallet-address { font-size: 13px !important; } 
     }
     @media(max-width:360px) { 
       .tap-button { width: clamp(180px, 54vw, 230px) !important; height: clamp(180px, 54vw, 230px) !important; } 
@@ -358,11 +287,7 @@
       #timerRuleValue { font-size: 18px !important; } 
       .stat-box strong { font-size: 38px !important; } 
       .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } 
-      .server-wallet-address { font-size: 12px !important; }
-      #welcomeModal .welcome-content { max-width: 280px; padding: 14px 10px; }
-      #welcomeModal .welcome-title { font-size: 14px; }
-      #welcomeModal .welcome-steps { font-size: 11px; padding: 6px 8px; }
-      #welcomeModal .welcome-btn { font-size: 12px; padding: 5px 8px; }
+      .server-wallet-address { font-size: 12px !important; } 
     }
     @media(min-width:600px) { 
       body { padding: 20px 0 40px; } 
@@ -395,25 +320,27 @@
     }
     #duelButton:active { box-shadow: 0 2px 0 #4a148c !important; }
 
-    /* ===== BOUTONS DE MISE DUEL ===== */
+    /* ===== BOUTONS DE MISE DUEL (version compacte) ===== */
     .duelBetBtn {
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 10px 12px;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 3px 6px;
       color: #fff;
-      background: rgba(255, 255, 255, 0.1);
-      font-weight: bold;
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 600;
       cursor: pointer;
-      font-size: 13px;
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      transition: all 0.2s;
+      font-size: 9px;
+      min-width: 30px;
+      transition: all 0.2s ease;
+      font-family: 'Poppins', sans-serif;
     }
     .duelBetBtn.active {
       border-color: #9c27b0;
-      background: rgba(156, 39, 176, 0.3);
-      box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
+      background: rgba(156, 39, 176, 0.25);
+      box-shadow: 0 0 6px rgba(156, 39, 176, 0.3);
+    }
+    .duelBetBtn:hover {
+      background: rgba(255, 255, 255, 0.12);
     }
 
     /* ===== NOUVEAU DESIGN EXPLICATION DUEL ===== */
@@ -647,42 +574,51 @@
       <div class="server-wallet-address" id="displayBet">0 USDT</div>
     </div>
 
-    <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
-    <div style="text-align:center;margin:15px 0">
-      <div class="duel-info-card">
-        <h4 style="color: #fff; margin: 0 0 12px; font-family: 'Orbitron', sans-serif;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
-
-        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap:wrap;">
-            <span class="duel-badge duel-badge-green">🔒 100% AUTOMATIQUE</span>
-            <span class="duel-badge duel-badge-blue">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
+    <!-- ===== SECTION DUEL COMPACTE ===== -->
+    <div style="text-align:center;margin:8px 0;">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(100,181,246,0.15);border-radius:12px;padding:10px 8px;margin-bottom:8px;">
+        
+        <!-- Titre -->
+        <div style="font-size:13px;font-weight:700;color:#fff;font-family:'Orbitron',sans-serif;letter-spacing:0.5px;margin-bottom:4px;">⚔️ DUEL 1 VS 1 (1 MIN)</div>
+        
+        <!-- Badges -->
+        <div style="display:flex;justify-content:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+          <span style="background:#2ecc71;color:#fff;border-radius:10px;padding:1px 8px;font-size:8px;font-weight:700;text-transform:uppercase;">🔒 Auto</span>
+          <span style="background:#64b5f6;color:#051230;border-radius:10px;padding:1px 8px;font-size:8px;font-weight:700;text-transform:uppercase;">🔗 Blockchain</span>
         </div>
-
-        <div class="duel-steps">
-          <div class="duel-step"><span class="duel-step-icon">💳</span><span class="duel-step-text">Paye ta mise</span></div>
-          <div class="duel-step-arrow">→</div>
-          <div class="duel-step"><span class="duel-step-icon">⚔️</span><span class="duel-step-text">Affronte ton adversaire</span></div>
-          <div class="duel-step-arrow">→</div>
-          <div class="duel-step"><span class="duel-step-icon">💸</span><span class="duel-step-text">Gain envoyé automatiquement</span></div>
+        
+        <!-- Étapes (compactes) -->
+        <div style="display:flex;justify-content:center;align-items:center;gap:3px;flex-wrap:wrap;font-size:9px;color:#ccc;margin-bottom:6px;">
+          <span>💳 Paye</span>
+          <span style="color:rgba(255,255,255,0.2);font-size:10px;">→</span>
+          <span>⚔️ Affronte</span>
+          <span style="color:rgba(255,255,255,0.2);font-size:10px;">→</span>
+          <span>💸 Gain auto</span>
         </div>
       </div>
 
-      <div style="margin: 10px 0;">
-        <h4 style="color:#fff; margin: 5px;">💰 CHOISIS TA MISE DUEL</h4>
-        <div id="duelBetsContainer" style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
-            <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
-            <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
-            <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
-            <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
-            <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
-            <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
-            <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
-            <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
-            <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
+      <!-- Boutons de mise -->
+      <div style="margin:4px 0;">
+        <div style="font-size:10px;color:#64b5f6;font-weight:700;letter-spacing:0.3px;margin-bottom:4px;">💰 MISE</div>
+        <div id="duelBetsContainer" style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;">
+          <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">0.50</button>
+          <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid #9c27b0;background:rgba(156,39,176,0.25);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;box-shadow:0 0 6px rgba(156,39,176,0.3);">1</button>
+          <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">2</button>
+          <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">4</button>
+          <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">8</button>
+          <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">16</button>
+          <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">32</button>
+          <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">64</button>
+          <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)" style="padding:3px 6px;font-size:9px;border-radius:6px;min-width:30px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;">128</button>
         </div>
-        <div id="duelPayoutPreview" class="duel-payout-preview"></div>
+      </div>
+
+      <!-- Aperçu du gain (plus petit) -->
+      <div id="duelPayoutPreview" style="background:rgba(0,0,0,0.2);border-radius:6px;padding:4px 8px;font-size:10px;color:#ddd;margin-top:4px;display:inline-block;font-weight:500;">
+        Mise : <strong style="color:#fff;">1 USDT</strong> → Gain : <strong style="color:#2ecc71;">1.80 USDT</strong>
       </div>
     </div>
-    <!-- ===== FIN SECTION DUEL ===== -->
+    <!-- ===== FIN SECTION DUEL COMPACTE ===== -->
 
 
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
