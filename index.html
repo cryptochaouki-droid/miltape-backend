@@ -121,7 +121,7 @@
     .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
     .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
     
-    /* ===== ESPACEMENT & CHRONOMÈTRE & BOUTON TAP (MICRO-AMÉLIORATIONS 1, 2, 3) ===== */
+    /* ===== ESPACEMENT & CHRONOMÈTRE & BOUTON TAP ===== */
     .tap-zone { width: 100%; min-height: 280px; display: flex; align-items: center; justify-content: center; position: relative; padding: 16px 0; flex-direction: column; }
     .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 20px rgba(100, 181, 246, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.6); border-radius: 14px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
     .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 2.8vw, 20px); color: #0d47a1; }
@@ -214,24 +214,154 @@
     .main-play-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #990000, 0 4px 15px rgba(255, 65, 108, 0.4); }
     .main-play-button b { margin-left: 6px; }
     .tap-message, #tapMessage { display: none !important; }
-    .chat-messages { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; border-radius: 18px !important; padding: 10px !important; height: 150px !important; overflow-y: auto !important; overflow-x: hidden !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
-    .chat-message { background: #f5f7fa !important; color: #222 !important; font-size: 13px !important; padding: 6px 10px !important; border-radius: 8px !important; margin-bottom: 4px !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
-    .chat-input-box { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 4px; }
+
+    /* ===== CHAT GLOBAL LIVE (COMPACT) ===== */
+    .chat-section {
+      background: rgba(255, 255, 255, .95) !important;
+      border: 1.5px solid rgba(255, 255, 255, .4) !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, .15) !important;
+      border-radius: 16px !important;
+      padding: 10px !important;
+    }
+    .chat-section .section-title {
+      color: #111 !important;
+      font-size: 13px !important;
+      letter-spacing: .5px !important;
+      margin-bottom: 6px !important;
+      font-weight: 700 !important;
+    }
+    .chat-section .section-title span { color: #111 !important; font-size: 13px !important; }
+    .chat-section .section-title strong { color: #0d47a1 !important; font-size: 14px !important; margin-left: 4px !important; }
     
-    /* ===== TOP 5 (MICRO-AMÉLIORATION 5) ===== */
-    .leaderboard { background: rgba(255, 255, 255, .95) !important; backdrop-filter: none !important; border: 1.5px solid rgba(255, 255, 255, .4) !important; box-shadow: 0 6px 20px rgba(0, 0, 0, .2) !important; border-radius: 18px !important; padding: 14px !important; }
-    .leaderboard .section-title { color: #111 !important; font-size: 14px !important; letter-spacing: .5px !important; margin-bottom: 12px !important; font-weight: 700 !important; }
-    .leaderboard .section-title span { color: #111 !important; font-size: 14px !important; }
-    .leaderboard .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 4px !important; }
-    .leaderboard-item { background: #f0f4f8 !important; color: #111 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 12px !important; border-left: 4px solid #0d47a1 !important; margin-bottom: 6px !important; display: flex !important; align-items: center !important; gap: 10px !important; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-    .rank-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 30px !important; height: 30px !important; min-width: 30px !important; border-radius: 50% !important; font-size: 14px !important; font-weight: 900 !important; color: #fff !important; background: #0d47a1 !important; flex-shrink: 0 !important; }
-    .leaderboard-item:nth-child(1) .rank-badge { background: #ffd700 !important; color: #000 !important; box-shadow: 0 0 15px rgba(255, 215, 0, .5) !important; }
-    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000 !important; box-shadow: 0 0 12px rgba(192, 192, 192, .4) !important; }
-    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff !important; box-shadow: 0 0 12px rgba(205, 127, 50, .4) !important; }
+    .chat-messages {
+      background: #f8fafc !important;
+      backdrop-filter: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      border-radius: 12px !important;
+      padding: 8px !important;
+      height: 105px !important;
+      max-height: 105px !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      margin-bottom: 6px !important;
+    }
+    .chat-message {
+      background: #ffffff !important;
+      color: #222 !important;
+      font-size: 12px !important;
+      padding: 5px 8px !important;
+      border-radius: 8px !important;
+      margin-bottom: 3px !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+    .chat-input-box {
+      position: relative;
+      z-index: 10;
+      background: #f0f4f8;
+      border-radius: 10px;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .chat-input-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: #222;
+      outline: none;
+      font-family: 'Poppins', sans-serif;
+    }
+    .chat-input-box input::placeholder {
+      color: #888;
+    }
+    .chat-input-box button {
+      background: #0d47a1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    /* ===== CLASSEMENT TOP 5 (COMPACT) ===== */
+    .leaderboard {
+      background: rgba(255, 255, 255, .95) !important;
+      backdrop-filter: none !important;
+      border: 1.5px solid rgba(255, 255, 255, .4) !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, .15) !important;
+      border-radius: 16px !important;
+      padding: 10px !important;
+    }
+    .leaderboard .section-title {
+      color: #111 !important;
+      font-size: 13px !important;
+      letter-spacing: .5px !important;
+      margin-bottom: 6px !important;
+      font-weight: 700 !important;
+    }
+    .leaderboard .section-title span { color: #111 !important; font-size: 13px !important; }
+    .leaderboard .section-title strong { color: #0d47a1 !important; font-size: 14px !important; margin-left: 4px !important; }
+    
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .leaderboard-item {
+      background: #f8fafc !important;
+      color: #111 !important;
+      font-size: 12px !important;
+      padding: 5px 8px !important;
+      border-radius: 10px !important;
+      border-left: 3px solid #0d47a1 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .rank-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 22px !important;
+      height: 22px !important;
+      min-width: 22px !important;
+      border-radius: 50% !important;
+      font-size: 11px !important;
+      font-weight: 900 !important;
+      color: #fff !important;
+      background: #0d47a1 !important;
+      flex-shrink: 0 !important;
+    }
+    .leaderboard-item:nth-child(1) .rank-badge { background: #ffd700 !important; color: #000 !important; box-shadow: 0 0 10px rgba(255, 215, 0, .4) !important; }
+    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000 !important; box-shadow: 0 0 8px rgba(192, 192, 192, .3) !important; }
+    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff !important; box-shadow: 0 0 8px rgba(205, 127, 50, .3) !important; }
     .leaderboard-item:nth-child(4) .rank-badge, .leaderboard-item:nth-child(5) .rank-badge { background: #0d47a1 !important; color: #fff !important; }
-    .leaderboard-item .player-name { color: #111 !important; font-weight: 700 !important; font-size: 14px !important; flex: 1 !important; }
-    .leaderboard-item .player-score { color: #0d47a1 !important; font-weight: 900 !important; font-size: 14px !important; }
-    .empty-ranking { color: #666 !important; font-size: 13px !important; text-align: center; padding: 10px; font-weight: 600; }
+    
+    .leaderboard-item:nth-child(1) { border-left-color: #ffd700 !important; background: linear-gradient(90deg, rgba(255,215,0,0.08), #f8fafc) !important; }
+    .leaderboard-item:nth-child(2) { border-left-color: #c0c0c0 !important; background: linear-gradient(90deg, rgba(192,192,192,0.08), #f8fafc) !important; }
+    .leaderboard-item:nth-child(3) { border-left-color: #cd7f32 !important; background: linear-gradient(90deg, rgba(205,127,50,0.08), #f8fafc) !important; }
+
+    .leaderboard-item .player-name { color: #111 !important; font-weight: 700 !important; font-size: 12px !important; flex: 1 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .leaderboard-item .player-score { color: #0d47a1 !important; font-weight: 900 !important; font-size: 12px !important; white-space: nowrap; }
+    .empty-ranking { color: #666 !important; font-size: 12px !important; text-align: center; padding: 8px; font-weight: 600; }
     
     .section-title { font-size: 13px !important; color: #222 !important; letter-spacing: .5px !important; margin-bottom: 10px !important; }
     .section-title span { color: #222 !important; font-size: 13px !important; }
@@ -245,10 +375,9 @@
     @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }
     .menu-button { background: 0 0; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px 6px; }
     .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }
-    .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 15px !important; padding: 0 12px; animation: slideUp 1s ease-out .5s both; }
+    .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 8px !important; padding: 0 12px; animation: slideUp 1s ease-out .5s both; }
     .rules { display: flex; justify-content: center; gap: 15px; padding: 10px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }
     
-    /* ===== PETITS TEXTES (MICRO-AMÉLIORATION 4) ===== */
     .rule { display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, .12); backdrop-filter: blur(8px); padding: 7px 14px; border: 1px solid rgba(255, 255, 255, .15); font-family: 'Poppins', sans-serif; font-size: 12px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .15); border-radius: 14px !important; font-weight: 600; }
     .rule .rule-icon { font-size: 16px; }
     .rule strong { color: #64b5f6; font-size: 13px; font-weight: 700; }
@@ -261,7 +390,6 @@
     .step-number { background: #64b5f6; color: #051230; border-radius: 50%; width: 18px !important; height: 18px !important; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px !important; flex-shrink: 0; }
     .step-arrow { color: rgba(255, 255, 255, .2); }
     
-    /* ===== PETITS TEXTES - LABELS & PIED DE PAGE (MICRO-AMÉLIORATION 4) ===== */
     .server-wallet-box { text-align: center; margin: 8px 12px !important; padding: 10px !important; border-radius: 14px; background: rgba(255, 255, 255, .04) !important; border: 1px solid rgba(255, 255, 255, .06) !important; }
     .server-wallet-label { font-size: 12px; color: rgba(255, 255, 255, .7); font-weight: 600; }
     .server-wallet-address { font-size: 14px !important; font-weight: 700; color: #64b5f6 !important; word-break: break-all; font-family: 'Poppins', sans-serif; background: rgba(0, 0, 0, .20) !important; padding: 4px 6px !important; border-radius: 6px !important; display: inline-block !important; }
@@ -572,12 +700,17 @@
 
     <div class="leaderboard-chat-wrapper">
       <section class="leaderboard">
-        <div class="section-title"><span>🏆 CLASSEMENT</span> <strong>TOP 5</strong></div>
-        <div id="leaderboardList" class="leaderboard-list"><div class="empty-ranking">Aucun joueur pour le moment</div></div>
+        <div class="section-title"><span>🏆 CLASSEMENT TOP 5</span></div>
+        <div id="leaderboardList" class="leaderboard-list">
+          <div class="empty-ranking">Aucun joueur pour le moment</div>
+        </div>
       </section>
+
       <section class="chat-section" id="globalChat">
         <div class="section-title"><span>💬 CHAT GLOBAL</span> <strong>LIVE</strong></div>
-        <div id="chatMessages" class="chat-messages"><div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div></div>
+        <div id="chatMessages" class="chat-messages">
+          <div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>
+        </div>
         <div class="chat-input-box" id="chatInputBox">
           <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
           <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
