@@ -121,7 +121,7 @@
     .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
     .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
     
-    /* ===== ESPACEMENT & CHRONOMÈTRE & BOUTON TAP ===== */
+    /* ===== ESPACEMENT & CHRONOMÈTRE & BOUTON TAP PREMIUM "WOW" ===== */
     .tap-zone { width: 100%; min-height: 280px; display: flex; align-items: center; justify-content: center; position: relative; padding: 16px 0; flex-direction: column; }
     .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 0 20px rgba(100, 181, 246, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.6); border-radius: 14px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
     .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 2.8vw, 20px); color: #0d47a1; }
@@ -139,11 +139,12 @@
       aspect-ratio: 1 / 1;
       min-width: 195px;
       min-height: 195px;
-      border: 3.5px solid rgba(100, 181, 246, 0.6) !important;
+      border: 3.5px solid rgba(100, 181, 246, 0.8) !important;
       border-radius: 50% !important;
-      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.3), rgba(255, 255, 255, 0.08)) !important;
-      box-shadow: 0 0 50px rgba(100, 181, 246, 0.25), 0 0 100px rgba(100, 181, 246, 0.1), inset 0 0 70px rgba(100, 181, 246, 0.1) !important;
-      transition: transform 0.05s ease-out, box-shadow 0.1s ease !important;
+      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.4), rgba(255, 255, 255, 0.12)) !important;
+      /* FINITION WOW : Halo lumineux renforcé et profondeur 3D subtile */
+      box-shadow: 0 0 60px rgba(100, 181, 246, 0.45), 0 0 120px rgba(0, 162, 255, 0.2), inset 0 0 70px rgba(100, 181, 246, 0.25), inset 0 5px 15px rgba(255, 255, 255, 0.4) !important;
+      transition: transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease !important;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
@@ -160,32 +161,35 @@
       box-sizing: border-box;
       animation: tapButtonGlow 3s ease-in-out infinite alternate;
     }
-    @keyframes tapButtonGlow { 0% { box-shadow: 0 0 40px rgba(100, 181, 246, 0.2), 0 0 80px rgba(100, 181, 246, 0.08), inset 0 0 60px rgba(100, 181, 246, 0.08); } 100% { box-shadow: 0 0 65px rgba(100, 181, 246, 0.4), 0 0 120px rgba(100, 181, 246, 0.2), inset 0 0 90px rgba(100, 181, 246, 0.2); } }
+    @keyframes tapButtonGlow { 
+      0% { box-shadow: 0 0 50px rgba(100, 181, 246, 0.35), 0 0 100px rgba(0, 162, 255, 0.15), inset 0 0 60px rgba(100, 181, 246, 0.2), inset 0 5px 15px rgba(255, 255, 255, 0.3); } 
+      100% { box-shadow: 0 0 80px rgba(100, 181, 246, 0.65), 0 0 150px rgba(0, 162, 255, 0.35), inset 0 0 90px rgba(100, 181, 246, 0.35), inset 0 6px 20px rgba(255, 255, 255, 0.6); } 
+    }
     .tap-button:disabled { cursor: not-allowed; opacity: .6; animation: none; }
-    .tap-button:active:not(:disabled) { transform: scale(0.85) !important; box-shadow: 0 0 70px rgba(100, 181, 246, 0.45), 0 0 140px rgba(100, 181, 246, 0.2), inset 0 0 90px rgba(100, 181, 246, 0.2) !important; }
-    .tap-button.tap-active { transform: scale(0.85) !important; box-shadow: 0 0 70px rgba(100, 181, 246, 0.45), 0 0 140px rgba(100, 181, 246, 0.2), inset 0 0 90px rgba(100, 181, 246, 0.2) !important; }
-    .tap-button:not(:disabled):hover { transform: scale(1.03); box-shadow: 0 0 60px rgba(100, 181, 246, 0.3) !important; }
+    .tap-button:active:not(:disabled) { transform: scale(0.88) translateY(2px) !important; box-shadow: 0 0 30px rgba(100, 181, 246, 0.5), 0 0 60px rgba(0, 162, 255, 0.2), inset 0 6px 15px rgba(0, 0, 0, 0.4) !important; }
+    .tap-button.tap-active { transform: scale(0.88) translateY(2px) !important; box-shadow: 0 0 30px rgba(100, 181, 246, 0.5), 0 0 60px rgba(0, 162, 255, 0.2), inset 0 6px 15px rgba(0, 0, 0, 0.4) !important; }
+    .tap-button:not(:disabled):hover { transform: scale(1.04); box-shadow: 0 0 75px rgba(100, 181, 246, 0.6), inset 0 6px 18px rgba(255, 255, 255, 0.5) !important; }
     .tap-button:not(:disabled)::after {
       content: '';
       position: absolute;
-      inset: -8px;
+      inset: -10px;
       border-radius: 50%;
-      border: 2px solid rgba(100, 181, 246, 0.3);
+      border: 2px solid rgba(100, 181, 246, 0.5);
       animation: tapPulse 2s ease-in-out infinite;
       pointer-events: none;
     }
-    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.18); opacity: 0; } 100% { transform: scale(1); opacity: 0.6; } }
+    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.22); opacity: 0; } 100% { transform: scale(1); opacity: 0.8; } }
     .tap-img-bg { position: absolute; inset: 0; width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 50%; padding: 0; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .95 !important; user-select: none; -webkit-user-drag: none; }
     .tap-button small { display: none; }
     .tap-ripple {
       position: absolute;
       border-radius: 50%;
-      border: 2px solid rgba(100, 181, 246, 0.8);
+      border: 2px solid rgba(100, 181, 246, 0.9);
       pointer-events: none;
-      animation: rippleOut 0.4s ease-out forwards;
+      animation: rippleOut 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
       z-index: 1;
     }
-    @keyframes rippleOut { 0% { transform: scale(0.5); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
+    @keyframes rippleOut { 0% { transform: scale(0.4); opacity: 1; box-shadow: 0 0 15px rgba(100,181,246,0.8); } 100% { transform: scale(2.1); opacity: 0; box-shadow: 0 0 30px rgba(100,181,246,0); } }
 
     .main-play-button {
       display: block;
