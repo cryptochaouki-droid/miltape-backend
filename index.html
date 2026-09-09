@@ -175,7 +175,7 @@
     .error-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ========================================================================= */
-    /* 🎬 EFFET DE FIN DE PARTIE & TRANSITION 00:00                              */
+    /* 🎬 EFFET DE FIN DE PARTIE & TRANSITION                                   */
     /* ========================================================================= */
     .game-over-overlay {
       position: fixed; inset: 0; background: rgba(5, 18, 48, 0.85); backdrop-filter: blur(8px);
@@ -207,7 +207,7 @@
     }
 
     /* ========================================================================= */
-    /* 🏆 CLASSEMENT TOP 5 & APPARITION SÉQUENTIELLE                            */
+    /* 🏆 NOUVEAU DESIGN DU CLASSEMENT TOP 5 & HIÉRARCHIE VISUELLE               */
     /* ========================================================================= */
     .leaderboard {
       background: rgba(13, 35, 75, 0.88) !important;
@@ -225,8 +225,13 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     
-    .leaderboard-list { display: flex; flex-direction: column; gap: 10px; }
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
+    /* Classes d'apparition séquentielle pour les cartes */
     .rank-card-animated {
       opacity: 0;
       transform: translateY(20px) scale(0.97);
@@ -237,6 +242,7 @@
       transform: translateY(0) scale(1);
     }
 
+    /* --- 🥇 CARTE 1ÈRE PLACE (Dominante & Podium) --- */
     .rank-card-1 {
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
       border: 2px solid rgba(255, 215, 0, 0.8) !important;
@@ -257,6 +263,7 @@
       100% { box-shadow: 0 0 35px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.3); }
     }
 
+    /* --- 🥈 2E & 🥉 3E PLACES (Podium Secondaire) --- */
     .rank-card-2, .rank-card-3 {
       background: rgba(255, 255, 255, 0.07) !important;
       border-radius: 14px !important;
@@ -270,6 +277,7 @@
     .rank-card-2 { border-left: 4px solid #c0c0c0 !important; }
     .rank-card-3 { border-left: 4px solid #cd7f32 !important; }
 
+    /* --- 4E & 5E PLACES (Lignes Compactes) --- */
     .rank-card-compact {
       background: rgba(255, 255, 255, 0.04) !important;
       border-radius: 10px !important;
@@ -281,6 +289,7 @@
       font-size: 12px !important;
     }
 
+    /* Éléments internes des cartes de classement */
     .rank-left { display: flex; align-items: center; gap: 10px; }
     .rank-badge-styled {
       display: inline-flex; align-items: center; justify-content: center;
@@ -308,6 +317,7 @@
     .rank-card-2 .player-gain-text, .rank-card-3 .player-gain-text { font-size: 13px; }
     .rank-card-compact .player-gain-text { font-size: 11px; }
 
+    /* --- CARTE "VOTRE POSITION" (Si hors du Top 5) --- */
     .your-position-separator {
       height: 1px; width: 100%; background: linear-gradient(90deg, transparent, rgba(100, 181, 246, 0.4), transparent);
       margin: 12px 0 8px 0;
@@ -324,11 +334,14 @@
     }
     .your-position-card .player-name-text { color: #64b5f6; }
 
+    /* Highlight si le joueur est DANS le Top 5 */
     .user-in-top {
       border-color: #00f3ff !important;
       box-shadow: 0 0 20px rgba(0, 243, 255, 0.4) !important;
       background: rgba(0, 243, 255, 0.08) !important;
     }
+
+    /* ========================================================================= */
 
     .chat-section {
       background: rgba(13, 35, 75, 0.85) !important;
@@ -418,14 +431,18 @@
     </button>
 
     <div class="leaderboard-chat-wrapper">
+      <!-- CLASSEMENT TOP 5 ET POSITION DU JOUEUR -->
       <section class="leaderboard">
         <div class="section-title">
           <span>🏆 CLASSEMENT TOP 5</span>
           <span style="font-size: 11px; color: #64b5f6; font-weight: normal;">Gains ×2</span>
         </div>
-        <div id="leaderboardList" class="leaderboard-list"></div>
+        <div id="leaderboardList" class="leaderboard-list">
+          <!-- Injecté dynamiquement par JS -->
+        </div>
       </section>
 
+      <!-- CHAT GLOBAL -->
       <section class="chat-section" id="globalChat">
         <div class="section-title" style="font-family:'Orbitron',sans-serif;font-size:12px;color:#fff;margin-bottom:8px;">💬 CHAT GLOBAL <strong>LIVE</strong></div>
         <div id="chatMessages" class="chat-messages">
@@ -479,7 +496,6 @@
         enterChallengeBtn.disabled = true;
         if (btnTextSpan) btnTextSpan.textContent = 'CHARGEMENT...';
         if (btnArrowSpan) {
-          // Remplacement temporaire de la flèche par un spinner élégant
           btnArrowSpan.className = 'btn-spinner';
           btnArrowSpan.textContent = '';
         }
@@ -494,16 +510,14 @@
       }
     }
 
-    // Gestionnaire du clic sur le bouton de rechargement/lancement (Sécurisé contre les doubles clics)
+    // Gestionnaire du clic sur le bouton de rechargement/lancement (Anti-double clic)
     enterChallengeBtn.addEventListener('click', () => {
-      // Protection stricte : si déjà en cours de chargement, ignorer totalement le clic
       if (playButtonState === 'loading') return;
 
-      // Passage en état "loading"
       setPlayButtonState('loading');
       gameEndedTriggered = false;
 
-      // Sécurité anti-blocage (Fallback de 6 secondes max si le serveur ne répond pas)
+      // Fallback de sécurité (6 secondes max)
       if (loadingTimeout) clearTimeout(loadingTimeout);
       loadingTimeout = setTimeout(() => {
         if (playButtonState === 'loading') {
@@ -512,7 +526,6 @@
         }
       }, 6000);
 
-      // Appel de la logique de démarrage existante (via Socket.IO / API)
       try {
         socket.emit('game:start', { playerId: myPlayerId, bet: myCurrentBet });
       } catch (e) {
@@ -523,23 +536,15 @@
       }
     });
 
-    // Écouteur de confirmation de partie active venant du serveur existant
     socket.on('game:started', (data) => {
       if (loadingTimeout) clearTimeout(loadingTimeout);
-      
-      // Fin du chargement : passage à l'état ready / normal
       setPlayButtonState('ready');
-
-      // Réactivation du bouton TAP uniquement lorsque la partie est active
       if (tapBtn) tapBtn.classList.remove('disabled');
-
-      // Réinitialisation du chrono selon les données du serveur (ou valeur par défaut)
       if (timerElement && data && data.duration) {
         timerElement.textContent = data.duration;
       }
     });
 
-    // Écouteur d'erreur renvoyé par le serveur
     socket.on('game:error', (err) => {
       if (loadingTimeout) clearTimeout(loadingTimeout);
       setPlayButtonState('idle');
@@ -547,17 +552,15 @@
     });
 
     // =========================================================================
-    // LOGIQUE DE FIN DE PARTIE & CHRONO EXISTANTE
+    // LOGIQUE DE FIN DE PARTIE & CHRONO
     let remainingTimeSeconds = 2; // Test initial
 
     function triggerGameOverTransition() {
       if (gameEndedTriggered) return;
       gameEndedTriggered = true;
 
-      // 1. Désactivation instantanée du TAP
       if (tapBtn) tapBtn.classList.add('disabled');
 
-      // 2. Déclenchement de l'effet visuel de fin
       const overlay = document.getElementById('gameOverOverlay');
       const mainApp = document.getElementById('mainApp');
       
@@ -609,7 +612,7 @@
       listContainer.innerHTML = "";
 
       if (!topPlayers || topPlayers.length === 0) {
-        listContainer.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px;padding:12px;">Aucun joueur classé</div>';
+        listContainer.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px;padding:12px;">Aucun joueur classé pour l\'instant</div>';
         return;
       }
 
@@ -620,7 +623,7 @@
         const isMe = (player.id === myPlayerId || player.isMe);
         if (isMe) isUserInTop5 = true;
 
-        const gainAmount = `+${(myCurrentBet * 2)}`;
+        const gainAmount = (player.taps || 0) > 0 ? `+${(myCurrentBet * 2)}` : `+0`;
         const cardClass = rank === 1 ? 'rank-card-1' : rank === 2 ? 'rank-card-2' : rank === 3 ? 'rank-card-3' : 'rank-card-compact';
         const highlightClass = isMe ? ' user-in-top' : '';
 
@@ -692,6 +695,7 @@
       { id: "p5", name: "SPEEDTAPPER", taps: 510 }
     ], { id: myPlayerId, name: "MOI", taps: 210, rank: 14 });
 
+    // Menu latéral bascule
     document.getElementById('menuButton').addEventListener('click', () => {
       document.getElementById('sideMenu').classList.add('show');
       document.getElementById('menuOverlay').classList.add('show');
