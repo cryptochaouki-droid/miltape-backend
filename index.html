@@ -1,415 +1,981 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MILTAPE WORLD CHALLENGE</title>
-    <!-- Importation de polices modernes -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-deep: #050b18;
-            --primary-blue: #00d2ff;
-            --neon-gold: #ffd700;
-            --accent-purple: #9d4edd;
-            --accent-red: #ff3366;
-            --glass-bg: rgba(15, 23, 42, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.12);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MILTAPE WORLD CHALLENGE</title>
+  <!-- Polices Google Fonts modernes : Poppins & Orbitron -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #030712;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #0d1b3e 0%, #030712 70%);
+      --primary-gold: #f39c12;
+      --primary-gold-glow: rgba(243, 156, 18, 0.4);
+      --accent-red: #e74c3c;
+      --accent-red-glow: rgba(231, 76, 60, 0.4);
+      --accent-purple: #9c27b0;
+      --accent-purple-glow: rgba(156, 39, 176, 0.4);
+      --neon-blue: #3498db;
+      --neon-blue-glow: rgba(52, 152, 219, 0.4);
+      --glass-bg: rgba(13, 27, 62, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Poppins', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-        body {
-            background-color: var(--bg-deep);
-            background-image: 
-                radial-gradient(circle at 50% 10%, rgba(0, 210, 255, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 20% 80%, rgba(157, 78, 221, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 80% 90%, rgba(255, 215, 0, 0.08) 0%, transparent 40%);
-            color: #ffffff;
-            min-height: 100vh;
-            padding: 12px;
-            overflow-x: hidden;
-        }
+    body {
+      background: var(--bg-deep);
+      background-image: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 10px 40px 10px;
+    }
 
-        .container {
-            max-width: 480px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            padding-bottom: 30px;
-        }
+    /* Effet d'arrière-plan lumineux */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(52, 152, 219, 0.15) 0%, transparent 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
 
-        /* 1. JACKPOT CARD */
-        .jackpot-card {
-            background: linear-gradient(135deg, rgba(255, 51, 102, 0.2), rgba(20, 10, 30, 0.8));
-            border: 1px solid rgba(255, 51, 102, 0.4);
-            border-radius: 16px;
-            padding: 14px;
-            text-align: center;
-            box-shadow: 0 8px 25px rgba(255, 51, 102, 0.25);
-            position: relative;
-            overflow: hidden;
-        }
-        .jackpot-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            animation: shine 4s infinite;
-        }
-        @keyframes shine { 0% { left: -100%; } 20% { left: 100%; } 100% { left: 100%; } }
+    /* Structure globale contrainte pour mobile */
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
 
-        .jackpot-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.85rem;
-            color: #ff88a5;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .jackpot-amount {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 15px rgba(255, 51, 102, 0.6);
-            margin-bottom: 6px;
-        }
-        .jackpot-info {
-            font-size: 0.75rem;
-            color: #cbd5e1;
-        }
+    /* Cartes Glassmorphism */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
 
-        /* BANNIÈRE MILTAPE */
-        .banner-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 12px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-        .banner-logo-area {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 6px;
-        }
-        .banner-logo-img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid var(--neon-gold);
-        }
-        .banner-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 900;
-            color: var(--neon-gold);
-            letter-spacing: 0.5px;
-        }
-        .banner-subtitle {
-            font-size: 0.8rem;
-            color: #94a3b8;
-        }
+    /* Header & Menu */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
 
-        /* INFORMATIONS DE MISE / BLOCKCHAIN */
-        .blockchain-box {
-            background: rgba(10, 15, 30, 0.6);
-            border: 1px solid rgba(0, 210, 255, 0.2);
-            border-radius: 12px;
-            padding: 10px 12px;
-            text-align: center;
-        }
-        .wallet-address {
-            font-family: monospace;
-            font-size: 0.8rem;
-            color: var(--primary-blue);
-            word-break: break-all;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 6px;
-            border-radius: 6px;
-            margin-top: 4px;
-            margin-bottom: 6px;
-        }
-        .tron-link {
-            font-size: 0.75rem;
-            color: #60a5fa;
-            text-decoration: none;
-        }
-        .tron-link:hover { text-decoration: underline; }
+    .menu-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
 
-        /* MODE DUEL & BOUTON JOUER */
-        .mode-duel-badge {
-            background: linear-gradient(135deg, rgba(157, 78, 221, 0.3), rgba(0, 210, 255, 0.2));
-            border: 1px solid var(--accent-purple);
-            border-radius: 12px;
-            padding: 8px;
-            text-align: center;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #e2e8f0;
-        }
+    .online-badge {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
 
-        .btn-play-main {
-            background: linear-gradient(135deg, #ff3366, #d90429);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            padding: 12px 20px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 51, 102, 0.4);
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-align: center;
-        }
-        .btn-play-main:active { transform: scale(0.97); }
+    /* 1. JACKPOT */
+    .jackpot-card {
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(13, 27, 62, 0.8));
+      border: 1px solid rgba(231, 76, 60, 0.4);
+      text-align: center;
+      padding: 12px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px var(--accent-red-glow);
+    }
 
-        /* CHRONOMÈTRE */
-        .chrono-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 8px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.95rem;
-            color: var(--neon-gold);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
+    .jackpot-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: #ff8a80;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
 
-        /* TRÈS GRAND BOUTON TAP */
-        .tap-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 0;
-        }
-        .tap-button-container {
-            width: 190px;
-            height: 190px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 210, 255, 0.25) 0%, rgba(10, 20, 40, 0.8) 70%);
-            border: 3px solid var(--primary-blue);
-            box-shadow: 0 0 35px rgba(0, 210, 255, 0.4), inset 0 0 20px rgba(0, 210, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-            animation: pulseGlow 2.5s infinite ease-in-out;
-            transition: transform 0.08s ease;
-        }
-        .tap-button-container:active {
-            transform: scale(0.93);
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.8), inset 0 0 30px rgba(0, 210, 255, 0.6);
-        }
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 25px rgba(0, 210, 255, 0.3), inset 0 0 15px rgba(0, 210, 255, 0.2); }
-            50% { box-shadow: 0 0 45px rgba(0, 210, 255, 0.6), inset 0 0 25px rgba(0, 210, 255, 0.4); }
-        }
-        .tap-button-img {
-            width: 165px;
-            height: 165px;
-            border-radius: 50%;
-            object-fit: cover;
-            pointer-events: none;
-        }
+    .jackpot-amount {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 10px var(--accent-red-glow);
+    }
 
-        /* TOP 5 CLASSEMENT */
-        .ranking-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            padding: 12px;
-        }
-        .ranking-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.9rem;
-            color: var(--neon-gold);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .ranking-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .ranking-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-            font-size: 0.8rem;
-        }
-        .ranking-item:nth-child(1) { border-left: 3px solid #ffd700; background: rgba(255, 215, 0, 0.08); }
-        .ranking-item:nth-child(2) { border-left: 3px solid #c0c0c0; }
-        .ranking-item:nth-child(3) { border-left: 3px solid #cd7f32; }
+    /* 2. BANNIÈRE MILTAPE */
+    .brand-banner {
+      text-align: center;
+      padding: 6px 0;
+    }
 
-        /* CHAT GLOBAL */
-        .chat-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .chat-header {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.85rem;
-            color: var(--primary-blue);
-        }
-        .chat-messages {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            height: 110px;
-            overflow-y: auto;
-            padding: 8px;
-            font-size: 0.75rem;
-            color: #cbd5e1;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .chat-input-area {
-            display: flex;
-            gap: 6px;
-        }
-        .chat-input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            padding: 8px 10px;
-            color: white;
-            font-size: 0.8rem;
-            outline: none;
-        }
-        .chat-input:focus { border-color: var(--primary-blue); }
-        .chat-send-btn {
-            background: var(--primary-blue);
-            color: #050b18;
-            border: none;
-            border-radius: 8px;
-            padding: 0 14px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-    </style>
+    .brand-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      background: linear-gradient(180deg, #fff 20%, #f39c12 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--accent-purple);
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 2px;
+      text-shadow: 0 0 8px var(--accent-purple-glow);
+    }
+
+    /* 3. INFORMATIONS DE MISE / BLOCKCHAIN */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .info-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .info-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .info-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-gold);
+    }
+
+    /* 4. MODE DUEL */
+    .duel-card {
+      border: 1px solid rgba(156, 39, 176, 0.3);
+      background: linear-gradient(135deg, rgba(156, 39, 176, 0.15), rgba(13, 27, 62, 0.6));
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #fff;
+    }
+
+    .duel-bets {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .duelBetBtn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      padding: 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .duelBetBtn.active {
+      background: rgba(156, 39, 176, 0.3);
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 10px var(--accent-purple-glow);
+    }
+
+    .btn-purple {
+      width: 100%;
+      background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+      border: none;
+      color: #fff;
+      padding: 11px;
+      border-radius: 12px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px var(--accent-purple-glow);
+      transition: transform 0.1s ease;
+    }
+
+    .btn-purple:active {
+      transform: scale(0.98);
+    }
+
+    /* 5. JOUER MAINTENANT (Bouton principal action) */
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-play-now {
+      width: 100%;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      border: none;
+      color: #fff;
+      padding: 14px;
+      border-radius: 14px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 20px var(--accent-red-glow);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: transform 0.1s ease;
+    }
+
+    .btn-play-now:active {
+      transform: scale(0.98);
+    }
+
+    /* 6. CHRONOMÈTRE */
+    .timer-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+
+    .timer-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .timer-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* 7. TRÈS GRAND BOUTON TAP */
+    .tap-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 0;
+      position: relative;
+    }
+
+    .tap-message {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      color: var(--primary-gold);
+      margin-bottom: 12px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .tap-circle-wrapper {
+      position: relative;
+      width: 190px;
+      height: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Effet de pulsation néon en arrière-plan du bouton */
+    .tap-circle-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-gold), var(--neon-blue));
+      z-index: -1;
+      opacity: 0.6;
+      filter: blur(8px);
+      animation: pulseGlow 2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(0.98); opacity: 0.4; }
+      100% { transform: scale(1.03); opacity: 0.8; }
+    }
+
+    .tap-button {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #1e3c72 0%, #0d1b3e 60%, #030712 100%);
+      border: 3px solid rgba(243, 156, 18, 0.6);
+      box-shadow: 
+        inset 0 10px 20px rgba(255, 255, 255, 0.15),
+        inset 0 -10px 20px rgba(0, 0, 0, 0.8),
+        0 10px 30px rgba(0, 0, 0, 0.6),
+        0 0 25px var(--primary-gold-glow);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      outline: none;
+    }
+
+    .tap-button:active {
+      transform: scale(0.94);
+      box-shadow: 
+        inset 0 5px 10px rgba(0, 0, 0, 0.9),
+        0 4px 15px rgba(0, 0, 0, 0.8),
+        0 0 10px var(--primary-gold-glow);
+    }
+
+    .tap-icon-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--primary-gold);
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px var(--primary-gold-glow);
+    }
+
+    .tap-counter-display {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* 8. TOP 5 (Classement Compétition) */
+    .leaderboard-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--glass-border);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    .leaderboard-item:nth-child(1) {
+      background: linear-gradient(90deg, rgba(243, 156, 18, 0.2), rgba(0, 0, 0, 0.2));
+      border-color: rgba(243, 156, 18, 0.4);
+    }
+
+    .leaderboard-item:nth-child(2) {
+      background: linear-gradient(90deg, rgba(189, 195, 199, 0.2), rgba(0, 0, 0, 0.2));
+      border-color: rgba(189, 195, 199, 0.4);
+    }
+
+    .leaderboard-item:nth-child(3) {
+      background: linear-gradient(90deg, rgba(211, 84, 0, 0.2), rgba(0, 0, 0, 0.2));
+      border-color: rgba(211, 84, 0, 0.4);
+    }
+
+    .rank-badge {
+      width: 24px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .player-name {
+      flex: 1;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 10px;
+    }
+
+    .player-score {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      color: var(--primary-gold);
+    }
+
+    .empty-ranking {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 10px;
+    }
+
+    /* 9. CHAT GLOBAL */
+    .chat-card {
+      display: flex;
+      flex-direction: column;
+      height: 170px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 8px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .chat-message {
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .chat-message strong {
+      color: var(--neon-blue);
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 6px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--neon-blue);
+    }
+
+    .chat-send {
+      background: var(--neon-blue);
+      border: none;
+      color: #fff;
+      padding: 0 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Menu latéral & Modals complémentaires */
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100%;
+      background: #070f25;
+      border-right: 1px solid var(--glass-border);
+      z-index: 1000;
+      transition: left 0.3s ease;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .side-menu.show {
+      left: 0;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      display: none;
+    }
+
+    .menu-overlay.show {
+      display: block;
+    }
+
+    .close-menu {
+      align-self: flex-end;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    #resetGameBtn {
+      background: rgba(231, 76, 60, 0.2);
+      border: 1px solid var(--accent-red);
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: auto;
+    }
+
+    /* Container de notifications dynamiques */
+    #notificationContainer {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 90%;
+      max-width: 380px;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
+  <!-- Notifications dynamiques -->
+  <div id="notificationContainer"></div>
 
-        <!-- 1. JACKPOT -->
-        <div class="jackpot-card" id="jackpotDisplay">
-            <div class="jackpot-title">🏆 Jackpot du Samedi</div>
-            <div class="jackpot-amount">0 USDT</div>
-            <div class="jackpot-info">💡 Redistribué chaque samedi au joueur ayant tapé le plus.</div>
-        </div>
+  <!-- Menu latéral & Overlay -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <div class="side-menu" id="sideMenu">
+    <button class="close-menu" id="closeMenu">✕</button>
+    <h3 style="font-family: 'Orbitron'; font-size: 16px; color: var(--primary-gold);">MILTAPE MENU</h3>
+    <p style="font-size: 12px; color: var(--text-muted);">Paramètres de session et options avancées.</p>
+    <button id="resetGameBtn">🔄 Réinitialiser la session</button>
+  </div>
 
-        <!-- BANNIÈRE MILTAPE -->
-        <div class="banner-card">
-            <div class="banner-logo-area">
-                <img src="tape.png" alt="Logo" class="banner-logo-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'36\' height=\'36\'><circle cx=\'18\' cy=\'18\' r=\'18\' fill=\'%23ffd700\'/></svg>'">
-                <div class="banner-title">MILTAPE WORLD CHALLENGE</div>
-            </div>
-            <div class="banner-subtitle">Gagne 2x ta mise en mode compétition mondiale</div>
-        </div>
+  <div class="app-container">
 
-        <!-- INFORMATIONS DE MISE / BLOCKCHAIN -->
-        <div class="blockchain-box">
-            <div style="font-size: 0.75rem; color: #94a3b8;">🛡️ Adresse de dépôt officielle</div>
-            <div class="wallet-address" id="tronAddress">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
-            <a href="https://tronscan.org" target="_blank" class="tron-link">🔍 Voir sur TronScan</a>
-        </div>
-
-        <!-- MODE DUEL -->
-        <div class="mode-duel-badge">
-            ⚡ MODE DUEL 1 VS 1 (1 MINUTE) - BLOCKCHAIN
-        </div>
-
-        <!-- JOUER MAINTENANT -->
-        <button class="btn-play-main" id="playButton">
-            JOUER MAINTENANT →
-        </button>
-
-        <!-- CHRONOMÈTRE -->
-        <div class="chrono-card">
-            <span>⏱️ 10:00</span>
-            <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 400;">| PRÉPARATION</span>
-        </div>
-
-        <!-- TRÈS GRAND BOUTON TAP -->
-        <div class="tap-section">
-            <div class="tap-button-container" id="tapButton">
-                <img src="tap-art.jpg" alt="Tape Maintenant" class="tap-button-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'165\' height=\'165\'><circle cx=\'82\' cy=\'82\' r=\'82\' fill=\'%2300d2ff\'/></svg>'">
-            </div>
-        </div>
-
-        <!-- TOP 5 -->
-        <div class="ranking-card">
-            <div class="ranking-title">🏆 Classement TOP 5</div>
-            <ul class="ranking-list" id="top5List">
-                <li class="ranking-item"><span>🥇 1. ---</span><span>0 Taps</span></li>
-                <li class="ranking-item"><span>🥈 2. ---</span><span>0 Taps</span></li>
-                <li class="ranking-item"><span>🥉 3. ---</span><span>0 Taps</span></li>
-                <li class="ranking-item"><span>4. ---</span><span>0 Taps</span></li>
-                <li class="ranking-item"><span>5. ---</span><span>0 Taps</span></li>
-            </ul>
-        </div>
-
-        <!-- CHAT GLOBAL -->
-        <div class="chat-card">
-            <div class="chat-header">💬 Chat Global</div>
-            <div class="chat-messages" id="chatMessages">
-                <div><strong>Système :</strong> Bienvenue sur Miltape !</div>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Écris ton message...">
-                <button class="chat-send-btn" id="chatSend">Envoyer</button>
-            </div>
-        </div>
-
+    <!-- Header & Menu -->
+    <div class="app-header">
+      <button class="menu-btn" id="menuButton">☰ Menu</button>
+      <div class="online-badge" id="onlineCount">
+        <span style="display:inline-block;width:6px;height:6px;background:#2ecc71;border-radius:50%;margin-right:5px"></span> 0 EN LIGNE
+      </div>
     </div>
 
-    <!-- Script de base pour s'assurer que les interactions logiques d'origine fonctionnent -->
-    <script>
-        // Exemple d'interactivité tactile pour le bouton Tap (ne modifie pas ta logique backend existante)
-        const tapBtn = document.getElementById('tapButton');
-        if (tapBtn) {
-            tapBtn.addEventListener('click', () => {
-                // Ajoute ici ton code de comptage ou l'appel socket existant
-                console.log("Tap enregistré !");
-            });
+    <!-- 1. JACKPOT -->
+    <div class="glass-card jackpot-card">
+      <div class="jackpot-title">🔥 Jackpot Actuel 🔥</div>
+      <div class="jackpot-amount" id="jackpotDisplay">1,250.00 USDT</div>
+    </div>
+
+    <!-- 2. BANNIÈRE MILTAPE -->
+    <div class="brand-banner">
+      <h1 class="brand-title">MILTAPE</h1>
+      <div class="brand-subtitle">World Challenge</div>
+    </div>
+
+    <!-- 3. INFORMATIONS DE MISE / BLOCKCHAIN -->
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="info-label">Mise Requise</div>
+        <div class="info-value" id="feeDisplay">1.00 USDT</div>
+      </div>
+      <div class="info-box">
+        <div class="info-label">Token Officiel</div>
+        <div class="info-value" id="tokenDisplay">USDT</div>
+      </div>
+    </div>
+
+    <!-- 4. MODE DUEL -->
+    <div class="glass-card duel-card">
+      <div class="section-title">⚔️ Mode Duel 1v1</div>
+      <div class="duel-bets">
+        <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
+        <button class="duelBetBtn" data-bet="5" onclick="selectDuelBet(this)">5 USDT</button>
+        <button class="duelBetBtn" data-bet="10" onclick="selectDuelBet(this)">10 USDT</button>
+        <button class="duelBetBtn" data-bet="25" onclick="selectDuelBet(this)">25 USDT</button>
+      </div>
+      <div id="duelPayoutPreview" style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; text-align: center;">
+        Mise : <strong style="color:#fff;">1 USDT</strong> → Gain : <strong style="color:#2ecc71;">1.80 USDT</strong>
+      </div>
+      <button class="btn-purple" id="duelButton">LANCER UN DUEL</button>
+    </div>
+
+    <!-- JOUER MAINTENANT & CHRONOMÈTRE -->
+    <div class="action-group">
+      <!-- 5. BOUTON JOUER MAINTENANT -->
+      <button class="btn-play-now" id="payButton">⚡ JOUER MAINTENANT</button>
+
+      <!-- 6. CHRONOMÈTRE -->
+      <div class="timer-card">
+        <div class="timer-label">⏳ Fin de manche :</div>
+        <div class="timer-value" id="timerDisplay">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- 7. TRÈS GRAND BOUTON TAP -->
+    <div class="tap-section">
+      <div class="tap-message" id="tapMessage">⚡ Prêt à taper ? Rejoins la partie !</div>
+      <div class="tap-circle-wrapper">
+        <button class="tap-button" id="tapButton" disabled>
+          <span class="tap-icon-text">TAP</span>
+          <span class="tap-counter-display" id="tapCounterDisplay">0</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 8. TOP 5 -->
+    <div class="glass-card leaderboard-card">
+      <div class="section-title">🏆 Top 5 Mondial</div>
+      <div class="leaderboard-list" id="leaderboardList">
+        <div class="empty-ranking">Aucun joueur pour le moment</div>
+      </div>
+    </div>
+
+    <!-- 9. CHAT GLOBAL -->
+    <div class="glass-card chat-card">
+      <div class="section-title">💬 Chat Global</div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Écris ton message...">
+        <button class="chat-send" id="chatSend">Envoyer</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts JavaScript & Socket.io (Logique existante préservée) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const BACKEND_URL = window.location.origin;
+    const socket = io(BACKEND_URL, { withCredentials: true });
+
+    let isPlaying = false;
+    let isPaid = false;
+    let gameStatus = "waiting";
+    let myToken = "USDT";
+    let demoMode = false;
+    let lastTapTime = 0;
+    const MIN_TAP_INTERVAL_MS = 50;
+
+    const tapButton = document.getElementById('tapButton');
+    const payButton = document.getElementById('payButton');
+    const duelButton = document.getElementById('duelButton');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+    const chatMessages = document.getElementById('chatMessages');
+    const onlineCount = document.getElementById('onlineCount');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const menuButton = document.getElementById('menuButton');
+    const sideMenu = document.getElementById('sideMenu');
+    const closeMenu = document.getElementById('closeMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const resetGameBtn = document.getElementById('resetGameBtn');
+    const tapMessage = document.getElementById('tapMessage');
+
+    let duelState = { active: false, opponentName: "", myTaps: 0, opponentTaps: 0 };
+
+    // Effet visuel au tap
+    function tapEffects() {
+      const wrapper = document.querySelector('.tap-circle-wrapper');
+      const ripple = document.createElement('div');
+      ripple.style.cssText = 'position:absolute;width:100px;height:100px;border:2px solid rgba(243,156,18,0.8);border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;animation:rippleAnim 0.4s ease-out forwards;';
+      wrapper.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 400);
+    }
+
+    // Injection des keyframes dynamiques pour le ripple
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = "@keyframes rippleAnim { 0% { transform: translate(-50%,-50%) scale(0.8); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.6); opacity: 0; } }";
+    document.head.appendChild(styleSheet);
+
+    // Initialisation état jeu
+    socket.on("game:state", (state) => {
+      if (!state) return;
+      gameStatus = state.status || "waiting";
+      isPaid = !!state.isPaid;
+      isPlaying = !!state.isPlaying;
+      myToken = state.token || "USDT";
+
+      const tokenDisplay = document.getElementById('tokenDisplay');
+      const feeDisplay = document.getElementById('feeDisplay');
+      const jackpotDisplay = document.getElementById('jackpotDisplay');
+      const timerDisplay = document.getElementById('timerDisplay');
+
+      if (tokenDisplay) tokenDisplay.innerText = myToken;
+      if (feeDisplay) feeDisplay.innerText = (state.fee || 1) + " " + myToken;
+      if (jackpotDisplay) jackpotDisplay.innerText = (state.jackpot || 1250) + " " + myToken;
+
+      if (isPaid && payButton) payButton.style.display = 'none';
+
+      if (tapButton) {
+        if (isPlaying && isPaid && gameStatus === "running") {
+          tapButton.disabled = false;
+          if (tapMessage) tapMessage.innerText = "⚡ À TOI DE TAPPER !";
+        } else {
+          tapButton.disabled = true;
+          if (!isPlaying) tapMessage.innerText = "⚡ Rejoins la partie d'abord !";
+          else if (!isPaid) tapMessage.innerText = "💳 Paie ta mise pour commencer !";
+          else if (gameStatus !== "running") tapMessage.innerText = "⏳ En attente du début de manche...";
         }
-    </script>
+      }
+    });
+
+    if (payButton) {
+      payButton.addEventListener('click', () => {
+        initiatePayment("TYourWalletAddressHere123456", 1);
+      });
+    }
+
+    function updateTapCounter(val) {
+      const display = document.getElementById('tapCounterDisplay');
+      if (display) display.innerText = val;
+    }
+
+    if (tapButton) {
+      tapButton.addEventListener('click', () => {
+        if (!isPlaying || !isPaid || gameStatus !== "running") {
+          if (!isPlaying) showNotification("error", "⚡ Rejoins la partie d'abord !");
+          else if (!isPaid) showNotification("error", "💳 Paie ta mise pour commencer à taper !");
+          else if (gameStatus !== "running") showNotification("error", "⏳ Le jeu n'a pas encore commencé !");
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastTapTime < MIN_TAP_INTERVAL_MS) return;
+        lastTapTime = now;
+
+        tapEffects();
+
+        if (duelState.active) {
+          duelState.myTaps++;
+          socket.emit("duel:tap", {});
+        } else {
+          socket.emit("player:tap", {});
+        }
+      });
+    }
+
+    socket.on("player:score", (data) => {
+      if (data && typeof data.taps === 'number') {
+        updateTapCounter(data.taps);
+      }
+    });
+
+    socket.on("leaderboard:update", (data) => {
+      if (!leaderboardList) return;
+      if (!data || data.length === 0) {
+        leaderboardList.innerHTML = '<div class="empty-ranking">Aucun joueur pour le moment</div>';
+        return;
+      }
+      let html = '';
+      data.forEach((player, index) => {
+        const rank = index + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+        html += `
+          <div class="leaderboard-item">
+            <span class="rank-badge">${medal}</span>
+            <span class="player-name">${escapeHtml(player.name)}</span>
+            <span class="player-score">${player.taps} taps</span>
+          </div>
+        `;
+      });
+      leaderboardList.innerHTML = html;
+    });
+
+    // CHAT GLOBAL
+    if (chatSend && chatInput) {
+      chatSend.addEventListener('click', sendChatMessage);
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+      });
+    }
+
+    function sendChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      if (text.length > 500) {
+        showNotification("error", "⚠️ Message trop long (max 500 caractères).");
+        return;
+      }
+      socket.emit("chat:message", { text });
+      chatInput.value = '';
+    }
+
+    socket.on("chat:message", (data) => {
+      if (!chatMessages) return;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message';
+      const strong = document.createElement('strong');
+      strong.textContent = data.name + ' : ';
+      const textNode = document.createTextNode(data.text);
+      msgDiv.appendChild(strong);
+      msgDiv.appendChild(textNode);
+      chatMessages.appendChild(msgDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    socket.on("online:update", (data) => {
+      if (onlineCount && typeof data.count === 'number') {
+        onlineCount.innerHTML = `<span style="display:inline-block;width:6px;height:6px;background:#2ecc71;border-radius:50%;margin-right:5px"></span><span>${data.count} EN LIGNE</span>`;
+      }
+    });
+
+    function initiatePayment(wallet, amount) {
+      if (demoMode) {
+        showNotification("success", "🔬 Mode démo : Paiement simulé validé !");
+        isPaid = true;
+        if (payButton) payButton.style.display = 'none';
+        if (gameStatus === "running" && tapButton) tapButton.disabled = false;
+        return;
+      }
+      alert("💳 Veuillez envoyer exactement " + amount + " " + myToken + " vers le portefeuille officiel :\n\n" + wallet + "\n\nVotre compte sera activé automatiquement dès confirmation.");
+    }
+
+    // MENU LATÉRAL
+    if (menuButton) menuButton.addEventListener('click', () => { sideMenu.classList.add('show'); menuOverlay.classList.add('show'); });
+    if (closeMenu) closeMenu.addEventListener('click', closeSideMenu);
+    if (menuOverlay) menuOverlay.addEventListener('click', closeSideMenu);
+
+    function closeSideMenu() {
+      sideMenu.classList.remove('show');
+      menuOverlay.classList.remove('show');
+    }
+
+    if (resetGameBtn) {
+      resetGameBtn.addEventListener('click', () => {
+        if (confirm("🔄 Veux-tu vraiment réinitialiser ta session locale ?")) {
+          localStorage.clear();
+          fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {});
+          location.reload();
+        }
+      });
+    }
+
+    window.selectDuelBet = function(btn) {
+      document.querySelectorAll('.duelBetBtn').forEach(b => {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      const betVal = parseFloat(btn.getAttribute('data-bet'));
+      const preview = document.getElementById('duelPayoutPreview');
+      if (preview) {
+        const gain = (betVal * 1.8).toFixed(2);
+        preview.innerHTML = `Mise : <strong style="color:#fff;">${betVal} USDT</strong> → Gain : <strong style="color:#2ecc71;">${gain} USDT</strong>`;
+      }
+    };
+
+    if (duelButton) {
+      duelButton.addEventListener('click', () => {
+        if (!isPlaying) {
+          showNotification("error", "⚡ Rejoins d'abord la partie pour lancer un duel !");
+          return;
+        }
+        const activeBetBtn = document.querySelector('.duelBetBtn.active');
+        const duelBet = activeBetBtn ? parseFloat(activeBetBtn.getAttribute('data-bet')) : 1;
+        socket.emit("duel:find", { bet: duelBet });
+        showNotification("success", "🔍 Recherche d'un adversaire en cours...");
+      });
+    }
+
+    socket.on("duel:matched", (data) => {
+      duelState.active = true;
+      duelState.opponentName = data.opponentName;
+      duelState.myTaps = 0;
+      duelState.opponentTaps = 0;
+      showNotification("success", `⚔️ Duel trouvé contre ${data.opponentName} ! Tape vite !`);
+      if (tapMessage) tapMessage.innerText = `⚔️ DUEL VS ${data.opponentName} – TAPE !`;
+      if (tapButton) tapButton.disabled = false;
+    });
+
+    socket.on("duel:ended", (data) => {
+      duelState.active = false;
+      if (tapButton) tapButton.disabled = true;
+      if (data.won) {
+        showNotification("success", `🏆 Victoire en duel ! +${data.gain} USDT`);
+        alert(`🏆 VICTOIRE !\nTu as battu ${data.opponentName}.\nGain : +${data.gain} USDT`);
+      } else {
+        showNotification("error", `❌ Défaite en duel contre ${data.opponentName}`);
+        alert(`❌ DÉFAITE...\n${data.opponentName} a gagné.`);
+      }
+      if (tapMessage) tapMessage.innerText = "✅ Le duel est terminé !";
+    });
+
+    function showNotification(type, text) {
+      const container = document.getElementById('notificationContainer');
+      if (!container) return;
+      const notif = document.createElement('div');
+      notif.className = 'glass-card';
+      notif.style.cssText = 'padding:10px 14px;font-size:12px;font-weight:600;color:#fff;background:rgba(5,18,48,0.95);border:1px solid ' + (type === 'error' ? '#e74c3c' : '#2ecc71') + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+      notif.textContent = text;
+      container.appendChild(notif);
+      setTimeout(() => {
+        notif.style.opacity = '0';
+        setTimeout(() => notif.remove(), 300);
+      }, 3000);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
 </body>
 </html>
