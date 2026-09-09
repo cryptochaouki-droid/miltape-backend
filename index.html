@@ -1,415 +1,962 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MILTAPE WORLD CHALLENGE</title>
-    <style>
-        :root {
-            --bg-deep: #050b18;
-            --bg-card: rgba(13, 27, 62, 0.7);
-            --border-glow: rgba(0, 243, 255, 0.3);
-            --accent-cyan: #00f3ff;
-            --accent-gold: #ffd700;
-            --text-main: #ffffff;
-            --text-muted: #8b9bb4;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 50% 20%, rgba(0, 243, 255, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.05) 0%, transparent 40%);
-        }
-
-        .app-container {
-            width: 100%;
-            max-width: 480px;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            position: relative;
-        }
-
-        /* HEADER & LOGO */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-icon {
-            font-size: 24px;
-        }
-
-        .logo-text {
-            font-size: 18px;
-            font-weight: 900;
-            letter-spacing: 1.5px;
-            background: linear-gradient(135deg, #fff 30%, var(--accent-cyan) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-transform: uppercase;
-        }
-
-        .wallet-badge {
-            background: rgba(0, 243, 255, 0.1);
-            border: 1px solid var(--border-glow);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--accent-cyan);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* BANNIÈRE */
-        .banner {
-            background: linear-gradient(135deg, rgba(0, 243, 255, 0.15), rgba(13, 27, 62, 0.8));
-            border: 1px solid var(--border-glow);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
-        }
-
-        /* ========================================================== */
-        /* SECTION JACKPOT — AMÉLIORATION VISUELLE UNIQUE & PREMIUM   */
-        /* ========================================================== */
-        .jackpot-card {
-            background: linear-gradient(145deg, rgba(18, 35, 75, 0.85), rgba(8, 17, 38, 0.95));
-            border: 1px solid rgba(255, 215, 0, 0.4);
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 16px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-            animation: jackpotBreathe 4s ease-in-out infinite;
-        }
-
-        /* Reflet lumineux fin en diagonale */
-        .jackpot-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                60deg,
-                transparent 45%,
-                rgba(255, 255, 255, 0.04) 50%,
-                transparent 55%
-            );
-            transform: rotate(25deg);
-            pointer-events: none;
-        }
-
-        .jackpot-title {
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--accent-gold);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
-        }
-
-        .jackpot-amount {
-            font-size: 32px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            color: #ffffff;
-            background: linear-gradient(180deg, #ffffff 20%, #ffe600 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
-            position: relative;
-            display: inline-block;
-        }
-
-        @keyframes jackpotBreathe {
-            0%, 100% {
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-                border-color: rgba(255, 215, 0, 0.4);
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d47a1" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne." />
+  <title>Miltape World Challenge</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192~2.jpg" />
+  <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
+  
+  <!-- 1. Script Telegram sécurisé -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    (function initTelegramWebApp() {
+      try {
+        if (window.Telegram && window.Telegram.WebApp) {
+          const w = window.Telegram.WebApp;
+          w.expand();
+          try {
+            if (w.version && parseFloat(w.version) >= 6.1) {
+              w.BackButton.show();
+              w.BackButton.onClick(function() { w.close(); });
             }
-            50% {
-                box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 215, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-                border-color: rgba(255, 215, 0, 0.7);
+          } catch (e) { console.warn("⚠️ BackButton non supporté:", e); }
+          
+          if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
+          console.log("✅ Telegram WebApp initialisée");
+        }
+      } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
+    })();
+  </script>
+
+  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE ===== -->
+  <script>
+    if ('caches' in window) {
+        caches.keys().then(function(names) {
+            names.forEach(function(name) {
+                caches.delete(name);
+            });
+        });
+    }
+    
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (let registration of registrations) {
+                registration.unregister();
+                console.log('✅ Service Worker désinstallé.');
             }
-        }
-        /* ========================================================== */
+        });
+    }
+  </script>
+  
+  <!-- 2. CDN Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  
+  <style>
+    /* ===== FOND BLEU SAPHIR HD ===== */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: auto;
+      position: relative;
+    }
+    body::before { content: ""; position: fixed; top: -20%; right: -10%; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(100, 180, 255, 0.12), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow1 7s ease-in-out infinite alternate; }
+    body::after { content: ""; position: fixed; bottom: -20%; left: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(50, 120, 255, 0.08), transparent 60%); pointer-events: none; z-index: 0; animation: hdGlow2 9s ease-in-out infinite alternate; }
+    @keyframes hdGlow1 { 0% { transform: translate(0, 0) scale(1); opacity: .5; } 100% { transform: translate(-40px, 30px) scale(1.3); opacity: 1; } }
+    @keyframes hdGlow2 { 0% { transform: translate(0, 0) scale(1); opacity: .3; } 100% { transform: translate(30px, -40px) scale(1.4); opacity: .8; } }
+    .gem-sparkle { position: fixed; width: 4px; height: 4px; background: #64b5f6; border-radius: 50%; pointer-events: none; z-index: 0; box-shadow: 0 0 12px rgba(100, 181, 246, .4); animation: sparkleFloatHD 5s ease-in-out infinite alternate; }
+    .gem-sparkle:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
+    .gem-sparkle:nth-child(2) { top: 25%; left: 85%; animation-delay: 1.4s; width: 6px; height: 6px; }
+    .gem-sparkle:nth-child(3) { top: 55%; left: 8%; animation-delay: 2.8s; }
+    .gem-sparkle:nth-child(4) { top: 75%; left: 75%; animation-delay: .9s; width: 5px; height: 5px; }
+    .gem-sparkle:nth-child(5) { top: 40%; left: 55%; animation-delay: 2s; width: 8px; height: 8px; box-shadow: 0 0 20px rgba(100, 181, 246, .6); }
+    .gem-sparkle:nth-child(6) { top: 12%; left: 48%; animation-delay: 3.5s; }
+    .gem-sparkle:nth-child(7) { top: 65%; left: 32%; animation-delay: .6s; }
+    .gem-sparkle:nth-child(8) { top: 88%; left: 88%; animation-delay: 2.2s; }
+    @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }
+    .app { width: 100%; max-width: 480px; min-height: 100vh; height: auto; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }
+    .hero-banner-container, .glass-card, .leaderboard, .chat-messages, .stat-box, .rule, .legal-content, .main-play-button, .chat-input-box input, .chat-input-box button, #tokenSelect, #jackpotDisplay, .side-menu, .legal-modal .legal-content, #nameModal .legal-content, #walletModal .legal-content { border-radius: 20px !important; }
+    .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); }
+    #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
+    html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }
+    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #64b5f6; border-radius: 999px; background: #051230; color: #64b5f6; font-size: 13px; font-weight: 900; box-shadow: 0 0 20px rgba(100, 181, 246, .2); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
+    .install-pwa-button.show { display: block; }
+    .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 8px 12px 10px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 6px 24px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }
+    .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }
+    .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }
+    .side-menu.show { left: 0; }
+    .close-menu { background: 0 0; border: none; color: #e0e0e0; font-size: 28px; cursor: pointer; }
+    .side-menu-content { margin-top: 40px; padding-bottom: 30px; }
+    .side-menu-content h3 { color: #64b5f6; margin-bottom: 20px; font-size: 16px; letter-spacing: 1px; }
+    .menu-block { margin-bottom: 15px; background: rgba(255, 255, 255, .03); padding: 12px; border-radius: 10px; }
+    .menu-block label, .menu-block h4 { display: block; font-size: 13px; color: #64b5f6; margin-bottom: 8px; font-weight: 700; }
+    .menu-block select { width: 100%; padding: 8px; border-radius: 6px; background: #0a2a5c; color: #e0e0e0; border: 1px solid rgba(100, 181, 246, .2); box-sizing: border-box; font-family: 'Poppins', sans-serif; font-size: 12px; }
+    .menu-nav-btn { display: block; width: 100%; background: 0 0; border: none; color: #e0e0e0; text-align: left; font-size: 14px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; border-radius: 8px; text-decoration: none; box-sizing: border-box; font-family: 'Poppins', sans-serif; transition: all .2s ease; }
+    .menu-nav-btn:hover, .menu-nav-btn:active { background: rgba(100, 181, 246, .12); color: #64b5f6; }
+    .trust-contact-box { border-left: 3px solid #2ecc71; }
+    .support-link { display: inline-block; padding: 8px 12px; background: #0088cc; color: #fff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 700; font-family: 'Poppins', sans-serif; }
+    .menu-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; z-index: 999; }
+    .menu-overlay.show { display: block; }
+    .legal-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 15px; box-sizing: border-box; }
+    .legal-modal.show { display: flex; }
+    .legal-content { background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); border: 1px solid #64b5f6; max-width: 420px; width: 100%; max-height: 85vh; max-height: 85dvh; overflow-y: auto; padding: 15px; box-sizing: border-box; color: #e0e0e0; position: relative; animation: modalPop .4s cubic-bezier(.34, 1.56, .64, 1); }
+    .legal-content h3 { color: #64b5f6; margin-top: 0; }
+    .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
+    .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
+    
+    /* ===== ESPACEMENT & CHRONOMÈTRE FUTURISTE AMÉLIORÉ & BOUTON TAP "WOW" ===== */
+    .tap-zone { width: 100%; min-height: 280px; display: flex; align-items: center; justify-content: center; position: relative; padding: 16px 0; flex-direction: column; }
+    
+    /* CHRONOMÈTRE AMÉLIORÉ (STYLE FUTURISTE / CASINO HAUT DE GAMME) */
+    .tap-zone #timerRule { 
+      position: relative; 
+      margin-bottom: 20px; 
+      z-index: 20; 
+      background: rgba(13, 35, 75, 0.85); 
+      backdrop-filter: blur(12px); 
+      -webkit-backdrop-filter: blur(12px); 
+      border: 1px solid rgba(0, 243, 255, 0.35); 
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.15); 
+      border-radius: 14px; 
+      padding: 8px 18px; 
+      display: flex !important; 
+      align-items: center; 
+      gap: 12px; 
+      max-width: 90%; 
+      white-space: nowrap; 
+    }
+    .tap-zone #timerRule .rule-icon { font-size: 18px; color: #00f3ff; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6); }
+    .tap-zone #timerRule strong { 
+      font-size: clamp(20px, 4.5vw, 26px); 
+      color: #00f3ff !important; 
+      text-shadow: 0 0 12px rgba(0, 243, 255, 0.7), 0 0 25px rgba(0, 243, 255, 0.3); 
+      font-family: 'Orbitron', sans-serif; 
+      letter-spacing: 1px;
+    }
+    .tap-zone #timerRule small { font-size: clamp(10px, 2vw, 11px); color: rgba(255, 255, 255, 0.7) !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    /* État critique du chronomètre (< 1 min) avec pulsation rouge */
+    .tap-zone #timerRule.warning {
+      border-color: rgba(255, 51, 102, 0.6);
+      box-shadow: 0 0 25px rgba(255, 51, 102, 0.5), inset 0 0 12px rgba(255, 51, 102, 0.2);
+      animation: pulseTimerCard 1.5s infinite ease-in-out;
+    }
+    .tap-zone #timerRule.warning strong {
+      color: #ff3366 !important;
+      text-shadow: 0 0 15px rgba(255, 51, 102, 0.9), 0 0 30px rgba(255, 51, 102, 0.4);
+    }
+    .tap-zone #timerRule.warning .rule-icon { color: #ff3366; text-shadow: 0 0 12px rgba(255, 51, 102, 0.8); }
+    @keyframes pulseTimerCard {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
 
-        /* CHRONOMÈTRE */
-        .timer-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glow);
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 16px;
-            text-align: center;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
+    .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 6px; }
+    .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.2vw, 18px); }
+    .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(17px, 3.8vw, 22px); font-weight: 900; color: #64b5f6; min-width: 22px; text-align: center; text-shadow: 0 0 8px rgba(100, 181, 246, 0.5); }
+    .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.7vw, 11px); color: rgba(255, 255, 255, 0.6); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .timer-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-top: 2px;
-        }
+    .tap-button {
+      position: relative;
+      width: clamp(215px, 56vw, 315px) !important;
+      height: clamp(215px, 56vw, 315px) !important;
+      aspect-ratio: 1 / 1;
+      min-width: 195px;
+      min-height: 195px;
+      border: 3.5px solid rgba(100, 181, 246, 0.8) !important;
+      border-radius: 50% !important;
+      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.4), rgba(255, 255, 255, 0.12)) !important;
+      /* FINITION WOW : Halo lumineux renforcé et profondeur 3D subtile */
+      box-shadow: 0 0 60px rgba(100, 181, 246, 0.45), 0 0 120px rgba(0, 162, 255, 0.2), inset 0 0 70px rgba(100, 181, 246, 0.25), inset 0 5px 15px rgba(255, 255, 255, 0.4) !important;
+      transition: transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease !important;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+      will-change: transform;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 8px auto;
+      padding: 0;
+      overflow: hidden;
+      outline: 0;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      animation: tapButtonGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes tapButtonGlow { 
+      0% { box-shadow: 0 0 50px rgba(100, 181, 246, 0.35), 0 0 100px rgba(0, 162, 255, 0.15), inset 0 0 60px rgba(100, 181, 246, 0.2), inset 0 5px 15px rgba(255, 255, 255, 0.3); } 
+      100% { box-shadow: 0 0 80px rgba(100, 181, 246, 0.65), 0 0 150px rgba(0, 162, 255, 0.35), inset 0 0 90px rgba(100, 181, 246, 0.35), inset 0 6px 20px rgba(255, 255, 255, 0.6); } 
+    }
+    .tap-button:disabled { cursor: not-allowed; opacity: .6; animation: none; }
+    .tap-button:active:not(:disabled) { transform: scale(0.88) translateY(2px) !important; box-shadow: 0 0 30px rgba(100, 181, 246, 0.5), 0 0 60px rgba(0, 162, 255, 0.2), inset 0 6px 15px rgba(0, 0, 0, 0.4) !important; }
+    .tap-button.tap-active { transform: scale(0.88) translateY(2px) !important; box-shadow: 0 0 30px rgba(100, 181, 246, 0.5), 0 0 60px rgba(0, 162, 255, 0.2), inset 0 6px 15px rgba(0, 0, 0, 0.4) !important; }
+    .tap-button:not(:disabled):hover { transform: scale(1.04); box-shadow: 0 0 75px rgba(100, 181, 246, 0.6), inset 0 6px 18px rgba(255, 255, 255, 0.5) !important; }
+    .tap-button:not(:disabled)::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 181, 246, 0.5);
+      animation: tapPulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.22); opacity: 0; } 100% { transform: scale(1); opacity: 0.8; } }
+    .tap-img-bg { position: absolute; inset: 0; width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 50%; padding: 0; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .95 !important; user-select: none; -webkit-user-drag: none; }
+    .tap-button small { display: none; }
+    .tap-ripple {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 181, 246, 0.9);
+      pointer-events: none;
+      animation: rippleOut 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      z-index: 1;
+    }
+    @keyframes rippleOut { 0% { transform: scale(0.4); opacity: 1; box-shadow: 0 0 15px rgba(100,181,246,0.8); } 100% { transform: scale(2.1); opacity: 0; box-shadow: 0 0 30px rgba(100,181,246,0); } }
 
-        /* SECTION TAP / JOUER */
-        .tap-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 20px 0;
-            flex-grow: 1;
-        }
+    .main-play-button {
+      display: block;
+      width: 80%;
+      max-width: 280px;
+      margin: 12px auto;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      border: none;
+      font-size: clamp(14px, 3.5vw, 18px);
+      font-weight: 900;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #990000, 0 8px 24px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border-radius: 18px !important;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      position: relative;
+    }
+    .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 18px; pointer-events: none; }
+    .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 6px 0 #990000, 0 12px 30px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+    .main-play-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #990000, 0 4px 15px rgba(255, 65, 108, 0.4); }
+    .main-play-button b { margin-left: 6px; }
+    .tap-message, #tapMessage { display: none !important; }
 
-        .tap-button {
-            width: 160px;
-            height: 160px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-cyan), #0077ff);
-            border: none;
-            color: #050b18;
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            cursor: pointer;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.4);
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-transform: uppercase;
-        }
+    /* ===== CHAT GLOBAL LIVE (PREMIUM & FUTURISTE) ===== */
+    .chat-section {
+      background: rgba(13, 35, 75, 0.85) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(100, 181, 246, 0.25) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      border-radius: 18px !important;
+      padding: 12px !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .chat-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(100, 181, 246, 0.6), transparent);
+    }
+    .chat-section .section-title {
+      color: #fff !important;
+      font-size: 13px !important;
+      letter-spacing: 1px !important;
+      margin-bottom: 8px !important;
+      font-weight: 700 !important;
+      font-family: 'Orbitron', sans-serif !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chat-section .section-title span { color: #fff !important; font-size: 13px !important; }
+    .chat-section .section-title strong { 
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 13px !important; 
+      margin-left: auto !important;
+      font-weight: 900 !important;
+      padding: 1px 6px;
+      background-color: rgba(0, 242, 254, 0.1);
+      border-radius: 6px;
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+    }
+    
+    .chat-messages {
+      background: rgba(5, 15, 35, 0.6) !important;
+      backdrop-filter: blur(8px) !important;
+      border: 1px solid rgba(100, 181, 246, 0.15) !important;
+      border-radius: 12px !important;
+      padding: 8px !important;
+      height: 115px !important;
+      max-height: 115px !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      margin-bottom: 8px !important;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    .chat-message {
+      background: rgba(255, 255, 255, 0.08) !important;
+      backdrop-filter: blur(6px);
+      color: #e2e8f0 !important;
+      font-size: 12px !important;
+      padding: 6px 10px !important;
+      border-radius: 10px !important;
+      margin-bottom: 5px !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      border: 1px solid rgba(100, 181, 246, 0.12);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      animation: messageSlideIn 0.3s ease-out;
+    }
+    @keyframes messageSlideIn {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .chat-input-box {
+      position: relative;
+      z-index: 10;
+      background: rgba(5, 15, 35, 0.7);
+      border-radius: 12px;
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      border: 1px solid rgba(100, 181, 246, 0.25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .chat-input-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: #fff;
+      outline: none;
+      font-family: 'Poppins', sans-serif;
+    }
+    .chat-input-box input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .chat-input-box button {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: #fff;
+      border: 1px solid rgba(100, 181, 246, 0.4);
+      border-radius: 50% !important;
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      box-shadow: 0 0 10px rgba(26, 115, 232, 0.4);
+      transition: all 0.2s ease;
+    }
+    .chat-input-box button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(26, 115, 232, 0.7);
+    }
+    
+    /* ===== CLASSEMENT TOP 5 (PREMIUM & FUTURISTE) ===== */
+    .leaderboard {
+      background: rgba(13, 35, 75, 0.85) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(100, 181, 246, 0.25) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      border-radius: 18px !important;
+      padding: 12px !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .leaderboard::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(100, 181, 246, 0.6), transparent);
+    }
+    .leaderboard .section-title {
+      color: #fff !important;
+      font-size: 13px !important;
+      letter-spacing: 1px !important;
+      margin-bottom: 8px !important;
+      font-weight: 700 !important;
+      font-family: 'Orbitron', sans-serif !important;
+    }
+    .leaderboard .section-title span { color: #fff !important; font-size: 13px !important; }
+    .leaderboard .section-title strong { color: #64b5f6 !important; font-size: 14px !important; margin-left: 4px !important; }
+    
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .leaderboard-item {
+      background: rgba(255, 255, 255, 0.05) !important;
+      backdrop-filter: blur(6px);
+      color: #fff !important;
+      font-size: 12px !important;
+      padding: 6px 10px !important;
+      border-radius: 12px !important;
+      border-left: 3px solid #64b5f6 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      border: 1px solid rgba(100, 181, 246, 0.12);
+      transition: all 0.2s ease;
+    }
+    .leaderboard-item:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(100, 181, 246, 0.3);
+    }
+    .rank-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 24px !important;
+      height: 24px !important;
+      min-width: 24px !important;
+      border-radius: 50% !important;
+      font-size: 11px !important;
+      font-weight: 900 !important;
+      color: #fff !important;
+      background: rgba(100, 181, 246, 0.2) !important;
+      border: 1px solid rgba(100, 181, 246, 0.4);
+      flex-shrink: 0 !important;
+      font-family: 'Orbitron', sans-serif;
+    }
+    .leaderboard-item:nth-child(1) .rank-badge { background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%) !important; color: #000 !important; border: 1px solid #ffffe0; box-shadow: 0 0 12px rgba(255, 215, 0, .5) !important; }
+    .leaderboard-item:nth-child(2) .rank-badge { background: linear-gradient(135deg, #e0e0e0 0%, #9e9e9e 100%) !important; color: #000 !important; border: 1px solid #ffffff; box-shadow: 0 0 10px rgba(192, 192, 192, .4) !important; }
+    .leaderboard-item:nth-child(3) .rank-badge { background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%) !important; color: #fff !important; border: 1px solid #ffdab9; box-shadow: 0 0 10px rgba(205, 127, 50, .4) !important; }
+    .leaderboard-item:nth-child(4) .rank-badge, .leaderboard-item:nth-child(5) .rank-badge { background: rgba(100, 181, 246, 0.15) !important; color: #64b5f6 !important; }
+    
+    .leaderboard-item:nth-child(1) { border-left-color: #ffd700 !important; background: linear-gradient(90deg, rgba(255,215,0,0.12), rgba(255,255,255,0.05)) !important; }
+    .leaderboard-item:nth-child(2) { border-left-color: #c0c0c0 !important; background: linear-gradient(90deg, rgba(192,192,192,0.12), rgba(255,255,255,0.05)) !important; }
+    .leaderboard-item:nth-child(3) { border-left-color: #cd7f32 !important; background: linear-gradient(90deg, rgba(205,127,50,0.12), rgba(255,255,255,0.05)) !important; }
 
-        .tap-button:active {
-            transform: scale(0.95);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
-        }
+    .leaderboard-item .player-name { color: #fff !important; font-weight: 700 !important; font-size: 12px !important; flex: 1 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .leaderboard-item .player-score { 
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 900 !important; 
+      font-size: 12px !important; 
+      white-space: nowrap; 
+      font-family: 'Orbitron', sans-serif;
+    }
+    .empty-ranking { color: rgba(255, 255, 255, 0.6) !important; font-size: 12px !important; text-align: center; padding: 10px; font-weight: 600; font-style: italic; }
+    
+    .section-title { font-size: 13px !important; color: #222 !important; letter-spacing: .5px !important; margin-bottom: 10px !important; }
+    .section-title span { color: #222 !important; font-size: 13px !important; }
+    .section-title strong { color: #0d47a1 !important; font-size: 15px !important; margin-left: 4px !important; }
+    .stat-box { background: rgba(100, 181, 246, .06) !important; border: 1px solid rgba(100, 181, 246, .12) !important; padding: 15px !important; box-shadow: 0 0 30px rgba(100, 181, 246, .04) !important; border-radius: 18px !important; }
+    .stat-box small { display: block; font-size: 13px !important; color: rgba(255, 255, 255, .8) !important; font-family: 'Poppins', sans-serif; letter-spacing: 1.5px !important; font-weight: 700 !important; }
+    .stat-box strong { font-size: 42px !important; font-weight: 900 !important; color: #64b5f6 !important; font-family: 'Orbitron', sans-serif !important; text-shadow: 0 0 25px rgba(100, 181, 246, .25) !important; }
+    .stats { display: flex; justify-content: center; padding: 8px 0 4px; animation: slideUp .9s ease-out .4s both; }
+    .top-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, .05); position: relative; overflow: hidden; }
+    .top-header::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .05), transparent); animation: headerShine 6s ease-in-out infinite; pointer-events: none; }
+    @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }
+    .menu-button { background: 0 0; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px 6px; }
+    .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }
+    .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 8px !important; padding: 0 12px; animation: slideUp 1s ease-out .5s both; }
+    .rules { display: flex; justify-content: center; gap: 15px; padding: 10px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }
+    
+    .rule { display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, .12); backdrop-filter: blur(8px); padding: 7px 14px; border: 1px solid rgba(255, 255, 255, .15); font-family: 'Poppins', sans-serif; font-size: 12px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .15); border-radius: 14px !important; font-weight: 600; }
+    .rule .rule-icon { font-size: 16px; }
+    .rule strong { color: #64b5f6; font-size: 13px; font-weight: 700; }
+    .rule small { color: rgba(255, 255, 255, .8); font-size: 11px; font-weight: 600; }
+    .rules .rule:first-child { display: none !important; }
+    
+    .tap-message { text-align: center; font-size: 14px !important; color: #fff; padding: 10px 16px !important; margin: 4px auto; font-family: 'Poppins', sans-serif; letter-spacing: .5px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(6px); border-radius: 16px; display: inline-block; max-width: 90%; border: 1px solid rgba(255, 255, 255, .06); font-weight: 700 !important; }
+    .steps-guide { display: none !important; justify-content: center; gap: 10px !important; padding: 10px 14px !important; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255, 255, 255, .05); flex-wrap: wrap; text-align: center; font-size: 11px !important; font-family: 'Poppins', sans-serif; color: rgba(255, 255, 255, .7); }
+    .step-item { display: flex; align-items: center; gap: 4px; }
+    .step-number { background: #64b5f6; color: #051230; border-radius: 50%; width: 18px !important; height: 18px !important; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px !important; flex-shrink: 0; }
+    .step-arrow { color: rgba(255, 255, 255, .2); }
+    
+    .server-wallet-box { text-align: center; margin: 8px 12px !important; padding: 10px !important; border-radius: 14px; background: rgba(255, 255, 255, .04) !important; border: 1px solid rgba(255, 255, 255, .06) !important; }
+    .server-wallet-label { font-size: 12px; color: rgba(255, 255, 255, .7); font-weight: 600; }
+    .server-wallet-address { font-size: 14px !important; font-weight: 700; color: #64b5f6 !important; word-break: break-all; font-family: 'Poppins', sans-serif; background: rgba(0, 0, 0, .20) !important; padding: 4px 6px !important; border-radius: 6px !important; display: inline-block !important; }
+    .server-wallet-link { font-size: 11px; color: #64b5f6; text-decoration: none; display: inline-block; margin-top: 3px; font-weight: 600; }
+    .trust-footer { text-align: center; padding: 12px; font-size: 12px; color: rgba(255, 255, 255, .6); font-family: 'Poppins', sans-serif; border-top: 1px solid rgba(255, 255, 255, .04); margin-top: 15px; font-weight: 500; }
+    .trust-footer a { color: #64b5f6; text-decoration: none; font-weight: 600; }
+    
+    #welcomeModal { position: fixed; inset: 0; background: rgba(0, 0, 0, .85); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 15px; backdrop-filter: blur(8px); }
+    #welcomeModal .welcome-content { background: linear-gradient(145deg, #0d47a1, #1565c0); border-radius: 18px; max-width: 340px; width: 100%; padding: 20px 16px; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; border: 1px solid rgba(100, 181, 246, .2); box-shadow: 0 15px 40px rgba(0, 0, 0, .6); animation: modalPop .5s cubic-bezier(.34, 1.56, .64, 1); }
+    #welcomeModal .welcome-icon { font-size: 36px; margin-bottom: 6px; }
+    #welcomeModal .welcome-title { margin: 0 0 4px; font-size: 18px; color: #64b5f6; }
+    #welcomeModal .welcome-sub { font-size: 12px; color: rgba(255, 255, 255, .8); margin: 0 0 12px; }
+    #welcomeModal .welcome-steps { text-align: left; font-size: 12px; line-height: 1.6; background: rgba(0, 0, 0, .2); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+    #welcomeModal .welcome-steps div { display: flex; align-items: center; gap: 6px; }
+    #welcomeModal .welcome-steps strong { color: #64b5f6; }
+    #welcomeModal .welcome-secure { font-size: 11px; color: rgba(255, 255, 255, .6); margin-bottom: 12px; }
+    #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
+    #welcomeModal .welcome-btn:active { transform: scale(.96); }
 
-        /* MODE DUEL & MISE */
-        .duel-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glow);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    /* ===== RESPONSIVE ===== */
+    @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { 0% { opacity: 0; transform: translateY(30px) scale(.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes modalPop { 0% { opacity: 0; transform: scale(.85) translateY(30px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+    
+    #winnerTicker { width: 100%; max-width: 480px; margin: 0 auto; overflow: hidden; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(100, 181, 246, .12); border-top: 1px solid rgba(100, 181, 246, .12); height: 32px; position: sticky; top: 60px; z-index: 40; display: none; }
+    #winnerTicker.show { display: block; }
+    #tickerTrack { display: flex; align-items: center; height: 100%; white-space: nowrap; animation: tickerScroll 20s linear infinite; gap: 40px; padding-left: 100%; }
+    @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+    .ticker-item { display: inline-flex; align-items: center; gap: 6px; font-family: 'Poppins', sans-serif; font-size: 11px; color: #64b5f6; padding: 0 8px; flex-shrink: 0; }
+    .ticker-item .trophy { font-size: 12px; }
+    .ticker-item .name { color: #fff; font-weight: 700; }
+    .ticker-item .amount { color: #2ecc71; font-weight: 700; }
+    #winnerTicker:hover #tickerTrack { animation-play-state: paused; }
+    #tokenSelect { width: 120px; padding: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255, 255, 255, .1); font-size: 13px; text-align: center; outline: 0; font-family: 'Poppins', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; }
+    #tokenSelect option { background: #0d47a1; color: #fff; }
+    .crypto-label { color: #fff; font-weight: 700; font-size: 13px; font-family: 'Poppins', sans-serif; }
 
-        .duel-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
+    /* ===== JACKPOT REDUIT ===== */
+    #jackpotDisplay {
+      position: relative;
+      width: calc(100% - 24px);
+      margin: 8px auto;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%);
+      border: 1px solid rgba(255, 80, 80, 0.8);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 30, 30, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      overflow: hidden;
+      text-align: center;
+      animation: jackpotHaloPulse 3s ease-in-out infinite alternate;
+      z-index: 1;
+    }
+    #jackpotDisplay::before { content: ''; position: absolute; top: -50%; left: -20%; width: 140%; height: 200%; background: radial-gradient(circle, rgba(255, 180, 180, 0.2) 0%, rgba(255, 30, 30, 0.05) 40%, transparent 70%); pointer-events: none; z-index: -1; }
+    @keyframes jackpotHaloPulse { 0% { box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 10px rgba(255,30,30,0.3), inset 0 1px 0 rgba(255,255,255,0.2); } 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 20px rgba(255,30,30,0.6), inset 0 1px 0 rgba(255,255,255,0.2); } }
+    .jackpot-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.5); color: #ffd700; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 14px; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase; }
+    .jackpot-title { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: #ffd700; letter-spacing: 1px; margin-bottom: 8px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8), 0 0 10px rgba(255, 215, 0, 0.8); }
+    .jackpot-main-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .jackpot-left, .jackpot-right { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
+    .jackpot-divider { width: 1.5px; height: 40px; background: rgba(255, 215, 0, 0.5); border-radius: 2px; }
+    .jackpot-label { font-size: 10px; color: rgba(255,255,255,0.95); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 700; }
+    #jackpotAmount { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: #fff; text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 1px 2px rgba(0,0,0,0.8); line-height: 1.1; }
+    #jackpotCountdown { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: #2ecc71; text-shadow: 0 0 10px rgba(46, 204, 113, 0.8), 0 1px 2px rgba(0,0,0,0.8); line-height: 1.1; }
+    .jackpot-schedule { font-size: 10px; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-top: 2px; }
+    .jackpot-winner-info { display: block; font-size: 11px; color: rgba(255, 215, 0, 0.95); margin-top: 4px; font-weight: 600; }
+    .jackpot-winner-info strong { color: #ffd700; font-weight: 800; }
+    .jackpot-footer { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 215, 0, 0.25); font-size: 11px; color: rgba(255, 255, 255, 0.9); text-align: center; font-weight: 500; }
 
-        .duel-action {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--accent-cyan);
-        }
+    /* ===== BOUTON DUEL ===== */
+    #duelButton {
+      background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+      box-shadow: 0 6px 0 #4a148c, 0 8px 24px rgba(156, 39, 176, 0.5) !important;
+    }
+    #duelButton:active { box-shadow: 0 2px 0 #4a148c !important; }
 
-        /* ACTION PRINCIPALE */
-        .action-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #00f3ff, #0066ff);
-            border: none;
-            border-radius: 12px;
-            padding: 16px;
-            color: #050b18;
-            font-size: 15px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            cursor: pointer;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 20px rgba(0, 243, 255, 0.3);
-        }
-
-        /* CLASSEMENT & CHAT */
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .info-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glow);
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-        }
-
-        /* MENU / NAVIGATION BASSE */
-        .bottom-nav {
-            display: flex;
-            justify-content: space-around;
-            background: rgba(8, 17, 38, 0.9);
-            border-top: 1px solid var(--border-glow);
-            padding: 12px 0;
-            margin-top: auto;
-            border-radius: 12px 12px 0 0;
-        }
-
-        .nav-item {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-decoration: none;
-            text-transform: uppercase;
-            cursor: pointer;
-        }
-
-        .nav-item.active {
-            color: var(--accent-cyan);
-        }
-    </style>
+    /* ===== BOUTONS DE MISE DUEL (version compacte) ===== */
+    .duelBetBtn {
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 3px 6px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 9px;
+      min-width: 30px;
+      transition: all 0.2s ease;
+      font-family: 'Poppins', sans-serif;
+    }
+    .duelBetBtn.active {
+      border-color: #9c27b0;
+      background: rgba(156, 39, 176, 0.25);
+      box-shadow: 0 0 6px rgba(156, 39, 176, 0.3);
+    }
+    .duelBetBtn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  </style>
 </head>
+
 <body>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
+  <div class="gem-sparkle"></div>
 
-    <div class="app-container">
-        <!-- HEADER -->
-        <header class="header">
-            <div class="logo-container">
-                <span class="logo-icon">👑</span>
-                <span class="logo-text">MILTAPE</span>
-            </div>
-            <div class="wallet-badge">
-                <span>💎</span> <span id="tron-balance">1,250.00 TRON</span>
-            </div>
-        </header>
+  <div id="welcomeModal">
+    <div class="welcome-content">
+      <div class="welcome-icon">🎮</div>
+      <h2 class="welcome-title">Bienvenue sur Miltape !</h2>
+      <p class="welcome-sub">Voici comment ça marche en 4 étapes :</p>
+      <div class="welcome-steps">
+        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
+        <div>2️⃣ <strong>Paie</strong> en 1 clic via Telegram Wallet</div>
+        <div>3️⃣ <strong>Tape</strong> le plus vite possible pendant 10 min</div>
+        <div>4️⃣ <strong>Gagne ×2</strong> ta mise si tu es dans le Top 5</div>
+      </div>
+      <div class="welcome-secure">🔒 Paiements et gains <strong>100% automatiques</strong></div>
+      <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
+    </div>
+  </div>
 
-        <!-- BANNIÈRE -->
-        <div class="banner">
-            World Challenge Live • Saisons & Duels
+  <div id="nameModal" class="legal-modal">
+    <div class="legal-content">
+      <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
+      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:14px;">
+      <button id="nameSubmitBtn" class="main-play-button" style="padding:8px;">✅ VALIDER</button>
+    </div>
+  </div>
+
+  <div id="walletModal" class="legal-modal">
+    <div class="legal-content">
+      <h3>💰 Entrez votre adresse TRON</h3>
+      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:14px;">
+      <button id="walletSubmitBtn" class="main-play-button" style="padding:8px;">✅ VALIDER</button>
+    </div>
+  </div>
+
+  <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:6px;align-items:center"></div>
+  <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
+
+  <aside id="sideMenu" class="side-menu">
+    <button id="closeMenu" class="close-menu" type="button">×</button>
+    <div class="side-menu-content">
+      <h3>🧭 Menu Miltape</h3>
+      <div class="menu-block">
+        <button class="menu-nav-btn" id="menuGamesBtn" type="button">🎮 Mes parties</button>
+        <button class="menu-nav-btn" id="menuRankingsBtn" type="button">🏆 Mes classements</button>
+        <button class="menu-nav-btn" id="menuGainsBtn" type="button">💰 Mes gains</button>
+        <button class="menu-nav-btn" id="menuWithdrawalsBtn" type="button">💸 Mes retraits</button>
+        <button class="menu-nav-btn" id="menuReferralBtn" type="button">👥 Parrainage</button>
+        <button class="menu-nav-btn" id="menuChatBtn" type="button">💬 Chat</button>
+        <button class="menu-nav-btn" id="menuRulesBtn" type="button">📜 Règles</button>
+        <a href="./conditions.html" target="_blank" rel="noopener noreferrer" class="menu-nav-btn">📄 Conditions d'utilisation</a>
+      </div>
+      <div class="menu-block" style="text-align:center">
+        <button id="demomodebtn" class="menu-nav-btn" type="button" style="background:rgba(100,181,246,.12);color:#64b5f6;font-weight:700;text-align:center;border:1px solid rgba(100,181,246,.2);font-family:'Poppins',sans-serif;transition:all .3s ease">
+          🔬 MODE DÉMO : <span id="demoToggleLabel">OFF</span>
+        </button>
+        <div id="demoStatus" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;font-family:'Poppins',sans-serif">🔒 Mode démo désactivé</div>
+      </div>
+      <div class="menu-block" style="text-align:center">
+        <button id="resetGameBtn" class="menu-nav-btn" type="button" style="background:rgba(255,50,50,.12);color:#ff4444;border:1px solid rgba(255,50,50,.25);font-family:'Poppins',sans-serif;transition:all .3s ease">🔄 NOUVELLE PARTIE</button>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;font-family:'Poppins',sans-serif">Efface tes données locales</div>
+      </div>
+      <div class="menu-block">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <span style="color:#64b5f6;font-weight:700;font-size:13px">🔔 Notifications</span>
+          <input type="checkbox" id="notifToggle" checked style="width:36px;height:18px;cursor:pointer;accent-color:#64b5f6;background:rgba(255,255,255,.1);border-radius:10px">
+        </label>
+      </div>
+      <div class="menu-block">
+        <label for="languageSelect">🌐 Langue</label>
+        <select id="languageSelect">
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="menu-block trust-contact-box">
+        <h4>🛡️ Support & Confiance</h4>
+        <p style="font-size:12px;color:#b8b8b8;font-family:'Poppins',sans-serif">Une question ? Un problème ?</p>
+        <a href="https://t.me/ton_canal_telegram" target="_blank" rel="noopener noreferrer" class="support-link">📢 Telegram officiel</a>
+        <div style="margin-top:8px;font-size:12px"><a href="mailto:miltapesupport@gmail.com" style="color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif">📧 miltapesupport@gmail.com</a></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.04)">
+          <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;color:#64b5f6;text-decoration:none;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;transition:all .3s ease">🔍 Voir toutes les transactions sur TronScan</a>
         </div>
+      </div>
+    </div>
+  </aside>
+  <div id="menuOverlay" class="menu-overlay"></div>
 
-        <!-- CARTE JACKPOT (VISUEL AMÉLIORÉ) -->
-        <div class="jackpot-card">
-            <div class="jackpot-title">
-                <span>👑</span> Jackpot Mondial
-            </div>
-            <div class="jackpot-amount" id="jackpot-display">
-                15,480.50 TRON
-            </div>
+  <div id="dynamicModal" class="legal-modal" role="dialog" aria-modal="true">
+    <div class="legal-content">
+      <button id="closeDynamicModal" class="legal-close" type="button">×</button>
+      <h3 id="dynamicModalTitle">Miltape</h3>
+      <div id="dynamicModalBody"></div>
+    </div>
+  </div>
+
+  <main class="app">
+    <header class="top-header">
+      <button class="menu-button" id="menuButton" type="button">☰</button>
+      <div class="online">
+        <strong id="onlineCount">
+          <span style="display:inline-block;width:7px;height:7px;background:#2ecc71;border-radius:50%;margin-right:4px"></span>
+          <span>1 EN LIGNE</span>
+        </strong>
+      </div>
+    </header>
+
+    <div id="jackpotDisplay">
+      <div class="jackpot-badge">🎁 CAGNOTTE DU SAMEDI</div>
+      <div class="jackpot-title">🏆 JACKPOT</div>
+      <div class="jackpot-main-row">
+        <div class="jackpot-left">
+          <span class="jackpot-label">💰 MONTANT</span>
+          <span id="jackpotAmount">0 USDT</span>
+          <span class="jackpot-winner-info">🏅 Attribué au <strong>meilleur tapeur</strong></span>
         </div>
-
-        <!-- CHRONOMÈTRE -->
-        <div class="timer-card">
-            <div>Fin de la manche dans</div>
-            <div class="timer-value" id="timer-display">02:45:10</div>
+        <div class="jackpot-divider"></div>
+        <div class="jackpot-right">
+          <span class="jackpot-label">⏳ TIRAGE DANS</span>
+          <span id="jackpotCountdown">--</span>
+          <span class="jackpot-schedule">📅 SAMEDI</span>
         </div>
-
-        <!-- SECTION TAP -->
-        <div class="tap-section">
-            <button class="tap-button" id="tap-btn">TAP</button>
-        </div>
-
-        <!-- MODE DUEL & MISE -->
-        <div class="duel-card">
-            <span class="duel-title">Mode Duel / Mise</span>
-            <span class="duel-action">100 TRON</span>
-        </div>
-
-        <!-- JOUER MAINTENANT -->
-        <button class="action-btn" id="play-now-btn">Jouer Maintenant</button>
-
-        <!-- CLASSEMENT & CHAT -->
-        <div class="info-grid">
-            <div class="info-card" id=" classement-btn">Classement</div>
-            <div class="info-card" id="chat-btn">Chat Global</div>
-        </div>
-
-        <!-- MENU / NAVIGATION -->
-        <nav class="bottom-nav">
-            <span class="nav-item active">Accueil</span>
-            <span class="nav-item">Duels</span>
-            <span class="nav-item">Classement</span>
-            <span class="nav-item">Wallet</span>
-        </nav>
+      </div>
+      <div class="jackpot-footer">💡 Redistribué chaque samedi au joueur ayant tapé le plus.</div>
     </div>
 
-    <!-- SOCKET.IO & LOGIQUE BACKEND EXISTANTE -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // Connexion Socket.IO et logique inchangée
-        const socket = io();
+    <div id="winnerTicker"><div id="tickerTrack"></div></div>
 
-        socket.on('connect', () => {
-            console.log('Connecté au serveur WebSocket backend');
-        });
+    <section class="hero-banner-container">
+      <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
+    </section>
 
-        // Mise à jour de la source du Jackpot (logique d'origine préservée à l'identique)
-        socket.on('jackpot_update', (data) => {
-            if (data && data.amount) {
-                document.getElementById('jackpot-display').innerText = data.amount + ' TRON';
-            }
-        });
+    <div class="server-wallet-box">
+      <div class="server-wallet-label">🛡️ Envoie ta mise vers</div>
+      <div class="server-wallet-address" id="serverWalletDisplay">TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL</div>
+      <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
+    </div>
 
-        socket.on('balance_update', (data) => {
-            if (data && data.balance) {
-                document.getElementById('tron-balance').innerText = data.balance + ' TRON';
-            }
-        });
+    <div class="server-wallet-box" style="margin-top:6px;">
+      <div class="server-wallet-label">💰 Total misé cette manche</div>
+      <div class="server-wallet-address" id="displayBet">0 USDT</div>
+    </div>
 
-        // Interactions de base
-        document.getElementById('tap-btn').addEventListener('click', () => {
-            socket.emit('player_tap', { timestamp: Date.now() });
-        });
+    <!-- ===== SECTION DUEL COMPACTE ===== -->
+    <div style="text-align:center;margin:6px 0;">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(100,181,246,0.15);border-radius:10px;padding:8px 6px;margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:700;color:#fff;font-family:'Orbitron',sans-serif;letter-spacing:0.5px;margin-bottom:3px;">⚔️ DUEL 1 VS 1 (1 MIN)</div>
+        <div style="display:flex;justify-content:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+          <span style="background:#2ecc71;color:#fff;border-radius:10px;padding:1px 6px;font-size:8px;font-weight:700;text-transform:uppercase;">🔒 Auto</span>
+          <span style="background:#64b5f6;color:#051230;border-radius:10px;padding:1px 6px;font-size:8px;font-weight:700;text-transform:uppercase;">🔗 Blockchain</span>
+        </div>
+      </div>
 
-        document.getElementById('play-now-btn').addEventListener('click', () => {
-            socket.emit('play_now_action');
+      <div style="margin:4px 0;">
+        <div style="font-size:10px;color:#64b5f6;font-weight:700;letter-spacing:0.3px;margin-bottom:3px;">💰 MISE</div>
+        <div id="duelBetsContainer" style="display:flex;justify-content:center;gap:3px;flex-wrap:wrap;">
+          <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50</button>
+          <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1</button>
+          <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2</button>
+          <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4</button>
+          <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8</button>
+          <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16</button>
+          <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32</button>
+          <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64</button>
+          <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128</button>
+        </div>
+      </div>
+
+      <div id="duelPayoutPreview" style="background:rgba(0,0,0,0.2);border-radius:6px;padding:3px 6px;font-size:10px;color:#ddd;margin-top:3px;display:inline-block;font-weight:500;">
+        Mise : <strong style="color:#fff;">1 USDT</strong> → Gain : <strong style="color:#2ecc71;">1.80 USDT</strong>
+      </div>
+    </div>
+    <!-- ===== FIN SECTION DUEL ===== -->
+
+    <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:10px 20px;font-weight:700;border:none;cursor:pointer;margin:4px auto;width:80%;max-width:280px;box-shadow:0 3px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:11px">💳 PAYER MA MISE</button>
+    
+    <button id="duelButton" class="main-play-button" type="button">⚡ MODE DUEL 1 VS 1 (1 MINUTE)</button>
+    <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
+
+    <div id="tapMessage" class="tap-message" role="status" aria-live="polite">⚡ ÉTAPE 1 : Rejoins la partie !</div>
+
+    <!-- ZONE DE TAP & CHRONOMÈTRE AMÉLIORÉ -->
+    <section class="tap-zone" aria-label="Zone de tap">
+      <div class="rule" id="timerRule">
+        <span class="rule-icon">⏱️</span>
+        <strong id="timerRuleValue">10:00</strong>
+        <small>CHRONO</small>
+        <span class="tap-counter">
+          <span class="tap-icon">👆</span>
+          <span id="tapCounterDisplay">0</span>
+          <span class="tap-label">TAPS</span>
+        </span>
+      </div>
+      <button id="tapButton" class="tap-button" type="button" disabled>
+        <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" draggable="false">
+        <small style="display:none"><span id="tapButtonCount">0</span></small>
+      </button>
+    </section>
+
+    <section class="rules"><div class="rule"><span class="rule-icon">🏆</span><strong>TOP 5</strong><small>SEULEMENT</small></div></section>
+
+    <div class="leaderboard-chat-wrapper">
+      <section class="leaderboard">
+        <div class="section-title">🏆 CLASSEMENT  TOP 5</div>
+        <div id="leaderboardList" class="leaderboard-list">
+          <div class="empty-ranking">Aucun joueur pour le moment</div>
+        </div>
+      </section>
+
+      <section class="chat-section" id="globalChat">
+        <div class="section-title">💬 CHAT GLOBAL <strong>LIVE</strong></div>
+        <div id="chatMessages" class="chat-messages">
+          <div class="chat-message"><strong>Système :</strong> Bienvenue sur Miltape !</div>
+        </div>
+        <div class="chat-input-box" id="chatInputBox">
+          <input type="text" id="chatInput" placeholder="Écris ton message..." maxlength="500" autocomplete="off" enterkeyhint="send" inputmode="text">
+          <button id="chatSend" type="button" aria-label="Envoyer le message">➤</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="trust-footer">🔒 Toutes les transactions sont vérifiables sur la blockchain TRON. <a href="./conditions.html" target="_blank">Conditions d'utilisation</a></div>
+    <div style="width:100%;height:30px"></div>
+  </main>
+
+  <script>
+    const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
+    
+    const socket = io(BACKEND_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        withCredentials: true
+    });
+    
+    const tapButton = document.getElementById('tapButton');
+    const tapButtonCount = document.getElementById('tapButtonCount');
+    const enterChallenge = document.getElementById('enterChallenge');
+    const duelButton = document.getElementById('duelButton');
+    const tapMessage = document.getElementById('tapMessage');
+    const onlineCount = document.getElementById('onlineCount');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+    const chatMessages = document.getElementById('chatMessages');
+    const payButton = document.getElementById('payButton');
+    const tokenSelect = document.getElementById('tokenSelect');
+    const demoBtn = document.getElementById('demomodebtn');
+    const demoStatus = document.getElementById('demoStatus');
+    const demoToggleLabel = document.getElementById('demoToggleLabel');
+    
+    let isPlaying = false;
+    let isPaid = false;
+    let myPlayerId = null;
+    let myBet = 1;
+    let myWallet = null;
+    let myToken = 'USDT';
+    let gameStatus = "waiting";
+    let endsAt = null;
+    let timerInterval = null;
+    let duelState = { active: false, endsAt: null, opponentName: null, myTaps: 0, opponentTaps: 0 };
+    
+    function updateTimerDisplay() {
+      const timerRuleValue = document.getElementById('timerRuleValue');
+      const timerCard = document.getElementById('timerRule');
+      if (!timerRuleValue) return;
+      if (!endsAt) { 
+        timerRuleValue.innerText = "10:00"; 
+        if(timerCard) timerCard.classList.remove('warning');
+        return; 
+      }
+      const now = Date.now();
+      let remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+
+      // Activation de l'état critique (pulsation rouge sous la minute restante)
+      if (timerCard) {
+        if (remaining <= 60 && remaining > 0) {
+          timerCard.classList.add('warning');
+        } else {
+          timerCard.classList.remove('warning');
+        }
+      }
+    }
+    
+    function startLocalTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (endsAt) updateTimerDisplay();
+      }, 200);
+    }
+    startLocalTimer();
+
+    function hapticLight() { try { if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (e) {} }
+    function hapticMedium() { try { if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (e) {} }
+    function hapticSuccess() { try { if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
+
+    socket.on('connect', () => {
+      console.log('✅ Connecté au serveur');
+      socket.emit("timer:request");
+    });
+
+    socket.on("leaderboard:update", (leaderboard) => {
+      if (leaderboardList) {
+        leaderboardList.innerHTML = "";
+        if (!leaderboard || leaderboard.length === 0) {
+          leaderboardList.innerHTML = '<div class="empty-ranking">Aucun joueur pour le moment</div>';
+          return;
+        }
+        leaderboard.forEach((player, index) => {
+          const medals = ['🥇', '🥈', '🥉', '4', '5'];
+          const rankDisplay = index < 3 ? medals[index] : (index + 1);
+          const div = document.createElement('div');
+          div.className = 'leaderboard-item';
+          div.innerHTML = `
+            <span class="rank-badge">${rankDisplay}</span>
+            <span class="player-name">${player.name || 'Anonyme'}</span>
+            <span class="player-score">${player.taps || 0} TAP</span>
+          `;
+          leaderboardList.appendChild(div);
         });
-    </script>
+      }
+    });
+
+    if (duelButton) {
+      duelButton.addEventListener('click', () => {
+        alert("⚡ Mode Duel activé ! Choisissez votre mise et affrontez un adversaire.");
+      });
+    }
+
+    function selectDuelBet(btn) {
+      document.querySelectorAll('.duelBetBtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      myBet = parseFloat(btn.getAttribute('data-bet'));
+      const preview = document.getElementById('duelPayoutPreview');
+      if(preview) {
+        let gain = (myBet * 1.8).toFixed(2);
+        preview.innerHTML = `Mise : <strong style="color:#fff;">${myBet} USDT</strong> → Gain : <strong style="color:#2ecc71;">${gain} USDT</strong>`;
+      }
+    }
+  </script>
 </body>
 </html>
