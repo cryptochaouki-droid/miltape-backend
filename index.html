@@ -82,7 +82,7 @@
     .gem-sparkle:nth-child(5) { top: 40%; left: 55%; animation-delay: 2s; width: 8px; height: 8px; }
     @keyframes sparkleFloatHD { 0% { transform: translate(0, 0) scale(.7); opacity: .15; } 100% { transform: translate(12px, -18px) scale(1.6); opacity: 1; } }
     
-    .app { width: 100%; max-width: 480px; min-height: 100vh; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+    .app { width: 100%; max-width: 480px; min-height: 100vh; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; animation: fadeIn .6s ease-out; }
     .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); border-radius: 20px; }
     
     #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
@@ -123,87 +123,14 @@
       background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.4), rgba(255, 255, 255, 0.12));
       box-shadow: 0 0 60px rgba(100, 181, 246, 0.45), inset 0 0 70px rgba(100, 181, 246, 0.25);
       cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 8px auto; outline: 0;
-      transition: filter 0.3s ease, opacity 0.3s ease;
     }
-    .tap-button.disabled { opacity: 0.5; filter: grayscale(80%); pointer-events: none; cursor: not-allowed; }
     .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; opacity: .95; }
 
-    /* ========================================================================= */
-    /* 🚀 BOUTON REJOUER & ÉTAT DE CHARGEMENT                                    */
-    /* ========================================================================= */
     .main-play-button {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      width: 80%; max-width: 280px; margin: 12px auto; padding: 12px 18px;
+      display: block; width: 80%; max-width: 280px; margin: 12px auto; padding: 12px 18px;
       background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none;
       font-size: clamp(14px, 3.5vw, 18px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer;
       box-shadow: 0 6px 0 #990000, 0 8px 24px rgba(255, 65, 108, 0.5); border-radius: 18px; text-transform: uppercase;
-      transition: all 0.25s ease; position: relative;
-    }
-    .main-play-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 0 #990000, 0 10px 28px rgba(255, 65, 108, 0.7); }
-    .main-play-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 4px 0 #990000, 0 4px 16px rgba(255, 65, 108, 0.5); }
-    
-    /* État de chargement (loading) du bouton REJOUER */
-    .main-play-button.loading {
-      opacity: 0.75;
-      cursor: not-allowed;
-      pointer-events: none;
-      box-shadow: 0 4px 0 #660000, 0 4px 12px rgba(255, 65, 108, 0.3);
-    }
-
-    /* Spinner animé élégant */
-    .btn-spinner {
-      width: 18px; height: 18px;
-      border: 2.5px solid rgba(255, 255, 255, 0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: btnSpin 0.7s linear infinite;
-      display: inline-block;
-    }
-    @keyframes btnSpin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Message d'erreur discret */
-    .error-toast {
-      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: rgba(255, 51, 102, 0.95); backdrop-filter: blur(10px); color: #fff;
-      padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600;
-      box-shadow: 0 8px 25px rgba(255, 51, 102, 0.4); border: 1px solid rgba(255, 255, 255, 0.2);
-      z-index: 10000; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-    .error-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ========================================================================= */
-    /* 🎬 EFFET DE FIN DE PARTIE & TRANSITION                                   */
-    /* ========================================================================= */
-    .game-over-overlay {
-      position: fixed; inset: 0; background: rgba(5, 18, 48, 0.85); backdrop-filter: blur(8px);
-      z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-    }
-    .game-over-overlay.active { opacity: 1; pointer-events: auto; animation: flashOverlay 0.8s ease-out forwards; }
-    @keyframes flashOverlay {
-      0% { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); }
-      30% { background: rgba(10, 42, 92, 0.95); backdrop-filter: blur(10px); }
-      100% { background: rgba(5, 18, 48, 0.85); backdrop-filter: blur(8px); }
-    }
-
-    .game-over-title {
-      font-family: 'Orbitron', sans-serif; font-size: clamp(22px, 6vw, 32px); font-weight: 900;
-      color: #00f3ff; text-transform: uppercase; letter-spacing: 2px; text-align: center;
-      text-shadow: 0 0 20px rgba(0, 243, 255, 0.8);
-      transform: scale(0.8); opacity: 0; animation: zoomInTitle 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
-    }
-    @keyframes zoomInTitle {
-      0% { transform: scale(0.6); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    .end-particle { position: absolute; width: 6px; height: 6px; background: #00f3ff; border-radius: 50%; pointer-events: none; box-shadow: 0 0 10px #00f3ff; animation: particleBurst 0.8s ease-out forwards; }
-    @keyframes particleBurst {
-      0% { transform: translate(0, 0) scale(1); opacity: 1; }
-      100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
     }
 
     /* ========================================================================= */
@@ -231,17 +158,6 @@
       gap: 10px;
     }
 
-    /* Classes d'apparition séquentielle pour les cartes */
-    .rank-card-animated {
-      opacity: 0;
-      transform: translateY(20px) scale(0.97);
-      transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-    .rank-card-animated.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
     /* --- 🥇 CARTE 1ÈRE PLACE (Dominante & Podium) --- */
     .rank-card-1 {
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
@@ -253,8 +169,8 @@
       justify-content: space-between !important;
       box-shadow: 0 0 25px rgba(255, 215, 0, 0.35), inset 0 0 12px rgba(255, 215, 0, 0.2) !important;
       position: relative;
+      animation: rankCardPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both, goldGlow 3s ease-in-out infinite alternate;
     }
-    .rank-card-1.show { animation: goldGlow 3s ease-in-out infinite alternate; }
     .rank-card-1::before {
       content: '👑'; position: absolute; top: -10px; right: 14px; font-size: 18px; filter: drop-shadow(0 0 6px rgba(255,215,0,0.8));
     }
@@ -263,7 +179,7 @@
       100% { box-shadow: 0 0 35px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.3); }
     }
 
-    /* --- 🥈 2E & 🥉 3E PLACES (Podium Secondaire) --- */
+    /* --- 🥈 3E & 🥉 3E PLACES (Podium Secondaire) --- */
     .rank-card-2, .rank-card-3 {
       background: rgba(255, 255, 255, 0.07) !important;
       border-radius: 14px !important;
@@ -273,6 +189,7 @@
       justify-content: space-between !important;
       border: 1px solid rgba(100, 181, 246, 0.25);
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      animation: rankCardPop 0.5s ease-out 0.1s both;
     }
     .rank-card-2 { border-left: 4px solid #c0c0c0 !important; }
     .rank-card-3 { border-left: 4px solid #cd7f32 !important; }
@@ -287,6 +204,11 @@
       justify-content: space-between !important;
       border: 1px solid rgba(255, 255, 255, 0.08);
       font-size: 12px !important;
+    }
+
+    @keyframes rankCardPop {
+      0% { opacity: 0; transform: translateY(15px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     /* Éléments internes des cartes de classement */
@@ -370,14 +292,6 @@
 </head>
 
 <body>
-  <!-- Toast d'erreur discret -->
-  <div id="errorToast" class="error-toast">Impossible de lancer la partie. Réessayez.</div>
-
-  <!-- Overlay visuel de fin de partie -->
-  <div id="gameOverOverlay" class="game-over-overlay">
-    <div class="game-over-title">PARTIE TERMINÉE</div>
-  </div>
-
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
   <div class="gem-sparkle"></div>
@@ -397,7 +311,7 @@
   </aside>
   <div id="menuOverlay" class="menu-overlay"></div>
 
-  <main id="mainApp" class="app">
+  <main class="app">
     <header class="top-header">
       <button class="menu-button" id="menuButton" type="button">☰</button>
       <div class="online">
@@ -416,7 +330,7 @@
     <section class="tap-zone" aria-label="Zone de tap">
       <div class="rule" id="timerRule">
         <span class="rule-icon">⏱️</span>
-        <strong id="timerRuleValue">00:02</strong>
+        <strong id="timerRuleValue">10:00</strong>
         <small>CHRONO</small>
       </div>
       <button id="tapButton" class="tap-button" type="button">
@@ -424,11 +338,7 @@
       </button>
     </section>
 
-    <!-- BOUTON REJOUER / LANCER LA PARTIE -->
-    <button id="enterChallenge" class="main-play-button" type="button">
-      <span id="btnText">JOUER MAINTENANT</span>
-      <b id="btnArrow">➜</b>
-    </button>
+    <button id="enterChallenge" class="main-play-button" type="button"><span>JOUER MAINTENANT</span> <b>➜</b></button>
 
     <div class="leaderboard-chat-wrapper">
       <!-- CLASSEMENT TOP 5 ET POSITION DU JOUEUR -->
@@ -462,150 +372,15 @@
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
     const socket = io(BACKEND_URL, { transports: ['websocket', 'polling'] });
 
+    // ID fictif ou récupéré pour simuler le joueur actuel et tester les deux cas (dans le Top 5 ou hors Top 5)
     let myPlayerId = "player_current_xyz"; 
-    let myCurrentBet = 100;
-    let gameEndedTriggered = false;
-
-    // =========================================================================
-    // 🛡️ MACHINE À ÉTATS DU BOUTON REJOUER (idle → loading → ready)
-    // =========================================================================
-    let playButtonState = 'idle'; // 'idle' | 'loading' | 'ready'
-    let loadingTimeout = null;
-
-    const enterChallengeBtn = document.getElementById('enterChallenge');
-    const btnTextSpan = document.getElementById('btnText');
-    const btnArrowSpan = document.getElementById('btnArrow');
-    const errorToast = document.getElementById('errorToast');
-    const tapBtn = document.getElementById('tapButton');
-    const timerElement = document.getElementById('timerRuleValue');
-
-    function showToastError() {
-      if (!errorToast) return;
-      errorToast.classList.add('show');
-      setTimeout(() => {
-        errorToast.classList.remove('show');
-      }, 3500);
-    }
-
-    function setPlayButtonState(newState) {
-      playButtonState = newState;
-      if (!enterChallengeBtn) return;
-
-      if (playButtonState === 'loading') {
-        enterChallengeBtn.classList.add('loading');
-        enterChallengeBtn.disabled = true;
-        if (btnTextSpan) btnTextSpan.textContent = 'CHARGEMENT...';
-        if (btnArrowSpan) {
-          btnArrowSpan.className = 'btn-spinner';
-          btnArrowSpan.textContent = '';
-        }
-      } else if (playButtonState === 'ready' || playButtonState === 'idle') {
-        enterChallengeBtn.classList.remove('loading');
-        enterChallengeBtn.disabled = false;
-        if (btnTextSpan) btnTextSpan.textContent = 'JOUER MAINTENANT';
-        if (btnArrowSpan) {
-          btnArrowSpan.className = '';
-          btnArrowSpan.textContent = '➜';
-        }
-      }
-    }
-
-    // Gestionnaire du clic sur le bouton de rechargement/lancement (Anti-double clic)
-    enterChallengeBtn.addEventListener('click', () => {
-      if (playButtonState === 'loading') return;
-
-      setPlayButtonState('loading');
-      gameEndedTriggered = false;
-
-      // Fallback de sécurité (6 secondes max)
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      loadingTimeout = setTimeout(() => {
-        if (playButtonState === 'loading') {
-          setPlayButtonState('idle');
-          showToastError();
-        }
-      }, 6000);
-
-      try {
-        socket.emit('game:start', { playerId: myPlayerId, bet: myCurrentBet });
-      } catch (e) {
-        console.warn("⚠️ Erreur lors de l'émission Socket.IO:", e);
-        if (loadingTimeout) clearTimeout(loadingTimeout);
-        setPlayButtonState('idle');
-        showToastError();
-      }
-    });
-
-    socket.on('game:started', (data) => {
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      setPlayButtonState('ready');
-      if (tapBtn) tapBtn.classList.remove('disabled');
-      if (timerElement && data && data.duration) {
-        timerElement.textContent = data.duration;
-      }
-    });
-
-    socket.on('game:error', (err) => {
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      setPlayButtonState('idle');
-      showToastError();
-    });
-
-    // =========================================================================
-    // LOGIQUE DE FIN DE PARTIE & CHRONO
-    let remainingTimeSeconds = 2; // Test initial
-
-    function triggerGameOverTransition() {
-      if (gameEndedTriggered) return;
-      gameEndedTriggered = true;
-
-      if (tapBtn) tapBtn.classList.add('disabled');
-
-      const overlay = document.getElementById('gameOverOverlay');
-      const mainApp = document.getElementById('mainApp');
-      
-      if (mainApp) mainApp.style.transform = 'scale(1.02)';
-      if (overlay) overlay.classList.add('active');
-
-      for (let i = 0; i < 12; i++) {
-        const p = document.createElement('div');
-        p.className = 'end-particle';
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 50 + Math.random() * 100;
-        p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
-        p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
-        p.style.left = '50%';
-        p.style.top = '50%';
-        document.body.appendChild(p);
-        setTimeout(() => p.remove(), 800);
-      }
-
-      setTimeout(() => {
-        if (mainApp) mainApp.style.transform = 'scale(1)';
-      }, 400);
-
-      setTimeout(() => {
-        if (overlay) overlay.classList.remove('active');
-        animateLeaderboardAppearance();
-      }, 900);
-    }
-
-    const intervalTest = setInterval(() => {
-      remainingTimeSeconds--;
-      if (timerElement) {
-        timerElement.textContent = `00:0${Math.max(0, remainingTimeSeconds)}`;
-      }
-      if (remainingTimeSeconds <= 0) {
-        clearInterval(intervalTest);
-        if (timerElement) timerElement.textContent = "00:00";
-        triggerGameOverTransition();
-      }
-    }, 1000);
+    let myCurrentBet = 100; // Exemple de mise en unités (ex: DA ou USDT)
 
     socket.on("leaderboard:update", (data) => {
       renderLeaderboard(data.leaderboard || [], data.userPlayer || { id: myPlayerId, name: "MOI", taps: 420, rank: 8 });
     });
 
+    // Fonction de rendu respectant scrupuleusement la hiérarchie et le design demandé
     function renderLeaderboard(topPlayers, currentPlayer) {
       const listContainer = document.getElementById('leaderboardList');
       if (!listContainer) return;
@@ -628,8 +403,7 @@
         const highlightClass = isMe ? ' user-in-top' : '';
 
         const div = document.createElement('div');
-        div.className = `${cardClass}${highlightClass} rank-card-animated`;
-        div.setAttribute('data-rank-index', rank);
+        div.className = `${cardClass}${highlightClass}`;
         
         div.innerHTML = `
           <div class="rank-left">
@@ -644,16 +418,15 @@
         listContainer.appendChild(div);
       });
 
+      // Gestion du joueur actuel s'il est EN DEHORS du Top 5
       if (currentPlayer && !isUserInTop5 && currentPlayer.rank > 5) {
         const sep = document.createElement('div');
-        sep.className = 'your-position-separator rank-card-animated';
-        sep.setAttribute('data-rank-index', 'separator');
+        sep.className = 'your-position-separator';
         listContainer.appendChild(sep);
 
         const userGain = `+${(myCurrentBet * 2)}`;
         const userDiv = document.createElement('div');
-        userDiv.className = 'your-position-card rank-card-animated';
-        userDiv.setAttribute('data-rank-index', 'user');
+        userDiv.className = 'your-position-card';
         userDiv.innerHTML = `
           <div class="rank-left">
             <span class="rank-badge-styled" style="background:rgba(100,181,246,0.3);color:#64b5f6;">${currentPlayer.rank}</span>
@@ -668,25 +441,7 @@
       }
     }
 
-    function animateLeaderboardAppearance() {
-      const cards = document.querySelectorAll('.rank-card-animated');
-      cards.forEach((card) => {
-        const rIndex = card.getAttribute('data-rank-index');
-        let delay = 0;
-
-        if (rIndex === '1') delay = 50;
-        else if (rIndex === '2') delay = 150;
-        else if (rIndex === '3') delay = 250;
-        else if (rIndex === '4') delay = 330;
-        else if (rIndex === '5') delay = 410;
-        else delay = 480;
-
-        setTimeout(() => {
-          card.classList.add('show');
-        }, delay);
-      });
-    }
-
+    // Simulation d'affichage direct pour test immédiat si socket met du temps à répondre
     renderLeaderboard([
       { id: "p1", name: "PLAYER01", taps: 1248 },
       { id: "p2", name: "CYBERKINGS", taps: 980 },
