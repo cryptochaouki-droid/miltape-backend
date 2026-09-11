@@ -96,8 +96,8 @@
     .glass-card { background: rgba(255, 255, 255, .10); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); }
     #ton-connect-button, div[id^="tc-widget"], iframe[id^="tc-widget"], .tc-connect-button { display: none !important; }
     html { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: scroll; scroll-behavior: smooth; }
-    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 3000; display: none; padding: 13px 20px; border: 1px solid #64b5f6; border-radius: 999px; background: #051230; color: #64b5f6; font-size: 13px; font-weight: 900; box-shadow: 0 0 20px rgba(100, 181, 246, .2); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
-    .install-pwa-button.show { display: block; }
+    .install-pwa-button { position: fixed; bottom: 18px; left: 50%; transform:
+      .install-pwa-button.show { display: block; }
     .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }
     .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }
     .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }
@@ -154,9 +154,7 @@
       animation: pulseTimerCard 1.5s infinite ease-in-out;
     }
     .tap-zone #timerRule.warning strong {
-      color: #ff3366 !important;
-      text-shadow: 0 0 15px rgba(255, 51, 102, 0.9), 0 0 30px rgba(255, 51, 102, 0.4);
-    }
+      }
     .tap-zone #timerRule.warning .rule-icon { color: #ff3366; text-shadow: 0 0 12px rgba(255, 51, 102, 0.8); }
     @keyframes pulseTimerCard { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
     .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 4px; }
@@ -296,7 +294,7 @@
     .rule { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .08); font-family: 'Poppins', sans-serif; font-size: 11px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .1); }
     .rule .rule-icon { font-size: 18px; }
     .rule strong { color: #64b5f6; font-size: 13px; }
-    .rule small { color: rgba(255, 255, 255, .6); font-size: 9px; }
+      rule small { color: rgba(255, 255, 255, .6); font-size: 9px; }
     .rules .rule:first-child { display: none !important; }
     .tap-message { text-align: center; font-size: 15px !important; color: #fff; padding: 12px 20px !important; margin: 5px auto; font-family: 'Poppins', sans-serif; letter-spacing: .5px; background: rgba(0, 0, 0, .30); backdrop-filter: blur(6px); border-radius: 20px; display: inline-block; max-width: 90%; border: 1px solid rgba(255, 255, 255, .06); font-weight: 700 !important; }
     .steps-guide { display: none !important; justify-content: center; gap: 12px !important; padding: 12px 16px !important; background: rgba(0, 0, 0, .30); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255, 255, 255, .05); flex-wrap: wrap; text-align: center; font-size: 11px !important; font-family: 'Poppins', sans-serif; color: rgba(255, 255, 255, .7); }
@@ -501,24 +499,7 @@
       <button class="welcome-btn" onclick="document.getElementById('welcomeModal').style.display='none'">🔥 C'EST PARTI !</button>
     </div>
   </div>
-
-  <div id="nameModal" class="legal-modal">
-    <div class="legal-content">
-      <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
-      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
-      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
-    </div>
-  </div>
-
-  <div id="walletModal" class="legal-modal">
-    <div class="legal-content">
-      <h3>💰 Entrez votre adresse TRON</h3>
-      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
-      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
-    </div>
-  </div>
-
-  <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
+   <div id="notificationContainer" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:400px;pointer-events:none;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
   <button id="installPwaButton" class="install-pwa-button" type="button">📲 INSTALLER MILTAPE</button>
 
   <aside id="sideMenu" class="side-menu">
@@ -1132,7 +1113,22 @@
       hapticMedium();
     }
     
-    if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
+  <div id="nameModal" class="legal-modal">
+    <div class="legal-content">
+      <h3 id="nameModalTitle">👤 Entre ton pseudo</h3>
+      <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
+      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
+    </div>
+  </div>
+
+  <div id="walletModal" class="legal-modal">
+    <div class="legal-content">
+      <h3>💰 Entrez votre adresse TRON</h3>
+      <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #64b5f6; background:#0a2a5c; color:#fff; font-size:16px;">
+      <button id="walletSubmitBtn" class="main-play-button" style="padding:10px;">✅ VALIDER</button>
+    </div>
+  </div>
+  if (enterChallenge) enterChallenge.addEventListener('click', joinGame);
     if (enterChallengeTop) enterChallengeTop.addEventListener('click', joinGame);
     
     socket.on("player:joined", (data) => {
@@ -1681,4 +1677,228 @@
             '<div><div style="font-size:22px;font-weight:900;color:#2ecc71;">' + formatAmount(myReferralEarnings) + '</div><div style="font-size:11px;color:#999;">USDT GAGNÉS</div></div>' +
           '</div>';
       } else {
-        content = '<p style="color:#eee;font-size:13px;">Rejo
+        content = '<p style="color:#eee;font-size:13px;">Rejoins une partie une première fois (démo ou réel) pour débloquer ton lien de parrainage personnel.</p>';
+      }
+
+      showMenuMessage('👥 Parrainage', content);
+
+      const copyBtn = document.getElementById('copyReferralBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          const link = window.location.origin + window.location.pathname + '?ref=' + myReferralCode;
+          copyToClipboard(link);
+          showNotification('success', '🔗 Lien copié !');
+          hapticLight();
+        });
+      }
+    }
+
+    function openReferralModal() {
+      if (myPlayerId) socket.emit('referral:stats'); // rafraîchit les chiffres si connu du serveur
+      renderReferralModal(); // affiche tout de suite avec les valeurs déjà en mémoire
+    }
+
+    const menuReferralBtn = document.getElementById('menuReferralBtn');
+    if (menuReferralBtn) menuReferralBtn.addEventListener('click', openReferralModal);
+    
+    if (resetGameBtn) {
+      resetGameBtn.addEventListener('click', function() {
+        if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
+          fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" })
+            .catch(() => {})
+            .finally(() => { localStorage.clear(); window.location.reload(); });
+        }
+      });
+    }
+    
+    function getTelegramUser() {
+      try {
+        if (window.Telegram && window.Telegram.WebApp) {
+          const user = window.Telegram.WebApp.initDataUnsafe?.user;
+          if (user && user.username) return user.username;
+          if (user && user.first_name) return user.first_name;
+        }
+        return null;
+      } catch (e) { return null; }
+    }
+    
+    let jackpotCountdownInterval = null;
+    
+    function updateJackpotCountdown(nextDrawTime) {
+      const el = document.getElementById('jackpotCountdown');
+      if (!el) return;
+      if (!nextDrawTime || typeof nextDrawTime !== 'number' || nextDrawTime <= Date.now()) {
+        el.textContent = "Tirage en cours...";
+        if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }
+        socket.emit("jackpot:get");
+        return;
+      }
+      if (jackpotCountdownInterval) { clearInterval(jackpotCountdownInterval); jackpotCountdownInterval = null; }
+      function update() {
+        const now = Date.now();
+        let diff = nextDrawTime - now;
+        if (diff <= 0) {
+          el.textContent = "Tirage en cours...";
+          clearInterval(jackpotCountdownInterval);
+          jackpotCountdownInterval = null;
+          socket.emit("jackpot:get");
+          return;
+        }
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        let display = "";
+        if (days > 0) display += days + "j ";
+        if (hours > 0 || days > 0) display += hours + "h ";
+        if (minutes > 0 || hours > 0 || days > 0) display += minutes + "m ";
+        display += seconds + "s";
+        el.textContent = display;
+      }
+      update();
+      jackpotCountdownInterval = setInterval(update, 1000);
+    }
+    
+    socket.on("jackpot:update", (data) => {
+      const prizeElement = document.getElementById('jackpotAmount');
+      if (prizeElement) prizeElement.textContent = formatAmount(data.prize) + " USDT";
+      if (data.nextDraw) updateJackpotCountdown(data.nextDraw);
+    });
+    
+    socket.emit("jackpot:get");
+    
+    const DUEL_COMMISSION_PERCENT_DISPLAY = 0.10; // doit rester synchro avec DUEL_COMMISSION_PERCENT côté serveur
+
+    function updateDuelPayoutPreview(bet) {
+      const preview = document.getElementById('duelPayoutPreview');
+      if (!preview) return;
+      const payout = (bet * 2 * (1 - DUEL_COMMISSION_PERCENT_DISPLAY)).toFixed(2);
+      preview.innerHTML = 'Mise : <strong style="color:#fff;">' + formatAmount(bet) + ' USDT</strong> → Gain : <strong style="color:#2ecc71;">' + payout + ' USDT</strong>';
+    }
+
+    function selectDuelBet(btn) {
+      document.querySelectorAll('.duelBetBtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateDuelPayoutPreview(parseFloat(btn.dataset.bet));
+    }
+
+    // ✅ Initialise l'aperçu avec la mise active par défaut (1 USDT)
+    (function initDuelPayoutPreview() {
+      const activeBtn = document.querySelector('.duelBetBtn.active');
+      if (activeBtn) updateDuelPayoutPreview(parseFloat(activeBtn.dataset.bet));
+    })();
+
+    if (duelButton) {
+      duelButton.addEventListener('click', () => {
+        const activeBetBtn = document.querySelector('.duelBetBtn.active');
+        const bet = activeBetBtn ? parseFloat(activeBetBtn.dataset.bet) : 1;
+        socket.emit('duel:join', { bet: bet });
+        duelButton.innerText = "⏳ RECHERCHE À " + bet + " USDT...";
+      });
+    }
+
+    socket.on('duel:need_payment', (data) => {
+      const serverWallet = data.wallet;
+      const paymentUrl = 'https://t.me/wallet?start=transfer-' + serverWallet + '-' + data.amount + '-USDT';
+      window.open(paymentUrl, '_blank');
+      
+      alert("💰 PAYE " + data.amount + " USDT vers :\n" + serverWallet + "\n\n✅ DÈS QUE TU AS PAYÉ, ENTRE TON TxID.\n⚡ Le serveur vérifiera AUTOMATIQUEMENT ta transaction en quelques secondes !");
+      
+      setTimeout(() => {
+        const txId = prompt("✅ Entre l'ID de ta transaction (TxID) :");
+        if (txId) {
+          socket.emit('duel:payment_verified', { txId });
+        }
+      }, 3000);
+    });
+
+    socket.on('duel:payment_success', () => {
+      alert("✅ PAIEMENT VÉRIFIÉ AUTOMATIQUEMENT !\n⚡ Tu es maintenant en file d'attente, en attente de ton adversaire...");
+    });
+
+    socket.on('duel:payment_error', (data) => {
+      alert("❌ " + data.message);
+    });
+
+    socket.on('duel:queue', (data) => {
+      console.log("👥 File d'attente :", data);
+    });
+
+    socket.on('duel:cancelled', (data) => {
+      duelState.active = false;
+      if (duelButton) duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+      hapticError();
+      alert("⚠️ " + (data && data.message ? data.message : "Le duel a été annulé."));
+    });
+
+    socket.on('duel:started', (data) => {
+      duelState.active = true;
+      duelState.opponentName = data.opponentName;
+      duelState.endsAt = Date.now() + 60000;
+      duelState.myTaps = 0;
+      duelState.opponentTaps = 0;
+
+      if (tapButton) tapButton.disabled = false;
+      updateTapCounter(0);
+      
+      duelButton.innerText = "⚔️ " + duelState.opponentName + " | 1:00";
+      
+      let duelTimer = setInterval(() => {
+        let remaining = Math.max(0, Math.floor((duelState.endsAt - Date.now()) / 1000));
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        duelButton.innerText = "⚔️ " + duelState.opponentName + " | " + m + ":" + (s < 10 ? "0" : "") + s;
+        
+        if (remaining <= 0) {
+          clearInterval(duelTimer);
+          duelState.active = false;
+          duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+        }
+      }, 1000);
+    });
+
+    socket.on('duel:finished', (data) => {
+      duelState.active = false;
+      duelButton.innerText = "⚡ MODE DUEL 1 VS 1 (1 MINUTE)";
+      if (tapButton) tapButton.disabled = !(isPaid && gameStatus === "running");
+      alert("🏆 Résultat : " + data.winnerName + " a gagné !\nTes taps : " + data.myTaps + "\nTaps adverse : " + data.opponentTaps + "\n💰 Gain : " + data.prize + " USDT");
+    });
+    
+    function formatAmount(value) {
+      if (value === null || value === undefined || isNaN(value)) return "0";
+      return Number(parseFloat(value).toFixed(8)).toString();
+    }
+
+    // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
+    let localTimer = 10 * 60;
+    let localTimerInterval = null;
+
+    function startLocalBackupTimer() {
+      if (localTimerInterval) clearInterval(localTimerInterval);
+      if (endsAt && endsAt > Date.now()) return;
+      
+      localTimer = 10 * 60;
+      localTimerInterval = setInterval(() => {
+        if (gameStatus === "running") {
+          localTimer--;
+          const m = Math.floor(localTimer / 60);
+          const s = localTimer % 60;
+          const timerRuleValue = document.getElementById('timerRuleValue');
+          if (timerRuleValue) {
+            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
+          }
+          if (localTimer <= 0) {
+            clearInterval(localTimerInterval);
+            localTimerInterval = null;
+          }
+        }
+      }, 1000);
+    }
+
+    startLocalBackupTimer();
+
+    console.log("🚀 Miltape World Challenge chargé !");
+  </script>
+</body>
+</html>
+
