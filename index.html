@@ -17,29 +17,36 @@
   <link rel="icon" href="./icon-192~2.jpg" type="image/jpeg" />
   
   <!-- 1. Script Telegram sécurisé -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     (function initTelegramWebApp() {
       try {
         if (window.Telegram && window.Telegram.WebApp) {
           const w = window.Telegram.WebApp;
           w.expand();
+          // Vérification de la version pour éviter l'erreur "BackButton not supported"
           try {
             if (w.version && parseFloat(w.version) >= 6.1) {
               w.BackButton.show();
               w.BackButton.onClick(function() { w.close(); });
             }
           } catch (e) { console.warn("⚠️ BackButton non supporté:", e); }
-          
-          if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
+
+          // ✅ FIX : document.body n'existe pas encore ici (script exécuté dans <head> avant le <body>)
+          // -> on reporte l'application du thème après le chargement du DOM
+          document.addEventListener('DOMContentLoaded', () => {
+            if (w.colorScheme) document.body.setAttribute('data-telegram-theme', w.colorScheme);
+          });
+
           console.log("✅ Telegram WebApp initialisée");
         }
       } catch (e) { console.warn("⚠️ Erreur init Telegram:", e); }
     })();
   </script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE ===== -->
+  <!-- ===== DÉSACTIVATION FORCÉE DU CACHE (POUR ÉVITER LES VERSIONS OBSOLÈTES) ===== -->
   <script>
+    // Supprimer tous les caches existants
     if ('caches' in window) {
         caches.keys().then(function(names) {
             names.forEach(function(name) {
@@ -48,6 +55,7 @@
         });
     }
     
+    // Désinstaller le Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
             for (let registration of registrations) {
@@ -60,6 +68,7 @@
   
   <!-- 2. CDN Socket.IO -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/tronweb@6.0.4/dist/TronWeb.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   
@@ -100,6 +109,11 @@
     .install-pwa-button.show { display: block; }
     .hero-banner-container { position: relative; width: calc(100% - 24px); margin: 12px 12px 15px; overflow: hidden; background: rgba(255, 255, 255, .06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, .10); box-shadow: 0 8px 32px rgba(0, 0, 0, .3); animation: slideUp .5s ease-out; }
     .hero-bg-image { width: 100%; display: block; height: auto; opacity: .7; mix-blend-mode: screen; }
+    .hero-header-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: flex-end; align-items: center; z-index: 10; }
+    .wallet-badge-top { background: rgba(0, 0, 0, .5); backdrop-filter: blur(8px); border: 1px solid rgba(100, 181, 246, .3); padding: 4px 8px; border-radius: 12px; text-align: right; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .wallet-badge-top .wb-label { display: block; font-size: 7px; color: #ddd; }
+    .wallet-badge-top .wb-value { display: block; font-size: 13px; font-weight: 900; color: #64b5f6; }
+    .wallet-badge-top .wallet-icon { font-size: 16px; background: #0a2a5c; padding: 4px; border-radius: 6px; }
     .side-menu { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh; background: rgba(5, 18, 48, .96); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(100, 181, 246, .15); z-index: 1000; transition: left .3s ease; padding: 20px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; color: #e0e0e0; }
     .side-menu.show { left: 0; }
     .close-menu { background: 0 0; border: none; color: #e0e0e0; font-size: 28px; cursor: pointer; }
@@ -121,164 +135,42 @@
     .legal-content p, .legal-content li { font-size: 13px; color: #b8b8b8; line-height: 1.5; }
     .legal-close { position: absolute; top: 12px; right: 15px; background: 0 0; border: none; color: #e0e0e0; font-size: 24px; cursor: pointer; }
     .tap-zone { width: 100%; min-height: 310px; display: flex; align-items: center; justify-content: center; position: relative; padding: 10px 0; flex-direction: column; }
-    .tap-zone #timerRule { 
-      position: relative; 
-      margin-bottom: 20px; 
-      z-index: 20; 
-      background: rgba(13, 35, 75, 0.85); 
-      backdrop-filter: blur(12px); 
-      -webkit-backdrop-filter: blur(12px); 
-      border: 1px solid rgba(0, 243, 255, 0.35); 
-      box-shadow: 0 0 20px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.15); 
-      border-radius: 14px; 
-      padding: 8px 18px; 
-      display: flex !important; 
-      align-items: center; 
-      gap: 12px; 
-      max-width: 90%; 
-      white-space: nowrap; 
-    }
-    .tap-zone #timerRule .rule-icon { font-size: 18px; color: #00f3ff; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6); }
-    .tap-zone #timerRule strong { 
-      font-size: clamp(20px, 4.5vw, 26px); 
-      color: #00f3ff !important; 
-      text-shadow: 0 0 12px rgba(0, 243, 255, 0.7), 0 0 25px rgba(0, 243, 255, 0.3); 
-      font-family: 'Orbitron', sans-serif; 
-      letter-spacing: 1px;
-    }
-    .tap-zone #timerRule small { font-size: clamp(10px, 2vw, 11px); color: rgba(255, 255, 255, 0.7) !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    /* État critique du chronomètre (< 1 min restante en jeu) avec pulsation rouge */
-    .tap-zone #timerRule.warning {
-      border-color: rgba(255, 51, 102, 0.6);
-      box-shadow: 0 0 25px rgba(255, 51, 102, 0.5), inset 0 0 12px rgba(255, 51, 102, 0.2);
-      animation: pulseTimerCard 1.5s infinite ease-in-out;
-    }
-    .tap-zone #timerRule.warning strong {
-      color: #ff3366 !important;
-      text-shadow: 0 0 15px rgba(255, 51, 102, 0.9), 0 0 30px rgba(255, 51, 102, 0.4);
-    }
-    .tap-zone #timerRule.warning .rule-icon { color: #ff3366; text-shadow: 0 0 12px rgba(255, 51, 102, 0.8); }
-    @keyframes pulseTimerCard { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
-    .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 4px; }
+    .tap-zone #timerRule { position: relative; margin-bottom: 20px; z-index: 20; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(100, 181, 246, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 6px 16px; display: flex !important; align-items: center; gap: 10px; max-width: 90%; white-space: nowrap; font-size: clamp(12px, 2.5vw, 15px); }
+    .tap-zone #timerRule .rule-icon { font-size: clamp(16px, 3vw, 20px); color: #0d47a1; }
+    .tap-zone #timerRule strong { font-size: clamp(20px, 5vw, 28px); color: #0d47a1 !important; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); font-family: 'Orbitron', sans-serif; }
+    .tap-zone #timerRule small { font-size: clamp(10px, 2vw, 13px); color: #000000 !important; font-weight: 800; }
+    .tap-zone #timerRule .tap-counter { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 4px; }
     .tap-zone #timerRule .tap-counter .tap-icon { font-size: clamp(14px, 2.5vw, 18px); }
-    .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #64b5f6; min-width: 25px; text-align: center; text-shadow: 0 0 8px rgba(100, 181, 246, 0.5); }
-    .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: rgba(255,255,255,0.6); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    /* ===== BOUTON TAP AMÉLIORÉ ===== */
-    .tap-button {
-      position: relative;
-      width: clamp(240px, 62vw, 360px) !important;
-      height: clamp(240px, 62vw, 360px) !important;
-      aspect-ratio: 1 / 1;
-      min-width: 200px;
-      min-height: 200px;
-      border: 3.5px solid rgba(100, 181, 246, 0.8) !important;
-      border-radius: 50% !important;
-      background: radial-gradient(circle at 30% 30%, rgba(100, 181, 246, 0.4), rgba(255, 255, 255, 0.12)) !important;
-      box-shadow: 0 0 60px rgba(100, 181, 246, 0.45), 0 0 120px rgba(0, 162, 255, 0.2), inset 0 0 70px rgba(100, 181, 246, 0.25), inset 0 5px 15px rgba(255, 255, 255, 0.4) !important;
-      transition: transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease !important;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      touch-action: manipulation;
-      will-change: transform;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 10px auto;
-      padding: 0;
-      overflow: hidden;
-      outline: 0;
-      flex-shrink: 0;
-      box-sizing: border-box;
-      animation: tapButtonGlow 3s ease-in-out infinite alternate;
-    }
-    @keyframes tapButtonGlow { 
-      0% { box-shadow: 0 0 50px rgba(100, 181, 246, 0.35), 0 0 100px rgba(0, 162, 255, 0.15), inset 0 0 60px rgba(100, 181, 246, 0.2), inset 0 5px 15px rgba(255, 255, 255, 0.3); } 
-      100% { box-shadow: 0 0 80px rgba(100, 181, 246, 0.65), 0 0 150px rgba(0, 162, 255, 0.35), inset 0 0 90px rgba(100, 181, 246, 0.35), inset 0 6px 20px rgba(255, 255, 255, 0.6); } 
-    }
-    .tap-button:disabled { cursor: not-allowed; opacity: .6; animation: none; }
-    .tap-button:active:not(:disabled), .tap-button.tap-active { transform: scale(0.88) translateY(2px) !important; box-shadow: 0 0 30px rgba(100, 181, 246, 0.5), 0 0 60px rgba(0, 162, 255, 0.2), inset 0 6px 15px rgba(0, 0, 0, 0.4) !important; }
-    .tap-button:not(:disabled):hover { transform: scale(1.04); box-shadow: 0 0 75px rgba(100, 181, 246, 0.6), inset 0 6px 18px rgba(255, 255, 255, 0.5) !important; }
-    .tap-button:not(:disabled)::after {
-      content: '';
-      position: absolute;
-      inset: -10px;
-      border-radius: 50%;
-      border: 2px solid rgba(100, 181, 246, 0.5);
-      animation: tapPulse 2s ease-in-out infinite;
-      pointer-events: none;
-    }
-    @keyframes tapPulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.22); opacity: 0; } 100% { transform: scale(1); opacity: 0.8; } }
-    .tap-img-bg { position: absolute; inset: 0; width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 50%; padding: 0; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .95 !important; user-select: none; -webkit-user-drag: none; }
+    .tap-zone #timerRule .tap-counter #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 4vw, 24px); font-weight: 900; color: #0d47a1; min-width: 25px; text-align: center; }
+    .tap-zone #timerRule .tap-counter .tap-label { font-size: clamp(9px, 1.8vw, 12px); color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tap-button { position: relative; width: clamp(180px, 40vw, 260px); height: clamp(180px, 40vw, 260px); min-width: 140px; min-height: 140px; border: none; border-radius: 50%; background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); overflow: hidden; cursor: pointer; outline: 0; transition: transform .08s ease-in-out, box-shadow .2s ease; display: flex; align-items: center; justify-content: center; margin: 10px auto; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; box-shadow: 0 0 50px rgba(100, 181, 246, .15); border: 2px solid rgba(100, 181, 246, .2); flex-shrink: 0; }
+    .tap-button:disabled { cursor: not-allowed; opacity: .6; }
+    .tap-button:active:not(:disabled) { transform: scale(.92); }
+    .tap-button.tap-active { transform: scale(.94); box-shadow: 0 0 80px rgba(100, 181, 246, .3); }
+    .tap-img-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 0; display: block; mix-blend-mode: screen; opacity: .85; }
     .tap-button small { display: none; }
-    .tap-ripple {
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid rgba(100, 181, 246, 0.9);
-      pointer-events: none;
-      animation: rippleOut 0.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-      z-index: 1;
-    }
-    @keyframes rippleOut { 0% { transform: scale(0.4); opacity: 1; box-shadow: 0 0 15px rgba(100,181,246,0.8); } 100% { transform: scale(2.1); opacity: 0; box-shadow: 0 0 30px rgba(100,181,246,0); } }
-
-    .main-play-button {
-      display: block;
-      width: 85%;
-      max-width: 320px;
-      margin: 15px auto;
-      padding: 16px 20px;
-      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-      color: #fff;
-      border: none;
-      font-size: clamp(16px, 4vw, 20px);
-      font-weight: 900;
-      font-family: 'Poppins', sans-serif;
-      cursor: pointer;
-      box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-      border-radius: 24px !important;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      transition: all 0.1s ease;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      position: relative;
-    }
+    .main-play-button { display: block; width: 85%; max-width: 320px; margin: 15px auto; padding: 16px 20px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: clamp(16px, 4vw, 20px); font-weight: 900; font-family: 'Poppins', sans-serif; cursor: pointer; box-shadow: 0 8px 0 #990000, 0 10px 30px rgba(255, 65, 108, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); border-radius: 24px !important; text-transform: uppercase; letter-spacing: 1px; transition: all 0.1s ease; -webkit-tap-highlight-color: transparent; user-select: none; position: relative; }
     .main-play-button::after { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent); border-radius: 24px; pointer-events: none; }
     .main-play-button:hover { background: linear-gradient(135deg, #ff4d79 0%, #ff5733 100%); box-shadow: 0 8px 0 #990000, 0 15px 40px rgba(255, 65, 108, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
     .main-play-button:active { transform: translateY(6px); box-shadow: 0 2px 0 #990000, 0 5px 20px rgba(255, 65, 108, 0.4); }
     .main-play-button b { margin-left: 8px; }
     .tap-message, #tapMessage { display: none !important; }
-    .chat-messages { background: rgba(5, 15, 35, 0.6) !important; backdrop-filter: blur(8px) !important; border: 1px solid rgba(100, 181, 246, 0.15) !important; border-radius: 12px !important; padding: 8px !important; height: 140px !important; overflow-y: auto !important; overflow-x: hidden !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; margin-bottom: 8px !important; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3); }
-    .chat-message { background: rgba(255, 255, 255, 0.08) !important; backdrop-filter: blur(6px); color: #e2e8f0 !important; font-size: 13px !important; padding: 6px 10px !important; border-radius: 10px !important; margin-bottom: 5px !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; border: 1px solid rgba(100, 181, 246, 0.12); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); animation: messageSlideIn 0.3s ease-out; }
-    @keyframes messageSlideIn { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
-    .chat-input-box { position: relative; z-index: 10; background: rgba(5, 15, 35, 0.7); border-radius: 12px !important; padding: 4px 6px; display: flex; align-items: center; border: 1px solid rgba(100, 181, 246, 0.25); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
-    .chat-input-box input { flex: 1; background: transparent !important; border: none !important; padding: 6px 8px; font-size: 13px; color: #fff; outline: none; font-family: 'Poppins', sans-serif; }
-    .chat-input-box input::placeholder { color: rgba(255, 255, 255, 0.4); }
-    .chat-input-box button { background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%) !important; color: #fff; border: 1px solid rgba(100, 181, 246, 0.4) !important; border-radius: 50% !important; width: 36px !important; height: 36px !important; min-width: 36px !important; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; box-shadow: 0 0 10px rgba(26, 115, 232, 0.4); transition: all 0.2s ease; }
-    .chat-input-box button:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(26, 115, 232, 0.7); }
-    .chat-section { background: rgba(13, 35, 75, 0.85) !important; backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important; border: 1px solid rgba(100, 181, 246, 0.25) !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important; position: relative; overflow: hidden; }
-    .chat-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(100, 181, 246, 0.6), transparent); }
-    .chat-section .section-title { color: #fff !important; }
-    .chat-section .section-title strong { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 1px 6px; background-color: rgba(0, 242, 254, 0.1); border-radius: 6px; border: 1px solid rgba(0, 242, 254, 0.3); text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
-    .leaderboard { background: rgba(13, 35, 75, 0.85) !important; backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important; border: 1px solid rgba(100, 181, 246, 0.25) !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important; padding: 15px !important; position: relative; overflow: hidden; }
-    .leaderboard::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(100, 181, 246, 0.6), transparent); }
-    .leaderboard .section-title { color: #fff !important; font-size: 14px !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
-    .leaderboard .section-title span { color: #fff !important; font-size: 14px !important; }
-    .leaderboard .section-title strong { color: #64b5f6 !important; font-size: 16px !important; margin-left: 6px !important; }
-    .leaderboard-list { display: flex; flex-direction: column; gap: 5px; }
-    .leaderboard-item { background: rgba(255, 255, 255, 0.05) !important; backdrop-filter: blur(6px); color: #fff !important; font-size: 13px !important; padding: 7px 10px !important; border-radius: 12px !important; border-left: 3px solid #64b5f6 !important; margin-bottom: 0 !important; display: flex !important; align-items: center !important; gap: 10px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 1px solid rgba(100, 181, 246, 0.12); transition: all 0.2s ease; }
-    .leaderboard-item:hover { background: rgba(255, 255, 255, 0.08) !important; border-color: rgba(100, 181, 246, 0.3); }
-    .rank-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; border-radius: 50% !important; font-size: 12px !important; font-weight: 900 !important; color: #fff !important; background: rgba(100, 181, 246, 0.2) !important; border: 1px solid rgba(100, 181, 246, 0.4); flex-shrink: 0 !important; font-family: 'Orbitron', sans-serif; }
-    .leaderboard-item:nth-child(1) .rank-badge { background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%) !important; color: #000 !important; border: 1px solid #ffffe0; box-shadow: 0 0 12px rgba(255, 215, 0, .5) !important; }
-    .leaderboard-item:nth-child(2) .rank-badge { background: linear-gradient(135deg, #e0e0e0 0%, #9e9e9e 100%) !important; color: #000 !important; border: 1px solid #ffffff; box-shadow: 0 0 10px rgba(192, 192, 192, .4) !important; }
-    .leaderboard-item:nth-child(3) .rank-badge { background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%) !important; color: #fff !important; border: 1px solid #ffdab9; box-shadow: 0 0 10px rgba(205, 127, 50, .4) !important; }
-    .leaderboard-item:nth-child(1) { border-left-color: #ffd700 !important; background: linear-gradient(90deg, rgba(255,215,0,0.12), rgba(255,255,255,0.05)) !important; }
-    .leaderboard-item:nth-child(2) { border-left-color: #c0c0c0 !important; background: linear-gradient(90deg, rgba(192,192,192,0.12), rgba(255,255,255,0.05)) !important; }
-    .leaderboard-item:nth-child(3) { border-left-color: #cd7f32 !important; background: linear-gradient(90deg, rgba(205,127,50,0.12), rgba(255,255,255,0.05)) !important; }
-    .leaderboard-item .player-name { color: #fff !important; font-weight: 700 !important; font-size: 13px !important; flex: 1 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .leaderboard-item .player-score { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900 !important; font-size: 13px !important; white-space: nowrap; font-family: 'Orbitron', sans-serif; }
-    .empty-ranking { color: rgba(255, 255, 255, 0.6) !important; font-size: 12px !important; text-align: center; padding: 10px; font-weight: 600; font-style: italic; }
+    .chat-messages { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; border-radius: 24px !important; padding: 12px !important; height: 180px !important; overflow-y: auto !important; overflow-x: hidden !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
+    .chat-message { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 10px !important; margin-bottom: 6px !important; word-break: break-word !important; overflow-wrap: break-word !important; white-space: normal !important; }
+    .chat-input-box { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 5px; }
+    .leaderboard { background: rgba(255, 255, 255, .92) !important; backdrop-filter: none !important; border: 1px solid rgba(255, 255, 255, .2) !important; box-shadow: 0 2px 12px rgba(0, 0, 0, .15) !important; border-radius: 24px !important; padding: 15px !important; }
+    .leaderboard .section-title { color: #222 !important; font-size: 14px !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
+    .leaderboard .section-title span { color: #222 !important; font-size: 14px !important; }
+    .leaderboard .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }
+    .leaderboard-item { background: #f5f7fa !important; color: #222 !important; font-size: 14px !important; padding: 8px 12px !important; border-radius: 12px !important; border-left: 3px solid #0d47a1 !important; margin-bottom: 4px !important; display: flex !important; align-items: center !important; gap: 10px !important; }
+    .rank-badge { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 32px !important; height: 32px !important; min-width: 32px !important; border-radius: 50% !important; font-size: 14px !important; font-weight: 900 !important; color: #fff !important; background: #0d47a1 !important; flex-shrink: 0 !important; }
+    .leaderboard-item:nth-child(1) .rank-badge { background: #ffd700 !important; color: #000 !important; box-shadow: 0 0 20px rgba(255, 215, 0, .4) !important; }
+    .leaderboard-item:nth-child(2) .rank-badge { background: #c0c0c0 !important; color: #000 !important; box-shadow: 0 0 15px rgba(192, 192, 192, .3) !important; }
+    .leaderboard-item:nth-child(3) .rank-badge { background: #cd7f32 !important; color: #fff !important; box-shadow: 0 0 15px rgba(205, 127, 50, .3) !important; }
+    .leaderboard-item:nth-child(4) .rank-badge, .leaderboard-item:nth-child(5) .rank-badge { background: #0d47a1 !important; color: #fff !important; }
+    .leaderboard-item .player-name { color: #222 !important; font-weight: 600 !important; font-size: 14px !important; flex: 1 !important; }
+    .leaderboard-item .player-score { color: #0d47a1 !important; font-weight: 900 !important; font-size: 14px !important; }
+    .empty-ranking { color: #888 !important; font-size: 13px !important; }
     .section-title { font-size: 14px !important; color: #222 !important; letter-spacing: .5px !important; margin-bottom: 14px !important; }
     .section-title span { color: #222 !important; font-size: 14px !important; }
     .section-title strong { color: #0d47a1 !important; font-size: 16px !important; margin-left: 6px !important; }
@@ -291,6 +183,10 @@
     @keyframes headerShine { 0% { left: -100%; } 50% { left: 100%; } 100% { left: 100%; } }
     .menu-button { background: 0 0; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px 8px; }
     .online { font-size: 10px; color: #2ecc71; font-weight: 700; font-family: 'Poppins', sans-serif; }
+    .wallet-box { text-align: right; font-family: 'Poppins', sans-serif; }
+    .wallet-box small { display: block; font-size: 8px; color: rgba(255, 255, 255, .5); }
+    .wallet-box strong { font-size: 14px; color: #64b5f6; }
+    .wallet-button { background: rgba(100, 181, 246, .12); border: 1px solid rgba(100, 181, 246, .2); border-radius: 10px; color: #fff; padding: 6px 12px; font-size: 12px; font-family: 'Poppins', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; }
     .leaderboard-chat-wrapper { display: flex; flex-direction: column; gap: 25px !important; padding: 0 16px; animation: slideUp 1s ease-out .5s both; }
     .rules { display: flex; justify-content: center; gap: 20px; padding: 15px; flex-wrap: wrap; animation: slideUp .8s ease-out .3s both; }
     .rule { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .08); font-family: 'Poppins', sans-serif; font-size: 11px; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .1); }
@@ -320,32 +216,9 @@
     #welcomeModal .welcome-secure { font-size: 12px; color: rgba(255, 255, 255, .6); margin-bottom: 16px; }
     #welcomeModal .welcome-btn { background: #64b5f6; color: #051230; border: none; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: transform .15s ease; }
     #welcomeModal .welcome-btn:active { transform: scale(.96); }
-
-    /* ===== RESPONSIVE ===== */
-    @media(max-width:430px) { 
-      .tap-button { width: clamp(200px, 58vw, 280px) !important; height: clamp(200px, 58vw, 280px) !important; } 
-      .tap-zone { min-height: 300px; } 
-      .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } 
-      #timerRuleValue { font-size: 20px !important; } 
-      .stat-box strong { font-size: 44px !important; } 
-      .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } 
-      .server-wallet-address { font-size: 13px !important; } 
-    }
-    @media(max-width:360px) { 
-      .tap-button { width: clamp(180px, 54vw, 230px) !important; height: clamp(180px, 54vw, 230px) !important; } 
-      .tap-zone { min-height: 280px; } 
-      .chat-input-box input { font-size: 12px !important; } 
-      .chat-input-box button { width: 42px; min-width: 42px; } 
-      #timerRuleValue { font-size: 18px !important; } 
-      .stat-box strong { font-size: 38px !important; } 
-      .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } 
-      .server-wallet-address { font-size: 12px !important; } 
-    }
-    @media(min-width:600px) { 
-      body { padding: 20px 0 40px; } 
-      .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } 
-      .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } 
-    }
+    @media(max-width:430px) { .tap-button { width: clamp(150px, 38vw, 200px); height: clamp(150px, 38vw, 200px); } .tap-zone { min-height: 280px; } .hero-banner-container, .leaderboard, .chat-messages, .stat-box, .rule { border-radius: 18px !important; } #timerRuleValue { font-size: 20px !important; } .stat-box strong { font-size: 44px !important; } .rank-badge { width: 28px !important; height: 28px !important; min-width: 28px !important; font-size: 12px !important; } .server-wallet-address { font-size: 13px !important; } }
+    @media(max-width:360px) { .tap-button { width: clamp(120px, 32vw, 160px); height: clamp(120px, 32vw, 160px); } .tap-zone { min-height: 260px; } .chat-input-box input { font-size: 12px !important; } .chat-input-box button { width: 42px; min-width: 42px; } #timerRuleValue { font-size: 18px !important; } .stat-box strong { font-size: 38px !important; } .rank-badge { width: 24px !important; height: 24px !important; min-width: 24px !important; font-size: 11px !important; } .server-wallet-address { font-size: 12px !important; } }
+    @media(min-width:600px) { body { padding: 20px 0 40px; } .app { border-radius: 30px; border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 8px 40px rgba(0, 0, 0, .3); background: rgba(0, 0, 0, .15); backdrop-filter: blur(10px); } .top-header { position: sticky; top: 0; z-index: 500; border-radius: 30px 30px 0 0; } }
     @keyframes fadeIn { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
     @keyframes slideUp { 0% { opacity: 0; transform: translateY(30px) scale(.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes messageSlide { 0% { opacity: 0; transform: translateX(-10px); } 100% { opacity: 1; transform: translateX(0); } }
@@ -364,6 +237,9 @@
     #tokenSelect option { background: #0d47a1; color: #fff; }
     .crypto-label { color: #fff; font-weight: 700; font-size: 14px; font-family: 'Poppins', sans-serif; }
     @media(max-width:480px) { #jackpotDisplay { flex-direction: column; text-align: center; gap: 4px; } }
+    .wallet-box strong, .wallet-badge-top .wb-value, .online strong { color: #fff; }
+    .online strong span:last-child { color: #fff; }
+    .wallet-button { color: #fff; }
 
     /* ===== BOUTON DUEL ===== */
     #duelButton {
@@ -372,85 +248,27 @@
     }
     #duelButton:active { box-shadow: 0 2px 0 #4a148c !important; }
 
-    /* ===== BOUTONS DE MISE DUEL (version compacte) ===== */
+    /* ===== BOUTONS DE MISE DUEL ===== */
     .duelBetBtn {
-      border: 1.5px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px;
-      padding: 3px 6px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px 12px;
       color: #fff;
-      background: rgba(255, 255, 255, 0.06);
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.1);
+      font-weight: bold;
       cursor: pointer;
-      font-size: 9px;
-      min-width: 30px;
-      transition: all 0.2s ease;
-      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.2s;
     }
     .duelBetBtn.active {
       border-color: #9c27b0;
-      background: rgba(156, 39, 176, 0.25);
-      box-shadow: 0 0 6px rgba(156, 39, 176, 0.3);
+      background: rgba(156, 39, 176, 0.3);
+      box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
     }
-    .duelBetBtn:hover {
-      background: rgba(255, 255, 255, 0.12);
-    }
-
-    /* ===== NOUVEAU DESIGN EXPLICATION DUEL ===== */
-    .duel-info-card {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(100, 181, 246, 0.3);
-      border-radius: 15px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    .duel-badge {
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 11px;
-      font-weight: bold;
-      font-family: 'Poppins', sans-serif;
-    }
-    .duel-badge-green { background: #2ecc71; color: #fff; }
-    .duel-badge-blue { background: #64b5f6; color: #051230; }
-    .duel-steps {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .duel-step {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      min-width: 76px;
-      max-width: 92px;
-    }
-    .duel-step-icon { font-size: 22px; }
-    .duel-step-text {
-      font-size: 11px;
-      color: #eee;
-      line-height: 1.3;
-      font-family: 'Poppins', sans-serif;
-    }
-    .duel-step-arrow {
-      color: rgba(255, 255, 255, 0.3);
-      font-size: 16px;
-      padding: 0 2px;
-    }
-    .duel-payout-preview {
-      margin-top: 10px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 13px;
-      color: #eee;
-      font-family: 'Poppins', sans-serif;
-    }
-    .duel-payout-preview strong { font-weight: 900; }
   </style>
-  
   <!-- ===== JACKPOT ===== -->
   <style>
     #jackpotDisplay { position: relative; width: calc(100% - 24px); margin: 12px auto; padding: 20px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(139, 0, 0, 0.9) 0%, rgba(255, 30, 30, 0.9) 100%); border: 1px solid rgba(255, 80, 80, 0.8); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 25px rgba(255, 30, 30, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); overflow: hidden; text-align: center; animation: jackpotHaloPulse 3s ease-in-out infinite alternate; z-index: 1; }
@@ -588,6 +406,8 @@
           <span>1 EN LIGNE</span>
         </strong>
       </div>
+      <div class="wallet-box"><small>MISE</small><strong id="displayBet">$0</strong></div>
+      <button class="wallet-button" id="walletButton" type="button">💰 <span id="globalTotalStakes">$0</span></button>
     </header>
 
     <div id="jackpotDisplay">
@@ -613,6 +433,12 @@
 
     <section class="hero-banner-container">
       <img src="./tap-art.jpg" alt="Miltape World Challenge" class="hero-bg-image">
+      <div class="hero-header-overlay">
+        <div class="wallet-badge-top" id="enterChallengeTop" title="Modifier ta mise">
+          <div><span class="wb-label">MISE</span><span class="wb-value" id="displayBetTop">$0</span></div>
+          <div class="wallet-icon">👛</div>
+        </div>
+      </div>
     </section>
 
     <div class="server-wallet-box">
@@ -621,57 +447,47 @@
       <a href="https://tronscan.org/#/address/TKavpq1A2gFFCFN7d2nxMuNndy8LVGNXTL" target="_blank" class="server-wallet-link">🔍 Voir sur TronScan</a>
     </div>
 
-    <div class="server-wallet-box" style="margin-top:8px;">
-      <div class="server-wallet-label">💰 Total misé cette manche</div>
-      <div class="server-wallet-address" id="displayBet">0 USDT</div>
-    </div>
-
-    <!-- ===== SECTION DUEL COMPACTE ===== -->
-    <div style="text-align:center;margin:8px 0;">
-      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(100,181,246,0.15);border-radius:12px;padding:10px 8px;margin-bottom:8px;">
+    <!-- ===== SECTION EXPLICATION DUEL + CHOIX DE LA MISE ===== -->
+    <div style="text-align:center;margin:15px 0">
+      <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(100, 181, 246, 0.3); border-radius: 15px; padding: 15px; margin-bottom: 15px;">
+        <h4 style="color: #fff; margin: 0 0 10px; font-family: 'Orbitron', sans-serif;">⚔️ MODE DUEL 1 VS 1 (1 MINUTE) ⚔️</h4>
         
-        <!-- Titre -->
-        <div style="font-size:13px;font-weight:700;color:#fff;font-family:'Orbitron',sans-serif;letter-spacing:0.5px;margin-bottom:4px;">⚔️ DUEL 1 VS 1 (1 MIN)</div>
-        
-        <!-- Badges -->
-        <div style="display:flex;justify-content:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
-          <span style="background:#2ecc71;color:#fff;border-radius:10px;padding:1px 8px;font-size:8px;font-weight:700;text-transform:uppercase;">🔒 Auto</span>
-          <span style="background:#64b5f6;color:#051230;border-radius:10px;padding:1px 8px;font-size:8px;font-weight:700;text-transform:uppercase;">🔗 Blockchain</span>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="background: #2ecc71; color: #fff; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔒 100% AUTOMATIQUE</span>
+            <span style="background: #64b5f6; color: #051230; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold;">🔗 VÉRIFIÉ SUR BLOCKCHAIN</span>
         </div>
-        
-        <!-- Étapes (compactes) -->
-        <div style="display:flex;justify-content:center;align-items:center;gap:3px;flex-wrap:wrap;font-size:9px;color:#ccc;margin-bottom:6px;">
-          <span>💳 Paye</span>
-          <span style="color:rgba(255,255,255,0.2);font-size:10px;">→</span>
-          <span>⚔️ Affronte</span>
-          <span style="color:rgba(255,255,255,0.2);font-size:10px;">→</span>
-          <span>💸 Gain auto</span>
+
+        <p style="color: #eee; font-size: 13px; margin: 0; line-height: 1.8;">
+            ⚡ <strong>Le paiement est instantané</strong> : Tu paies, le serveur vérifie la transaction en quelques secondes, et tu es automatiquement mis en file d'attente.<br><br>
+            💸 <strong>Le gain est instantané</strong> : Dès que le duel se termine, le serveur t'envoie <strong>automatiquement</strong> ton argent sur ton wallet TRON !<br><br>
+            🛡️ <strong>Nous ne touchons pas à ton argent</strong> : Le système est programmé pour t'envoyer exactement le montant gagné.
+        </p>
+
+        <div style="margin-top: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 10px;">
+            <strong style="color: #64b5f6;">💰 EXEMPLE :</strong><br>
+            <span style="color: #eee; font-size: 12px;">
+                Mise de <strong style="color: #fff;">1 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">1.80 USDT</strong><br>
+                Mise de <strong style="color: #fff;">10 USDT</strong> → Tu gagnes <strong style="color: #2ecc71;">18 USDT</strong>
+            </span>
         </div>
       </div>
 
-      <!-- Boutons de mise -->
-      <div style="margin:4px 0;">
-        <div style="font-size:10px;color:#64b5f6;font-weight:700;letter-spacing:0.3px;margin-bottom:4px;">💰 MISE</div>
-        <div id="duelBetsContainer" style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;">
-          <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50</button>
-          <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1</button>
-          <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2</button>
-          <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4</button>
-          <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8</button>
-          <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16</button>
-          <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32</button>
-          <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64</button>
-          <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128</button>
+      <div style="margin: 10px 0;">
+        <h4 style="color:#fff; margin: 5px;">💰 CHOISIS TA MISE DUEL</h4>
+        <div id="duelBetsContainer" style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+            <button class="duelBetBtn" data-bet="0.50" onclick="selectDuelBet(this)">0.50 USDT</button>
+            <button class="duelBetBtn active" data-bet="1" onclick="selectDuelBet(this)">1 USDT</button>
+            <button class="duelBetBtn" data-bet="2" onclick="selectDuelBet(this)">2 USDT</button>
+            <button class="duelBetBtn" data-bet="4" onclick="selectDuelBet(this)">4 USDT</button>
+            <button class="duelBetBtn" data-bet="8" onclick="selectDuelBet(this)">8 USDT</button>
+            <button class="duelBetBtn" data-bet="16" onclick="selectDuelBet(this)">16 USDT</button>
+            <button class="duelBetBtn" data-bet="32" onclick="selectDuelBet(this)">32 USDT</button>
+            <button class="duelBetBtn" data-bet="64" onclick="selectDuelBet(this)">64 USDT</button>
+            <button class="duelBetBtn" data-bet="128" onclick="selectDuelBet(this)">128 USDT</button>
         </div>
-      </div>
-
-      <!-- Aperçu du gain -->
-      <div id="duelPayoutPreview" class="duel-payout-preview" style="display:inline-block;">
-        Mise : <strong style="color:#fff;">1 USDT</strong> → Gain : <strong style="color:#2ecc71;">1.80 USDT</strong>
       </div>
     </div>
-    <!-- ===== FIN SECTION DUEL COMPACTE ===== -->
-
+    <!-- ===== FIN SECTION DUEL ===== -->
 
     <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:12px 24px;font-weight:700;border:none;cursor:pointer;margin:5px auto;width:80%;max-width:300px;box-shadow:0 4px 0 #1a9c54;font-family:'Poppins',sans-serif;text-transform:uppercase;font-size:12px">💳 PAYER MA MISE</button>
     
@@ -751,8 +567,7 @@
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-        withCredentials: true // ✅ NOUVEAU : nécessaire pour envoyer le cookie de session cross-domain
+        reconnectionDelay: 1000
     });
     
     const tapButton = document.getElementById('tapButton');
@@ -786,11 +601,6 @@
     let myWallet = null;
     let myToken = 'USDT';
     let gameStatus = "waiting";
-    // ✅ NOUVEAU : état du système de parrainage
-    let myReferralCode = null;
-    let myReferralEarnings = 0;
-    let myReferralCount = 0;
-    const REFERRAL_PERCENT_DISPLAY = 3;
     
     let endsAt = null;
     let timerInterval = null;
@@ -799,12 +609,10 @@
     
     function updateTimerDisplay() {
       const timerRuleValue = document.getElementById('timerRuleValue');
-      const timerCard = document.getElementById('timerRule');
       if (!timerRuleValue) return;
       
       if (!endsAt) { 
         timerRuleValue.innerText = "10:00";
-        if (timerCard) timerCard.classList.remove('warning');
         return; 
       }
       
@@ -814,15 +622,6 @@
       const s = remaining % 60;
       
       timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-
-      // ✅ NOUVEAU : état visuel d'urgence quand il reste moins d'1 minute (uniquement en jeu, pas en préparation)
-      if (timerCard) {
-        if (gameStatus === "running" && remaining > 0 && remaining <= 60) {
-          timerCard.classList.add('warning');
-        } else {
-          timerCard.classList.remove('warning');
-        }
-      }
       
       if (remaining <= 0 && timerInterval) {
         clearInterval(timerInterval);
@@ -884,9 +683,10 @@
     }
     
     async function restoreSession() {
-      // ✅ RENFORCÉ : le serveur lit le cookie HttpOnly directement, on ne peut (et ne doit)
-      // plus lire de token nous-mêmes — on tente systématiquement, le serveur tranche.
-      socket.emit("player:restore", {});
+      const sessionToken = localStorage.getItem("miltape_session_token");
+      if (!sessionToken) return false;
+
+      socket.emit("player:restore", { sessionToken });
       return true;
     }
     
@@ -898,101 +698,6 @@
       return id;
     }
     const MY_DEVICE_ID = getOrCreateDeviceId();
-
-    // ✅ NOUVEAU : anti-bot invisible — résout un petit défi de hachage en tâche de fond
-    // dès qu'il est reçu, pour qu'il soit déjà prêt au moment où le joueur clique "Jouer".
-    let currentPowNonce = null;
-    let powReadyPromise = null;
-
-    async function sha256Hex(str) {
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest('SHA-256', enc);
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    async function solvePow(challenge, difficulty) {
-      const prefix = '0'.repeat(difficulty);
-      let nonce = 0;
-      while (true) {
-        const hash = await sha256Hex(challenge + nonce);
-        if (hash.startsWith(prefix)) return String(nonce);
-        nonce++;
-      }
-    }
-
-    socket.on("pow:challenge", (data) => {
-      currentPowNonce = null;
-      if (window.crypto && window.crypto.subtle) {
-        powReadyPromise = solvePow(data.challenge, data.difficulty)
-          .then(nonce => { currentPowNonce = nonce; return nonce; })
-          .catch(() => { currentPowNonce = ""; });
-      } else {
-        currentPowNonce = "";
-        powReadyPromise = Promise.resolve("");
-      }
-    });
-
-    // ✅ NOUVEAU : capture le code de parrainage depuis l'URL (?ref=CODE), une seule fois —
-    // le premier lien utilisé pour arriver sur le site fait foi, même si l'utilisateur revient
-    // ensuite sans le paramètre.
-    (function captureReferralCodeFromUrl() {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const ref = params.get('ref');
-        if (ref && !localStorage.getItem('miltape_referral_code')) {
-          localStorage.setItem('miltape_referral_code', ref.trim().toUpperCase());
-        }
-      } catch (e) { console.warn('⚠️ Capture du code de parrainage a échoué :', e); }
-    })();
-
-    // ✅ FIX CRITIQUE : avant, si tronWeb.createAccount() échouait (fréquent sur mobile),
-    // TOUS les appareils retombaient sur la MÊME adresse fixe "T9yD14...". Le serveur
-    // identifie les joueurs par wallet -> tous les appareils devenaient LE MÊME joueur
-    // (même pseudo, mêmes taps, peu importe qui joue). Ici on génère un wallet différent
-    // par appareil et on le garde en cache local pour qu'il reste stable.
-    async function getOrCreateDemoWallet() {
-      const cached = localStorage.getItem("miltape_demo_wallet");
-      if (cached) return cached;
-
-      let wallet = null;
-
-      // 1) Wallet injecté par une extension (TronLink, etc.) — rare sur mobile, mais on l'utilise s'il existe.
-      try {
-        if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
-          const account = await tronWeb.createAccount();
-          wallet = account?.address?.base58 || null;
-        }
-      } catch (e) { console.warn("⚠️ tronWeb (extension) indisponible :", e); }
-
-      // 2) ✅ FIX : génération 100% locale via la librairie TronWeb chargée par le CDN,
-      // sans dépendre d'une extension. Le CDN peut exposer soit TronWeb.TronWeb (v6),
-      // soit TronWeb directement (v5) — on gère les deux formes.
-      if (!wallet) {
-        try {
-          const TW = (typeof TronWeb !== 'undefined') ? (TronWeb.TronWeb || TronWeb) : null;
-          if (TW?.utils?.accounts?.generateAccount) {
-            const acc = await TW.utils.accounts.generateAccount();
-            wallet = acc?.address?.base58 || null;
-          } else if (TW) {
-            const instance = new TW({ fullHost: 'https://api.trongrid.io' });
-            if (typeof instance.createAccount === 'function') {
-              const acc = await instance.createAccount();
-              wallet = acc?.address?.base58 || null;
-            }
-          }
-        } catch (e) { console.warn("⚠️ Génération locale TronWeb a échoué :", e); }
-      }
-
-      if (wallet) {
-        localStorage.setItem("miltape_demo_wallet", wallet);
-        return wallet;
-      }
-
-      // 3) Échec complet : on prévient clairement au lieu d'envoyer une adresse invalide
-      // au serveur (qui aurait juste répondu "Données invalides" sans explication).
-      alert("⚠️ Impossible d'initialiser le mode démo sur cet appareil (librairie TronWeb indisponible). Recharge la page, ou désactive le mode démo et utilise une vraie adresse TRON.");
-      throw new Error("DEMO_WALLET_GENERATION_FAILED");
-    }
     
     socket.on("timer:update", (data) => {
       console.log("⏱️ TIMER REÇU :", data);
@@ -1065,10 +770,10 @@
     
     document.addEventListener('visibilitychange', () => { 
       if (!document.hidden) { 
-        // ✅ RENFORCÉ : le token vit dans un cookie HttpOnly, illisible en JS — on ne peut
-        // plus vérifier sa présence localement, on tente systématiquement, le serveur tranche.
-        restoreSession();
-        socket.emit('timer:request');
+        if (localStorage.getItem("miltape_session_token")) {
+          restoreSession();
+          socket.emit('timer:request');
+        }
       } 
     });
     
@@ -1096,10 +801,11 @@
       let wallet;
       if (demoMode) {
         try {
-          wallet = await getOrCreateDemoWallet();
-        } catch (e) {
-          return; // L'alerte explicative a déjà été affichée dans getOrCreateDemoWallet()
-        }
+          if (typeof tronWeb !== 'undefined' && tronWeb && typeof tronWeb.createAccount === 'function') {
+            const account = await tronWeb.createAccount();
+            wallet = account.address.base58;
+          } else { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
+        } catch (e) { wallet = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; }
         proceedToJoin(name, wallet);
       } else {
         const walletModal = document.getElementById('walletModal');
@@ -1121,14 +827,11 @@
       if (betInput) { const rawBet = parseFloat(betInput.value); if (!isNaN(rawBet) && rawBet > 0) bet = rawBet; }
       myBet = bet; myWallet = wallet; myToken = token;
 
-      // ✅ RENFORCÉ : plus de sessionToken lu/envoyé manuellement — le serveur vérifie
-      // désormais la propriété du wallet via le cookie HttpOnly, jamais via un champ du client.
-      const referralCode = localStorage.getItem("miltape_referral_code") || null;
+      const storedWallet = localStorage.getItem("miltape_session_wallet");
+      const storedToken = localStorage.getItem("miltape_session_token");
+      const sessionToken = (storedWallet && storedWallet === wallet) ? storedToken : null;
 
-      // ✅ NOUVEAU : s'assure que le défi anti-bot est résolu avant d'envoyer la demande
-      if (powReadyPromise) { try { await powReadyPromise; } catch (e) {} }
-
-      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, referralCode, powNonce: currentPowNonce || "" });
+      socket.emit("player:join", { name, wallet, bet, token, deviceId: MY_DEVICE_ID, sessionToken });
       hapticMedium();
     }
     
@@ -1141,9 +844,6 @@
         isPlaying = true; isPaid = false;
         myPlayerId = data.player.id;
         myToken = data.player.token || 'USDT';
-        myReferralCode = data.player.referralCode || null; // ✅ NOUVEAU
-        myReferralEarnings = data.player.referralEarnings || 0;
-        myReferralCount = data.player.referralCount || 0;
         if (tapButton) tapButton.disabled = true;
         if (tapMessage) tapMessage.innerText = "💰 ÉTAPE 2 : Paie ta mise pour taper !";
         if (enterChallenge) enterChallenge.style.display = "none";
@@ -1160,17 +860,12 @@
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
         
-        // ✅ RENFORCÉ : le sessionToken n'est plus jamais stocké en localStorage (lisible par
-        // n'importe quel script). Il est transmis une seule fois au serveur, qui le pose
-        // lui-même dans un cookie HttpOnly — inaccessible à JavaScript à partir de là.
         if (data.player.sessionToken) {
-          fetch(BACKEND_URL + "/api/session/store", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionToken: data.player.sessionToken })
-          }).catch(err => console.warn("⚠️ Impossible de sécuriser la session :", err));
+          localStorage.setItem("miltape_session_token", data.player.sessionToken);
+          localStorage.setItem("miltape_session_wallet", data.player.wallet);
         }
+        
+        showNotification("success", "🟢 " + data.player.name + " a rejoint la partie !");
         
         if (chatMessages) {
           const msgDiv = document.createElement('div');
@@ -1208,6 +903,7 @@
       console.log("🔄 PLAYER RESTORED :", data);
       hapticLight();
 
+      // Fonction utilitaire pour remettre l'interface à zéro
       const resetUI = () => {
         if (enterChallenge) enterChallenge.style.display = 'block';
         if (payButton) payButton.style.display = 'none';
@@ -1220,24 +916,20 @@
         if (tapMessage) tapMessage.innerText = "⚡ ÉTAPE 1 : Rejoins la partie !";
       };
 
+      // ============ CAS 1 : Session valide mais manche terminée (staleRound) ============
       if (data.staleRound === true) {
-        // ✅ RENFORCÉ : la session est désormais un cookie HttpOnly côté serveur — on
-        // demande explicitement son effacement pour ne pas rester bloqué sur un token périmé.
-        fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {});
         resetUI();
         if (tapMessage) tapMessage.innerText = "⚡ Prêt à rejoindre la nouvelle manche ?";
         return;
       }
 
+      // ============ CAS 2 : Session valide et manche en cours (success) ============
       if (data.success) {
         isPlaying = true;
         myPlayerId = data.player.id; 
         myWallet = data.player.wallet; 
         myBet = data.player.bet || 10; 
         myToken = data.player.token || 'USDT';
-        myReferralCode = data.player.referralCode || null; // ✅ NOUVEAU
-        myReferralEarnings = data.player.referralEarnings || 0;
-        myReferralCount = data.player.referralCount || 0;
         
         if (gameStatus === "running") updateTapCounter(data.player.taps);
         else updateTapCounter(0);
@@ -1272,32 +964,27 @@
         localStorage.setItem("miltape_player_name", data.player.name);
         localStorage.setItem("miltape_player_bet", data.player.bet.toString());
         localStorage.setItem("miltape_player_token", myToken);
-        // ✅ RENFORCÉ : rien à faire ici pour la session — le cookie HttpOnly posé lors du
-        // join initial reste valide tel quel, le serveur ne renvoie plus le token à la restauration.
+        
+        if (data.player.sessionToken) {
+          localStorage.setItem("miltape_session_token", data.player.sessionToken);
+          localStorage.setItem("miltape_session_wallet", data.player.wallet);
+        }
         
         hapticMedium();
         return;
       }
 
+      // ============ CAS 3 : Token totalement invalide ou inexistant (else) ============
       localStorage.removeItem("miltape_player_id");
       localStorage.removeItem("miltape_player_wallet");
       localStorage.removeItem("miltape_player_name");
       localStorage.removeItem("miltape_player_bet");
       localStorage.removeItem("miltape_player_token");
+      localStorage.removeItem("miltape_session_token");
+      localStorage.removeItem("miltape_session_wallet");
       localStorage.removeItem("miltape_demo");
-      fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {}); // ✅ RENFORCÉ
       
       resetUI();
-    });
-
-    // ✅ NOUVEAU : réception des stats de parrainage rafraîchies à la demande
-    socket.on("referral:stats", (data) => {
-      if (data && data.success) {
-        myReferralCode = data.referralCode || myReferralCode;
-        myReferralEarnings = data.referralEarnings || 0;
-        myReferralCount = data.referralCount || 0;
-        renderReferralModal();
-      }
     });
     
     socket.on("payment:verified", (data) => {
@@ -1337,6 +1024,7 @@
       localStorage.removeItem("miltape_player_name");
       localStorage.removeItem("miltape_player_bet");
       localStorage.removeItem("miltape_player_token");
+      // On ne supprime pas miltape_session_token / miltape_session_wallet ici
     });
     
     function launchConfetti() {
@@ -1351,34 +1039,15 @@
       }
     }
     
-    // ===== TAP EFFECTS AMÉLIORÉ =====
     function tapEffects() {
       if (!tapButton) return;
       tapButton.classList.add('tap-active');
-      
-      const ripple = document.createElement('div');
-      ripple.className = 'tap-ripple';
-      const rect = tapButton.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height);
-      ripple.style.width = size + 'px';
-      ripple.style.height = size + 'px';
-      ripple.style.left = '50%';
-      ripple.style.top = '50%';
-      ripple.style.transform = 'translate(-50%, -50%)';
-      tapButton.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 400);
-      
-      setTimeout(() => tapButton.classList.remove('tap-active'), 60);
+      setTimeout(() => tapButton.classList.remove('tap-active'), 100);
       hapticLight();
     }
     
     let lastTapTime = 0;
-    const MIN_TAP_INTERVAL_MS = 60; // ✅ aligné avec le nouveau seuil serveur (anti-bot renforcé)
-
-    // ===== COMPTEUR DE TAPS — SOURCE UNIQUE : LE SERVEUR =====
-    // Le compteur n'est plus incrémenté localement au clic : il n'est mis à jour
-    // que par les événements "player:score" / "duel:score" renvoyés par le serveur.
-    let localTaps = 0;
+    const MIN_TAP_INTERVAL_MS = 50;
     
     if (tapButton) {
       tapButton.addEventListener('click', function() {
@@ -1402,18 +1071,16 @@
     }
     
     socket.on("player:score", (data) => {
-      console.log("🖱️ SCORE REÇU (serveur) :", data);
-      localTaps = data.taps || 0;
-      if (tapCount) tapCount.innerText = localTaps;
-      if (tapButtonCount) tapButtonCount.innerText = localTaps;
-      updateTapCounter(localTaps);
+      console.log("🖱️ SCORE REÇU :", data);
+      if (tapCount) tapCount.innerText = data.taps;
+      if (tapButtonCount) tapButtonCount.innerText = data.taps;
+      updateTapCounter(data.taps);
     });
 
     socket.on('duel:score', (data) => {
       duelState.myTaps = data.myTaps;
       duelState.opponentTaps = data.opponentTaps;
-      localTaps = data.myTaps || 0;
-      updateTapCounter(localTaps);
+      updateTapCounter(data.myTaps);
     });
     
     function updateTapCounter(taps) {
@@ -1442,8 +1109,8 @@
     socket.on("totalStakes:update", (data) => {
       const displayBet = document.getElementById('displayBet');
       const displayBetTop = document.getElementById('displayBetTop');
-      if (displayBet) displayBet.textContent = formatAmount(data.totalStakes) + " USDT";
-      if (displayBetTop) displayBetTop.textContent = formatAmount(data.totalStakes) + " USDT";
+      if (displayBet) displayBet.textContent = "$" + formatAmount(data.totalStakes);
+      if (displayBetTop) displayBetTop.textContent = "$" + formatAmount(data.totalStakes);
     });
     
     socket.on("online:count", (data) => {
@@ -1508,7 +1175,6 @@
       showNotification("info", "💬 " + data.name + " a écrit un message");
     });
     
-    // ===== PAIEMENTS 100% INTACTS =====
     function initiatePayment(wallet, amount) {
       const token = tokenSelect ? tokenSelect.value : (localStorage.getItem("miltape_player_token") || 'USDT');
       fetch(BACKEND_URL + "/api/wallet").then(res => res.json()).then(data => {
@@ -1524,9 +1190,9 @@
     }
     
     socket.on("error", (err) => {
-      if (err.message === "Ce wallet est déjà utilisé dans cette manche depuis un autre appareil/navigateur.") {
+      if (err.message === "Ce wallet est déjà utilisé dans cette manche. Connecte-toi avec ton token.") {
         hapticError();
-        alert("⚠️ Ce wallet joue déjà cette manche depuis un autre appareil ou navigateur. Reviens sur celui utilisé pour rejoindre initialement.");
+        alert("⚠️ Une session est peut-être encore active ailleurs (autre onglet, autre appareil).\nRejoins la partie avec le token de session existant pour continuer.");
         return;
       }
       
@@ -1536,7 +1202,8 @@
         localStorage.removeItem("miltape_player_name");
         localStorage.removeItem("miltape_player_bet");
         localStorage.removeItem("miltape_player_token");
-        fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" }).catch(() => {}); // ✅ RENFORCÉ
+        localStorage.removeItem("miltape_session_token");
+        localStorage.removeItem("miltape_session_wallet");
         if (enterChallenge) enterChallenge.style.display = 'block';
         return;
       }
@@ -1649,68 +1316,11 @@
     
     const menuRulesBtn = document.getElementById('menuRulesBtn');
     if (menuRulesBtn) menuRulesBtn.addEventListener('click', () => showMenuMessage('📜 Règles du jeu', '<p><strong>⏱️ 10 minutes</strong> pour taper.</p><p><strong>🏆 Top 5</strong> gagne x2.</p>'));
-
-    // ✅ NOUVEAU : système de parrainage
-    function copyToClipboard(text) {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text);
-        } else {
-          const el = document.createElement('textarea');
-          el.value = text;
-          el.style.position = 'fixed';
-          el.style.opacity = '0';
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand('copy');
-          document.body.removeChild(el);
-        }
-      } catch (e) { console.warn('⚠️ Copie du lien impossible :', e); }
-    }
-
-    function renderReferralModal() {
-      let content;
-      if (myReferralCode) {
-        const link = window.location.origin + window.location.pathname + '?ref=' + myReferralCode;
-        content =
-          '<p style="color:#eee;font-size:13px;">Partage ton lien : chaque fois qu\'un ami rejoint avec et mise en réel, tu touches automatiquement <strong style="color:#64b5f6;">' + REFERRAL_PERCENT_DISPLAY + '%</strong> de chacune de ses mises, envoyé direct sur ton wallet.</p>' +
-          '<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;margin:10px 0;word-break:break-all;font-size:12px;color:#64b5f6;">' + link + '</div>' +
-          '<button id="copyReferralBtn" class="main-play-button" style="padding:10px;margin:0 0 10px;">📋 COPIER LE LIEN</button>' +
-          '<div style="display:flex;justify-content:space-around;text-align:center;margin-top:10px;">' +
-            '<div><div style="font-size:22px;font-weight:900;color:#64b5f6;">' + myReferralCount + '</div><div style="font-size:11px;color:#999;">FILLEULS</div></div>' +
-            '<div><div style="font-size:22px;font-weight:900;color:#2ecc71;">' + formatAmount(myReferralEarnings) + '</div><div style="font-size:11px;color:#999;">USDT GAGNÉS</div></div>' +
-          '</div>';
-      } else {
-        content = '<p style="color:#eee;font-size:13px;">Rejoins une partie une première fois (démo ou réel) pour débloquer ton lien de parrainage personnel.</p>';
-      }
-
-      showMenuMessage('👥 Parrainage', content);
-
-      const copyBtn = document.getElementById('copyReferralBtn');
-      if (copyBtn) {
-        copyBtn.addEventListener('click', function() {
-          const link = window.location.origin + window.location.pathname + '?ref=' + myReferralCode;
-          copyToClipboard(link);
-          showNotification('success', '🔗 Lien copié !');
-          hapticLight();
-        });
-      }
-    }
-
-    function openReferralModal() {
-      if (myPlayerId) socket.emit('referral:stats'); // rafraîchit les chiffres si connu du serveur
-      renderReferralModal(); // affiche tout de suite avec les valeurs déjà en mémoire
-    }
-
-    const menuReferralBtn = document.getElementById('menuReferralBtn');
-    if (menuReferralBtn) menuReferralBtn.addEventListener('click', openReferralModal);
     
     if (resetGameBtn) {
       resetGameBtn.addEventListener('click', function() {
         if (confirm("🔄 Recommencer une nouvelle partie ? Vos données locales vont être réinitialisées.")) {
-          fetch(BACKEND_URL + "/api/session/clear", { method: "POST", credentials: "include" })
-            .catch(() => {})
-            .finally(() => { localStorage.clear(); window.location.reload(); });
+          localStorage.clear(); window.location.reload();
         }
       });
     }
@@ -1771,26 +1381,10 @@
     
     socket.emit("jackpot:get");
     
-    const DUEL_COMMISSION_PERCENT_DISPLAY = 0.10; // doit rester synchro avec DUEL_COMMISSION_PERCENT côté serveur
-
-    function updateDuelPayoutPreview(bet) {
-      const preview = document.getElementById('duelPayoutPreview');
-      if (!preview) return;
-      const payout = (bet * 2 * (1 - DUEL_COMMISSION_PERCENT_DISPLAY)).toFixed(2);
-      preview.innerHTML = 'Mise : <strong style="color:#fff;">' + formatAmount(bet) + ' USDT</strong> → Gain : <strong style="color:#2ecc71;">' + payout + ' USDT</strong>';
-    }
-
     function selectDuelBet(btn) {
       document.querySelectorAll('.duelBetBtn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      updateDuelPayoutPreview(parseFloat(btn.dataset.bet));
     }
-
-    // ✅ Initialise l'aperçu avec la mise active par défaut (1 USDT)
-    (function initDuelPayoutPreview() {
-      const activeBtn = document.querySelector('.duelBetBtn.active');
-      if (activeBtn) updateDuelPayoutPreview(parseFloat(activeBtn.dataset.bet));
-    })();
 
     if (duelButton) {
       duelButton.addEventListener('click', () => {
@@ -1872,36 +1466,9 @@
       if (value === null || value === undefined || isNaN(value)) return "0";
       return Number(parseFloat(value).toFixed(8)).toString();
     }
-
-    // ===== TIMER LOCAL DE SECOURS (SI LE SERVEUR NE RÉPOND PAS) =====
-    let localTimer = 10 * 60;
-    let localTimerInterval = null;
-
-    function startLocalBackupTimer() {
-      if (localTimerInterval) clearInterval(localTimerInterval);
-      if (endsAt && endsAt > Date.now()) return;
-      
-      localTimer = 10 * 60;
-      localTimerInterval = setInterval(() => {
-        if (gameStatus === "running") {
-          localTimer--;
-          const m = Math.floor(localTimer / 60);
-          const s = localTimer % 60;
-          const timerRuleValue = document.getElementById('timerRuleValue');
-          if (timerRuleValue) {
-            timerRuleValue.innerText = m + ":" + s.toString().padStart(2, '0');
-          }
-          if (localTimer <= 0) {
-            clearInterval(localTimerInterval);
-            localTimerInterval = null;
-          }
-        }
-      }, 1000);
-    }
-
-    startLocalBackupTimer();
-
-    console.log("🚀 Miltape World Challenge chargé !");
+    
+    console.log("✅ Script Miltape chargé avec succès.");
+    console.log("🔗 Backend URL :", BACKEND_URL);
   </script>
 </body>
 </html>
