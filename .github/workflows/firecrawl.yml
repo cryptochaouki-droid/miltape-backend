@@ -19,16 +19,15 @@ jobs:
             echo "❌ FIRECRAWL_API_KEY est manquante."
             exit 1
           fi
-
           echo "✅ Clé Firecrawl détectée."
 
-      - name: Créer les dossiers
+      - name: Préparer les dossiers
         run: |
           mkdir -p firecrawl-results
           mkdir -p audit
 
       # ============================================================
-      # FIRECRAWL : RÉCUPÉRATION DES FICHIERS
+      # FIRECRAWL
       # ============================================================
 
       - name: Firecrawl - server.js
@@ -36,18 +35,13 @@ jobs:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           set -e
-
           curl -sS \
             -X POST \
             -H "Authorization: Bearer ${FIRECRAWL_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "url": "https://github.com/cryptochaouki-droid/miltape-backend/blob/main/server.js",
-              "formats": ["markdown"]
-            }' \
+            -d '{"url":"https://github.com/cryptochaouki-droid/miltape-backend/blob/main/server.js","formats":["markdown"]}' \
             "https://api.firecrawl.dev/v2/scrape" \
             > firecrawl-results/server.js.json
-
           echo "✅ server.js récupéré."
 
       - name: Firecrawl - package.json
@@ -55,18 +49,13 @@ jobs:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           set -e
-
           curl -sS \
             -X POST \
             -H "Authorization: Bearer ${FIRECRAWL_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "url": "https://github.com/cryptochaouki-droid/miltape-backend/blob/main/package.json",
-              "formats": ["markdown"]
-            }' \
+            -d '{"url":"https://github.com/cryptochaouki-droid/miltape-backend/blob/main/package.json","formats":["markdown"]}' \
             "https://api.firecrawl.dev/v2/scrape" \
             > firecrawl-results/package.json.json
-
           echo "✅ package.json récupéré."
 
       - name: Firecrawl - index.html
@@ -74,52 +63,62 @@ jobs:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           set -e
-
           curl -sS \
             -X POST \
             -H "Authorization: Bearer ${FIRECRAWL_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "url": "https://github.com/cryptochaouki-droid/miltape-backend/blob/main/index.html",
-              "formats": ["markdown"]
-            }' \
+            -d '{"url":"https://github.com/cryptochaouki-droid/miltape-backend/blob/main/index.html","formats":["markdown"]}' \
             "https://api.firecrawl.dev/v2/scrape" \
             > firecrawl-results/index.html.json
-
           echo "✅ index.html récupéré."
 
       # ============================================================
-      # EXTRACTION DU CODE RÉEL
+      # VÉRIFICATION FIRECRAWL
       # ============================================================
 
-      - name: Extraire le contenu Firecrawl
+      - name: Vérifier les réponses Firecrawl
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
 
           files = [
-              ("server.js.json", "server.js"),
-              ("package.json.json", "package.json"),
-              ("index.html.json", "index.html")
+              "server.js.json",
+              "package.json.json",
+              "index.html.json"
           ]
 
-          for source, destination in files:
-              source_path = Path("firecrawl-results") / source
-              destination_path = Path("audit") / destination
+          for name in files:
+              path = Path("firecrawl-results") / name
 
-              data = json.loads(source_path.read_text())
+              if not path.exists() or path.stat().st_size == 0:
+                  raise SystemExit(f"❌ Résultat absent ou vide : {name}")
 
-              if not data.get("success"):
-                  raise RuntimeError(f"Firecrawl a échoué pour {source}")
+              data = json.loads(path.read_text())
 
-              markdown = data.get("data", {}).get("markdown", "")
+              if data.get("success") is not True:
+                  raise SystemExit(f"❌ Firecrawl a échoué pour : {name}")
 
-              destination_path.write_text(markdown)
-
-              print(f"✅ {destination} extrait.")
-
+              print(f"✅ Firecrawl OK : {name}")
           PY
+
+      # ============================================================
+      # AUDIT LOCAL DU DÉPÔT
+      # ============================================================
+
+      - name: Audit - présence des fichiers
+        run: |
+          echo "========================================"
+          echo "AUDIT STRUCTURE"
+          echo "========================================"
+
+          for file in server.js package.json index.html manifest.json; do
+            if [ -f "$file" ]; then
+              echo "✅ $file présent"
+            else
+              echo "⚠️ $file absent"
+            fi
+          done
 
       # ============================================================
       # AUDIT PACKAGE.JSON
@@ -132,58 +131,45 @@ jobs:
           echo "========================================"
 
           if [ ! -f package.json ]; then
-            echo "❌ package.json absent du dépôt."
+            echo "❌ package.json absent."
             exit 1
           fi
 
-          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('✅ package.json JSON valide.')" \
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('✅ JSON valide.')" \
             || {
               echo "❌ package.json contient un JSON invalide."
               exit 1
             }
 
-          echo ""
-          echo "📦 Dépendances déclarées :"
+          node <<'NODE'
+          const fs = require("fs");
 
-          node - <<'NODE'
-          const p = require('./package.json');
-
-          console.log('dependencies:');
-          console.log(p.dependencies || {});
-
-          console.log('devDependencies:');
-          console.log(p.devDependencies || {});
-
-          console.log('scripts:');
-          console.log(p.scripts || {});
-          NODE
-
-          echo ""
-
-          node - <<'NODE'
-          const fs = require('fs');
-
-          const p = require('./package.json');
+          const pkg = JSON.parse(
+            fs.readFileSync("package.json", "utf8")
+          );
 
           const deps = {
-            ...(p.dependencies || {}),
-            ...(p.devDependencies || {})
+            ...(pkg.dependencies || {}),
+            ...(pkg.devDependencies || {})
           };
 
-          const server = fs.readFileSync('server.js', 'utf8');
+          const server = fs.readFileSync("server.js", "utf8");
 
           const modules = [
-            'express',
-            'cors',
-            'mongoose',
-            'socket.io',
-            'tronweb',
-            'helmet',
-            'express-rate-limit',
-            'node-cron'
+            "express",
+            "cors",
+            "mongoose",
+            "socket.io",
+            "tronweb",
+            "helmet",
+            "express-rate-limit",
+            "node-cron"
           ];
 
           let errors = 0;
+
+          console.log("");
+          console.log("📦 Vérification des modules utilisés par server.js :");
 
           for (const module of modules) {
             const used =
@@ -193,19 +179,26 @@ jobs:
               server.includes(`from '${module}'`);
 
             if (used && !deps[module]) {
-              console.log(`❌ DÉPENDANCE MANQUANTE : ${module}`);
+              console.log(`❌ MANQUANT : ${module}`);
               errors++;
             } else if (used) {
               console.log(`✅ ${module}`);
             }
           }
 
+          console.log("");
+
           if (errors > 0) {
-            console.log("");
-            console.log(`🔴 ${errors} dépendance(s) utilisée(s) par server.js mais absente(s) de package.json.`);
+            console.log(
+              `🔴 ${errors} dépendance(s) utilisée(s) par server.js sont absentes de package.json.`
+            );
           } else {
-            console.log("✅ Les dépendances principales utilisées par server.js sont déclarées.");
+            console.log("🟢 Dépendances principales cohérentes.");
           }
+
+          console.log("");
+          console.log("📜 Scripts npm :");
+          console.log(pkg.scripts || {});
           NODE
 
       # ============================================================
@@ -225,5 +218,263 @@ jobs:
 
           echo "✅ server.js présent."
 
-          if grep -q 'process.env.PORT' server.js; then
-            echo "✅ PORT
+          if grep -Fq "process.env.PORT" server.js; then
+            echo "✅ PORT Railway détecté."
+          else
+            echo "⚠️ process.env.PORT non détecté."
+          fi
+
+          if grep -Fq "process.env.MONGO_URI" server.js || \
+             grep -Fq "process.env.MONGODB_URI" server.js; then
+            echo "✅ Variable MongoDB détectée."
+          else
+            echo "⚠️ Variable MongoDB non détectée."
+          fi
+
+          if grep -Fq "process.env.MILTAPE_PRIVATE_KEY" server.js; then
+            echo "✅ MILTAPE_PRIVATE_KEY détectée."
+          else
+            echo "⚠️ MILTAPE_PRIVATE_KEY non détectée."
+          fi
+
+          if grep -Fq "process.env.ADMIN_PASSWORD" server.js; then
+            echo "✅ ADMIN_PASSWORD détectée."
+          else
+            echo "⚠️ ADMIN_PASSWORD non détectée."
+          fi
+
+          if grep -Fq "server.listen" server.js; then
+            echo "✅ server.listen détecté."
+          else
+            echo "🔴 server.listen absent."
+          fi
+
+          if grep -Fq "mongoose" server.js; then
+            echo "✅ Mongoose détecté."
+          else
+            echo "⚠️ Mongoose non détecté."
+          fi
+
+          if grep -Fq "socket.io" server.js; then
+            echo "✅ Socket.IO détecté."
+          else
+            echo "⚠️ Socket.IO non détecté."
+          fi
+
+          if grep -Fq "helmet" server.js; then
+            echo "✅ Helmet détecté."
+          else
+            echo "⚠️ Helmet non détecté."
+          fi
+
+          if grep -Fq "rateLimit" server.js; then
+            echo "✅ Rate limiting détecté."
+          else
+            echo "⚠️ Rate limiting non détecté."
+          fi
+
+      # ============================================================
+      # AUDIT FRONTEND
+      # ============================================================
+
+      - name: Audit - index.html
+        run: |
+          echo "========================================"
+          echo "AUDIT INDEX.HTML"
+          echo "========================================"
+
+          if [ ! -f index.html ]; then
+            echo "❌ index.html absent."
+            exit 1
+          fi
+
+          echo "✅ index.html présent."
+
+          if grep -qi 'meta name="viewport"' index.html; then
+            echo "✅ Viewport mobile détecté."
+          else
+            echo "⚠️ Viewport mobile absent."
+          fi
+
+          if grep -Fqi "BACKEND_URL" index.html; then
+            echo "✅ BACKEND_URL détectée."
+          else
+            echo "⚠️ BACKEND_URL non détectée."
+          fi
+
+          if grep -Fqi "socket.io" index.html; then
+            echo "✅ Socket.IO frontend détecté."
+          else
+            echo "⚠️ Socket.IO frontend non détecté."
+          fi
+
+          if grep -Fqi "TronWeb" index.html; then
+            echo "✅ TronWeb détecté."
+          else
+            echo "ℹ️ TronWeb non détecté."
+          fi
+
+          if grep -Fqi "Telegram" index.html; then
+            echo "✅ Telegram détecté."
+          else
+            echo "ℹ️ Telegram non détecté."
+          fi
+
+      # ============================================================
+      # AUDIT RAILWAY
+      # ============================================================
+
+      - name: Audit - Railway
+        run: |
+          echo "========================================"
+          echo "AUDIT RAILWAY"
+          echo "========================================"
+
+          if grep -q '"start"' package.json; then
+            echo "✅ Script npm start présent."
+          else
+            echo "🔴 Script npm start ABSENT."
+          fi
+
+          if [ -f server.js ]; then
+            echo "✅ server.js à la racine."
+          else
+            echo "🔴 server.js absent de la racine."
+          fi
+
+          if [ -f railway.json ]; then
+            echo "ℹ️ railway.json présent."
+          else
+            echo "ℹ️ railway.json absent."
+          fi
+
+          if [ -f Dockerfile ]; then
+            echo "ℹ️ Dockerfile présent."
+          else
+            echo "ℹ️ Dockerfile absent."
+          fi
+
+      # ============================================================
+      # AUDIT SÉCURITÉ SANS GREP COMPLEXE
+      # ============================================================
+
+      - name: Audit - sécurité
+        run: |
+          echo "========================================"
+          echo "AUDIT SÉCURITÉ"
+          echo "========================================"
+
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          files = [
+              Path("server.js"),
+              Path("index.html"),
+              Path("package.json")
+          ]
+
+          patterns = {
+              "URI MongoDB en dur":
+                  re.compile(r"mongodb(?:\+srv)?://[^\s\"']+",
+                             re.IGNORECASE),
+
+              "clé privée évidente":
+                  re.compile(r"(private[_-]?key|PRIVATE_KEY)\s*[:=]\s*[\"'][^\"']+[\"']",
+                             re.IGNORECASE),
+
+              "mot de passe évident":
+                  re.compile(r"(password|passwd)\s*[:=]\s*[\"'][^\"']+[\"']",
+                             re.IGNORECASE)
+          }
+
+          found = False
+
+          for path in files:
+              if not path.exists():
+                  continue
+
+              text = path.read_text(errors="ignore")
+
+              for label, pattern in patterns.items():
+                  if pattern.search(text):
+                      print(f"🟠 Vérification nécessaire : {label} dans {path}")
+                      found = True
+
+          if not found:
+              print("🟢 Aucun secret évident détecté dans les fichiers principaux.")
+          else:
+              print("⚠️ Une vérification manuelle est recommandée.")
+          PY
+
+      # ============================================================
+      # AUDIT WORKFLOWS
+      # ============================================================
+
+      - name: Audit - GitHub Actions
+        run: |
+          echo "========================================"
+          echo "AUDIT GITHUB ACTIONS"
+          echo "========================================"
+
+          if [ -f .github/workflows/main.yml ]; then
+            echo "✅ main.yml présent."
+          else
+            echo "⚠️ main.yml absent."
+          fi
+
+          if [ -f .github/workflows/firecrawl.yml ]; then
+            echo "✅ firecrawl.yml présent."
+          else
+            echo "⚠️ firecrawl.yml absent."
+          fi
+
+      # ============================================================
+      # RAPPORT
+      # ============================================================
+
+      - name: Générer le rapport
+        run: |
+          {
+            echo "# Miltape — Audit automatique"
+            echo ""
+            echo "Date : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            echo "## Contrôles effectués"
+            echo ""
+            echo "- Structure du projet"
+            echo "- package.json"
+            echo "- Dépendances utilisées par server.js"
+            echo "- server.js"
+            echo "- Variables d'environnement"
+            echo "- MongoDB"
+            echo "- Socket.IO"
+            echo "- TronWeb"
+            echo "- Sécurité de base"
+            echo "- index.html"
+            echo "- Compatibilité Railway"
+            echo "- GitHub Actions"
+            echo ""
+            echo "## Attention"
+            echo ""
+            echo "Cet audit détecte des problèmes techniques connus."
+            echo "Il ne garantit pas l'absence de bugs métier ou de problèmes d'exécution."
+          } > audit/MILTAPE-AUDIT.md
+
+          echo ""
+          echo "========================================"
+          echo "✅ AUDIT TERMINÉ"
+          echo "========================================"
+
+      # ============================================================
+      # ARTIFACT
+      # ============================================================
+
+      - name: Sauvegarder le rapport
+        uses: actions/upload-artifact@v4
+        with:
+          name: miltape-audit-complet
+          path: |
+            firecrawl-results/
+            audit/
+          retention-days: 7
