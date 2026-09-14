@@ -1,10 +1,10 @@
-name: Firecrawl - Analyse Miltape
+name: Firecrawl - Audit automatique Miltape
 
 on:
   workflow_dispatch:
 
 jobs:
-  firecrawl:
+  firecrawl-audit:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,17 +16,22 @@ jobs:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           if [ -z "$FIRECRAWL_API_KEY" ]; then
-            echo "❌ FIRECRAWL_API_KEY n'est pas configurée."
+            echo "❌ FIRECRAWL_API_KEY est manquante."
             exit 1
           fi
 
           echo "✅ Clé Firecrawl détectée."
 
-      - name: Créer le dossier des résultats
+      - name: Créer les dossiers
         run: |
           mkdir -p firecrawl-results
+          mkdir -p audit
 
-      - name: Récupérer server.js avec Firecrawl
+      # ============================================================
+      # FIRECRAWL : RÉCUPÉRATION DES FICHIERS
+      # ============================================================
+
+      - name: Firecrawl - server.js
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
@@ -45,7 +50,7 @@ jobs:
 
           echo "✅ server.js récupéré."
 
-      - name: Récupérer package.json avec Firecrawl
+      - name: Firecrawl - package.json
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
@@ -64,7 +69,7 @@ jobs:
 
           echo "✅ package.json récupéré."
 
-      - name: Récupérer index.html avec Firecrawl
+      - name: Firecrawl - index.html
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
@@ -83,25 +88,142 @@ jobs:
 
           echo "✅ index.html récupéré."
 
-      - name: Vérifier les résultats
+      # ============================================================
+      # EXTRACTION DU CODE RÉEL
+      # ============================================================
+
+      - name: Extraire le contenu Firecrawl
         run: |
-          set -e
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
 
-          for file in \
-            firecrawl-results/server.js.json \
-            firecrawl-results/package.json.json \
-            firecrawl-results/index.html.json
-          do
-            if [ ! -s "$file" ]; then
-              echo "❌ Résultat vide : $file"
+          files = [
+              ("server.js.json", "server.js"),
+              ("package.json.json", "package.json"),
+              ("index.html.json", "index.html")
+          ]
+
+          for source, destination in files:
+              source_path = Path("firecrawl-results") / source
+              destination_path = Path("audit") / destination
+
+              data = json.loads(source_path.read_text())
+
+              if not data.get("success"):
+                  raise RuntimeError(f"Firecrawl a échoué pour {source}")
+
+              markdown = data.get("data", {}).get("markdown", "")
+
+              destination_path.write_text(markdown)
+
+              print(f"✅ {destination} extrait.")
+
+          PY
+
+      # ============================================================
+      # AUDIT PACKAGE.JSON
+      # ============================================================
+
+      - name: Audit - package.json
+        run: |
+          echo "========================================"
+          echo "AUDIT PACKAGE.JSON"
+          echo "========================================"
+
+          if [ ! -f package.json ]; then
+            echo "❌ package.json absent du dépôt."
+            exit 1
+          fi
+
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('✅ package.json JSON valide.')" \
+            || {
+              echo "❌ package.json contient un JSON invalide."
               exit 1
-            fi
+            }
 
-            echo "✅ Résultat valide : $file"
-          done
+          echo ""
+          echo "📦 Dépendances déclarées :"
 
-      - name: Conserver les résultats Firecrawl
-        uses: actions/upload-artifact@v4
-        with:
-          name: firecrawl-miltape-files
-          path: firecrawl-results/
+          node - <<'NODE'
+          const p = require('./package.json');
+
+          console.log('dependencies:');
+          console.log(p.dependencies || {});
+
+          console.log('devDependencies:');
+          console.log(p.devDependencies || {});
+
+          console.log('scripts:');
+          console.log(p.scripts || {});
+          NODE
+
+          echo ""
+
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const p = require('./package.json');
+
+          const deps = {
+            ...(p.dependencies || {}),
+            ...(p.devDependencies || {})
+          };
+
+          const server = fs.readFileSync('server.js', 'utf8');
+
+          const modules = [
+            'express',
+            'cors',
+            'mongoose',
+            'socket.io',
+            'tronweb',
+            'helmet',
+            'express-rate-limit',
+            'node-cron'
+          ];
+
+          let errors = 0;
+
+          for (const module of modules) {
+            const used =
+              server.includes(`require("${module}")`) ||
+              server.includes(`require('${module}')`) ||
+              server.includes(`from "${module}"`) ||
+              server.includes(`from '${module}'`);
+
+            if (used && !deps[module]) {
+              console.log(`❌ DÉPENDANCE MANQUANTE : ${module}`);
+              errors++;
+            } else if (used) {
+              console.log(`✅ ${module}`);
+            }
+          }
+
+          if (errors > 0) {
+            console.log("");
+            console.log(`🔴 ${errors} dépendance(s) utilisée(s) par server.js mais absente(s) de package.json.`);
+          } else {
+            console.log("✅ Les dépendances principales utilisées par server.js sont déclarées.");
+          }
+          NODE
+
+      # ============================================================
+      # AUDIT SERVER.JS
+      # ============================================================
+
+      - name: Audit - server.js
+        run: |
+          echo "========================================"
+          echo "AUDIT SERVER.JS"
+          echo "========================================"
+
+          if [ ! -f server.js ]; then
+            echo "❌ server.js absent."
+            exit 1
+          fi
+
+          echo "✅ server.js présent."
+
+          if grep -q 'process.env.PORT' server.js; then
+            echo "✅ PORT
