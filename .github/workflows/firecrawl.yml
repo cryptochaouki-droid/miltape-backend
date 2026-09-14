@@ -1,0 +1,57 @@
+name: Firecrawl - Analyse Miltape
+
+on:
+  workflow_dispatch:
+
+jobs:
+  firecrawl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v5
+
+      - name: Vérifier la clé Firecrawl
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: |
+          if [ -z "$FIRECRAWL_API_KEY" ]; then
+            echo "❌ FIRECRAWL_API_KEY n'est pas configurée."
+            exit 1
+          fi
+
+          echo "✅ Clé Firecrawl détectée."
+
+      - name: Analyser le dépôt avec Firecrawl
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: |
+          set -e
+
+          curl -sS \
+            -X POST \
+            -H "Authorization: Bearer ${FIRECRAWL_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "url": "https://github.com/cryptochaouki-droid/miltape-backend",
+              "formats": ["markdown"]
+            }' \
+            "https://api.firecrawl.dev/v2/scrape" \
+            > firecrawl-result.json
+
+          echo "✅ Analyse Firecrawl terminée."
+
+      - name: Vérifier le résultat
+        run: |
+          if [ ! -s firecrawl-result.json ]; then
+            echo "❌ Aucun résultat Firecrawl."
+            exit 1
+          fi
+
+          echo "✅ Résultat reçu."
+
+      - name: Conserver le résultat
+        uses: actions/upload-artifact@v4
+        with:
+          name: firecrawl-miltape-result
+          path: firecrawl-result.json
