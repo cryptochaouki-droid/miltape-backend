@@ -15,39 +15,18 @@ const GAME_DURATION_SECONDS = 10 * 60;
 const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
-const DUEL_PAYMENT_TIMEOUT_MS = 60000; // ✅ RÉDUIT : 1 min pour payer (au lieu de 2 min)
-// ✅ FIX SÉCURITÉ : avant, la seule limite de fréquence des taps était côté client (contournable
-// en se connectant directement en Socket.io avec un script). C'est désormais la source de vérité :
-// tout tap plus rapproché que ça est silencieusement ignoré, quel que soit le client utilisé.
-// ✅ RENFORCÉ : 20ms autorisait ~50 taps/seconde, largement au-dessus de ce qu'un humain
-// peut soutenir sur 10 minutes — un bot qui contournerait l'anti-bot aurait un avantage
-// écrasant. 60ms plafonne à ~16 taps/seconde, généreux pour un humain rapide mais bien
-// moins exploitable mécaniquement.
+const DUEL_PAYMENT_TIMEOUT_MS = 60000;
 const MIN_TAP_INTERVAL_MS = 60;
-// ✅ NOUVEAU : anti-spam du chat
-const MIN_CHAT_INTERVAL_MS = 2000; // 1 message max toutes les 2 secondes par connexion
-// ✅ NOUVEAU : commission de parrainage, payée par la maison sur chaque mise réelle
-// d'un joueur parrainé — ne réduit jamais le gain du joueur lui-même.
+const MIN_CHAT_INTERVAL_MS = 2000;
 const REFERRAL_PERCENT = 0.03;
-// ✅ RENFORCÉ : garde-fous anti-abus du parrainage (argent réel)
-const REFERRAL_MIN_BET = 1;          // aucune commission en dessous de cette mise (anti farming de micro-mises)
-// ✅ NOUVEAU : plafond de sécurité sur la mise (rejette les valeurs aberrantes/absurdes en amont)
+const REFERRAL_MIN_BET = 1;
 const MAX_BET = 100000;
-// ✅ NOUVEAU : format strict du pseudo — lettres (accents compris), chiffres, espaces, - _ '
 const NAME_REGEX = /^[\p{L}\p{N} _'-]{1,30}$/u;
-const REFERRAL_DAILY_CAP_PER_REFERRER = 20; // au-delà de ce total de commissions/24h pour un même parrain, on suspend et on journalise pour revue manuelle
-// ✅ NOUVEAU : anti-bot léger — preuve de travail invisible (aucun service tiers requis).
-// Le client doit résoudre un petit défi de hachage avant de pouvoir rejoindre une partie.
-const POW_DIFFICULTY = 4; // nombre de zéros hexadécimaux requis en tête du hash (quasi instantané pour un vrai navigateur)
-// ✅ NOUVEAU : anti-flood Socket.io par IP
-// ✅ CORRIGÉ EN URGENCE : les seuils initiaux étaient bien trop bas — plusieurs appareils
-// derrière une même box Wi-Fi ou un même partage de connexion 4G partagent la MÊME IP
-// publique. Avec l'ancien seuil, quelques téléphones testant ensemble suffisaient à tout
-// bloquer pour tout le monde derrière cette IP (chrono, chat, tout).
-const MAX_SOCKETS_PER_IP = 40;                  // connexions simultanées max depuis une même adresse
-const MAX_NEW_CONNECTIONS_PER_IP_PER_MIN = 120; // nouvelles connexions max par minute depuis une même adresse
+const REFERRAL_DAILY_CAP_PER_REFERRER = 20;
+const POW_DIFFICULTY = 4;
+const MAX_SOCKETS_PER_IP = 40;
+const MAX_NEW_CONNECTIONS_PER_IP_PER_MIN = 120;
 
-// ✅ FIX CORS : domaine par défaut corrigé vers le vrai domaine du frontend
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
 
 const SUPPORTED_TOKENS = {
@@ -63,18 +42,12 @@ const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 
-// ✅ NOUVEAU : clé privée chiffrée (optionnel — voir encrypt-key.js). Tant que ces deux
-// variables ne sont pas configurées, le serveur continue de fonctionner avec
-// MILTAPE_PRIVATE_KEY en clair (comportement inchangé, aucune casse au redéploiement).
-// Une fois migré, retire MILTAPE_PRIVATE_KEY de Railway et ne garde que ces deux-là.
 const MASTER_KEY = (process.env.MASTER_KEY || "").trim();
 const ENCRYPTED_PRIVATE_KEY = (process.env.ENCRYPTED_PRIVATE_KEY || "").trim();
 const USE_ENCRYPTED_KEY = !!(MASTER_KEY && ENCRYPTED_PRIVATE_KEY);
 
-// ✅ NOUVEAU : ne déchiffre la clé qu'au moment précis de signer une transaction (voir
-// sendPrizeToWinner) — jamais conservée en clair en mémoire tout le long de vie du process.
 function decryptPrivateKey() {
-    if (!USE_ENCRYPTED_KEY) return PRIVATE_KEY; // repli tant que la migration n'est pas faite
+    if (!USE_ENCRYPTED_KEY) return PRIVATE_KEY;
     const key = Buffer.from(MASTER_KEY, 'hex');
     const encrypted = Buffer.from(ENCRYPTED_PRIVATE_KEY, 'hex');
     const iv = encrypted.slice(0, 16);
@@ -100,9 +73,6 @@ try {
         fullHost: "https://api.trongrid.io",
         headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {}
     });
-    // ✅ RENFORCÉ : on ne fait JAMAIS tronWeb.setPrivateKey() sur cette instance longue
-    // durée — elle sert uniquement aux lectures on-chain (adresses, transactions...).
-    // La clé n'est déchiffrée qu'une fois ici, juste pour calculer l'adresse publique.
     MILTAPE_WALLET = tronWeb.address.fromPrivateKey(decryptPrivateKey());
     console.log("✅ Wallet Miltape :", MILTAPE_WALLET, USE_ENCRYPTED_KEY ? "(clé chiffrée)" : "(clé en clair — migration recommandée)");
 } catch (error) {
@@ -115,7 +85,7 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
-app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true })); // ✅ RENFORCÉ : credentials requis pour les cookies HttpOnly cross-site
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
@@ -132,19 +102,13 @@ app.use("/api/", limiter);
 
 const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"], credentials: true }, pingInterval: 25000, pingTimeout: 60000 });
 
-// ✅ NOUVEAU : anti-flood/DoS — limite les connexions simultanées et la fréquence de
-// nouvelles connexions par adresse IP, avant même que la connexion Socket.io soit établie.
 io.use((socket, next) => {
     const ip = getClientIp(socket);
     socket.data.clientIp = ip;
 
-    // ✅ NOUVEAU : lit le token de session depuis le cookie HttpOnly, jamais depuis
-    // un champ envoyé par le client — c'est la seule source de vérité désormais.
     const cookies = parseCookies(socket.handshake.headers.cookie);
     socket.data.cookieSessionToken = cookies['miltape_session'] || null;
 
-    // ✅ FIX : sans IP fiable, on ne limite pas (voir getClientIp) — mieux vaut ne pas
-    // protéger cette connexion que de risquer de bloquer tout le monde par erreur.
     if (!ip) return next();
 
     const activeForIp = socketsByIp.get(ip);
@@ -186,15 +150,11 @@ const playerSchema = new mongoose.Schema({
     depositAmount: { type: Number, default: null },
     depositExpiresAt: { type: Date, default: null },
     sessionToken: { type: String, unique: true, sparse: true },
-
-    // Champs séparés pour le duel (pour éviter les conflits avec le mode classique)
     duelPaid: { type: Boolean, default: false },
     duelPaymentTxId: { type: String, sparse: true },
-
-    // ✅ NOUVEAU : système de parrainage
     referralCode: { type: String, unique: true, sparse: true },
     referredByCode: { type: String, default: null },
-    referralCounted: { type: Boolean, default: false }, // pour ne compter qu'une fois ce filleul dans referralCount
+    referralCounted: { type: Boolean, default: false },
     referralEarnings: { type: Number, default: 0 },
     referralCount: { type: Number, default: 0 }
 }, { timestamps: true });
@@ -209,7 +169,6 @@ const duelEntrySchema = new mongoose.Schema({
 });
 const DuelEntry = mongoose.model("DuelEntry", duelEntrySchema);
 
-// ✅ NOUVEAU : historique transparent des commissions de parrainage versées
 const referralPayoutSchema = new mongoose.Schema({
     referrerId: mongoose.Schema.Types.ObjectId,
     referrerWallet: String,
@@ -220,19 +179,16 @@ const referralPayoutSchema = new mongoose.Schema({
     commission: Number,
     token: String,
     txId: String,
-    held: { type: Boolean, default: false } // ✅ NOUVEAU : true = plafond dépassé, en attente de revue admin
+    held: { type: Boolean, default: false }
 }, { timestamps: true });
 const ReferralPayout = mongoose.model("ReferralPayout", referralPayoutSchema);
 
-// ✅ NOUVEAU : wallets bannis (persistés, pour survivre à un redémarrage du serveur)
 const bannedWalletSchema = new mongoose.Schema({
     wallet: { type: String, required: true, unique: true },
     reason: { type: String, default: "" }
 }, { timestamps: true });
 const BannedWallet = mongoose.model("BannedWallet", bannedWalletSchema);
 
-// ✅ NOUVEAU : journal d'audit des actions admin — trace qui a fait quoi et quand,
-// même si le panneau admin repose sur un seul mot de passe partagé.
 const adminAuditLogSchema = new mongoose.Schema({
     route: String,
     method: String,
@@ -243,8 +199,27 @@ const AdminAuditLog = mongoose.model("AdminAuditLog", adminAuditLogSchema);
 
 const messageSchema = new mongoose.Schema({ name: String, message: String, gameId: String }, { timestamps: true });
 const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }, from: String, to: String, amount: Number, verified: Boolean, gameId: String, token: String }, { timestamps: true });
-const historySchema = new mongoose.Schema({ playerId: mongoose.Schema.Types.ObjectId, playerName: String, wallet: String, gameId: String, rank: Number, bet: Number, gain: Number, taps: Number, token: String, paidOut: Boolean, payoutTxId: String }, { timestamps: true });
+
+// ✅ FIX #1 : ajout des champs de suivi des échecs pour permettre le retry auto + admin
+const historySchema = new mongoose.Schema({
+    playerId: mongoose.Schema.Types.ObjectId,
+    playerName: String,
+    wallet: String,
+    gameId: String,
+    rank: Number,
+    bet: Number,
+    gain: Number,
+    taps: Number,
+    token: String,
+    paidOut: Boolean,
+    payoutTxId: String,
+    payoutAttempts: { type: Number, default: 0 },
+    payoutLastError: { type: String, default: null },
+    payoutFailed: { type: Boolean, default: false }
+}, { timestamps: true });
+
 const jackpotSchema = new mongoose.Schema({ weekStart: Date, weekEnd: Date, accumulatedFund: Number, winner: mongoose.Schema.Types.ObjectId, drawn: Boolean }, { timestamps: true });
+
 const gameStateSchema = new mongoose.Schema({
     gameId: { type: String, required: true, unique: true },
     status: { type: String, enum: ['waiting', 'preparing', 'running', 'finished'], default: 'waiting' },
@@ -254,6 +229,8 @@ const gameStateSchema = new mongoose.Schema({
     durationSeconds: Number,
     updatedAt: { type: Date, default: Date.now }
 });
+// ✅ FIX #5 : index pour accélérer la recherche des N dernières manches dans checkPendingPayments
+gameStateSchema.index({ updatedAt: -1 });
 
 const Player = mongoose.model("Player", playerSchema);
 const Message = mongoose.model("Message", messageSchema);
@@ -270,13 +247,11 @@ async function connectMongoDB() {
 }
 
 function normalizeWallet(address) { return String(address || "").trim(); }
-// ✅ NOUVEAU : sanitisation partagée des champs texte venant du client — retire les
-// caractères de contrôle et invisibles (zero-width), quel que soit ce que le client envoie.
 function sanitizeText(str, maxLength) {
     if (typeof str !== "string") return "";
     return str
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // caractères de contrôle
-        .replace(/[\u200B-\u200D\uFEFF]/g, "")         // caractères invisibles (zero-width)
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
         .trim()
         .substring(0, maxLength);
 }
@@ -284,7 +259,7 @@ function isValidTronAddress(address) { try { return tronWeb.isAddress(normalizeW
 function sameWallet(a, b) { return normalizeWallet(a) === normalizeWallet(b); }
 function generateGameId() { return "GAME-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).substring(2, 8).toUpperCase(); }
 function generateSessionToken() { return crypto.randomBytes(32).toString('hex'); }
-// ✅ NOUVEAU : code de parrainage court et unique, réessayé en cas de collision improbable
+
 async function generateUniqueReferralCode() {
     for (let i = 0; i < 10; i++) {
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -299,26 +274,17 @@ let gameTimer = null, nextGameTimeout = null;
 const onlineSockets = new Set();
 let game = { id: null, status: "waiting", startedAt: null, endsAt: null, durationSeconds: GAME_DURATION_SECONDS, preparationEndsAt: null };
 
-// Objet global pour les duels actifs, accessible partout
-const activeDuels = {}; // Clé : duelId (ex: socket1.id), Valeur : { socket1, socket2, player1Id, player2Id, bet, winnerPrize, endsAt, taps1, taps2 }
-const duelPools = {}; // { bet: [{ socketId, playerId }] }
-const pendingDuelPayments = {}; // { socketId: { bet, playerId, matchId, duelPaid, duelPaymentTxId } }
-const duelMatches = {}; // ✅ FIX : matchId -> { entry1, entry2, bet, timeout, started } — pour démarrer le duel dès que les 2 ont payé
-// ✅ FIX SÉCURITÉ : anti-spam de taps appliqué côté serveur (voir MIN_TAP_INTERVAL_MS)
-const lastTapTimestamps = new Map();     // playerId -> timestamp du dernier tap classique accepté
-const lastDuelTapTimestamps = new Map(); // socket.id -> timestamp du dernier tap de duel accepté
-const lastChatTimestamps = new Map();    // socket.id -> timestamp du dernier message accepté
-
-// ✅ NOUVEAU : cache mémoire des wallets bannis (source de vérité = MongoDB, rechargé au démarrage)
+const activeDuels = {};
+const duelPools = {};
+const pendingDuelPayments = {};
+const duelMatches = {};
+const lastTapTimestamps = new Map();
+const lastDuelTapTimestamps = new Map();
+const lastChatTimestamps = new Map();
 const bannedWallets = new Set();
+const socketsByIp = new Map();
+const connectionAttemptsByIp = new Map();
 
-// ✅ NOUVEAU : anti-flood Socket.io par IP
-const socketsByIp = new Map();            // ip -> Set(socket.id) connexions actives
-const connectionAttemptsByIp = new Map(); // ip -> { count, windowStart }
-
-// ✅ NOUVEAU : parseur de cookies minimal (pas besoin de cookie-parser — res.cookie()
-// pour ÉCRIRE un cookie est déjà natif à Express ; ceci ne sert qu'à LIRE le cookie
-// brut reçu lors du handshake Socket.io).
 function parseCookies(cookieHeader) {
     const out = {};
     if (!cookieHeader) return out;
@@ -335,13 +301,9 @@ function parseCookies(cookieHeader) {
 function getClientIp(socket) {
     const forwarded = socket.handshake.headers['x-forwarded-for'];
     if (forwarded) return String(forwarded).split(',')[0].trim();
-    // ✅ FIX : pas de repli sur socket.handshake.address — derrière le proxy de Railway,
-    // cette adresse peut être identique pour tout le monde, ce qui regrouperait
-    // tous les joueurs sous une seule IP et les bloquerait tous ensemble.
     return null;
 }
 
-// ✅ NOUVEAU : émet un petit défi de preuve de travail (anti-bot invisible) au socket donné
 function issuePowChallenge(socket) {
     const challenge = crypto.randomBytes(16).toString('hex');
     socket.data.powChallenge = challenge;
@@ -424,7 +386,6 @@ function broadcastOnlineCount() {
 async function emitLeaderboard() {
     try {
         if (!game.id) return;
-        // ✅ FIX : "-wallet" retiré — impossible de mélanger inclusion ("name taps") et exclusion d'un champ non inclus
         const players = await Player.find({ gameId: game.id }).select("name taps -_id").sort({ taps: -1 }).limit(50).lean();
         io.emit("leaderboard:update", players.map((p, i) => ({ rank: i + 1, name: p.name, taps: p.taps })));
     } catch (error) { console.error("❌ Erreur emitLeaderboard :", error?.message || error); }
@@ -440,7 +401,6 @@ async function emitTotalStakes() {
 async function broadcastGameState() {
     try {
         if (!game.id) return;
-        // ✅ FIX : "-wallet" retiré — même erreur de projection que dans emitLeaderboard
         const players = await Player.find({ gameId: game.id }).select("name taps -_id").sort({ taps: -1 }).limit(50).lean();
         io.emit("game:state", { game: getGameStateObject(), players });
         await emitLeaderboard();
@@ -508,6 +468,7 @@ async function finishGame() {
         }
 
         const isDemoGame = players.some(p => p.paymentTxId && p.paymentTxId.startsWith('DEMO_'));
+        // ✅ FIX #3 : totalPot était calculé mais jamais utilisé — on le log pour l'audit
         const totalPot = players.reduce((sum, p) => sum + Number(p.bet || 0), 0);
         const topPlayers = players.slice(0, 5);
         const winners = [];
@@ -519,14 +480,18 @@ async function finishGame() {
             winners.push({ player: p, gain, history });
         }
 
+        // ✅ FIX #3 : log du pot total pour audit
+        console.log(`📊 Manche ${game.id} : ${players.length} joueur(s) payant(s), pot total = ${totalPot.toFixed(2)} (réparti en ${topPlayers.length} gagnant(s))`);
+
         if (isDemoGame) {
             for (const { history } of winners) { history.paidOut = true; history.payoutTxId = "DEMO_TX_" + Date.now().toString(36); await history.save(); }
         } else {
+            // ✅ FIX #1 : au lieu de tenter une seule fois et d'oublier si ça échoue,
+            // on lance un retry automatique asynchrone avec backoff exponentiel.
+            // La partie suivante n'est pas bloquée par le RPC TRON.
+            console.log(`💰 Paiement de ${winners.length} gagnant(s) en cours...`);
             for (const { player, gain, history } of winners) {
-                try {
-                    const txId = await sendPrizeToWinner({ wallet: player.wallet, gain, token: player.token, playerName: player.name });
-                    if (txId) { history.paidOut = true; history.payoutTxId = txId; await history.save(); }
-                } catch (e) { console.error(e); }
+                retryFailedPayout(history._id).catch(e => console.error("❌ Erreur retry initial :", e?.message));
                 await new Promise(r => setTimeout(r, 2000));
             }
         }
@@ -545,9 +510,6 @@ async function sendPrizeToWinner(historyEntry) {
         const tokenInfo = SUPPORTED_TOKENS[token];
         if (!tokenInfo) throw new Error("Token non supporté");
 
-        // ✅ RENFORCÉ : clé déchiffrée uniquement ici, sur une instance TronWeb éphémère
-        // qui sort de portée juste après cette fonction — jamais gardée en mémoire en
-        // permanence comme c'était le cas avec tronWeb.setPrivateKey() au démarrage.
         const signingTronWeb = new TronWeb({
             fullHost: "https://api.trongrid.io",
             headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {}
@@ -562,32 +524,92 @@ async function sendPrizeToWinner(historyEntry) {
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
 
-// ✅ NOUVEAU : verse la commission de parrainage au parrain quand son filleul confirme
-// une mise réelle (mode classique ou duel). N'est jamais appelé sur les mises démo.
+// ✅ FIX #1 : retry automatique avec backoff exponentiel pour les paiements de gains.
+// Jusqu'à 5 tentatives (2s, 4s, 8s, 16s, 30s). Au-delà, marque payoutFailed=true
+// et laisse l'admin intervenir via /api/admin/payouts/retry.
+// Idempotent : vérifie paidOut avant chaque tentative.
+async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 5) {
+    try {
+        const history = await History.findById(historyId);
+        if (!history) {
+            console.warn(`⚠️ [Retry] History #${historyId} introuvable, abandon.`);
+            return false;
+        }
+        if (history.paidOut) {
+            console.log(`ℹ️ [Retry] History #${historyId} déjà payé (txId: ${history.payoutTxId}), skip.`);
+            return true;
+        }
+        if (!history.gain || history.gain <= 0) {
+            console.warn(`⚠️ [Retry] History #${historyId} gain invalide (${history.gain}), abandon.`);
+            history.payoutFailed = true;
+            history.payoutLastError = "Gain invalide";
+            await history.save();
+            return false;
+        }
+
+        history.payoutAttempts = (history.payoutAttempts || 0) + 1;
+        console.log(`🔄 [Retry ${attempt}/${maxAttempts}] Paiement de ${history.gain} ${history.token} à ${history.playerName}...`);
+
+        const txId = await sendPrizeToWinner({
+            wallet: history.wallet,
+            gain: history.gain,
+            token: history.token,
+            playerName: history.playerName
+        });
+
+        if (txId) {
+            history.paidOut = true;
+            history.payoutTxId = txId;
+            history.payoutFailed = false;
+            history.payoutLastError = null;
+            await history.save();
+            console.log(`✅ [Retry ${attempt}] Paiement réussi pour ${history.playerName} : ${history.gain} ${history.token} (txId: ${txId})`);
+            io.emit("payout:success", { playerName: history.playerName, gain: history.gain, token: history.token, txId });
+            return true;
+        }
+
+        throw new Error("sendPrizeToWinner a renvoyé null (RPC TRON indisponible ?)");
+    } catch (error) {
+        const errMsg = error?.message || String(error);
+        console.error(`❌ [Retry ${attempt}/${maxAttempts}] Échec paiement #${historyId} : ${errMsg}`);
+
+        try {
+            await History.findByIdAndUpdate(historyId, {
+                $inc: { payoutAttempts: 1 },
+                payoutLastError: errMsg
+            });
+        } catch (e) { console.error("❌ Erreur update payoutAttempts :", e?.message); }
+
+        if (attempt < maxAttempts) {
+            const backoffMs = Math.min(30000, 2000 * Math.pow(2, attempt - 1));
+            setTimeout(() => {
+                retryFailedPayout(historyId, attempt + 1, maxAttempts).catch(e => console.error("❌ Erreur retryFailedPayout :", e?.message));
+            }, backoffMs);
+        } else {
+            console.error(`🚨 [Retry FINAL] Paiement #${historyId} ABANDONNÉ après ${maxAttempts} tentatives. Intervention admin requise via /api/admin/payouts/retry.`);
+            await History.findByIdAndUpdate(historyId, { payoutFailed: true });
+            io.emit("payout:failed", { playerName: history?.playerName, historyId });
+        }
+        return false;
+    }
+}
+
 async function payReferralCommission(referredPlayer, betAmount, token) {
     try {
         if (!referredPlayer.referredByCode) return;
-
-        // ✅ RENFORCÉ : commission unique par filleul, jamais répétée — supprime tout intérêt
-        // à faire rejouer un même filleul en boucle pour extraire de l'argent réel.
         if (referredPlayer.referralCounted) return;
-
-        // ✅ RENFORCÉ : aucune commission sur les micro-mises (anti farming à l'échelle)
         if (Number(betAmount) < REFERRAL_MIN_BET) return;
 
         const referrer = await Player.findOne({ referralCode: referredPlayer.referredByCode });
         if (!referrer) return;
 
-        // ✅ RENFORCÉ : trois vérifications anti-abus cumulatives
-        if (sameWallet(referrer.wallet, referredPlayer.wallet)) return; // même wallet
-        if (referrer.deviceId && referredPlayer.deviceId && referrer.deviceId === referredPlayer.deviceId) return; // même appareil
-        if (referrer.referredByCode && referrer.referredByCode === referredPlayer.referralCode) return; // parrainage réciproque A<->B
+        if (sameWallet(referrer.wallet, referredPlayer.wallet)) return;
+        if (referrer.deviceId && referredPlayer.deviceId && referrer.deviceId === referredPlayer.deviceId) return;
+        if (referrer.referredByCode && referrer.referredByCode === referredPlayer.referralCode) return;
 
         const commission = Number((Number(betAmount) * REFERRAL_PERCENT).toFixed(6));
         if (commission <= 0) return;
 
-        // ✅ RENFORCÉ : plafond glissant sur 24h — au-delà, on ne paie plus automatiquement,
-        // on journalise "held" pour qu'un admin valide manuellement via le panneau admin.
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const recentAgg = await ReferralPayout.aggregate([
             { $match: { referrerId: referrer._id, createdAt: { $gte: since }, held: false } },
@@ -606,7 +628,7 @@ async function payReferralCommission(referredPlayer, betAmount, token) {
             console.warn(`⚠️ Commission de parrainage mise en attente (plafond 24h dépassé) pour ${referrer.wallet}`);
         }
 
-        referredPlayer.referralCounted = true; // consommé quoi qu'il arrive — un seul essai par filleul
+        referredPlayer.referralCounted = true;
         await referredPlayer.save();
 
         await ReferralPayout.create({
@@ -622,7 +644,6 @@ async function payReferralCommission(referredPlayer, betAmount, token) {
     } catch (error) { console.error("❌ Erreur payReferralCommission :", error?.message || error); }
 }
 
-// ✅ FIX SÉCURITÉ DUEL : ajout du paramètre expectedSender pour vérifier l'expéditeur de la transaction
 async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSender = null) {
     try {
         const tx = await tronWeb.trx.getTransaction(txId);
@@ -630,13 +651,13 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSende
         const contract = tx.raw_data?.contract?.[0];
         if (!contract) return false;
         let amount = 0;
-        let sender = null; // ✅ nouveau
+        let sender = null;
         if (token === "TRX") {
             if (contract.type !== "TransferContract") return false;
             const value = contract.parameter?.value;
             const recipient = tronWeb.address.fromHex(value.to_address);
             if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
-            sender = tronWeb.address.fromHex(value.owner_address); // ✅ nouveau
+            sender = tronWeb.address.fromHex(value.owner_address);
             amount = Number(value.amount) / 1e6;
         } else {
             if (contract.type !== "TriggerSmartContract") return false;
@@ -646,11 +667,10 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSende
             const data = String(value.data || "");
             const recipient = tronWeb.address.fromHex("41" + data.substring(32, 72));
             if (!sameWallet(recipient, MILTAPE_WALLET)) return false;
-            sender = tronWeb.address.fromHex(value.owner_address); // ✅ nouveau
+            sender = tronWeb.address.fromHex(value.owner_address);
             const rawAmount = BigInt("0x" + data.substring(72, 136));
             amount = Number(rawAmount) / Math.pow(10, SUPPORTED_TOKENS[token].decimals);
         }
-        // ✅ nouveau : rejet si l'expéditeur ne correspond pas au wallet attendu
         if (expectedSender && !sameWallet(sender, expectedSender)) return false;
         const txInfo = await tronWeb.trx.getTransactionInfo(txId);
         if (!txInfo || txInfo.receipt?.result !== "SUCCESS") return false;
@@ -690,22 +710,40 @@ async function getIncomingTrc20Transactions(address) {
     } catch (error) { return []; }
 }
 
+// ✅ FIX #2 : élargissement de la recherche à 3 manches pour rattraper les dépôts tardifs
 async function checkPendingPayments() {
-    if (game.status !== "preparing" && game.status !== "running") return;
     try {
-        const unpaidPlayers = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } });
+        const recentGames = await GameState.find()
+            .sort({ updatedAt: -1 })
+            .limit(3)
+            .select("gameId status updatedAt")
+            .lean();
+        const recentGameIds = recentGames.map(g => g.gameId);
+
+        const unpaidPlayers = await Player.find({
+            gameId: { $in: recentGameIds },
+            paid: false,
+            bet: { $gt: 0 },
+            depositAmount: { $ne: null }
+        });
+
         if (unpaidPlayers.length === 0) return;
-        const allTransactions = [...(await getIncomingTrxTransactions(MILTAPE_WALLET)), ...(await getIncomingTrc20Transactions(MILTAPE_WALLET))];
+
+        const allTransactions = [
+            ...(await getIncomingTrxTransactions(MILTAPE_WALLET)),
+            ...(await getIncomingTrc20Transactions(MILTAPE_WALLET))
+        ];
+
         for (const tx of allTransactions) {
             const txId = tx.transaction_id || tx.txID;
             if (!txId) continue;
+
             let token = null, amount = 0, senderAddress = null;
             if (tx.token_info) {
                 token = String(tx.token_info.symbol || "").toUpperCase();
                 amount = Number(tx.value) / Math.pow(10, Number(tx.token_info.decimals || 6));
                 senderAddress = tx.owner_address || tx.from;
-            }
-            else if (tx.raw_data?.contract?.[0]) {
+            } else if (tx.raw_data?.contract?.[0]) {
                 if (tx.raw_data.contract[0].type !== "TransferContract") continue;
                 const value = tx.raw_data.contract[0].parameter?.value;
                 if (!value) continue;
@@ -723,25 +761,53 @@ async function checkPendingPayments() {
                 Math.abs(amount - Number(p.depositAmount)) < 0.0000001 &&
                 !p.paymentTxId?.startsWith('DEMO_')
             );
-
             if (!matchingPlayer) continue;
+
             const alreadyUsed = await Payment.findOne({ txId });
             if (alreadyUsed) continue;
+
+            const isLate = matchingPlayer.gameId !== game.id;
+            if (isLate) {
+                console.warn(`⚠️ [Dépôt tardif] Joueur ${matchingPlayer.name} (manche ${matchingPlayer.gameId}) payé pendant la manche ${game.id}. Rattaché à sa manche d'origine.`);
+            }
+
             matchingPlayer.paid = true;
             matchingPlayer.paymentTxId = txId;
             matchingPlayer.depositAmount = null;
             matchingPlayer.depositExpiresAt = null;
             await matchingPlayer.save();
-            await Payment.create({ txId, from: senderAddress, to: MILTAPE_WALLET, amount, verified: true, gameId: game.id, token });
-            await payReferralCommission(matchingPlayer, matchingPlayer.bet, token); // ✅ NOUVEAU
-            io.emit("payment:verified", { verified: true, wallet: matchingPlayer.wallet, amount: matchingPlayer.bet, playerName: matchingPlayer.name, token });
-            io.emit("chat:message", { name: "🟢 Système", message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token}`, createdAt: new Date() });
 
-            const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-            const jackpot = await Jackpot.findOne({ weekStart });
-            if (jackpot) {
-                jackpot.accumulatedFund += (matchingPlayer.bet * JACKPOT_PERCENT);
-                await jackpot.save();
+            await Payment.create({
+                txId, from: senderAddress, to: MILTAPE_WALLET, amount,
+                verified: true, gameId: matchingPlayer.gameId, token
+            });
+
+            if (!isLate) {
+                await payReferralCommission(matchingPlayer, matchingPlayer.bet, token);
+            } else {
+                console.warn(`ℹ️ [Dépôt tardif] Commission de parrainage non versée pour ${matchingPlayer.name} (manche terminée).`);
+            }
+
+            io.emit("payment:verified", {
+                verified: true, wallet: matchingPlayer.wallet,
+                amount: matchingPlayer.bet, playerName: matchingPlayer.name, token, late: isLate
+            });
+            io.emit("chat:message", {
+                name: "🟢 Système",
+                message: isLate
+                    ? `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} (rattaché à la manche précédente)`
+                    : `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token}`,
+                createdAt: new Date()
+            });
+
+            if (!isLate) {
+                const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0);
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                const jackpot = await Jackpot.findOne({ weekStart });
+                if (jackpot) {
+                    jackpot.accumulatedFund += (matchingPlayer.bet * JACKPOT_PERCENT);
+                    await jackpot.save();
+                }
             }
         }
     } catch (error) { console.error("❌ Erreur checkPendingPayments :", error?.message || error); }
@@ -763,15 +829,30 @@ async function distributeWeeklyJackpot() {
 
 cron.schedule('0 0 * * 6', () => { distributeWeeklyJackpot().catch(err => console.error(err)); });
 
+// ✅ FIX #1 (suite) : cron de secours — retente les paiements marqués payoutFailed=true
+// Toutes les 30 min, limité à 3 retries supplémentaires par paiement (max 8 tentatives au total).
+cron.schedule('*/30 * * * *', async () => {
+    try {
+        const stuck = await History.find({
+            paidOut: false,
+            payoutFailed: true,
+            payoutAttempts: { $lt: 8 }
+        }).limit(20).lean();
+
+        if (stuck.length === 0) return;
+        console.log(`🔄 [Cron retry] ${stuck.length} paiement(s) à retenter...`);
+        for (const h of stuck) {
+            await retryFailedPayout(h._id, 6, 3);
+        }
+    } catch (error) { console.error("❌ Erreur cron retry payouts :", error?.message); }
+});
+
 // ===== SOCKET.IO =====
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
-    // ✅ FIX : sans ça, personne ne recevait le nouveau total de joueurs en ligne
-    // tant que quelqu'un ne se déconnectait pas — l'affichage restait figé.
     broadcastOnlineCount();
 
-    // ✅ NOUVEAU : suivi par IP (anti-flood) + défi anti-bot invisible
     const clientIp = socket.data.clientIp;
     if (clientIp) {
         if (!socketsByIp.has(clientIp)) socketsByIp.set(clientIp, new Set());
@@ -789,8 +870,6 @@ io.on("connection", async (socket) => {
 
     socket.on("player:restore", async (data) => {
         try {
-            // ✅ RENFORCÉ : le token vient exclusivement du cookie HttpOnly lu au handshake —
-            // un champ envoyé manuellement par le client n'est plus pris en compte du tout.
             const token = socket.data.cookieSessionToken;
             if (!token) return socket.emit("player:restored", { success: false });
 
@@ -809,7 +888,6 @@ io.on("connection", async (socket) => {
         } catch (e) { socket.emit("player:restored", { success: false }); }
     });
 
-    // ✅ NOUVEAU : rafraîchit les stats de parrainage à la demande (ouverture de la modale côté client)
     socket.on("referral:stats", async () => {
         try {
             const playerId = socket.data.playerId;
@@ -827,14 +905,11 @@ io.on("connection", async (socket) => {
             const deviceId = normalizeWallet(data?.deviceId);
             const bet = Number(data?.bet);
             const token = String(data?.token || "USDT").trim().toUpperCase();
-            // ✅ RENFORCÉ : format strict (les codes générés sont alphanumériques, 5-20 caractères)
             const referralCodeRaw = sanitizeText(data?.referralCode, 20).toUpperCase();
             const referralCodeInput = /^[A-Z0-9]+$/.test(referralCodeRaw) ? referralCodeRaw : "";
 
-            if (!name || !NAME_REGEX.test(name)) return socket.emit("error", { message: "Pseudo invalide (lettres, chiffres, espaces, - _ ' uniquement, 30 caractères max)." }); // ✅ RENFORCÉ
+            if (!name || !NAME_REGEX.test(name)) return socket.emit("error", { message: "Pseudo invalide (lettres, chiffres, espaces, - _ ' uniquement, 30 caractères max)." });
 
-            // ✅ NOUVEAU : vérification anti-bot (preuve de travail). Rejeté avant toute
-            // autre validation pour ne pas gaspiller de ressources sur des requêtes automatisées.
             const powNonce = String(data?.powNonce || "");
             if (!socket.data.powChallenge || socket.data.powUsed) {
                 return socket.emit("error", { message: "Vérification anti-bot manquante, réessaie." });
@@ -844,9 +919,8 @@ io.on("connection", async (socket) => {
                 return socket.emit("error", { message: "Vérification anti-bot invalide." });
             }
             socket.data.powUsed = true;
-            issuePowChallenge(socket); // prépare tout de suite le prochain défi pour la manche suivante
+            issuePowChallenge(socket);
 
-            // ✅ NOUVEAU : blocage des wallets bannis
             if (bannedWallets.has(wallet)) {
                 return socket.emit("error", { message: "Ce wallet est banni." });
             }
@@ -861,7 +935,6 @@ io.on("connection", async (socket) => {
                                      (game.status === "preparing" || game.status === "running");
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
-                // ✅ RENFORCÉ : preuve de propriété via le cookie HttpOnly, plus via un champ manuel
                 if (!socket.data.cookieSessionToken || socket.data.cookieSessionToken !== existingPlayer.sessionToken) {
                     return socket.emit("error", { message: "Ce wallet est déjà utilisé dans cette manche depuis un autre appareil/navigateur." });
                 }
@@ -870,7 +943,7 @@ io.on("connection", async (socket) => {
                 socket.data.playerName = existingPlayer.name;
                 socket.data.sessionToken = existingPlayer.sessionToken;
 
-                existingPlayer.name = name; // ✅ FIX : le pseudo n'était jamais mis à jour, l'ancien restait affiché
+                existingPlayer.name = name;
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
@@ -878,7 +951,7 @@ io.on("connection", async (socket) => {
                 existingPlayer.paymentTxId = undefined;
                 existingPlayer.depositAmount = bet;
                 existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-                if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode(); // ✅ backfill
+                if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode();
                 await existingPlayer.save();
 
                 socket.emit("player:joined", { success: true, player: existingPlayer, game: getGameStateObject() });
@@ -890,7 +963,7 @@ io.on("connection", async (socket) => {
             const sessionToken = generateSessionToken();
 
             if (existingPlayer) {
-                existingPlayer.name = name; // ✅ FIX : idem, pseudo mis à jour sur ce chemin aussi
+                existingPlayer.name = name;
                 existingPlayer.gameId = game.id;
                 existingPlayer.bet = bet;
                 existingPlayer.token = token;
@@ -899,7 +972,7 @@ io.on("connection", async (socket) => {
                 existingPlayer.depositAmount = bet;
                 existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
                 existingPlayer.sessionToken = sessionToken;
-                if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode(); // ✅ backfill
+                if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode();
                 await existingPlayer.save();
 
                 socket.data.playerId = existingPlayer._id.toString();
@@ -908,9 +981,6 @@ io.on("connection", async (socket) => {
 
                 socket.emit("player:joined", { success: true, player: existingPlayer, game: getGameStateObject() });
             } else {
-                // ✅ NOUVEAU : génère le code de parrainage propre au nouveau joueur, et
-                // rattache son parrain si un code valide a été fourni (auto-parrainage impossible ici,
-                // le wallet n'existe pas encore en base).
                 const ownReferralCode = await generateUniqueReferralCode();
                 let referredByCode = null;
                 if (referralCodeInput) {
@@ -969,8 +1039,6 @@ io.on("connection", async (socket) => {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
 
-            // ✅ FIX SÉCURITÉ : rejet silencieux des taps trop rapprochés, quelle que soit
-            // leur origine (page normale ou client Socket.io fait maison / bot).
             const now = Date.now();
             const lastTap = lastTapTimestamps.get(playerId) || 0;
             if (now - lastTap < MIN_TAP_INTERVAL_MS) return;
@@ -982,22 +1050,19 @@ io.on("connection", async (socket) => {
                 { new: true }
             ).select("name taps");
             if (!result) return;
-            socket.emit("player:score", { taps: result.taps }); // ✅ FIX : socket.emit au lieu de io.emit — chaque joueur recevait le score de n'importe qui d'autre et le compteur restait écrasé/figé
+            socket.emit("player:score", { taps: result.taps });
             await emitLeaderboard();
         } catch (error) { console.error("❌ player:tap :", error?.message || error); }
     });
 
     socket.on("chat:send", async (data) => {
         try {
-            // ✅ NOUVEAU : anti-spam — rejet silencieux des messages trop rapprochés
             const now = Date.now();
             const lastChat = lastChatTimestamps.get(socket.id) || 0;
             if (now - lastChat < MIN_CHAT_INTERVAL_MS) return;
             lastChatTimestamps.set(socket.id, now);
 
             const name = socket.data.playerName || "Anonyme";
-            // ✅ RENFORCÉ : le client bloquait déjà '<'/'>' mais uniquement côté client
-            // (contournable en émettant directement l'événement Socket.io). Revalidé ici.
             const message = sanitizeText(data?.message, 300).replace(/[<>]/g, "");
             if (!message) return;
             const msg = await Message.create({ name, message, gameId: game.id });
@@ -1009,21 +1074,18 @@ io.on("connection", async (socket) => {
         onlineSockets.delete(socket.id);
         console.log(`🔴 Déconnexion Socket : ${socket.id}`);
         broadcastOnlineCount();
-        lastDuelTapTimestamps.delete(socket.id); // ✅ nettoyage — clé éphémère liée à ce socket
-        lastChatTimestamps.delete(socket.id); // ✅ nettoyage — idem pour l'anti-spam chat
+        lastDuelTapTimestamps.delete(socket.id);
+        lastChatTimestamps.delete(socket.id);
 
-        // ✅ NOUVEAU : nettoyage du suivi par IP
         const ip = socket.data.clientIp;
         const ipSet = socketsByIp.get(ip);
         if (ipSet) { ipSet.delete(socket.id); if (ipSet.size === 0) socketsByIp.delete(ip); }
 
-        // Nettoyage des pools de duel
         for (const bet in duelPools) {
             duelPools[bet] = duelPools[bet].filter(entry => entry.socketId !== socket.id);
             if (duelPools[bet].length === 0) delete duelPools[bet];
         }
 
-        // ✅ FIX : nettoyage des matchs de duel en attente de paiement quand un des deux joueurs se déconnecte
         for (const matchId in duelMatches) {
             const match = duelMatches[matchId];
             if (!match || match.started) continue;
@@ -1037,10 +1099,8 @@ io.on("connection", async (socket) => {
             }
         }
 
-        // Nettoyage des paiements en attente restants (sécurité)
         delete pendingDuelPayments[socket.id];
 
-        // Gérer un duel actif si le joueur se déconnecte
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (duel.socket1 === socket.id || duel.socket2 === socket.id) {
@@ -1052,12 +1112,11 @@ io.on("connection", async (socket) => {
                     const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain, token: "USDT", playerName: winner.name });
                     io.to(opponentSocketId).emit("duel:finished", { winnerName: winner.name, myTaps: 0, opponentTaps: 0, prize: gain, txId });
                 }
-                // ✅ FIX : reset duelPaid/duelPaymentTxId pour les deux joueurs après un duel interrompu
                 await Player.updateMany(
                     { _id: { $in: [duel.player1Id, duel.player2Id] } },
                     { $set: { duelPaid: false, duelPaymentTxId: null } }
                 );
-                delete activeDuels[duelId]; // Nettoyage
+                delete activeDuels[duelId];
             }
         }
     });
@@ -1073,8 +1132,6 @@ async function isDuelTxUsed(txId) {
     return !!existingDuel;
 }
 
-// ✅ FIX : logique de démarrage du duel extraite dans sa propre fonction, appelée dès que
-// les deux joueurs ont payé (au lieu d'attendre systématiquement les 60s du timeout de paiement)
 async function tryStartDuel(matchId) {
     const match = duelMatches[matchId];
     if (!match || match.started) return;
@@ -1151,7 +1208,6 @@ async function tryStartDuel(matchId) {
             });
         }
 
-        // ✅ FIX : reset duelPaid/duelPaymentTxId pour les deux joueurs à la fin normale du duel
         await Player.updateMany(
             { _id: { $in: [duel.player1Id, duel.player2Id] } },
             { $set: { duelPaid: false, duelPaymentTxId: null } }
@@ -1191,7 +1247,6 @@ io.on("connection", (socket) => {
 
             if (!player1 || !player2) return;
 
-            // ✅ FIX : matchId stable pour retrouver le match depuis duel:payment_verified
             const matchId = entry1.socketId + '_' + entry2.socketId;
 
             pendingDuelPayments[entry1.socketId] = { bet, playerId: entry1.playerId, matchId, duelPaid: false };
@@ -1200,7 +1255,6 @@ io.on("connection", (socket) => {
             io.to(entry1.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
             io.to(entry2.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
 
-            // ✅ FIX : timeout d'annulation seulement — le démarrage se fait via tryStartDuel dès que les 2 ont payé
             const paymentTimeout = setTimeout(() => {
                 const match = duelMatches[matchId];
                 if (!match || match.started) return;
@@ -1243,11 +1297,10 @@ io.on("connection", (socket) => {
             return socket.emit("duel:payment_error", { message: "Transaction déjà utilisée." });
         }
 
-        // ✅ FIX SÉCURITÉ : on récupère le joueur AVANT de valider, pour vérifier l'expéditeur
         const player = await Player.findById(playerId);
         if (!player) return socket.emit("duel:payment_error", { message: "Joueur introuvable." });
 
-        const isValid = await verifyOnChain(txId, betAmount, "USDT", player.wallet); // ✅ wallet du joueur passé en expectedSender
+        const isValid = await verifyOnChain(txId, betAmount, "USDT", player.wallet);
         if (isValid) {
             player.duelPaid = true;
             player.duelPaymentTxId = txId;
@@ -1258,11 +1311,10 @@ io.on("connection", (socket) => {
             pendingDuelPayments[socket.id] = pending;
 
             await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
-            await payReferralCommission(player, betAmount, "USDT"); // ✅ NOUVEAU
+            await payReferralCommission(player, betAmount, "USDT");
 
             socket.emit("duel:payment_success");
 
-            // ✅ FIX : démarre le duel immédiatement si l'adversaire a déjà payé, au lieu d'attendre le timeout complet
             if (pending.matchId) await tryStartDuel(pending.matchId);
         } else {
             socket.emit("duel:payment_error", { message: "Transaction invalide." });
@@ -1270,7 +1322,6 @@ io.on("connection", (socket) => {
     });
 
     socket.on("duel:tap", () => {
-        // ✅ FIX SÉCURITÉ : même principe qu'en mode classique — limite appliquée côté serveur.
         const now = Date.now();
         const lastTap = lastDuelTapTimestamps.get(socket.id) || 0;
         if (now - lastTap < MIN_TAP_INTERVAL_MS) return;
@@ -1280,7 +1331,6 @@ io.on("connection", (socket) => {
             const duel = activeDuels[duelId];
             if (socket.id === duel.socket1) {
                 duel.taps1++;
-                // ✅ FIX : le serveur incrémentait les taps mais ne renvoyait jamais rien au client -> compteur figé à 0 en duel
                 io.to(duel.socket1).emit("duel:score", { myTaps: duel.taps1, opponentTaps: duel.taps2 });
                 io.to(duel.socket2).emit("duel:score", { myTaps: duel.taps2, opponentTaps: duel.taps1 });
                 break;
@@ -1304,10 +1354,6 @@ setInterval(() => {
 
 setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 * 1000);
 
-// ✅ FIX : cette route était appelée par le frontend en mode démo (fetch "/api/demo/verify")
-// mais n'existait pas côté serveur. Résultat : player.paid restait à false, et player:tap
-// (qui filtre sur { paid: true }) ignorait silencieusement tous les taps — d'où le compteur
-// serveur bloqué à 0 alors que l'affichage local du client montait quand même.
 app.post("/api/demo/verify", async (req, res) => {
     try {
         if (!DEMO_MODE_ENABLED_ON_SERVER) {
@@ -1336,9 +1382,6 @@ app.post("/api/demo/verify", async (req, res) => {
     }
 });
 
-// ✅ NOUVEAU : bootstrap du cookie de session HttpOnly. Le client appelle cette route une
-// seule fois juste après avoir reçu son sessionToken via Socket.io (player:joined), pour que
-// le navigateur le stocke dans un cookie HttpOnly — inaccessible à JavaScript à partir de là.
 app.post("/api/session/store", (req, res) => {
     try {
         const sessionToken = String(req.body?.sessionToken || "").trim();
@@ -1348,15 +1391,14 @@ app.post("/api/session/store", (req, res) => {
         res.cookie('miltape_session', sessionToken, {
             httpOnly: true,
             secure: true,
-            sameSite: 'none', // requis : frontend (GitHub Pages) et backend (Railway) sont sur des domaines différents
-            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 jours
+            sameSite: 'none',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
             path: '/'
         });
         res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Efface le cookie de session (utilisé par "Nouvelle partie")
 app.post("/api/session/clear", (req, res) => {
     res.clearCookie('miltape_session', { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
     res.json({ success: true });
@@ -1367,17 +1409,13 @@ app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateO
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size }));
 app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 
-// ✅ NOUVEAU : PANNEAU ADMIN — protégé par ADMIN_PASSWORD (exigé au démarrage mais jamais
-// utilisé jusqu'ici). Envoyer le mot de passe soit en header "x-admin-password", soit en
-// query "?adminPassword=...", soit dans le corps JSON de la requête.
 const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de tentatives admin." } });
 
-// ✅ RENFORCÉ : comparaison en temps constant (résiste aux attaques par mesure de timing)
 function safeCompare(a, b) {
     const bufA = Buffer.from(String(a));
     const bufB = Buffer.from(String(b));
     if (bufA.length !== bufB.length) {
-        crypto.timingSafeEqual(bufA, bufA); // même coût de calcul pour ne pas fuiter la longueur
+        crypto.timingSafeEqual(bufA, bufA);
         return false;
     }
     return crypto.timingSafeEqual(bufA, bufB);
@@ -1388,10 +1426,9 @@ function requireAdmin(req, res, next) {
     if (!provided || !safeCompare(provided, ADMIN_PASSWORD)) {
         return res.status(401).json({ success: false, message: "Non autorisé." });
     }
-    // ✅ NOUVEAU : journalisation asynchrone, ne bloque jamais la requête en cours
     const rawPayload = req.method === 'GET' ? req.query : req.body;
     const payload = { ...rawPayload };
-    delete payload.adminPassword; // jamais le mot de passe en clair dans le journal
+    delete payload.adminPassword;
     AdminAuditLog.create({
         route: req.originalUrl,
         method: req.method,
@@ -1401,7 +1438,6 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-// Vue d'ensemble de la partie en cours
 app.get("/api/admin/status", adminLimiter, requireAdmin, (req, res) => {
     res.json({
         success: true,
@@ -1411,7 +1447,6 @@ app.get("/api/admin/status", adminLimiter, requireAdmin, (req, res) => {
     });
 });
 
-// Liste des joueurs de la manche en cours
 app.get("/api/admin/players", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const players = await Player.find({ gameId: game.id }).select("name wallet taps bet paid token depositAmount createdAt").sort({ taps: -1 }).lean();
@@ -1419,7 +1454,6 @@ app.get("/api/admin/players", adminLimiter, requireAdmin, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Paiements en attente de confirmation on-chain
 app.get("/api/admin/pending-payments", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const pending = await Player.find({ gameId: game.id, paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null } }).select("name wallet bet token depositAmount depositExpiresAt").lean();
@@ -1427,7 +1461,6 @@ app.get("/api/admin/pending-payments", adminLimiter, requireAdmin, async (req, r
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Force la fin immédiate de la manche en cours
 app.post("/api/admin/force-finish", adminLimiter, requireAdmin, async (req, res) => {
     try {
         if (game.status !== "running") return res.status(409).json({ success: false, message: "Aucune partie en cours." });
@@ -1436,7 +1469,6 @@ app.post("/api/admin/force-finish", adminLimiter, requireAdmin, async (req, res)
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Force le passage à la manche suivante (phase de préparation)
 app.post("/api/admin/force-next-round", adminLimiter, requireAdmin, async (req, res) => {
     try {
         await startPreparationPhase();
@@ -1444,7 +1476,6 @@ app.post("/api/admin/force-next-round", adminLimiter, requireAdmin, async (req, 
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Bannit un wallet (persisté en base + déconnexion immédiate s'il est en train de jouer)
 app.post("/api/admin/ban", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const wallet = normalizeWallet(req.body?.wallet);
@@ -1468,7 +1499,6 @@ app.post("/api/admin/ban", adminLimiter, requireAdmin, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Débannit un wallet
 app.post("/api/admin/unban", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const wallet = normalizeWallet(req.body?.wallet);
@@ -1479,7 +1509,6 @@ app.post("/api/admin/unban", adminLimiter, requireAdmin, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Liste des wallets bannis
 app.get("/api/admin/banned", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const banned = await BannedWallet.find({}).sort({ createdAt: -1 }).lean();
@@ -1487,8 +1516,6 @@ app.get("/api/admin/banned", adminLimiter, requireAdmin, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// ✅ NOUVEAU : commissions de parrainage mises en attente (plafond 24h dépassé) — à valider manuellement
-// ✅ NOUVEAU : journal d'audit des actions admin
 app.get("/api/admin/audit-log", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const logs = await AdminAuditLog.find({}).sort({ createdAt: -1 }).limit(200).lean();
@@ -1503,7 +1530,6 @@ app.get("/api/admin/referrals/held", adminLimiter, requireAdmin, async (req, res
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// Débloque et paie manuellement une commission de parrainage mise en attente
 app.post("/api/admin/referrals/release", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const payoutId = req.body?.payoutId;
@@ -1528,11 +1554,38 @@ app.post("/api/admin/referrals/release", adminLimiter, requireAdmin, async (req,
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
+// ✅ FIX #1 (suite) : nouvelles routes admin pour les paiements de gains
+app.get("/api/admin/payouts/failed", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const failed = await History.find({ paidOut: false })
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean();
+        res.json({ success: true, count: failed.length, failed });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+app.post("/api/admin/payouts/retry", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const historyId = req.body?.historyId;
+        if (!historyId) return res.status(400).json({ success: false, message: "historyId manquant." });
+
+        const history = await History.findById(historyId);
+        if (!history) return res.status(404).json({ success: false, message: "Paiement introuvable." });
+        if (history.paidOut) return res.status(409).json({ success: false, message: "Déjà payé.", txId: history.payoutTxId });
+
+        const ok = await retryFailedPayout(historyId);
+        if (!ok) return res.status(500).json({ success: false, message: "Retry échoué, voir logs." });
+
+        const updated = await History.findById(historyId).lean();
+        res.json({ success: true, txId: updated.payoutTxId });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
 app.get('/socket.io/socket.io.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'node_modules', 'socket.io', 'client-dist', 'socket.io.js'));
 });
 
-// ✅ NOUVEAU : charge les wallets bannis en mémoire au démarrage
 async function loadBannedWallets() {
     try {
         const docs = await BannedWallet.find({}).select("wallet").lean();
