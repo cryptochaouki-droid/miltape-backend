@@ -156,7 +156,9 @@ const playerSchema = new mongoose.Schema({
     referredByCode: { type: String, default: null },
     referralCounted: { type: Boolean, default: false },
     referralEarnings: { type: Number, default: 0 },
-    referralCount: { type: Number, default: 0 }
+    referralCount: { type: Number, default: 0 },
+    // ✅ NOUVEAU (fix #3) : trace les dépôts expirés pour audit
+    depositExpiredAt: { type: Date, default: null }
 }, { timestamps: true });
 
 const duelEntrySchema = new mongoose.Schema({
@@ -197,6 +199,25 @@ const adminAuditLogSchema = new mongoose.Schema({
 }, { timestamps: true });
 const AdminAuditLog = mongoose.model("AdminAuditLog", adminAuditLogSchema);
 
+// ✅ NOUVEAU (fix #2) : collection pour les paiements reçus non rattachables à un joueur.
+// Sans cette collection, ces fonds seraient perdus silencieusement.
+const unmatchedPaymentSchema = new mongoose.Schema({
+    txId: { type: String, unique: true, required: true },
+    from: { type: String, index: true },
+    to: String,
+    amount: Number,
+    token: String,
+    suspectedPlayerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', default: null },
+    suspectedPlayerName: String,
+    suspectedGameId: String,
+    reason: { type: String, enum: ['no_player_found', 'deposit_expired', 'round_too_old', 'amount_mismatch'], default: 'no_player_found' },
+    resolved: { type: Boolean, default: false },
+    resolvedAction: { type: String, default: null },
+    resolvedTxId: String,
+    resolvedAt: Date
+}, { timestamps: true });
+const UnmatchedPayment = mongoose.model("UnmatchedPayment", unmatchedPaymentSchema);
+
 const messageSchema = new mongoose.Schema({ name: String, message: String, gameId: String }, { timestamps: true });
 const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }, from: String, to: String, amount: Number, verified: Boolean, gameId: String, token: String }, { timestamps: true });
 
@@ -229,7 +250,7 @@ const gameStateSchema = new mongoose.Schema({
     durationSeconds: Number,
     updatedAt: { type: Date, default: Date.now }
 });
-// ✅ FIX #5 : index pour accélérer la recherche des N dernières manches dans checkPendingPayments
+// ✅ FIX #2 : index pour accélérer la recherche des N dernières manches
 gameStateSchema.index({ updatedAt: -1 });
 
 const Player = mongoose.model("Player", playerSchema);
@@ -480,15 +501,12 @@ async function finishGame() {
             winners.push({ player: p, gain, history });
         }
 
-        // ✅ FIX #3 : log du pot total pour audit
         console.log(`📊 Manche ${game.id} : ${players.length} joueur(s) payant(s), pot total = ${totalPot.toFixed(2)} (réparti en ${topPlayers.length} gagnant(s))`);
 
         if (isDemoGame) {
             for (const { history } of winners) { history.paidOut = true; history.payoutTxId = "DEMO_TX_" + Date.now().toString(36); await history.save(); }
         } else {
-            // ✅ FIX #1 : au lieu de tenter une seule fois et d'oublier si ça échoue,
-            // on lance un retry automatique asynchrone avec backoff exponentiel.
-            // La partie suivante n'est pas bloquée par le RPC TRON.
+            // ✅ FIX #1 : retry automatique asynchrone (fire-and-forget) pour ne pas bloquer la manche.
             console.log(`💰 Paiement de ${winners.length} gagnant(s) en cours...`);
             for (const { player, gain, history } of winners) {
                 retryFailedPayout(history._id).catch(e => console.error("❌ Erreur retry initial :", e?.message));
@@ -524,11 +542,9 @@ async function sendPrizeToWinner(historyEntry) {
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
 
-// ✅ FIX #1 : retry automatique avec backoff exponentiel pour les paiements de gains.
-// Jusqu'à 5 tentatives (2s, 4s, 8s, 16s, 30s). Au-delà, marque payoutFailed=true
-// et laisse l'admin intervenir via /api/admin/payouts/retry.
-// Idempotent : vérifie paidOut avant chaque tentative.
-async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 5) {
+// ✅ FIX #1 : retry automatique avec backoff exponentiel (3 tentatives : 2s, 4s, 8s).
+// Idempotent : vérifie paidOut avant chaque tentative pour éviter tout double paiement.
+async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 3) {
     try {
         const history = await History.findById(historyId);
         if (!history) {
@@ -541,13 +557,11 @@ async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 5) {
         }
         if (!history.gain || history.gain <= 0) {
             console.warn(`⚠️ [Retry] History #${historyId} gain invalide (${history.gain}), abandon.`);
-            history.payoutFailed = true;
-            history.payoutLastError = "Gain invalide";
-            await history.save();
+            await History.findByIdAndUpdate(historyId, { payoutFailed: true, payoutLastError: "Gain invalide" });
             return false;
         }
 
-        history.payoutAttempts = (history.payoutAttempts || 0) + 1;
+        await History.findByIdAndUpdate(historyId, { $inc: { payoutAttempts: 1 } });
         console.log(`🔄 [Retry ${attempt}/${maxAttempts}] Paiement de ${history.gain} ${history.token} à ${history.playerName}...`);
 
         const txId = await sendPrizeToWinner({
@@ -558,30 +572,26 @@ async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 5) {
         });
 
         if (txId) {
-            history.paidOut = true;
-            history.payoutTxId = txId;
-            history.payoutFailed = false;
-            history.payoutLastError = null;
-            await history.save();
+            await History.findByIdAndUpdate(historyId, {
+                paidOut: true,
+                payoutTxId: txId,
+                payoutFailed: false,
+                payoutLastError: null
+            });
             console.log(`✅ [Retry ${attempt}] Paiement réussi pour ${history.playerName} : ${history.gain} ${history.token} (txId: ${txId})`);
             io.emit("payout:success", { playerName: history.playerName, gain: history.gain, token: history.token, txId });
             return true;
         }
 
-        throw new Error("sendPrizeToWinner a renvoyé null (RPC TRON indisponible ?)");
+        throw new Error("sendPrizeToWinner a renvoyé null (RPC TRON indisponible ou solde insuffisant ?)");
     } catch (error) {
         const errMsg = error?.message || String(error);
         console.error(`❌ [Retry ${attempt}/${maxAttempts}] Échec paiement #${historyId} : ${errMsg}`);
 
-        try {
-            await History.findByIdAndUpdate(historyId, {
-                $inc: { payoutAttempts: 1 },
-                payoutLastError: errMsg
-            });
-        } catch (e) { console.error("❌ Erreur update payoutAttempts :", e?.message); }
+        await History.findByIdAndUpdate(historyId, { payoutLastError: errMsg }).catch(() => {});
 
         if (attempt < maxAttempts) {
-            const backoffMs = Math.min(30000, 2000 * Math.pow(2, attempt - 1));
+            const backoffMs = 2000 * Math.pow(2, attempt - 1);
             setTimeout(() => {
                 retryFailedPayout(historyId, attempt + 1, maxAttempts).catch(e => console.error("❌ Erreur retryFailedPayout :", e?.message));
             }, backoffMs);
@@ -692,25 +702,30 @@ async function emitJackpotUpdate() {
     } catch (error) { console.error("❌ Erreur jackpot :", error?.message || error); }
 }
 
-async function getIncomingTrxTransactions(address) {
+// ✅ FIX #4 : limit=100 + minTimestamp pour ne pas rater de tx en pic de charge,
+// tout en évitant de re-scanner tout l'historique.
+async function getIncomingTrxTransactions(address, minTimestamp = null) {
     try {
-        const url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=20&order_by=block_timestamp,desc`;
+        let url = `https://api.trongrid.io/v1/accounts/${address}/transactions?limit=100&order_by=block_timestamp,desc`;
+        if (minTimestamp) url += `&min_timestamp=${minTimestamp}`;
         const res = await fetchWithTimeout(url, { headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {} });
         if (!res.ok) return [];
         return (await res.json()).data || [];
     } catch (error) { return []; }
 }
 
-async function getIncomingTrc20Transactions(address) {
+async function getIncomingTrc20Transactions(address, minTimestamp = null) {
     try {
-        const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=20&order_by=block_timestamp,desc`;
+        let url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?limit=100&order_by=block_timestamp,desc`;
+        if (minTimestamp) url += `&min_timestamp=${minTimestamp}`;
         const res = await fetchWithTimeout(url, { headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {} });
         if (!res.ok) return [];
         return (await res.json()).data || [];
     } catch (error) { return []; }
 }
 
-// ✅ FIX #2 : élargissement de la recherche à 3 manches pour rattraper les dépôts tardifs
+// ✅ FIX #2 : recherche sur 3 manches + capture des orphelins dans UnmatchedPayment.
+// ✅ FIX #4 : minTimestamp calculé dynamiquement pour économiser le quota API.
 async function checkPendingPayments() {
     try {
         const recentGames = await GameState.find()
@@ -724,14 +739,23 @@ async function checkPendingPayments() {
             gameId: { $in: recentGameIds },
             paid: false,
             bet: { $gt: 0 },
-            depositAmount: { $ne: null }
+            depositAmount: { $ne: null },
+            // ✅ FIX #3 : ignore les dépôts expirés (le job de cleanup s'en charge)
+            depositExpiresAt: { $gt: new Date() }
         });
 
         if (unpaidPlayers.length === 0) return;
 
+        // ✅ FIX #4 : min_timestamp = plus vieux depositExpiresAt - 5 min de marge
+        const oldestExpiry = unpaidPlayers.reduce((min, p) => {
+            const t = p.depositExpiresAt ? p.depositExpiresAt.getTime() : Date.now();
+            return t < min ? t : min;
+        }, Date.now());
+        const minTimestamp = oldestExpiry - (5 * 60 * 1000);
+
         const allTransactions = [
-            ...(await getIncomingTrxTransactions(MILTAPE_WALLET)),
-            ...(await getIncomingTrc20Transactions(MILTAPE_WALLET))
+            ...(await getIncomingTrxTransactions(MILTAPE_WALLET, minTimestamp)),
+            ...(await getIncomingTrc20Transactions(MILTAPE_WALLET, minTimestamp))
         ];
 
         for (const tx of allTransactions) {
@@ -755,20 +779,32 @@ async function checkPendingPayments() {
             }
             if (!SUPPORTED_TOKENS[token]) continue;
 
+            // Anti-rejeu global
+            const alreadyUsed = await Payment.findOne({ txId });
+            if (alreadyUsed) continue;
+            const alreadyUnmatched = await UnmatchedPayment.findOne({ txId });
+            if (alreadyUnmatched) continue;
+
             const matchingPlayer = unpaidPlayers.find(p =>
                 p.token === token &&
                 sameWallet(senderAddress, p.wallet) &&
                 Math.abs(amount - Number(p.depositAmount)) < 0.0000001 &&
                 !p.paymentTxId?.startsWith('DEMO_')
             );
-            if (!matchingPlayer) continue;
 
-            const alreadyUsed = await Payment.findOne({ txId });
-            if (alreadyUsed) continue;
+            // ✅ FIX #2 : si aucun joueur ne matche, on stocke au lieu de perdre
+            if (!matchingPlayer) {
+                await UnmatchedPayment.create({
+                    txId, from: senderAddress, to: MILTAPE_WALLET, amount, token,
+                    reason: 'no_player_found'
+                });
+                console.warn(`⚠️ [Paiement orphelin] ${amount} ${token} de ${senderAddress} (txId: ${txId}) — aucun joueur correspondant. Logué pour audit admin.`);
+                continue;
+            }
 
             const isLate = matchingPlayer.gameId !== game.id;
             if (isLate) {
-                console.warn(`⚠️ [Dépôt tardif] Joueur ${matchingPlayer.name} (manche ${matchingPlayer.gameId}) payé pendant la manche ${game.id}. Rattaché à sa manche d'origine.`);
+                console.warn(`⚠️ [Dépôt tardif] Joueur ${matchingPlayer.name} (manche ${matchingPlayer.gameId}) payé pendant la manche ${game.id}.`);
             }
 
             matchingPlayer.paid = true;
@@ -828,24 +864,6 @@ async function distributeWeeklyJackpot() {
 }
 
 cron.schedule('0 0 * * 6', () => { distributeWeeklyJackpot().catch(err => console.error(err)); });
-
-// ✅ FIX #1 (suite) : cron de secours — retente les paiements marqués payoutFailed=true
-// Toutes les 30 min, limité à 3 retries supplémentaires par paiement (max 8 tentatives au total).
-cron.schedule('*/30 * * * *', async () => {
-    try {
-        const stuck = await History.find({
-            paidOut: false,
-            payoutFailed: true,
-            payoutAttempts: { $lt: 8 }
-        }).limit(20).lean();
-
-        if (stuck.length === 0) return;
-        console.log(`🔄 [Cron retry] ${stuck.length} paiement(s) à retenter...`);
-        for (const h of stuck) {
-            await retryFailedPayout(h._id, 6, 3);
-        }
-    } catch (error) { console.error("❌ Erreur cron retry payouts :", error?.message); }
-});
 
 // ===== SOCKET.IO =====
 io.on("connection", async (socket) => {
@@ -951,6 +969,7 @@ io.on("connection", async (socket) => {
                 existingPlayer.paymentTxId = undefined;
                 existingPlayer.depositAmount = bet;
                 existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                existingPlayer.depositExpiredAt = null;
                 if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode();
                 await existingPlayer.save();
 
@@ -971,6 +990,7 @@ io.on("connection", async (socket) => {
                 existingPlayer.paymentTxId = undefined;
                 existingPlayer.depositAmount = bet;
                 existingPlayer.depositExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+                existingPlayer.depositExpiredAt = null;
                 existingPlayer.sessionToken = sessionToken;
                 if (!existingPlayer.referralCode) existingPlayer.referralCode = await generateUniqueReferralCode();
                 await existingPlayer.save();
@@ -1354,6 +1374,59 @@ setInterval(() => {
 
 setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 * 1000);
 
+// ✅ FIX #3 : job périodique qui repère les dépôts expirés et les marque pour éviter
+// qu'ils soient matchés par checkPendingPayments. Si un paiement arrive quand même, il
+// tombera dans UnmatchedPayment et sera remboursable/rattaché manuellement.
+setInterval(async () => {
+    try {
+        const now = new Date();
+        const expired = await Player.find({
+            paid: false,
+            bet: { $gt: 0 },
+            depositAmount: { $ne: null },
+            depositExpiresAt: { $lt: now },
+            depositExpiredAt: null
+        });
+
+        if (expired.length === 0) return;
+
+        for (const p of expired) {
+            console.warn(`⌛ [Dépôt expiré] Joueur ${p.name} (${String(p.wallet).substring(0, 8)}...) — mise de ${p.bet} ${p.token} non payée à temps.`);
+            p.depositExpiredAt = now;
+            p.depositAmount = null;
+            await p.save();
+
+            for (const [, s] of io.sockets.sockets) {
+                if (s.data.playerId === p._id.toString()) {
+                    s.emit("deposit:expired", {
+                        message: "Ton délai de paiement de 10 minutes est dépassé. Si tu as payé juste avant l'expiration, ton paiement sera traité manuellement sous peu."
+                    });
+                }
+            }
+        }
+
+        console.log(`⌛ [Cleanup] ${expired.length} dépôt(s) expiré(s) traité(s).`);
+    } catch (error) { console.error("❌ Erreur cleanup expirés :", error?.message || error); }
+}, 60 * 1000);
+
+// ✅ FIX #1 : cron de secours qui retente les paiements marqués payoutFailed=true
+// toutes les 30 min (max 3 retries supplémentaires par paiement).
+cron.schedule('*/30 * * * *', async () => {
+    try {
+        const stuck = await History.find({
+            paidOut: false,
+            payoutFailed: true,
+            payoutAttempts: { $lt: 6 }
+        }).limit(20).lean();
+
+        if (stuck.length === 0) return;
+        console.log(`🔄 [Cron retry] ${stuck.length} paiement(s) à retenter...`);
+        for (const h of stuck) {
+            await retryFailedPayout(h._id, 1, 3);
+        }
+    } catch (error) { console.error("❌ Erreur cron retry payouts :", error?.message); }
+});
+
 app.post("/api/demo/verify", async (req, res) => {
     try {
         if (!DEMO_MODE_ENABLED_ON_SERVER) {
@@ -1554,7 +1627,7 @@ app.post("/api/admin/referrals/release", adminLimiter, requireAdmin, async (req,
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
-// ✅ FIX #1 (suite) : nouvelles routes admin pour les paiements de gains
+// ✅ FIX #1 : nouvelles routes admin pour les paiements de gains
 app.get("/api/admin/payouts/failed", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const failed = await History.find({ paidOut: false })
@@ -1579,6 +1652,63 @@ app.post("/api/admin/payouts/retry", adminLimiter, requireAdmin, async (req, res
 
         const updated = await History.findById(historyId).lean();
         res.json({ success: true, txId: updated.payoutTxId });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+// ✅ FIX #2 : routes admin pour les paiements orphelins
+app.get("/api/admin/payments/unmatched", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const unmatched = await UnmatchedPayment.find({ resolved: false })
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean();
+        res.json({ success: true, count: unmatched.length, unmatched });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+app.post("/api/admin/payments/unmatched/refund", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const { unmatchedId } = req.body || {};
+        if (!unmatchedId) return res.status(400).json({ success: false, message: "unmatchedId manquant." });
+
+        const payment = await UnmatchedPayment.findById(unmatchedId);
+        if (!payment) return res.status(404).json({ success: false, message: "Paiement introuvable." });
+        if (payment.resolved) return res.status(409).json({ success: false, message: "Déjà traité." });
+        if (!isValidTronAddress(payment.from)) return res.status(400).json({ success: false, message: "Adresse expéditeur invalide." });
+
+        const refundTxId = await sendPrizeToWinner({
+            wallet: payment.from,
+            gain: payment.amount,
+            token: payment.token,
+            playerName: `REFUND-${String(payment.from).substring(0, 6)}`
+        });
+        if (!refundTxId) return res.status(500).json({ success: false, message: "Échec du remboursement on-chain." });
+
+        payment.resolved = true;
+        payment.resolvedAction = 'refunded';
+        payment.resolvedTxId = refundTxId;
+        payment.resolvedAt = new Date();
+        await payment.save();
+
+        res.json({ success: true, refundTxId });
+    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+app.post("/api/admin/payments/unmatched/ignore", adminLimiter, requireAdmin, async (req, res) => {
+    try {
+        const { unmatchedId } = req.body || {};
+        if (!unmatchedId) return res.status(400).json({ success: false, message: "unmatchedId manquant." });
+
+        const payment = await UnmatchedPayment.findById(unmatchedId);
+        if (!payment) return res.status(404).json({ success: false, message: "Paiement introuvable." });
+        if (payment.resolved) return res.status(409).json({ success: false, message: "Déjà traité." });
+
+        payment.resolved = true;
+        payment.resolvedAction = 'ignored';
+        payment.resolvedAt = new Date();
+        await payment.save();
+
+        res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
