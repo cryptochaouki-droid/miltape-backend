@@ -18,7 +18,7 @@ const PREPARATION_DURATION_SECONDS = 2 * 60;
 const JACKPOT_PERCENT = 0.05;
 const DUEL_COMMISSION_PERCENT = 0.10;
 const DUEL_PAYMENT_TIMEOUT_MS = 60000;
-const DUEL_FORFEIT_GRACE_MS = 15000; // ✅ FIX 3.2 : délai de grâce
+const DUEL_FORFEIT_GRACE_MS = 15000;
 const MIN_TAP_INTERVAL_MS = 60;
 const MIN_CHAT_INTERVAL_MS = 2000;
 const REFERRAL_PERCENT = 0.03;
@@ -31,7 +31,7 @@ const MAX_SOCKETS_PER_IP = 40;
 const MAX_NEW_CONNECTIONS_PER_IP_PER_MIN = 120;
 const MIN_CONFIRMATIONS = Number(process.env.MIN_CONFIRMATIONS || 19);
 const DAILY_OUTFLOW_CAP = Number(process.env.DAILY_OUTFLOW_CAP || 500);
-const SUSPICIOUS_SOURCE_THRESHOLD = 5; // ✅ FIX 2.3
+const SUSPICIOUS_SOURCE_THRESHOLD = 5;
 
 // ✅ FIX 5.1 : CORS strict
 if (!process.env.ALLOWED_ORIGINS) {
@@ -57,7 +57,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
 const ADMIN_WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL || "";
 
-// ✅ FIX 1.1 : Exige MASTER_KEY + ENCRYPTED_PRIVATE_KEY. Refuse le fallback en clair.
 const MASTER_KEY = (process.env.MASTER_KEY || "").trim();
 const ENCRYPTED_PRIVATE_KEY = (process.env.ENCRYPTED_PRIVATE_KEY || "").trim();
 
@@ -107,7 +106,6 @@ try {
     process.exit(1);
 }
 
-// ✅ FIX 1.5 : plafond quotidien
 const outflowsByDay = new Map();
 function getTodayKey() { return new Date().toISOString().slice(0, 10); }
 function getTodayOutflow() { return outflowsByDay.get(getTodayKey()) || 0; }
@@ -135,6 +133,12 @@ app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
+
+// ✅ NOUVEAU : routes explicites pour les fichiers HTML statiques
+app.get('/crypto-tool.html', (req, res) => res.sendFile(path.join(__dirname, 'crypto-tool.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/conditions.html', (req, res) => res.sendFile(path.join(__dirname, 'conditions.html')));
+app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -279,7 +283,6 @@ const gameStateSchema = new mongoose.Schema({
 });
 gameStateSchema.index({ updatedAt: -1 });
 
-// ✅ FIX 4.2 : modèle AdminUser pour le 2FA
 const adminUserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
@@ -305,7 +308,7 @@ async function connectMongoDB() {
     } catch (error) { console.error("❌ MongoDB erreur :", error?.message || error); process.exit(1); }
 }
 
-// ============ VALIDATION ZOD (FIX 5.2) ============
+// ============ VALIDATION ZOD ============
 const PlayerJoinSchema = z.object({
     name: z.string().regex(NAME_REGEX, "Pseudo invalide"),
     wallet: z.string().startsWith("T").length(34, "Wallet TRON invalide"),
@@ -743,7 +746,6 @@ async function getIncomingTrc20Transactions(address, minTimestamp = null) {
     } catch (error) { return []; }
 }
 
-// ✅ FIX 2.3 : détection multi-comptes / farming
 async function detectSuspiciousSource(senderAddress) {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recent = await Payment.find({ from: senderAddress, createdAt: { $gte: since } }).select("gameId").lean();
@@ -797,7 +799,6 @@ async function checkPendingPayments() {
                 continue;
             }
 
-            // ✅ FIX 2.3 : détection multi-comptes
             if (await detectSuspiciousSource(senderAddress)) {
                 try {
                     await UnmatchedPayment.create({ txId, from: senderAddress, to: MILTAPE_WALLET, amount, token, reason: 'suspicious_source', suspectedPlayerName: matchingPlayer.name });
@@ -805,7 +806,6 @@ async function checkPendingPayments() {
                 continue;
             }
 
-            // ✅ FIX 2.1 : insert Payment AVANT crédit (anti-race)
             try {
                 await Payment.create({ txId, from: senderAddress, to: MILTAPE_WALLET, amount, verified: true, gameId: matchingPlayer.gameId, token });
             } catch (err) {
@@ -893,7 +893,6 @@ io.on("connection", async (socket) => {
 
     socket.on("player:join", async (data) => {
         try {
-            // ✅ FIX 5.2 : validation Zod
             let parsed;
             try {
                 parsed = PlayerJoinSchema.parse({
@@ -994,7 +993,6 @@ io.on("connection", async (socket) => {
             const lastChat = lastChatTimestamps.get(socket.id) || 0;
             if (now - lastChat < MIN_CHAT_INTERVAL_MS) return;
             lastChatTimestamps.set(socket.id, now);
-            // ✅ FIX 5.2 : validation Zod
             let parsed;
             try { parsed = ChatSendSchema.parse({ message: String(data?.message || "") }); }
             catch (err) { return; }
@@ -1035,7 +1033,6 @@ io.on("connection", async (socket) => {
         }
         delete pendingDuelPayments[socket.id];
 
-        // ✅ FIX 3.2 : délai de grâce en duel
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (duel.socket1 === socket.id || duel.socket2 === socket.id) {
@@ -1329,18 +1326,14 @@ app.get("/api/player/referral", requirePlayer, async (req, res) => {
 // ============ ROUTES ADMIN ============
 const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de tentatives admin." } });
 
-// ✅ FIX 4.2 : requireAdmin avec 2FA + fallback ADMIN_PASSWORD (transition)
 async function requireAdmin(req, res, next) {
     try {
-        // Fallback temporaire : ADMIN_PASSWORD simple (pour compatibilité)
         const simpleProvided = req.headers['x-admin-password'] || req.query.adminPassword || (req.body && req.body.adminPassword);
         if (simpleProvided && ADMIN_PASSWORD && crypto.timingSafeEqual(Buffer.from(String(simpleProvided).padEnd(64, '0')), Buffer.from(String(ADMIN_PASSWORD).padEnd(64, '0')))) {
-            // Log l'accès "legacy" pour migration progressive
             AdminAuditLog.create({ route: req.originalUrl, method: req.method, ip: req.ip, payload: { auth: "legacy_password" } }).catch(() => {});
             return next();
         }
 
-        // 2FA : vérifie si AdminUser existe
         const adminCount = await AdminUser.countDocuments();
         if (adminCount === 0) {
             return res.status(401).json({ success: false, message: "Non autorisé (aucun admin configuré, utilise x-admin-password)." });
@@ -1396,7 +1389,6 @@ async function requireAdmin(req, res, next) {
     }
 }
 
-// ✅ FIX 4.2 : route pour créer le premier admin
 app.post("/api/admin/setup", async (req, res) => {
     try {
         const count = await AdminUser.countDocuments();
