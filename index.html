@@ -10,8 +10,31 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    .tap-button:focus, .tap-button:active { outline: none !important; -webkit-tap-highlight-color: transparent !important; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    /* ✅ FIX CARRÉ BLEU : supprime outline et tap highlight PARTOUT */
+    button, .tap-button, .main-play-button, .menu-nav-btn, .bet-quick button, .chat-input-box button {
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-focus-ring-color: transparent !important;
+      -webkit-touch-callout: none !important;
+    }
+    button:focus, button:active, button:focus-visible,
+    .tap-button:focus, .tap-button:active, .tap-button:focus-visible,
+    .main-play-button:focus, .main-play-button:active,
+    .menu-nav-btn:focus, .menu-nav-btn:active,
+    .bet-quick button:focus, .bet-quick button:active,
+    .chat-input-box button:focus, .chat-input-box button:active {
+      outline: none !important;
+      outline-offset: 0 !important;
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-focus-ring-color: transparent !important;
+    }
+    .tap-button:focus-visible,
+    .tap-button.tap-active {
+      box-shadow: 0 0 30px rgba(100,181,246,0.5), inset 0 6px 15px rgba(0,0,0,0.4) !important;
+    }
+    
     body { font-family: 'Poppins', sans-serif; background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%); min-height: 100vh; margin: 0; padding: 0; overflow-x: hidden; color: #fff; }
     .app { width: 100%; max-width: 480px; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; }
     .top-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: rgba(0,0,0,.30); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,.05); }
@@ -264,7 +287,7 @@
           <span style="font-size:10px;color:rgba(255,255,255,.6);">TAPS</span>
         </span>
       </div>
-      <button id="tapButton" class="tap-button" disabled>
+      <button id="tapButton" class="tap-button" type="button" disabled style="outline: none !important; -webkit-tap-highlight-color: transparent !important; -webkit-focus-ring-color: transparent !important;">
         <img src="./tape.png" alt="TAP NOW" class="tap-img-bg" onerror="this.style.display='none'">
       </button>
     </section>
@@ -508,7 +531,6 @@
       myWallet = data.player.wallet; myToken = data.player.token;
       isPaid = data.player.paid;
       if (data.player.sessionToken) {
-        // ✅ Sauvegarde dans localStorage pour fallback mobile
         localStorage.setItem('miltape_session_token', data.player.sessionToken);
         fetch(BACKEND_URL + '/api/session/store', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
@@ -617,7 +639,6 @@
       socket.emit('player:join', { name: myPlayerName, wallet: myWallet, bet: myBet, token: myToken, deviceId: getDeviceId(), referralCode: getReferralCode(), powNonce: powNonce });
       powNonce = null; powChallenge = null;
       if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⏳ Rejoint la partie..."; }
-      // ✅ Si mode démo activé, déclenche la vérification démo après un délai
       if (demoMode) {
         setTimeout(async () => {
           try {
