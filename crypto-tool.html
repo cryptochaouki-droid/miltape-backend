@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outil Crypto Miltape</title>
+<style>
+body { font-family: -apple-system, sans-serif; background: #0a2a5c; color: #fff; padding: 20px; margin: 0; }
+h1 { color: #64b5f6; font-size: 18px; text-align: center; }
+.card { background: rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+label { font-size: 12px; color: #64b5f6; font-weight: 700; display: block; margin: 8px 0 4px; }
+input, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #64b5f6; background: #051230; color: #fff; font-size: 13px; font-family: monospace; box-sizing: border-box; }
+button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #2ecc71, #27ae60); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+button:active { transform: scale(0.98); }
+.warning { background: rgba(255,180,0,0.15); border: 1px solid rgba(255,180,0,0.5); border-radius: 8px; padding: 10px; font-size: 11px; color: #ffcc44; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<h1>🔐 Outil Crypto Miltape</h1>
+
+<div class="warning">
+⚠️ Cet outil fonctionne 100% dans ton navigateur. Aucune donnée n'est envoyée sur Internet. Ne fais JAMAIS de capture d'écran des résultats.
+</div>
+
+<div class="card">
+  <label>1. Colle ta clé privée TRON (en clair)</label>
+  <textarea id="privateKey" rows="2" placeholder="Colle la clé ici..."></textarea>
+
+  <label>2. Clique pour générer MASTER_KEY + IV + chiffrement</label>
+  <button onclick="generate()">🔐 GÉNÉRER TOUT</button>
+</div>
+
+<div class="card" id="result" style="display:none;">
+  <label>MASTER_KEY (colle dans Railway)</label>
+  <textarea id="masterKey" rows="2" readonly onclick="this.select()"></textarea>
+
+  <label>ENCRYPTED_PRIVATE_KEY (colle dans Railway)</label>
+  <textarea id="encryptedKey" rows="4" readonly onclick="this.select()"></textarea>
+
+  <div class="warning" style="margin-top:10px;">
+    ⚠️ Note ces 2 valeurs sur papier AVANT de fermer cette page. Si tu les perds, tu perds l'accès au wallet.
+  </div>
+</div>
+
+<script>
+async function generate() {
+  const privateKey = document.getElementById('privateKey').value.trim();
+  if (!privateKey) { alert('Colle ta clé privée TRON'); return; }
+
+  // Génère MASTER_KEY (32 bytes hex = 64 caractères)
+  const masterKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+  const masterKeyHex = Array.from(masterKeyBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  // Génère IV (16 bytes)
+  const ivBytes = crypto.getRandomValues(new Uint8Array(16));
+
+  // Import de la clé
+  const key = await crypto.subtle.importKey(
+    'raw',
+    masterKeyBytes,
+    { name: 'AES-CBC' },
+    false,
+    ['encrypt']
+  );
+
+  // Chiffre
+  const encoder = new TextEncoder();
+  const encryptedBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-CBC', iv: ivBytes },
+    key,
+    encoder.encode(privateKey)
+  );
+
+  // Convertit en hex
+  const encryptedHex = Array.from(new Uint8Array(encryptedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const ivHex = Array.from(ivBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  // Concatène IV + chiffré
+  const finalEncrypted = ivHex + encryptedHex;
+
+  // Affiche
+  document.getElementById('masterKey').value = masterKeyHex;
+  document.getElementById('encryptedKey').value = finalEncrypted;
+  document.getElementById('result').style.display = 'block';
+}
+</script>
+</body>
+</html>
