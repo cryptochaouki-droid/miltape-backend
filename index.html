@@ -68,6 +68,21 @@
     .trust-footer a { color: #64b5f6; text-decoration: none; }
   </style>
 </head>
+  <style>
+  /* ✅ Fix carré bleu autour du bouton TAP */
+  .tap-button {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
+  }
+  .tap-button:focus,
+  .tap-button:active,
+  .tap-button:focus-visible {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    outline-offset: 0 !important;
+  }
+  </style>
 <body>
   <!-- WELCOME -->
   <div id="welcomeModal">
