@@ -1,17 +1,23 @@
 {
-  "name": "miltape-android",
+  "name": "miltape-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Wrapper Android (Capacitor) pour Miltape World Challenge",
+  "description": "Backend Node.js pour Miltape World Challenge",
+  "main": "server.js",
   "scripts": {
-    "generate-icons": "npx capacitor-assets generate"
+    "start": "node server.js"
   },
   "dependencies": {
-    "@capacitor/core": "^8.3.1",
-    "@capacitor/android": "^8.3.1"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "mongoose": "^7.6.0",
+    "node-cron": "^3.0.3",
+    "socket.io": "^4.7.5",
+    "tronweb": "^6.0.4"
   },
-  "devDependencies": {
-    "@capacitor/cli": "^8.3.1",
-    "@capacitor/assets": "^3.0.5"
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
