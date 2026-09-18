@@ -33,7 +33,6 @@ const MIN_CONFIRMATIONS = Number(process.env.MIN_CONFIRMATIONS || 19);
 const DAILY_OUTFLOW_CAP = Number(process.env.DAILY_OUTFLOW_CAP || 500);
 const SUSPICIOUS_SOURCE_THRESHOLD = 5;
 
-// ✅ FIX 5.1 : CORS strict
 if (!process.env.ALLOWED_ORIGINS) {
     console.error("❌ ALLOWED_ORIGINS obligatoire.");
     process.exit(1);
@@ -134,7 +133,6 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 
-// ✅ NOUVEAU : routes explicites pour les fichiers HTML statiques
 app.get('/crypto-tool.html', (req, res) => res.sendFile(path.join(__dirname, 'crypto-tool.html')));
 app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('/conditions.html', (req, res) => res.sendFile(path.join(__dirname, 'conditions.html')));
@@ -152,11 +150,14 @@ app.use("/api/", limiter);
 
 const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"], credentials: true }, pingInterval: 25000, pingTimeout: 60000 });
 
+// ✅ FIX : Le middleware de connexion lit maintenant le token envoyé par le client dans la poignée de main
 io.use((socket, next) => {
     const ip = getClientIp(socket);
     socket.data.clientIp = ip;
     const cookies = parseCookies(socket.handshake.headers.cookie);
     socket.data.cookieSessionToken = cookies['miltape_session'] || null;
+    socket.data.authSessionToken = socket.handshake.auth?.token || null;
+
     if (!ip) return next();
     const activeForIp = socketsByIp.get(ip);
     if (activeForIp && activeForIp.size >= MAX_SOCKETS_PER_IP) return next(new Error("Trop de connexions."));
@@ -867,18 +868,34 @@ io.on("connection", async (socket) => {
 
     socket.on("timer:request", () => socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt }));
 
+    // ✅ FIX MAJEUR : Utilise le token du client (auth) en priorité, puis le cookie en secours
     socket.on("player:restore", async (data) => {
         try {
-            const token = socket.data.cookieSessionToken;
+            const token = socket.data.authSessionToken || socket.data.cookieSessionToken;
+            
             if (!token) return socket.emit("player:restored", { success: false });
+            
             const player = await Player.findOne({ sessionToken: token }).select("-sessionToken");
             if (!player) return socket.emit("player:restored", { success: false });
+            
             socket.data.playerId = player._id.toString();
             socket.data.playerName = player.name;
             socket.data.sessionToken = token;
-            if (player.gameId !== game.id) return socket.emit("player:restored", { success: false, staleRound: true, player: { name: player.name, wallet: player.wallet } });
+            
+            // Si le joueur était sur une ancienne manche
+            if (player.gameId !== game.id) {
+                return socket.emit("player:restored", { 
+                    success: false, 
+                    staleRound: true, 
+                    player: { name: player.name, wallet: player.wallet } 
+                });
+            }
+            
             socket.emit("player:restored", { success: true, player });
-        } catch (e) { socket.emit("player:restored", { success: false }); }
+        } catch (e) { 
+            console.error("❌ player:restore :", e?.message);
+            socket.emit("player:restored", { success: false }); 
+        }
     });
 
     socket.on("referral:stats", async () => {
@@ -926,7 +943,12 @@ io.on("connection", async (socket) => {
             const isSameActiveRound = existingPlayer && existingPlayer.gameId === game.id && (game.status === "preparing" || game.status === "running");
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
-                if (!socket.data.cookieSessionToken || socket.data.cookieSessionToken !== existingPlayer.sessionToken) return socket.emit("error", { message: "Wallet déjà utilisé." });
+                // ✅ FIX : Accepte aussi bien le token du cookie que celui envoyé par le client
+                const clientToken = socket.data.authSessionToken;
+                if ((!socket.data.cookieSessionToken || socket.data.cookieSessionToken !== existingPlayer.sessionToken) && 
+                    (!clientToken || clientToken !== existingPlayer.sessionToken)) {
+                    return socket.emit("error", { message: "Wallet déjà utilisé." });
+                }
                 socket.data.playerId = existingPlayer._id.toString();
                 socket.data.playerName = existingPlayer.name;
                 socket.data.sessionToken = existingPlayer.sessionToken;
@@ -1269,7 +1291,6 @@ app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateO
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size }));
 app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 
-// ✅ NOUVEAU : bandeau des gagnants (5 derniers gains de la dernière manche terminée)
 app.get("/winners/recent", async (req, res) => {
     try {
         const lastFinishedGame = await GameState.findOne({ status: "finished" })
