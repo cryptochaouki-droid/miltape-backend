@@ -10,6 +10,7 @@ const cron = require("node-cron");
 const path = require("path");
 const crypto = require("crypto");
 
+// ============ CONFIG ============
 const PORT = Number(process.env.PORT) || 3000;
 const GAME_DURATION_SECONDS = 10 * 60;
 const PREPARATION_DURATION_SECONDS = 2 * 60;
@@ -26,8 +27,19 @@ const REFERRAL_DAILY_CAP_PER_REFERRER = 20;
 const POW_DIFFICULTY = 4;
 const MAX_SOCKETS_PER_IP = 40;
 const MAX_NEW_CONNECTIONS_PER_IP_PER_MIN = 120;
+const MIN_CONFIRMATIONS = Number(process.env.MIN_CONFIRMATIONS || 19); // ✅ FIX 2.2
+const DAILY_OUTFLOW_CAP = Number(process.env.DAILY_OUTFLOW_CAP || 500); // ✅ FIX 1.5
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://cryptochaouki-droid.github.io").split(",").map(o => o.trim());
+// ✅ FIX 5.1 : pas de fallback permissif pour CORS
+if (!process.env.ALLOWED_ORIGINS) {
+    console.error("❌ ALLOWED_ORIGINS obligatoire (pas de fallback).");
+    process.exit(1);
+}
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim()).filter(Boolean);
+if (ALLOWED_ORIGINS.some(o => o === "*")) {
+    console.error("❌ Wildcard interdit dans ALLOWED_ORIGINS.");
+    process.exit(1);
+}
 
 const SUPPORTED_TOKENS = {
     USDT: { contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", decimals: 6, symbol: "USDT" },
@@ -37,17 +49,29 @@ const SUPPORTED_TOKENS = {
 };
 
 const MONGODB_URI = (process.env.MONGO_URI || process.env.MONGODB_URI || "").trim();
-const PRIVATE_KEY = (process.env.MILTAPE_PRIVATE_KEY || "").trim();
 const TRONGRID_API_KEY = (process.env.TRONGRID_API_KEY || "").trim();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DEMO_MODE_ENABLED_ON_SERVER = process.env.ALLOW_DEMO_MODE === "true";
+const ADMIN_WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL || "";
 
+// ✅ FIX 1.1 : Suppression complète du fallback en clé privée en clair
 const MASTER_KEY = (process.env.MASTER_KEY || "").trim();
 const ENCRYPTED_PRIVATE_KEY = (process.env.ENCRYPTED_PRIVATE_KEY || "").trim();
-const USE_ENCRYPTED_KEY = !!(MASTER_KEY && ENCRYPTED_PRIVATE_KEY);
+
+if (!MASTER_KEY || !ENCRYPTED_PRIVATE_KEY) {
+    console.error("❌ MASTER_KEY et ENCRYPTED_PRIVATE_KEY sont obligatoires. Le fallback en clair a été retiré.");
+    process.exit(1);
+}
+if (process.env.MILTAPE_PRIVATE_KEY) {
+    console.error("❌ MILTAPE_PRIVATE_KEY détecté. Supprime cette variable de Railway immédiatement (fuite de sécurité).");
+    process.exit(1);
+}
+if (MASTER_KEY.length !== 64) {
+    console.error("❌ MASTER_KEY doit être une chaîne hex de 64 caractères (32 bytes).");
+    process.exit(1);
+}
 
 function decryptPrivateKey() {
-    if (!USE_ENCRYPTED_KEY) return PRIVATE_KEY;
     const key = Buffer.from(MASTER_KEY, 'hex');
     const encrypted = Buffer.from(ENCRYPTED_PRIVATE_KEY, 'hex');
     const iv = encrypted.slice(0, 16);
@@ -61,7 +85,7 @@ function decryptPrivateKey() {
 process.on("uncaughtException", (err) => console.error("❌", err?.message || err));
 process.on("unhandledRejection", (reason) => console.error("❌", reason));
 
-if (!MONGODB_URI || (!PRIVATE_KEY && !USE_ENCRYPTED_KEY) || !ADMIN_PASSWORD) {
+if (!MONGODB_URI || !ADMIN_PASSWORD) {
     console.error("❌ Variables d'environnement manquantes.");
     process.exit(1);
 }
@@ -74,10 +98,30 @@ try {
         headers: TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": TRONGRID_API_KEY } : {}
     });
     MILTAPE_WALLET = tronWeb.address.fromPrivateKey(decryptPrivateKey());
-    console.log("✅ Wallet Miltape :", MILTAPE_WALLET, USE_ENCRYPTED_KEY ? "(clé chiffrée)" : "(clé en clair — migration recommandée)");
+    console.log("✅ Wallet Miltape :", MILTAPE_WALLET, "(clé chiffrée)");
 } catch (error) {
     console.error("❌ Erreur initialisation TronWeb :", error?.message || error);
     process.exit(1);
+}
+
+// ✅ FIX 1.5 : Compteur d'outflow journalier
+const outflowsByDay = new Map(); // "YYYY-MM-DD" -> total USDT sorti
+function getTodayKey() { return new Date().toISOString().slice(0, 10); }
+function getTodayOutflow() { return outflowsByDay.get(getTodayKey()) || 0; }
+function recordOutflow(amount) {
+    const key = getTodayKey();
+    outflowsByDay.set(key, getTodayOutflow() + Number(amount));
+}
+
+async function alertAdmins(message) {
+    if (!ADMIN_WEBHOOK_URL) { console.warn("⚠️ [ALERTE] ADMIN_WEBHOOK_URL non configuré :", message); return; }
+    try {
+        await fetch(ADMIN_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: message })
+        });
+    } catch (e) { console.error("❌ Impossible d'envoyer l'alerte :", e?.message); }
 }
 
 const app = express();
@@ -105,29 +149,22 @@ const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET"
 io.use((socket, next) => {
     const ip = getClientIp(socket);
     socket.data.clientIp = ip;
-
     const cookies = parseCookies(socket.handshake.headers.cookie);
     socket.data.cookieSessionToken = cookies['miltape_session'] || null;
-
     if (!ip) return next();
 
     const activeForIp = socketsByIp.get(ip);
     if (activeForIp && activeForIp.size >= MAX_SOCKETS_PER_IP) {
         return next(new Error("Trop de connexions simultanées depuis cette adresse."));
     }
-
     const now = Date.now();
     const attempt = connectionAttemptsByIp.get(ip) || { count: 0, windowStart: now };
-    if (now - attempt.windowStart > 60000) {
-        attempt.count = 0;
-        attempt.windowStart = now;
-    }
+    if (now - attempt.windowStart > 60000) { attempt.count = 0; attempt.windowStart = now; }
     attempt.count += 1;
     connectionAttemptsByIp.set(ip, attempt);
     if (attempt.count > MAX_NEW_CONNECTIONS_PER_IP_PER_MIN) {
         return next(new Error("Trop de tentatives de connexion, réessaie plus tard."));
     }
-
     next();
 });
 
@@ -136,6 +173,7 @@ mongoose.set("bufferTimeoutMS", 10000);
 mongoose.connection.on("connected", () => console.log("✅ Mongoose connecté."));
 mongoose.connection.on("error", (err) => console.error("❌ Mongoose erreur :", err?.message || err));
 
+// ============ MODÈLES ============
 const playerSchema = new mongoose.Schema({
     gameId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxlength: 30 },
@@ -207,7 +245,7 @@ const unmatchedPaymentSchema = new mongoose.Schema({
     suspectedPlayerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', default: null },
     suspectedPlayerName: String,
     suspectedGameId: String,
-    reason: { type: String, enum: ['no_player_found', 'deposit_expired', 'round_too_old', 'amount_mismatch'], default: 'no_player_found' },
+    reason: { type: String, enum: ['no_player_found', 'deposit_expired', 'round_too_old', 'amount_mismatch', 'suspicious_source'], default: 'no_player_found' },
     resolved: { type: Boolean, default: false },
     resolvedAction: { type: String, default: null },
     resolvedTxId: String,
@@ -218,6 +256,7 @@ const UnmatchedPayment = mongoose.model("UnmatchedPayment", unmatchedPaymentSche
 const messageSchema = new mongoose.Schema({ name: String, message: String, gameId: String }, { timestamps: true });
 const paymentSchema = new mongoose.Schema({ txId: { type: String, unique: true }, from: String, to: String, amount: Number, verified: Boolean, gameId: String, token: String }, { timestamps: true });
 
+// ✅ FIX 3.1 : ajout du champ "paying" pour verrou atomique
 const historySchema = new mongoose.Schema({
     playerId: mongoose.Schema.Types.ObjectId,
     playerName: String,
@@ -232,7 +271,9 @@ const historySchema = new mongoose.Schema({
     payoutTxId: String,
     payoutAttempts: { type: Number, default: 0 },
     payoutLastError: { type: String, default: null },
-    payoutFailed: { type: Boolean, default: false }
+    payoutFailed: { type: Boolean, default: false },
+    paying: { type: Boolean, default: false },
+    payingStartedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 const jackpotSchema = new mongoose.Schema({ weekStart: Date, weekEnd: Date, accumulatedFund: Number, winner: mongoose.Schema.Types.ObjectId, drawn: Boolean }, { timestamps: true });
@@ -262,6 +303,7 @@ async function connectMongoDB() {
     } catch (error) { console.error("❌ MongoDB erreur :", error?.message || error); process.exit(1); }
 }
 
+// ============ UTILITAIRES ============
 function normalizeWallet(address) { return String(address || "").trim(); }
 function sanitizeText(str, maxLength) {
     if (typeof str !== "string") return "";
@@ -327,6 +369,7 @@ function issuePowChallenge(socket) {
     socket.emit("pow:challenge", { challenge, difficulty: POW_DIFFICULTY });
 }
 
+// ============ GAME STATE ============
 async function loadOrCreateGameState() {
     try {
         let gameState = await GameState.findOne().sort({ updatedAt: -1 });
@@ -513,6 +556,37 @@ async function finishGame() {
     } catch (error) { console.error("❌ Erreur finishGame :", error?.message || error); }
 }
 
+// ✅ FIX 1.4 : vérification de solde avant payout
+async function checkHotWalletBalance(token, amountNeeded) {
+    try {
+        if (token === "TRX") {
+            const balance = await tronWeb.trx.getBalance(MILTAPE_WALLET);
+            const needed = amountNeeded * 1e6 + 5e6;
+            return balance >= needed;
+        }
+        const tokenInfo = SUPPORTED_TOKENS[token];
+        const contract = await tronWeb.contract().at(tokenInfo.contract);
+        const balanceRaw = await contract.balanceOf(MILTAPE_WALLET).call();
+        const balance = Number(balanceRaw) / Math.pow(10, tokenInfo.decimals);
+        const trxBalance = await tronWeb.trx.getBalance(MILTAPE_WALLET);
+        const hasTRX = trxBalance >= 15e6;
+        return balance >= amountNeeded && hasTRX;
+    } catch (error) {
+        console.error("❌ Erreur checkHotWalletBalance :", error?.message);
+        return false;
+    }
+}
+
+// ✅ FIX 1.5 : plafond quotidien
+async function canPayout(amount) {
+    const total = getTodayOutflow() + Number(amount);
+    if (total > DAILY_OUTFLOW_CAP) {
+        await alertAdmins(`🚨 Plafond quotidien atteint : ${total.toFixed(2)} USDT > ${DAILY_OUTFLOW_CAP} USDT. Payout suspendu.`);
+        return false;
+    }
+    return true;
+}
+
 async function sendPrizeToWinner(historyEntry) {
     try {
         const { wallet, gain, token, playerName } = historyEntry;
@@ -520,6 +594,18 @@ async function sendPrizeToWinner(historyEntry) {
         if (!isValidTronAddress(wallet)) return false;
         const tokenInfo = SUPPORTED_TOKENS[token];
         if (!tokenInfo) throw new Error("Token non supporté");
+
+        // ✅ FIX 1.4 : vérification de solde
+        const balanceOK = await checkHotWalletBalance(token, gain);
+        if (!balanceOK) {
+            console.error(`🚨 [SOLDE INSUFFISANT] ${gain} ${token} à ${playerName}`);
+            await alertAdmins(`🚨 Miltape : Solde insuffisant pour payer ${gain} ${token} à ${playerName}. Recharge le hot wallet.`);
+            throw new Error("SOLDE_INSUFFISANT");
+        }
+
+        // ✅ FIX 1.5 : vérification plafond
+        const capOK = await canPayout(gain);
+        if (!capOK) throw new Error("PLAFOND_QUOTIDIEN_ATTEINT");
 
         const signingTronWeb = new TronWeb({
             fullHost: "https://api.trongrid.io",
@@ -531,22 +617,35 @@ async function sendPrizeToWinner(historyEntry) {
         if (token === "TRX") { const tx = await signingTronWeb.trx.sendTransaction(wallet, Math.floor(gain * 1e6)); txId = tx.txid; }
         else { const contract = await signingTronWeb.contract().at(tokenInfo.contract); const tx = await contract.transfer(wallet, Math.floor(gain * Math.pow(10, tokenInfo.decimals))).send(); txId = tx.txid; }
         console.log(`✅ Gain de ${gain} ${token} envoyé à ${playerName}`);
+
+        // ✅ FIX 1.5 : enregistre l'outflow
+        recordOutflow(gain);
         return txId;
     } catch (error) { console.error("❌ Erreur envoi gain :", error?.message); return null; }
 }
 
+// ✅ FIX 3.1 : verrou atomique via "paying"
 async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 3) {
     try {
-        const history = await History.findById(historyId);
-        if (!history) { console.warn(`⚠️ [Retry] History #${historyId} introuvable, abandon.`); return false; }
-        if (history.paidOut) { console.log(`ℹ️ [Retry] History #${historyId} déjà payé (txId: ${history.payoutTxId}), skip.`); return true; }
-        if (!history.gain || history.gain <= 0) {
-            console.warn(`⚠️ [Retry] History #${historyId} gain invalide (${history.gain}), abandon.`);
-            await History.findByIdAndUpdate(historyId, { payoutFailed: true, payoutLastError: "Gain invalide" });
+        // Verrou : passe paying:false -> paying:true de façon atomique
+        const history = await History.findOneAndUpdate(
+            { _id: historyId, paidOut: false, paying: { $ne: true } },
+            { $set: { paying: true, payingStartedAt: new Date() }, $inc: { payoutAttempts: 1 } },
+            { new: true }
+        );
+        if (!history) {
+            const check = await History.findById(historyId);
+            if (check?.paidOut) { console.log(`ℹ️ [Retry] History #${historyId} déjà payé, skip.`); return true; }
+            console.warn(`⚠️ [Retry] History #${historyId} verrouillé par un autre process.`);
             return false;
         }
 
-        await History.findByIdAndUpdate(historyId, { $inc: { payoutAttempts: 1 } });
+        if (!history.gain || history.gain <= 0) {
+            console.warn(`⚠️ [Retry] History #${historyId} gain invalide (${history.gain}), abandon.`);
+            await History.findByIdAndUpdate(historyId, { paying: false, payoutFailed: true, payoutLastError: "Gain invalide" });
+            return false;
+        }
+
         console.log(`🔄 [Retry ${attempt}/${maxAttempts}] Paiement de ${history.gain} ${history.token} à ${history.playerName}...`);
 
         const txId = await sendPrizeToWinner({
@@ -559,6 +658,7 @@ async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 3) {
         if (txId) {
             await History.findByIdAndUpdate(historyId, {
                 paidOut: true,
+                paying: false,
                 payoutTxId: txId,
                 payoutFailed: false,
                 payoutLastError: null
@@ -568,21 +668,24 @@ async function retryFailedPayout(historyId, attempt = 1, maxAttempts = 3) {
             return true;
         }
 
-        throw new Error("sendPrizeToWinner a renvoyé null (RPC TRON indisponible ou solde insuffisant ?)");
+        throw new Error("sendPrizeToWinner a renvoyé null");
     } catch (error) {
         const errMsg = error?.message || String(error);
         console.error(`❌ [Retry ${attempt}/${maxAttempts}] Échec paiement #${historyId} : ${errMsg}`);
-        await History.findByIdAndUpdate(historyId, { payoutLastError: errMsg }).catch(() => {});
+
+        // Relâche le verrou
+        await History.findByIdAndUpdate(historyId, { paying: false, payoutLastError: errMsg }).catch(() => {});
 
         if (attempt < maxAttempts) {
             const backoffMs = 2000 * Math.pow(2, attempt - 1);
             setTimeout(() => {
-                retryFailedPayout(historyId, attempt + 1, maxAttempts).catch(e => console.error("❌ Erreur retryFailedPayout :", e?.message));
+                retryFailedPayout(historyId, attempt + 1, maxAttempts).catch(e => console.error("❌ Erreur retry :", e?.message));
             }, backoffMs);
         } else {
-            console.error(`🚨 [Retry FINAL] Paiement #${historyId} ABANDONNÉ après ${maxAttempts} tentatives. Intervention admin requise via /api/admin/payouts/retry.`);
+            console.error(`🚨 [Retry FINAL] Paiement #${historyId} ABANDONNÉ après ${maxAttempts} tentatives.`);
             await History.findByIdAndUpdate(historyId, { payoutFailed: true });
             io.emit("payout:failed", { playerName: history?.playerName, historyId });
+            await alertAdmins(`🚨 Paiement abandonné après ${maxAttempts} tentatives : #${historyId} (${history?.gain} ${history?.token} à ${history?.playerName})`);
         }
         return false;
     }
@@ -619,7 +722,7 @@ async function payReferralCommission(referredPlayer, betAmount, token) {
             referrer.referralCount = Number(referrer.referralCount || 0) + 1;
             await referrer.save();
         } else {
-            console.warn(`⚠️ Commission de parrainage mise en attente (plafond 24h dépassé) pour ${referrer.wallet}`);
+            console.warn(`⚠️ Commission de parrainage en attente (plafond 24h) pour ${referrer.wallet}`);
         }
 
         referredPlayer.referralCounted = true;
@@ -638,6 +741,7 @@ async function payReferralCommission(referredPlayer, betAmount, token) {
     } catch (error) { console.error("❌ Erreur payReferralCommission :", error?.message || error); }
 }
 
+// ✅ FIX 2.2 : minimum de confirmations on-chain
 async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSender = null) {
     try {
         const tx = await tronWeb.trx.getTransaction(txId);
@@ -666,8 +770,24 @@ async function verifyOnChain(txId, expectedAmount, token = "USDT", expectedSende
             amount = Number(rawAmount) / Math.pow(10, SUPPORTED_TOKENS[token].decimals);
         }
         if (expectedSender && !sameWallet(sender, expectedSender)) return false;
+
         const txInfo = await tronWeb.trx.getTransactionInfo(txId);
         if (!txInfo || txInfo.receipt?.result !== "SUCCESS") return false;
+
+        // ✅ FIX 2.2 : vérifie les confirmations
+        try {
+            const currentBlock = await tronWeb.trx.getCurrentBlock();
+            const currentBlockNum = currentBlock.block_header.raw_data.number;
+            const txBlockNum = txInfo.blockNumber;
+            const confirmations = currentBlockNum - txBlockNum;
+            if (confirmations < MIN_CONFIRMATIONS) {
+                console.log(`⏳ Tx ${txId} : ${confirmations}/${MIN_CONFIRMATIONS} confirmations`);
+                return false;
+            }
+        } catch (e) {
+            console.warn("⚠️ Impossible de vérifier les confirmations, on accepte par défaut :", e?.message);
+        }
+
         return Math.abs(amount - Number(expectedAmount)) < 0.0000001;
     } catch (e) { return false; }
 }
@@ -706,13 +826,10 @@ async function getIncomingTrc20Transactions(address, minTimestamp = null) {
     } catch (error) { return []; }
 }
 
+// ✅ FIX 2.1 : anti-race condition via Payment.insert avant crédit
 async function checkPendingPayments() {
     try {
-        const recentGames = await GameState.find()
-            .sort({ updatedAt: -1 })
-            .limit(3)
-            .select("gameId status updatedAt")
-            .lean();
+        const recentGames = await GameState.find().sort({ updatedAt: -1 }).limit(3).select("gameId").lean();
         const recentGameIds = recentGames.map(g => g.gameId);
 
         const unpaidPlayers = await Player.find({
@@ -757,11 +874,6 @@ async function checkPendingPayments() {
             }
             if (!SUPPORTED_TOKENS[token]) continue;
 
-            const alreadyUsed = await Payment.findOne({ txId });
-            if (alreadyUsed) continue;
-            const alreadyUnmatched = await UnmatchedPayment.findOne({ txId });
-            if (alreadyUnmatched) continue;
-
             const matchingPlayer = unpaidPlayers.find(p =>
                 p.token === token &&
                 sameWallet(senderAddress, p.wallet) &&
@@ -770,34 +882,44 @@ async function checkPendingPayments() {
             );
 
             if (!matchingPlayer) {
-                await UnmatchedPayment.create({
-                    txId, from: senderAddress, to: MILTAPE_WALLET, amount, token,
-                    reason: 'no_player_found'
+                // Anti-rejeu : n'insère UnmatchedPayment qu'une fois par txId
+                try {
+                    await UnmatchedPayment.create({ txId, from: senderAddress, to: MILTAPE_WALLET, amount, token, reason: 'no_player_found' });
+                    console.warn(`⚠️ [Orphelin] ${amount} ${token} de ${senderAddress} (txId: ${txId})`);
+                } catch (e) { if (e.code !== 11000) console.error(e); }
+                continue;
+            }
+
+            // ✅ FIX 2.1 : insert Payment AVANT crédit joueur (anti-race)
+            try {
+                await Payment.create({
+                    txId, from: senderAddress, to: MILTAPE_WALLET, amount,
+                    verified: true, gameId: matchingPlayer.gameId, token
                 });
-                console.warn(`⚠️ [Paiement orphelin] ${amount} ${token} de ${senderAddress} (txId: ${txId}) — aucun joueur correspondant. Logué pour audit admin.`);
+            } catch (err) {
+                if (err.code === 11000) {
+                    console.log(`ℹ️ [Anti-rejeu] txId ${txId} déjà traité, skip.`);
+                    continue;
+                }
+                throw err;
+            }
+
+            // ✅ FIX 2.1 : crédit atomique avec condition paid:false
+            const updated = await Player.findOneAndUpdate(
+                { _id: matchingPlayer._id, paid: false },
+                { $set: { paid: true, paymentTxId: txId, depositAmount: null, depositExpiresAt: null } },
+                { new: true }
+            );
+            if (!updated) {
+                console.warn(`⚠️ [Race] Joueur ${matchingPlayer.name} déjà crédité.`);
                 continue;
             }
 
             const isLate = matchingPlayer.gameId !== game.id;
-            if (isLate) {
-                console.warn(`⚠️ [Dépôt tardif] Joueur ${matchingPlayer.name} (manche ${matchingPlayer.gameId}) payé pendant la manche ${game.id}.`);
-            }
-
-            matchingPlayer.paid = true;
-            matchingPlayer.paymentTxId = txId;
-            matchingPlayer.depositAmount = null;
-            matchingPlayer.depositExpiresAt = null;
-            await matchingPlayer.save();
-
-            await Payment.create({
-                txId, from: senderAddress, to: MILTAPE_WALLET, amount,
-                verified: true, gameId: matchingPlayer.gameId, token
-            });
+            if (isLate) console.warn(`⚠️ [Dépôt tardif] ${matchingPlayer.name}`);
 
             if (!isLate) {
                 await payReferralCommission(matchingPlayer, matchingPlayer.bet, token);
-            } else {
-                console.warn(`ℹ️ [Dépôt tardif] Commission de parrainage non versée pour ${matchingPlayer.name} (manche terminée).`);
             }
 
             io.emit("payment:verified", {
@@ -806,9 +928,7 @@ async function checkPendingPayments() {
             });
             io.emit("chat:message", {
                 name: "🟢 Système",
-                message: isLate
-                    ? `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token} (rattaché à la manche précédente)`
-                    : `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token}`,
+                message: `✅ ${matchingPlayer.name} a payé ${matchingPlayer.bet} ${token}${isLate ? " (manche précédente)" : ""}`,
                 createdAt: new Date()
             });
 
@@ -841,6 +961,7 @@ async function distributeWeeklyJackpot() {
 
 cron.schedule('0 0 * * 6', () => { distributeWeeklyJackpot().catch(err => console.error(err)); });
 
+// ============ SOCKET.IO ============
 io.on("connection", async (socket) => {
     onlineSockets.add(socket.id);
     console.log(`🟢 Connexion Socket : ${socket.id}`);
@@ -865,18 +986,14 @@ io.on("connection", async (socket) => {
         try {
             const token = socket.data.cookieSessionToken;
             if (!token) return socket.emit("player:restored", { success: false });
-
             const player = await Player.findOne({ sessionToken: token }).select("-sessionToken");
             if (!player) return socket.emit("player:restored", { success: false });
-
             socket.data.playerId = player._id.toString();
             socket.data.playerName = player.name;
             socket.data.sessionToken = token;
-
             if (player.gameId !== game.id) {
                 return socket.emit("player:restored", { success: false, staleRound: true, player: { name: player.name, wallet: player.wallet } });
             }
-
             socket.emit("player:restored", { success: true, player });
         } catch (e) { socket.emit("player:restored", { success: false }); }
     });
@@ -901,37 +1018,28 @@ io.on("connection", async (socket) => {
             const referralCodeRaw = sanitizeText(data?.referralCode, 20).toUpperCase();
             const referralCodeInput = /^[A-Z0-9]+$/.test(referralCodeRaw) ? referralCodeRaw : "";
 
-            if (!name || !NAME_REGEX.test(name)) return socket.emit("error", { message: "Pseudo invalide (lettres, chiffres, espaces, - _ ' uniquement, 30 caractères max)." });
+            if (!name || !NAME_REGEX.test(name)) return socket.emit("error", { message: "Pseudo invalide." });
 
             const powNonce = String(data?.powNonce || "");
-            if (!socket.data.powChallenge || socket.data.powUsed) {
-                return socket.emit("error", { message: "Vérification anti-bot manquante, réessaie." });
-            }
+            if (!socket.data.powChallenge || socket.data.powUsed) return socket.emit("error", { message: "Anti-bot manquant." });
             const powHash = crypto.createHash('sha256').update(socket.data.powChallenge + powNonce).digest('hex');
-            if (!powHash.startsWith('0'.repeat(POW_DIFFICULTY))) {
-                return socket.emit("error", { message: "Vérification anti-bot invalide." });
-            }
+            if (!powHash.startsWith('0'.repeat(POW_DIFFICULTY))) return socket.emit("error", { message: "Anti-bot invalide." });
             socket.data.powUsed = true;
             issuePowChallenge(socket);
 
-            if (bannedWallets.has(wallet)) {
-                return socket.emit("error", { message: "Ce wallet est banni." });
-            }
+            if (bannedWallets.has(wallet)) return socket.emit("error", { message: "Ce wallet est banni." });
 
             if (!game.id || game.status === "waiting" || game.status === "finished") await startPreparationPhase();
 
             if (!isValidTronAddress(wallet) || !Number.isFinite(bet) || bet <= 0 || bet > MAX_BET || !SUPPORTED_TOKENS[token]) return socket.emit("error", { message: "Données invalides." });
 
             const existingPlayer = await Player.findOne({ wallet });
-
-            const isSameActiveRound = existingPlayer && existingPlayer.gameId === game.id &&
-                                     (game.status === "preparing" || game.status === "running");
+            const isSameActiveRound = existingPlayer && existingPlayer.gameId === game.id && (game.status === "preparing" || game.status === "running");
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
                 if (!socket.data.cookieSessionToken || socket.data.cookieSessionToken !== existingPlayer.sessionToken) {
-                    return socket.emit("error", { message: "Ce wallet est déjà utilisé dans cette manche depuis un autre appareil/navigateur." });
+                    return socket.emit("error", { message: "Ce wallet est déjà utilisé dans cette manche." });
                 }
-
                 socket.data.playerId = existingPlayer._id.toString();
                 socket.data.playerName = existingPlayer.name;
                 socket.data.sessionToken = existingPlayer.sessionToken;
@@ -982,63 +1090,34 @@ io.on("connection", async (socket) => {
                     const referrer = await Player.findOne({ referralCode: referralCodeInput });
                     if (referrer) referredByCode = referralCodeInput;
                 }
-
                 const player = await Player.create({
-                    gameId: game.id,
-                    name,
-                    wallet,
-                    deviceId,
-                    taps: 0,
-                    weeklyTaps: 0,
-                    bet,
-                    paid: false,
-                    token,
-                    depositAmount: bet,
-                    depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
-                    sessionToken: sessionToken,
-                    referralCode: ownReferralCode,
-                    referredByCode
+                    gameId: game.id, name, wallet, deviceId, taps: 0, weeklyTaps: 0, bet, paid: false, token,
+                    depositAmount: bet, depositExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+                    sessionToken, referralCode: ownReferralCode, referredByCode
                 });
-
                 socket.data.playerId = player._id.toString();
                 socket.data.playerName = player.name;
                 socket.data.sessionToken = sessionToken;
-
                 socket.emit("player:joined", {
                     success: true,
-                    player: {
-                        id: player._id,
-                        name: player.name,
-                        wallet: player.wallet,
-                        taps: player.taps,
-                        bet: player.bet,
-                        paid: player.paid,
-                        token: player.token,
-                        depositAmount: player.depositAmount,
-                        sessionToken: sessionToken,
-                        referralCode: player.referralCode,
-                        referralEarnings: player.referralEarnings,
-                        referralCount: player.referralCount
-                    },
+                    player: { id: player._id, name: player.name, wallet: player.wallet, taps: player.taps, bet: player.bet, paid: player.paid, token: player.token, depositAmount: player.depositAmount, sessionToken, referralCode: player.referralCode, referralEarnings: player.referralEarnings, referralCount: player.referralCount },
                     game: getGameStateObject()
                 });
             }
 
             socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt });
             await broadcastGameState();
-        } catch (error) { console.error("❌ player:join :", error?.message || error); socket.emit("error", { message: "Impossible de rejoindre la partie." }); }
+        } catch (error) { console.error("❌ player:join :", error?.message || error); socket.emit("error", { message: "Impossible de rejoindre." }); }
     });
 
     socket.on("player:tap", async () => {
         try {
             const playerId = socket.data.playerId;
             if (!playerId || game.status !== "running") return;
-
             const now = Date.now();
             const lastTap = lastTapTimestamps.get(playerId) || 0;
             if (now - lastTap < MIN_TAP_INTERVAL_MS) return;
             lastTapTimestamps.set(playerId, now);
-
             const result = await Player.findOneAndUpdate(
                 { _id: playerId, gameId: game.id, paid: true },
                 { $inc: { taps: 1, weeklyTaps: 1 } },
@@ -1056,7 +1135,6 @@ io.on("connection", async (socket) => {
             const lastChat = lastChatTimestamps.get(socket.id) || 0;
             if (now - lastChat < MIN_CHAT_INTERVAL_MS) return;
             lastChatTimestamps.set(socket.id, now);
-
             const name = socket.data.playerName || "Anonyme";
             const message = sanitizeText(data?.message, 300).replace(/[<>]/g, "");
             if (!message) return;
@@ -1087,7 +1165,7 @@ io.on("connection", async (socket) => {
             if (match.entry1.socketId === socket.id || match.entry2.socketId === socket.id) {
                 clearTimeout(match.timeout);
                 const otherSocketId = match.entry1.socketId === socket.id ? match.entry2.socketId : match.entry1.socketId;
-                io.to(otherSocketId).emit("duel:cancelled", { message: "Ton adversaire s'est déconnecté. Le duel est annulé." });
+                io.to(otherSocketId).emit("duel:cancelled", { message: "Ton adversaire s'est déconnecté." });
                 delete pendingDuelPayments[match.entry1.socketId];
                 delete pendingDuelPayments[match.entry2.socketId];
                 delete duelMatches[matchId];
@@ -1117,6 +1195,7 @@ io.on("connection", async (socket) => {
     });
 });
 
+// ============ DUEL ============
 const ALLOWED_BETS = [0.50, 1, 2, 4, 8, 16, 32, 64, 128];
 
 async function isDuelTxUsed(txId) {
@@ -1129,16 +1208,13 @@ async function isDuelTxUsed(txId) {
 async function tryStartDuel(matchId) {
     const match = duelMatches[matchId];
     if (!match || match.started) return;
-
     const state1 = pendingDuelPayments[match.entry1.socketId];
     const state2 = pendingDuelPayments[match.entry2.socketId];
     if (!state1?.duelPaid || !state2?.duelPaid) return;
-
     match.started = true;
     clearTimeout(match.timeout);
 
     const { entry1, entry2, bet } = match;
-
     const player1 = await Player.findById(entry1.playerId);
     const player2 = await Player.findById(entry2.playerId);
     if (!player1 || !player2) { delete duelMatches[matchId]; return; }
@@ -1152,13 +1228,9 @@ async function tryStartDuel(matchId) {
 
     const duelId = entry1.socketId;
     activeDuels[duelId] = {
-        socket1: entry1.socketId,
-        socket2: entry2.socketId,
-        player1Id: entry1.playerId,
-        player2Id: entry2.playerId,
-        bet, winnerPrize,
-        endsAt: Date.now() + 60000,
-        taps1: 0, taps2: 0
+        socket1: entry1.socketId, socket2: entry2.socketId,
+        player1Id: entry1.playerId, player2Id: entry2.playerId,
+        bet, winnerPrize, endsAt: Date.now() + 60000, taps1: 0, taps2: 0
     };
 
     delete pendingDuelPayments[entry1.socketId];
@@ -1167,98 +1239,56 @@ async function tryStartDuel(matchId) {
 
     setTimeout(async () => {
         if (!activeDuels[duelId]) return;
-
         const duel = activeDuels[duelId];
         const winnerId = duel.taps1 >= duel.taps2 ? duel.player1Id : duel.player2Id;
         const loserId = winnerId === duel.player1Id ? duel.player2Id : duel.player1Id;
-
         const winner = await Player.findById(winnerId);
         const loser = await Player.findById(loserId);
-
         if (winner) {
-            const txId = await sendPrizeToWinner({
-                wallet: winner.wallet,
-                gain: duel.winnerPrize,
-                token: "USDT",
-                playerName: winner.name
-            });
-
+            const txId = await sendPrizeToWinner({ wallet: winner.wallet, gain: duel.winnerPrize, token: "USDT", playerName: winner.name });
             await Payment.create({ txId, from: MILTAPE_WALLET, to: winner.wallet, amount: duel.winnerPrize, verified: true, gameId: "DUEL", token: "USDT" });
             if (loser) await DuelEntry.create({ playerId: loser._id, bet: duel.bet, token: "USDT", paid: false });
-
-            io.to(duel.socket1).emit("duel:finished", {
-                winnerName: winner.name,
-                myTaps: duel.taps1,
-                opponentTaps: duel.taps2,
-                prize: duel.winnerPrize,
-                txId
-            });
-            io.to(duel.socket2).emit("duel:finished", {
-                winnerName: winner.name,
-                myTaps: duel.taps2,
-                opponentTaps: duel.taps1,
-                prize: 0,
-                txId: null
-            });
+            io.to(duel.socket1).emit("duel:finished", { winnerName: winner.name, myTaps: duel.taps1, opponentTaps: duel.taps2, prize: duel.winnerPrize, txId });
+            io.to(duel.socket2).emit("duel:finished", { winnerName: winner.name, myTaps: duel.taps2, opponentTaps: duel.taps1, prize: 0, txId: null });
         }
-
         await Player.updateMany(
             { _id: { $in: [duel.player1Id, duel.player2Id] } },
             { $set: { duelPaid: false, duelPaymentTxId: null } }
         );
-
         delete activeDuels[duelId];
     }, 60000);
 }
 
 io.on("connection", (socket) => {
-
     socket.on("duel:join", async (data) => {
         const bet = parseFloat(data.bet);
-
-        if (!ALLOWED_BETS.includes(bet)) {
-            return socket.emit("error", { message: "Mise non autorisée." });
-        }
-
+        if (!ALLOWED_BETS.includes(bet)) return socket.emit("error", { message: "Mise non autorisée." });
         const playerId = socket.data.playerId;
         if (!playerId) return socket.emit("error", { message: "Rejoins d'abord le jeu principal." });
-
-        if (!duelPools[bet]) {
-            duelPools[bet] = [];
-        }
-
+        if (!duelPools[bet]) duelPools[bet] = [];
         if (duelPools[bet].some(entry => entry.socketId === socket.id)) return;
-
         duelPools[bet].push({ socketId: socket.id, playerId });
         socket.emit("duel:queue", { message: "En attente d'un adversaire à " + bet + " USDT..." });
 
         if (duelPools[bet].length >= 2) {
             const entry1 = duelPools[bet].shift();
             const entry2 = duelPools[bet].shift();
-
             const player1 = await Player.findById(entry1.playerId);
             const player2 = await Player.findById(entry2.playerId);
-
             if (!player1 || !player2) return;
-
             const matchId = entry1.socketId + '_' + entry2.socketId;
-
             pendingDuelPayments[entry1.socketId] = { bet, playerId: entry1.playerId, matchId, duelPaid: false };
             pendingDuelPayments[entry2.socketId] = { bet, playerId: entry2.playerId, matchId, duelPaid: false };
-
             io.to(entry1.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
             io.to(entry2.socketId).emit("duel:need_payment", { amount: bet, wallet: MILTAPE_WALLET });
 
             const paymentTimeout = setTimeout(() => {
                 const match = duelMatches[matchId];
                 if (!match || match.started) return;
-
                 const state1 = pendingDuelPayments[entry1.socketId];
                 const state2 = pendingDuelPayments[entry2.socketId];
-
-                io.to(entry1.socketId).emit("duel:cancelled", { message: state1?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." });
-                io.to(entry2.socketId).emit("duel:cancelled", { message: state2?.duelPaid ? "Ton adversaire n'a pas payé à temps. Tu es remis en file d'attente." : "Tu n'as pas payé à temps. Le duel est annulé." });
-
+                io.to(entry1.socketId).emit("duel:cancelled", { message: state1?.duelPaid ? "Adversaire n'a pas payé à temps." : "Tu n'as pas payé à temps." });
+                io.to(entry2.socketId).emit("duel:cancelled", { message: state2?.duelPaid ? "Adversaire n'a pas payé à temps." : "Tu n'as pas payé à temps." });
                 if (state1?.duelPaid && !state2?.duelPaid) {
                     if (!duelPools[bet]) duelPools[bet] = [];
                     duelPools[bet].push({ socketId: entry1.socketId, playerId: entry1.playerId });
@@ -1266,12 +1296,10 @@ io.on("connection", (socket) => {
                     if (!duelPools[bet]) duelPools[bet] = [];
                     duelPools[bet].push({ socketId: entry2.socketId, playerId: entry2.playerId });
                 }
-
                 delete pendingDuelPayments[entry1.socketId];
                 delete pendingDuelPayments[entry2.socketId];
                 delete duelMatches[matchId];
             }, DUEL_PAYMENT_TIMEOUT_MS);
-
             duelMatches[matchId] = { entry1, entry2, bet, timeout: paymentTimeout, started: false };
         }
     });
@@ -1279,36 +1307,25 @@ io.on("connection", (socket) => {
     socket.on("duel:payment_verified", async (data) => {
         const { txId } = data;
         const playerId = socket.data.playerId;
-
         if (!playerId) return socket.emit("duel:payment_error", { message: "Non autorisé." });
         if (!txId) return socket.emit("duel:payment_error", { message: "Transaction manquante." });
-
         const pending = pendingDuelPayments[socket.id];
-        if (!pending) return socket.emit("duel:payment_error", { message: "Aucun duel en attente de paiement." });
+        if (!pending) return socket.emit("duel:payment_error", { message: "Aucun duel en attente." });
         const betAmount = pending.bet;
-
-        if (await isDuelTxUsed(txId)) {
-            return socket.emit("duel:payment_error", { message: "Transaction déjà utilisée." });
-        }
-
+        if (await isDuelTxUsed(txId)) return socket.emit("duel:payment_error", { message: "Transaction déjà utilisée." });
         const player = await Player.findById(playerId);
         if (!player) return socket.emit("duel:payment_error", { message: "Joueur introuvable." });
-
         const isValid = await verifyOnChain(txId, betAmount, "USDT", player.wallet);
         if (isValid) {
             player.duelPaid = true;
             player.duelPaymentTxId = txId;
             await player.save();
-
             pending.duelPaid = true;
             pending.duelPaymentTxId = txId;
             pendingDuelPayments[socket.id] = pending;
-
             await Payment.create({ txId, from: player.wallet, to: MILTAPE_WALLET, amount: betAmount, verified: true, gameId: "DUEL", token: "USDT" });
             await payReferralCommission(player, betAmount, "USDT");
-
             socket.emit("duel:payment_success");
-
             if (pending.matchId) await tryStartDuel(pending.matchId);
         } else {
             socket.emit("duel:payment_error", { message: "Transaction invalide." });
@@ -1320,7 +1337,6 @@ io.on("connection", (socket) => {
         const lastTap = lastDuelTapTimestamps.get(socket.id) || 0;
         if (now - lastTap < MIN_TAP_INTERVAL_MS) return;
         lastDuelTapTimestamps.set(socket.id, now);
-
         for (const duelId in activeDuels) {
             const duel = activeDuels[duelId];
             if (socket.id === duel.socket1) {
@@ -1338,105 +1354,70 @@ io.on("connection", (socket) => {
     });
 });
 
-setInterval(() => {
-    checkPendingPayments().catch(err => console.error("Erreur checkPendingPayments :", err));
-}, 7000);
-
-setInterval(() => {
-    if (game.status === "preparing" || game.status === "running") broadcastTimer();
-}, 1000);
-
+// ============ INTERVALS ============
+setInterval(() => { checkPendingPayments().catch(err => console.error("Erreur checkPendingPayments :", err)); }, 7000);
+setInterval(() => { if (game.status === "preparing" || game.status === "running") broadcastTimer(); }, 1000);
 setInterval(() => { emitJackpotUpdate().catch(err => console.error(err)); }, 60 * 1000);
 
+// Cleanup des dépôts expirés
 setInterval(async () => {
     try {
         const now = new Date();
         const expired = await Player.find({
-            paid: false,
-            bet: { $gt: 0 },
-            depositAmount: { $ne: null },
-            depositExpiresAt: { $lt: now },
-            depositExpiredAt: null
+            paid: false, bet: { $gt: 0 }, depositAmount: { $ne: null },
+            depositExpiresAt: { $lt: now }, depositExpiredAt: null
         });
-
         if (expired.length === 0) return;
-
         for (const p of expired) {
-            console.warn(`⌛ [Dépôt expiré] Joueur ${p.name} (${String(p.wallet).substring(0, 8)}...) — mise de ${p.bet} ${p.token} non payée à temps.`);
+            console.warn(`⌛ [Dépôt expiré] ${p.name}`);
             p.depositExpiredAt = now;
             p.depositAmount = null;
             await p.save();
-
             for (const [, s] of io.sockets.sockets) {
                 if (s.data.playerId === p._id.toString()) {
-                    s.emit("deposit:expired", {
-                        message: "Ton délai de paiement de 10 minutes est dépassé. Si tu as payé juste avant l'expiration, ton paiement sera traité manuellement sous peu."
-                    });
+                    s.emit("deposit:expired", { message: "Délai de paiement dépassé." });
                 }
             }
         }
-
-        console.log(`⌛ [Cleanup] ${expired.length} dépôt(s) expiré(s) traité(s).`);
-    } catch (error) { console.error("❌ Erreur cleanup expirés :", error?.message || error); }
+        console.log(`⌛ [Cleanup] ${expired.length} dépôt(s) expiré(s).`);
+    } catch (error) { console.error("❌ Erreur cleanup :", error?.message || error); }
 }, 60 * 1000);
 
+// Cron retry payouts
 cron.schedule('*/30 * * * *', async () => {
     try {
-        const stuck = await History.find({
-            paidOut: false,
-            payoutFailed: true,
-            payoutAttempts: { $lt: 6 }
-        }).limit(20).lean();
-
+        const stuck = await History.find({ paidOut: false, payoutFailed: true, payoutAttempts: { $lt: 6 } }).limit(20).lean();
         if (stuck.length === 0) return;
-        console.log(`🔄 [Cron retry] ${stuck.length} paiement(s) à retenter...`);
-        for (const h of stuck) {
-            await retryFailedPayout(h._id, 1, 3);
-        }
-    } catch (error) { console.error("❌ Erreur cron retry payouts :", error?.message); }
+        console.log(`🔄 [Cron retry] ${stuck.length} paiement(s)...`);
+        for (const h of stuck) await retryFailedPayout(h._id, 1, 3);
+    } catch (error) { console.error("❌ Erreur cron retry :", error?.message); }
 });
 
+// ============ REST API ============
 app.post("/api/demo/verify", async (req, res) => {
     try {
-        if (!DEMO_MODE_ENABLED_ON_SERVER) {
-            return res.status(403).json({ success: false, message: "Mode démo désactivé sur le serveur (variable ALLOW_DEMO_MODE)." });
-        }
+        if (!DEMO_MODE_ENABLED_ON_SERVER) return res.status(403).json({ success: false, message: "Mode démo désactivé." });
         const { playerId } = req.body || {};
         if (!playerId) return res.status(400).json({ success: false, message: "playerId manquant." });
-
         const player = await Player.findById(playerId);
         if (!player) return res.status(404).json({ success: false, message: "Joueur introuvable." });
-        if (player.gameId !== game.id) return res.status(409).json({ success: false, message: "La manche a changé, rejoins à nouveau." });
-
+        if (player.gameId !== game.id) return res.status(409).json({ success: false, message: "Manche changée." });
         player.paid = true;
-        player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase() + "_" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        player.paymentTxId = "DEMO_" + Date.now().toString(36).toUpperCase();
         player.depositAmount = null;
         player.depositExpiresAt = null;
         await player.save();
-
         io.emit("payment:verified", { verified: true, wallet: player.wallet, amount: player.bet, playerName: player.name, token: player.token });
         await broadcastGameState();
-
         res.json({ success: true });
-    } catch (error) {
-        console.error("❌ Erreur /api/demo/verify :", error?.message || error);
-        res.status(500).json({ success: false, message: "Erreur serveur." });
-    }
+    } catch (error) { console.error("❌ /api/demo/verify :", error?.message); res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.post("/api/session/store", (req, res) => {
     try {
         const sessionToken = String(req.body?.sessionToken || "").trim();
-        if (!sessionToken || sessionToken.length < 20) {
-            return res.status(400).json({ success: false, message: "Token invalide." });
-        }
-        res.cookie('miltape_session', sessionToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-            path: '/'
-        });
+        if (!sessionToken || sessionToken.length < 20) return res.status(400).json({ success: false, message: "Token invalide." });
+        res.cookie('miltape_session', sessionToken, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' });
         res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
@@ -1452,10 +1433,13 @@ app.get("/api/status", (req, res) => res.json({ success: true, status: "online",
 app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 
 // ============ ROUTES JOUEUR ============
-// ✅ FIX : requirePlayer accepte le token via cookie OU query string (fallback pour mobile/app)
 function requirePlayer(req, res, next) {
     const cookies = parseCookies(req.headers.cookie);
     const token = cookies['miltape_session'] || req.query.token;
+    // ✅ Sécurité : token en query string uniquement pour GET
+    if (!cookies['miltape_session'] && req.query.token && req.method !== "GET") {
+        return res.status(401).json({ success: false, message: "Token en query string interdit pour les mutations." });
+    }
     if (!token) return res.status(401).json({ success: false, message: "Non connecté." });
     req.sessionToken = token;
     next();
@@ -1465,12 +1449,8 @@ app.get("/api/player/history", requirePlayer, async (req, res) => {
     try {
         const player = await Player.findOne({ sessionToken: req.sessionToken }).select("_id name");
         if (!player) return res.status(401).json({ success: false, message: "Session expirée." });
-
-        const history = await History.find({ playerId: player._id })
-            .sort({ createdAt: -1 })
-            .limit(10)
-            .select("gameId rank bet gain taps token paidOut payoutTxId createdAt")
-            .lean();
+        const history = await History.find({ playerId: player._id }).sort({ createdAt: -1 }).limit(10)
+            .select("gameId rank bet gain taps token paidOut payoutTxId createdAt").lean();
         res.json({ success: true, count: history.length, history });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
@@ -1479,31 +1459,18 @@ app.get("/api/player/earnings", requirePlayer, async (req, res) => {
     try {
         const player = await Player.findOne({ sessionToken: req.sessionToken }).select("_id name wallet referralEarnings");
         if (!player) return res.status(401).json({ success: false, message: "Session expirée." });
-
         const agg = await History.aggregate([
             { $match: { playerId: player._id } },
-            { $group: {
-                _id: null,
-                totalGain: { $sum: "$gain" },
-                totalBet: { $sum: "$bet" },
-                gamesPlayed: { $sum: 1 },
-                wins: { $sum: { $cond: [{ $gt: ["$rank", 0] }, 1, 0] } },
-                paidOut: { $sum: { $cond: ["$paidOut", "$gain", 0] } },
-                pending: { $sum: { $cond: ["$paidOut", 0, "$gain"] } }
-            }}
+            { $group: { _id: null, totalGain: { $sum: "$gain" }, totalBet: { $sum: "$bet" }, gamesPlayed: { $sum: 1 }, wins: { $sum: { $cond: [{ $gt: ["$rank", 0] }, 1, 0] } }, paidOut: { $sum: { $cond: ["$paidOut", "$gain", 0] } }, pending: { $sum: { $cond: ["$paidOut", 0, "$gain"] } } } }
         ]);
         const stats = agg.length > 0 ? agg[0] : { totalGain: 0, totalBet: 0, gamesPlayed: 0, wins: 0, paidOut: 0, pending: 0 };
-
         res.json({
-            success: true,
-            name: player.name,
-            wallet: player.wallet,
+            success: true, name: player.name, wallet: player.wallet,
             referralEarnings: player.referralEarnings || 0,
             totalGain: Number(stats.totalGain.toFixed(6)),
             totalBet: Number(stats.totalBet.toFixed(6)),
             netProfit: Number((stats.totalGain - stats.totalBet).toFixed(6)),
-            gamesPlayed: stats.gamesPlayed,
-            wins: stats.wins,
+            gamesPlayed: stats.gamesPlayed, wins: stats.wins,
             paidOut: Number(stats.paidOut.toFixed(6)),
             pending: Number(stats.pending.toFixed(6))
         });
@@ -1514,22 +1481,12 @@ app.get("/api/player/rankings", requirePlayer, async (req, res) => {
     try {
         const player = await Player.findOne({ sessionToken: req.sessionToken }).select("_id name weeklyTaps taps");
         if (!player) return res.status(401).json({ success: false, message: "Session expirée." });
-
-        const currentRank = await Player.countDocuments({
-            gameId: game.id,
-            taps: { $gt: player.taps || 0 }
-        });
-
+        const currentRank = await Player.countDocuments({ gameId: game.id, taps: { $gt: player.taps || 0 } });
         const bestRank = await History.findOne({ playerId: player._id }).sort({ rank: 1 }).select("rank gameId gain createdAt").lean();
         const wins = await History.countDocuments({ playerId: player._id, rank: { $lte: 5 } });
-
         res.json({
-            success: true,
-            name: player.name,
-            currentTaps: player.taps || 0,
-            currentRank: currentRank + 1,
-            weeklyTaps: player.weeklyTaps || 0,
-            totalWins: wins,
+            success: true, name: player.name, currentTaps: player.taps || 0, currentRank: currentRank + 1,
+            weeklyTaps: player.weeklyTaps || 0, totalWins: wins,
             bestRank: bestRank ? { rank: bestRank.rank, gameId: bestRank.gameId, gain: bestRank.gain, date: bestRank.createdAt } : null
         });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
@@ -1539,18 +1496,10 @@ app.get("/api/player/referral", requirePlayer, async (req, res) => {
     try {
         const player = await Player.findOne({ sessionToken: req.sessionToken }).select("_id name referralCode referralEarnings referralCount");
         if (!player) return res.status(401).json({ success: false, message: "Session expirée." });
-
-        const filleuls = await Player.find({ referredByCode: player.referralCode })
-            .select("name createdAt")
-            .sort({ createdAt: -1 })
-            .limit(20)
-            .lean();
-
+        const filleuls = await Player.find({ referredByCode: player.referralCode }).select("name createdAt").sort({ createdAt: -1 }).limit(20).lean();
         res.json({
-            success: true,
-            referralCode: player.referralCode,
-            referralEarnings: player.referralEarnings || 0,
-            referralCount: player.referralCount || 0,
+            success: true, referralCode: player.referralCode,
+            referralEarnings: player.referralEarnings || 0, referralCount: player.referralCount || 0,
             filleuls: filleuls.map(f => ({ name: f.name, date: f.createdAt }))
         });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
@@ -1562,37 +1511,22 @@ const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHead
 function safeCompare(a, b) {
     const bufA = Buffer.from(String(a));
     const bufB = Buffer.from(String(b));
-    if (bufA.length !== bufB.length) {
-        crypto.timingSafeEqual(bufA, bufA);
-        return false;
-    }
+    if (bufA.length !== bufB.length) { crypto.timingSafeEqual(bufA, bufA); return false; }
     return crypto.timingSafeEqual(bufA, bufB);
 }
 
 function requireAdmin(req, res, next) {
     const provided = req.headers['x-admin-password'] || req.query.adminPassword || (req.body && req.body.adminPassword);
-    if (!provided || !safeCompare(provided, ADMIN_PASSWORD)) {
-        return res.status(401).json({ success: false, message: "Non autorisé." });
-    }
+    if (!provided || !safeCompare(provided, ADMIN_PASSWORD)) return res.status(401).json({ success: false, message: "Non autorisé." });
     const rawPayload = req.method === 'GET' ? req.query : req.body;
     const payload = { ...rawPayload };
     delete payload.adminPassword;
-    AdminAuditLog.create({
-        route: req.originalUrl,
-        method: req.method,
-        ip: req.ip,
-        payload
-    }).catch(err => console.error("❌ Erreur log admin :", err?.message || err));
+    AdminAuditLog.create({ route: req.originalUrl, method: req.method, ip: req.ip, payload }).catch(err => console.error("❌ Log admin :", err?.message));
     next();
 }
 
 app.get("/api/admin/status", adminLimiter, requireAdmin, (req, res) => {
-    res.json({
-        success: true,
-        game: getGameStateObject(),
-        online: onlineSockets.size,
-        bannedCount: bannedWallets.size
-    });
+    res.json({ success: true, game: getGameStateObject(), online: onlineSockets.size, bannedCount: bannedWallets.size, dailyOutflow: getTodayOutflow(), dailyOutflowCap: DAILY_OUTFLOW_CAP });
 });
 
 app.get("/api/admin/players", adminLimiter, requireAdmin, async (req, res) => {
@@ -1618,10 +1552,8 @@ app.post("/api/admin/force-finish", adminLimiter, requireAdmin, async (req, res)
 });
 
 app.post("/api/admin/force-next-round", adminLimiter, requireAdmin, async (req, res) => {
-    try {
-        await startPreparationPhase();
-        res.json({ success: true });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+    try { await startPreparationPhase(); res.json({ success: true }); }
+    catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.post("/api/admin/ban", adminLimiter, requireAdmin, async (req, res) => {
@@ -1629,20 +1561,17 @@ app.post("/api/admin/ban", adminLimiter, requireAdmin, async (req, res) => {
         const wallet = normalizeWallet(req.body?.wallet);
         const reason = sanitizeText(req.body?.reason, 200);
         if (!wallet) return res.status(400).json({ success: false, message: "Wallet manquant." });
-
         await BannedWallet.findOneAndUpdate({ wallet }, { wallet, reason }, { upsert: true });
         bannedWallets.add(wallet);
-
         const bannedPlayer = await Player.findOne({ wallet });
         if (bannedPlayer) {
             for (const [, s] of io.sockets.sockets) {
                 if (s.data.playerId === bannedPlayer._id.toString()) {
-                    s.emit("error", { message: "Tu as été banni par un administrateur." });
+                    s.emit("error", { message: "Tu as été banni." });
                     s.disconnect(true);
                 }
             }
         }
-
         res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
@@ -1658,111 +1587,71 @@ app.post("/api/admin/unban", adminLimiter, requireAdmin, async (req, res) => {
 });
 
 app.get("/api/admin/banned", adminLimiter, requireAdmin, async (req, res) => {
-    try {
-        const banned = await BannedWallet.find({}).sort({ createdAt: -1 }).lean();
-        res.json({ success: true, banned });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+    try { const banned = await BannedWallet.find({}).sort({ createdAt: -1 }).lean(); res.json({ success: true, banned }); }
+    catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.get("/api/admin/audit-log", adminLimiter, requireAdmin, async (req, res) => {
-    try {
-        const logs = await AdminAuditLog.find({}).sort({ createdAt: -1 }).limit(200).lean();
-        res.json({ success: true, logs });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+    try { const logs = await AdminAuditLog.find({}).sort({ createdAt: -1 }).limit(200).lean(); res.json({ success: true, logs }); }
+    catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.get("/api/admin/referrals/held", adminLimiter, requireAdmin, async (req, res) => {
-    try {
-        const held = await ReferralPayout.find({ held: true, txId: null }).sort({ createdAt: -1 }).lean();
-        res.json({ success: true, held });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+    try { const held = await ReferralPayout.find({ held: true, txId: null }).sort({ createdAt: -1 }).lean(); res.json({ success: true, held }); }
+    catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.post("/api/admin/referrals/release", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const payoutId = req.body?.payoutId;
         if (!payoutId) return res.status(400).json({ success: false, message: "payoutId manquant." });
-
         const payout = await ReferralPayout.findById(payoutId);
         if (!payout) return res.status(404).json({ success: false, message: "Commission introuvable." });
         if (payout.txId) return res.status(409).json({ success: false, message: "Déjà payée." });
-
         const txId = await sendPrizeToWinner({ wallet: payout.referrerWallet, gain: payout.commission, token: payout.token, playerName: payout.referrerWallet });
         if (!txId) return res.status(500).json({ success: false, message: "Échec de l'envoi on-chain." });
-
-        payout.txId = txId;
-        payout.held = false;
-        await payout.save();
-
-        await Player.findByIdAndUpdate(payout.referrerId, {
-            $inc: { referralEarnings: payout.commission }
-        });
-
+        payout.txId = txId; payout.held = false; await payout.save();
+        await Player.findByIdAndUpdate(payout.referrerId, { $inc: { referralEarnings: payout.commission } });
         res.json({ success: true, txId });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.get("/api/admin/payouts/failed", adminLimiter, requireAdmin, async (req, res) => {
-    try {
-        const failed = await History.find({ paidOut: false })
-            .sort({ createdAt: -1 })
-            .limit(200)
-            .lean();
-        res.json({ success: true, count: failed.length, failed });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+    try { const failed = await History.find({ paidOut: false }).sort({ createdAt: -1 }).limit(200).lean(); res.json({ success: true, count: failed.length, failed }); }
+    catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.post("/api/admin/payouts/retry", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const historyId = req.body?.historyId;
         if (!historyId) return res.status(400).json({ success: false, message: "historyId manquant." });
-
         const history = await History.findById(historyId);
         if (!history) return res.status(404).json({ success: false, message: "Paiement introuvable." });
         if (history.paidOut) return res.status(409).json({ success: false, message: "Déjà payé.", txId: history.payoutTxId });
-
         const ok = await retryFailedPayout(historyId);
-        if (!ok) return res.status(500).json({ success: false, message: "Retry échoué, voir logs." });
-
+        if (!ok) return res.status(500).json({ success: false, message: "Retry échoué." });
         const updated = await History.findById(historyId).lean();
         res.json({ success: true, txId: updated.payoutTxId });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.get("/api/admin/payments/unmatched", adminLimiter, requireAdmin, async (req, res) => {
-    try {
-        const unmatched = await UnmatchedPayment.find({ resolved: false })
-            .sort({ createdAt: -1 })
-            .limit(200)
-            .lean();
-        res.json({ success: true, count: unmatched.length, unmatched });
-    } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+    try { const unmatched = await UnmatchedPayment.find({ resolved: false }).sort({ createdAt: -1 }).limit(200).lean(); res.json({ success: true, count: unmatched.length, unmatched }); }
+    catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
 app.post("/api/admin/payments/unmatched/refund", adminLimiter, requireAdmin, async (req, res) => {
     try {
         const { unmatchedId } = req.body || {};
         if (!unmatchedId) return res.status(400).json({ success: false, message: "unmatchedId manquant." });
-
         const payment = await UnmatchedPayment.findById(unmatchedId);
         if (!payment) return res.status(404).json({ success: false, message: "Paiement introuvable." });
         if (payment.resolved) return res.status(409).json({ success: false, message: "Déjà traité." });
-        if (!isValidTronAddress(payment.from)) return res.status(400).json({ success: false, message: "Adresse expéditeur invalide." });
-
-        const refundTxId = await sendPrizeToWinner({
-            wallet: payment.from,
-            gain: payment.amount,
-            token: payment.token,
-            playerName: `REFUND-${String(payment.from).substring(0, 6)}`
-        });
-        if (!refundTxId) return res.status(500).json({ success: false, message: "Échec du remboursement on-chain." });
-
-        payment.resolved = true;
-        payment.resolvedAction = 'refunded';
-        payment.resolvedTxId = refundTxId;
-        payment.resolvedAt = new Date();
+        if (!isValidTronAddress(payment.from)) return res.status(400).json({ success: false, message: "Adresse invalide." });
+        const refundTxId = await sendPrizeToWinner({ wallet: payment.from, gain: payment.amount, token: payment.token, playerName: `REFUND-${String(payment.from).substring(0, 6)}` });
+        if (!refundTxId) return res.status(500).json({ success: false, message: "Échec remboursement." });
+        payment.resolved = true; payment.resolvedAction = 'refunded'; payment.resolvedTxId = refundTxId; payment.resolvedAt = new Date();
         await payment.save();
-
         res.json({ success: true, refundTxId });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
@@ -1771,18 +1660,20 @@ app.post("/api/admin/payments/unmatched/ignore", adminLimiter, requireAdmin, asy
     try {
         const { unmatchedId } = req.body || {};
         if (!unmatchedId) return res.status(400).json({ success: false, message: "unmatchedId manquant." });
-
         const payment = await UnmatchedPayment.findById(unmatchedId);
         if (!payment) return res.status(404).json({ success: false, message: "Paiement introuvable." });
         if (payment.resolved) return res.status(409).json({ success: false, message: "Déjà traité." });
-
-        payment.resolved = true;
-        payment.resolvedAction = 'ignored';
-        payment.resolvedAt = new Date();
+        payment.resolved = true; payment.resolvedAction = 'ignored'; payment.resolvedAt = new Date();
         await payment.save();
-
         res.json({ success: true });
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
+});
+
+// ✅ NOUVEAU : réinitialiser le plafond journalier (admin)
+app.post("/api/admin/reset-outflow-cap", adminLimiter, requireAdmin, (req, res) => {
+    outflowsByDay.delete(getTodayKey());
+    console.log(`✅ [Admin] Plafond journalier réinitialisé par admin.`);
+    res.json({ success: true });
 });
 
 app.get('/socket.io/socket.io.js', (req, res) => {
@@ -1794,7 +1685,7 @@ async function loadBannedWallets() {
         const docs = await BannedWallet.find({}).select("wallet").lean();
         docs.forEach(d => bannedWallets.add(d.wallet));
         console.log(`🚫 ${bannedWallets.size} wallet(s) banni(s) chargé(s).`);
-    } catch (error) { console.error("❌ Erreur chargement wallets bannis :", error?.message || error); }
+    } catch (error) { console.error("❌ Erreur chargement bannis :", error?.message || error); }
 }
 
 async function startServer() {
@@ -1805,7 +1696,9 @@ async function startServer() {
         server.listen(PORT, async () => {
             console.log("🚀 BACKEND ONLINE (Sécurisé)");
             console.log(`🌐 Port : ${PORT}`);
-            console.log(`🎮 État initial du jeu : ${game.status}`);
+            console.log(`🎮 État initial : ${game.status}`);
+            console.log(`💰 Plafond quotidien sortie : ${DAILY_OUTFLOW_CAP} USDT`);
+            console.log(`⛓️ Confirmations minimales : ${MIN_CONFIRMATIONS} blocs`);
         });
     } catch (error) { console.error("❌ Impossible de démarrer :", error); process.exit(1); }
 }
