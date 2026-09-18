@@ -1451,11 +1451,11 @@ app.get("/api/game", (req, res) => res.json({ success: true, game: getGameStateO
 app.get("/api/status", (req, res) => res.json({ success: true, status: "online", gameStatus: game.status, gameId: game.id, remainingSeconds: getRemainingSeconds(), online: onlineSockets.size }));
 app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 
-// ✅ NOUVEAU : routes pour le menu joueur (Mes parties, Mes gains, Mes classements, Parrainage)
-
+// ============ ROUTES JOUEUR ============
+// ✅ FIX : requirePlayer accepte le token via cookie OU query string (fallback pour mobile/app)
 function requirePlayer(req, res, next) {
     const cookies = parseCookies(req.headers.cookie);
-    const token = cookies['miltape_session'];
+    const token = cookies['miltape_session'] || req.query.token;
     if (!token) return res.status(401).json({ success: false, message: "Non connecté." });
     req.sessionToken = token;
     next();
@@ -1512,7 +1512,7 @@ app.get("/api/player/earnings", requirePlayer, async (req, res) => {
 
 app.get("/api/player/rankings", requirePlayer, async (req, res) => {
     try {
-        const player = await Player.findOne({ sessionToken: req.sessionToken }).select("_id name weeklyTaps");
+        const player = await Player.findOne({ sessionToken: req.sessionToken }).select("_id name weeklyTaps taps");
         if (!player) return res.status(401).json({ success: false, message: "Session expirée." });
 
         const currentRank = await Player.countDocuments({
@@ -1556,6 +1556,7 @@ app.get("/api/player/referral", requirePlayer, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Erreur serveur." }); }
 });
 
+// ============ ROUTES ADMIN ============
 const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de tentatives admin." } });
 
 function safeCompare(a, b) {
