@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0d47a1" />
-  <meta name="description" content="Miltape World Challenge — Tape, classe-toi, gagne." />
   <title>Miltape World Challenge</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -12,6 +11,7 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
     * { box-sizing: border-box; }
+    .tap-button:focus, .tap-button:active { outline: none !important; -webkit-tap-highlight-color: transparent !important; }
     body { font-family: 'Poppins', sans-serif; background: radial-gradient(ellipse at 40% 30%, #1a6fb5 0%, #0d47a1 35%, #0a2a5c 65%, #051230 100%); min-height: 100vh; margin: 0; padding: 0; overflow-x: hidden; color: #fff; }
     .app { width: 100%; max-width: 480px; margin: 0 auto; padding-bottom: 80px; position: relative; z-index: 1; }
     .top-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: rgba(0,0,0,.30); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,.05); }
@@ -29,12 +29,14 @@
     .server-wallet-address { font-size: 13px; font-weight: 700; color: #64b5f6; word-break: break-all; }
     .main-play-button { display: block; width: 80%; max-width: 280px; margin: 12px auto; padding: 12px 18px; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: #fff; border: none; font-size: 16px; font-weight: 900; font-family: 'Poppins', sans-serif; border-radius: 18px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 6px 0 #990000, 0 8px 24px rgba(255,65,108,0.5); transition: all 0.1s ease; }
     .main-play-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #990000; }
+    .main-play-button:disabled { opacity: 0.5; cursor: not-allowed; }
     .tap-zone { display: flex; flex-direction: column; align-items: center; padding: 16px 0; }
-    #timerRule { background: rgba(13,35,75,0.85); border: 1px solid rgba(0,243,255,0.35); border-radius: 14px; padding: 8px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(0,243,255,0.3); }
-    #timerRule strong { font-size: 24px; color: #00f3ff; font-family: 'Orbitron', sans-serif; text-shadow: 0 0 10px rgba(0,243,255,0.7); }
+    #timerRule { background: rgba(13,35,75,0.85); border: 1px solid rgba(0,243,255,0.35); border-radius: 14px; padding: 8px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(0,243,255,0.3); transition: border-color 0.3s, box-shadow 0.3s; }
+    #timerRule strong { font-size: 24px; color: #00f3ff; font-family: 'Orbitron', sans-serif; text-shadow: 0 0 10px rgba(0,243,255,0.7); transition: color 0.3s; }
     #timerRule.warning { border-color: rgba(255,51,102,0.6); animation: pulse 1.5s infinite; }
     #timerRule.warning strong { color: #ff3366 !important; }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+    @keyframes pulseButton { 0%, 100% { transform: scale(1); box-shadow: 0 6px 0 #1a9c54, 0 8px 24px rgba(46,204,113,0.5); } 50% { transform: scale(1.04); box-shadow: 0 6px 0 #1a9c54, 0 12px 32px rgba(46,204,113,0.9); } }
     #tapCounterDisplay { font-family: 'Orbitron', sans-serif; font-size: 20px; color: #64b5f6; font-weight: 900; }
     .tap-button { position: relative; width: 260px; height: 260px; border: 3.5px solid rgba(100,181,246,0.8); border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(100,181,246,0.4), rgba(255,255,255,0.12)); cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 0 60px rgba(100,181,246,0.45); }
     .tap-button:disabled { opacity: .6; cursor: not-allowed; }
@@ -66,23 +68,21 @@
     .menu-nav-btn:hover { background: rgba(100,181,246,.12); color: #64b5f6; }
     .trust-footer { text-align: center; padding: 12px; font-size: 12px; color: rgba(255,255,255,.6); }
     .trust-footer a { color: #64b5f6; text-decoration: none; }
+    .bet-input-wrapper { position: relative; margin: 10px 0; }
+    .bet-input-wrapper input { width: 100%; padding: 12px 50px 12px 12px; border-radius: 10px; border: 1.5px solid #64b5f6; background: #0a2a5c; color: #fff; font-size: 18px; font-weight: 700; font-family: 'Orbitron', sans-serif; text-align: center; outline: none; }
+    .bet-input-wrapper .unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #64b5f6; font-size: 14px; font-weight: 700; }
+    .bet-quick { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 8px 0; }
+    .bet-quick button { padding: 6px 12px; border: 1px solid rgba(100,181,246,0.4); border-radius: 6px; background: rgba(255,255,255,0.06); color: #fff; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
+    .warning-box { background: rgba(255,180,0,0.15); border: 1px solid rgba(255,180,0,0.5); border-radius: 10px; padding: 10px; margin: 10px 0; font-size: 11px; color: #ffcc44; text-align: center; }
+    .info-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 13px; }
+    .info-line strong { color: #64b5f6; }
+    .info-line:last-child { border-bottom: none; }
+    .stat-card { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 12px; padding: 12px; margin-bottom: 8px; text-align: center; }
+    .stat-card .value { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: #2ecc71; }
+    .stat-card .label { font-size: 11px; color: #aaa; margin-top: 4px; }
+    .demo-badge { display: inline-block; background: #f39c12; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-left: 6px; }
   </style>
 </head>
-  <style>
-  /* ✅ Fix carré bleu autour du bouton TAP */
-  .tap-button {
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-focus-ring-color: transparent !important;
-  }
-  .tap-button:focus,
-  .tap-button:active,
-  .tap-button:focus-visible {
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    outline-offset: 0 !important;
-  }
-  </style>
 <body>
   <!-- WELCOME -->
   <div id="welcomeModal">
@@ -91,8 +91,8 @@
       <h2 style="color: #64b5f6; margin: 0 0 4px;">Bienvenue sur Miltape !</h2>
       <p style="font-size: 12px; color: rgba(255,255,255,.8);">Voici comment ça marche :</p>
       <div style="text-align: left; font-size: 12px; line-height: 1.6; background: rgba(0,0,0,.2); border-radius: 10px; padding: 10px; margin: 12px 0;">
-        <div>1️⃣ <strong>Rejoins</strong> la partie avec ta mise</div>
-        <div>2️⃣ <strong>Paie</strong> via TRON (USDT)</div>
+        <div>1️⃣ <strong>Rejoins</strong> avec ta mise</div>
+        <div>2️⃣ <strong>Paie</strong> en USDT (TRC20)</div>
         <div>3️⃣ <strong>Tape</strong> pendant 10 min</div>
         <div>4️⃣ <strong>Gagne ×2</strong> si tu es Top 5</div>
       </div>
@@ -100,12 +100,53 @@
     </div>
   </div>
 
-  <!-- NAME MODAL -->
+  <!-- TERMS MODAL -->
+  <div id="termsModal" class="legal-modal" style="z-index: 10000; display: none;">
+    <div class="legal-content">
+      <h3>📜 Conditions d'utilisation</h3>
+      <div style="max-height: 45vh; overflow-y: auto; font-size: 12px; line-height: 1.6; color: #ccc; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 10px; margin: 12px 0;">
+        <p><strong style="color:#fff;">1. Acceptation</strong><br>En cochant la case ci-dessous, tu acceptes les présentes conditions.</p>
+        <p><strong style="color:#fff;">2. Nature du jeu</strong><br>Jeu de tap compétitif. Top 5 gagnent 2× leur mise.</p>
+        <p><strong style="color:#fff;">3. Absence de garantie</strong><br>Aucun gain garanti. Tu peux perdre ta mise.</p>
+        <p><strong style="color:#fff;">4. Dépôt et retrait</strong><br>Toute mise envoyée est définitive.</p>
+        <p><strong style="color:#fff;">5. Wallet</strong><br>Tu es responsable de ton adresse TRON.</p>
+        <p><strong style="color:#fff;">6. Réseau TRON uniquement</strong><br>TRC20 exclusivement.</p>
+        <p><strong style="color:#fff;">7. Interdiction de triche</strong><br>Bots et scripts interdits.</p>
+        <p style="color:#ff8888;"><strong>⚠️ En cas de non-respect, bannissement sans remboursement.</strong></p>
+      </div>
+      <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; padding: 10px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.4); border-radius: 10px;">
+        <input type="checkbox" id="termsCheckbox" style="width:20px; height:20px; margin-top:2px; accent-color:#2ecc71; cursor:pointer; flex-shrink:0;">
+        <span style="font-size: 12px; color: #fff;">J'ai lu et j'accepte les conditions.</span>
+      </label>
+      <button id="termsAcceptBtn" class="main-play-button" disabled style="opacity:0.5; padding:12px; margin-top:12px; background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1a9c54;">✅ J'ACCEPTE</button>
+      <button id="termsCancelBtn" style="background: transparent; border: none; color: #888; width: 100%; margin-top: 8px; cursor: pointer; font-size: 12px;">Annuler</button>
+    </div>
+  </div>
+
+  <!-- NAME + BET MODAL -->
   <div id="nameModal" class="legal-modal">
     <div class="legal-content">
       <h3>👤 Entre ton pseudo</h3>
       <input type="text" id="nameInput" placeholder="Ton pseudo..." maxlength="30">
-      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px; margin-top:8px;">✅ VALIDER</button>
+      <h3 style="margin-top:15px;">💰 Choisis ta mise</h3>
+      <div class="bet-input-wrapper">
+        <input type="number" id="betInput" value="1" min="0.5" max="100000" step="0.5" inputmode="decimal">
+        <span class="unit">USDT</span>
+      </div>
+      <div class="bet-quick">
+        <button type="button" data-quick="0.5">0.5</button>
+        <button type="button" data-quick="1">1</button>
+        <button type="button" data-quick="2">2</button>
+        <button type="button" data-quick="5">5</button>
+        <button type="button" data-quick="10">10</button>
+        <button type="button" data-quick="20">20</button>
+        <button type="button" data-quick="50">50</button>
+        <button type="button" data-quick="100">100</button>
+      </div>
+      <div style="font-size:12px; color:rgba(255,255,255,.6); text-align:center; margin-top:6px;">
+        Gain si Top 5 : <strong id="potentialGain" style="color:#2ecc71;">2 USDT</strong>
+      </div>
+      <button id="nameSubmitBtn" class="main-play-button" style="padding:10px; margin-top:12px;">✅ VALIDER</button>
     </div>
   </div>
 
@@ -114,39 +155,46 @@
     <div class="legal-content">
       <h3>💰 Entre ton adresse TRON</h3>
       <input type="text" id="walletInput" placeholder="Ex: T..." maxlength="40">
+      <p style="font-size:11px; color:#aaa; text-align:center; margin:6px 0;">Ton adresse TRON pour recevoir tes gains</p>
       <button id="walletSubmitBtn" class="main-play-button" style="padding:10px; margin-top:8px;">✅ VALIDER</button>
     </div>
   </div>
 
   <!-- PAYMENT MODAL -->
   <div id="paymentModal" class="legal-modal" style="z-index: 5000;">
-    <div class="legal-content" style="max-width: 400px;">
+    <div class="legal-content" style="max-width: 420px;">
       <h3 style="color:#2ecc71;">💳 Paiement de ta mise</h3>
-      
-      <div style="background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.4); border-radius: 12px; padding: 12px; margin: 12px 0; text-align: center;">
-        <div style="font-size: 11px; color: #aaa; margin-bottom: 4px;">MONTANT À ENVOYER</div>
-        <div id="paymentAmountDisplay" style="font-size: 28px; font-weight: 900; color: #2ecc71; font-family: 'Orbitron', sans-serif;">1 USDT</div>
-        <div style="font-size: 11px; color: #aaa; margin-top: 4px;">Depuis : <span id="paymentWalletDisplay" style="color: #64b5f6;">-</span></div>
+      <div style="background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.4); border-radius: 12px; padding: 14px; margin: 12px 0; text-align: center;">
+        <div style="font-size: 11px; color: #aaa; margin-bottom: 6px;">MONTANT À ENVOYER</div>
+        <div id="paymentAmountDisplay" style="font-size: 32px; font-weight: 900; color: #2ecc71; font-family: 'Orbitron', sans-serif;">1 USDT</div>
+        <div style="font-size: 11px; color: #aaa; margin-top: 6px;">Depuis : <span id="paymentWalletDisplay" style="color: #64b5f6;">-</span></div>
       </div>
-
-      <div id="qrContainer" style="text-align: center; margin: 12px 0; min-height: 180px; display: flex; align-items: center; justify-content: center;">
+      <div class="warning-box">⚠️ Envoie <strong>UNIQUEMENT</strong> sur le réseau <strong>TRON (TRC20)</strong></div>
+      <div id="qrContainer" style="text-align: center; margin: 12px 0; min-height: 200px; display: flex; align-items: center; justify-content: center;">
         <div style="color:#888;font-size:12px;">Génération du QR code...</div>
       </div>
-
       <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; margin: 10px 0;">
-        <div style="font-size: 10px; color: #aaa; margin-bottom: 4px;">ADRESSE DE RÉCEPTION</div>
-        <div id="paymentAddressDisplay" style="font-size: 11px; word-break: break-all; color: #64b5f6; font-weight: 700;">-</div>
+        <div style="font-size: 10px; color: #aaa; margin-bottom: 6px; text-align: center;">ADRESSE DE RÉCEPTION (TRC20)</div>
+        <div id="paymentAddressDisplay" style="font-size: 11px; word-break: break-all; color: #64b5f6; font-weight: 700; text-align: center;">-</div>
       </div>
-
       <button id="copyAddressBtn" class="main-play-button" style="background: linear-gradient(135deg, #1a73e8, #0d47a1); box-shadow: 0 4px 0 #051230; padding: 10px; font-size: 13px;">📋 COPIER L'ADRESSE</button>
-
       <div style="display: flex; gap: 8px; margin-top: 10px;">
-        <a id="openTrustBtn" href="trust://" target="_blank" style="flex:1; text-align:center; background: #3375BB; color: white; padding: 10px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700;">🦊 Trust Wallet</a>
-        <a id="openTronLinkBtn" href="tronlinkoutside://" target="_blank" style="flex:1; text-align:center; background: #EB0029; color: white; padding: 10px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700;">🔗 TronLink</a>
+        <a id="openTelegramWalletBtn" href="https://t.me/wallet" target="_blank" style="flex:1; text-align:center; background: #0088cc; color: white; padding: 10px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700;">✈️ Telegram Wallet</a>
+        <a id="openTronScanBtn" href="#" target="_blank" style="flex:1; text-align:center; background: #1a73e8; color: white; padding: 10px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700;">🔍 TronScan</a>
       </div>
-
       <button id="iPaidBtn" class="main-play-button" style="background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1a9c54; padding: 12px; margin-top: 12px;">✅ J'AI PAYÉ</button>
       <button id="closePaymentBtn" style="background: transparent; border: none; color: #888; width: 100%; margin-top: 8px; cursor: pointer; font-size: 12px;">Annuler</button>
+    </div>
+  </div>
+
+  <!-- INFO MODAL -->
+  <div id="infoModal" class="legal-modal" style="z-index: 5000;">
+    <div class="legal-content" style="max-width: 420px;">
+      <button id="closeInfoBtn" style="position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer;">×</button>
+      <h3 id="infoModalTitle" style="color:#64b5f6;">Titre</h3>
+      <div id="infoModalContent" style="font-size: 13px; color: #e0e0e0; padding: 8px 0;">
+        <div style="text-align:center; color:#888; padding:20px;">Chargement...</div>
+      </div>
     </div>
   </div>
 
@@ -155,13 +203,13 @@
     <button id="closeMenu" style="background:0 0;border:none;color:#e0e0e0;font-size:28px;cursor:pointer;">×</button>
     <div style="margin-top: 40px;">
       <h3 style="color:#64b5f6;">🧭 Menu Miltape</h3>
-      <button class="menu-nav-btn" onclick="alert('Mes parties : bientôt disponible')">🎮 Mes parties</button>
-      <button class="menu-nav-btn" onclick="alert('Mes classements : bientôt disponible')">🏆 Mes classements</button>
-      <button class="menu-nav-btn" onclick="alert('Mes gains : bientôt disponible')">💰 Mes gains</button>
-      <button class="menu-nav-btn" onclick="alert('Mes retraits : bientôt disponible')">💸 Mes retraits</button>
-      <button class="menu-nav-btn" onclick="alert('Parrainage : partage ton lien !')">👥 Parrainage</button>
-      <button class="menu-nav-btn" onclick="alert('Règles : Top 5 gagnent ×2 leur mise.')">📜 Règles</button>
-      <button id="resetGameBtn" class="menu-nav-btn" style="background:rgba(255,50,50,.12);color:#ff4444;">🔄 NOUVELLE PARTIE</button>
+      <button class="menu-nav-btn" id="menuGamesBtn">🎮 Mes parties</button>
+      <button class="menu-nav-btn" id="menuRankingsBtn">🏆 Mes classements</button>
+      <button class="menu-nav-btn" id="menuGainsBtn">💰 Mes gains</button>
+      <button class="menu-nav-btn" id="menuReferralBtn">👥 Parrainage</button>
+      <button class="menu-nav-btn" id="menuRulesBtn">📜 Règles</button>
+      <button class="menu-nav-btn" id="menuDemoBtn" style="background:rgba(243,156,18,.15);color:#f39c12;border:1px solid rgba(243,156,18,.3);">🔬 Activer le mode démo <span id="demoBadge" class="demo-badge" style="display:none;">ON</span></button>
+      <button id="resetGameBtn" class="menu-nav-btn" style="background:rgba(255,50,50,.12);color:#ff4444;">🔄 Nouvelle partie</button>
     </div>
   </aside>
   <div id="menuOverlay" class="menu-overlay"></div>
@@ -198,7 +246,7 @@
       <div class="server-wallet-address" id="displayBet">0 USDT</div>
     </div>
 
-    <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:10px 20px;font-weight:700;border:none;cursor:pointer;margin:4px auto;width:80%;max-width:280px;border-radius:12px;font-family:'Poppins',sans-serif;font-size:14px;">💳 PAYER MA MISE</button>
+    <button id="payButton" style="display:none;background:#2ecc71;color:#000;padding:14px 20px;font-weight:900;border:none;cursor:pointer;margin:4px auto;width:80%;max-width:280px;border-radius:12px;font-family:'Poppins',sans-serif;font-size:15px;box-shadow:0 6px 0 #1a9c54, 0 8px 24px rgba(46,204,113,0.5);">💳 PAYER MA MISE</button>
 
     <button id="duelButton" class="main-play-button" style="background:linear-gradient(135deg,#9c27b0,#673ab7); box-shadow: 0 6px 0 #4a148c;">⚡ MODE DUEL 1 VS 1</button>
     <button id="enterChallenge" class="main-play-button">JOUER MAINTENANT ➜</button>
@@ -243,10 +291,8 @@
   </main>
 
   <script>
-    // ========== CONFIGURATION ==========
     const BACKEND_URL = 'https://miltape-backend-production.up.railway.app';
 
-    // ========== SOCKET.IO ==========
     const socket = io(BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -255,25 +301,14 @@
       withCredentials: true
     });
 
-    // ========== ÉTAT DU JEU ==========
-    let isPlaying = false;
-    let isPaid = false;
-    let myPlayerId = null;
-    let myPlayerName = null;
-    let myBet = 1;
-    let myWallet = null;
-    let myToken = 'USDT';
-    let gameStatus = 'waiting';
-    let endsAt = null;
-    let preparationEndsAt = null;
-    let timerInterval = null;
-    let myTaps = 0;
-    let powChallenge = null;
-    let powNonce = null;
-    let powDifficulty = 4;
-    let qrGenerated = false;
+    // ÉTAT
+    let isPlaying = false, isPaid = false, myPlayerId = null, myPlayerName = null;
+    let myBet = 1, myWallet = null, myToken = 'USDT', gameStatus = 'waiting';
+    let endsAt = null, preparationEndsAt = null, timerInterval = null, myTaps = 0;
+    let powChallenge = null, powNonce = null, powDifficulty = 4;
+    let demoMode = localStorage.getItem('miltape_demo_mode') === 'true';
 
-    // ========== DOM ==========
+    // DOM
     const tapButton = document.getElementById('tapButton');
     const enterChallenge = document.getElementById('enterChallenge');
     const duelButton = document.getElementById('duelButton');
@@ -292,6 +327,8 @@
     const displayBet = document.getElementById('displayBet');
     const nameModal = document.getElementById('nameModal');
     const nameInput = document.getElementById('nameInput');
+    const betInput = document.getElementById('betInput');
+    const potentialGain = document.getElementById('potentialGain');
     const nameSubmitBtn = document.getElementById('nameSubmitBtn');
     const walletModal = document.getElementById('walletModal');
     const walletInput = document.getElementById('walletInput');
@@ -302,31 +339,37 @@
     const closeMenu = document.getElementById('closeMenu');
     const menuOverlay = document.getElementById('menuOverlay');
     const resetGameBtn = document.getElementById('resetGameBtn');
+    const infoModal = document.getElementById('infoModal');
+    const infoModalTitle = document.getElementById('infoModalTitle');
+    const infoModalContent = document.getElementById('infoModalContent');
+    const closeInfoBtn = document.getElementById('closeInfoBtn');
+    const termsModal = document.getElementById('termsModal');
+    const termsCheckbox = document.getElementById('termsCheckbox');
+    const termsAcceptBtn = document.getElementById('termsAcceptBtn');
+    const termsCancelBtn = document.getElementById('termsCancelBtn');
+    const TERMS_KEY = 'miltape_terms_accepted_v1';
+    const demoBadge = document.getElementById('demoBadge');
 
-    // ========== UTILITAIRES ==========
+    // UTILITAIRES
     function getDeviceId() {
       let id = localStorage.getItem('miltape_device_id');
-      if (!id) {
-        id = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        localStorage.setItem('miltape_device_id', id);
-      }
+      if (!id) { id = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('miltape_device_id', id); }
       return id;
     }
-
-    function getReferralCode() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('ref') || '';
-    }
-
-    function escapeHtml(str) {
-      if (typeof str !== 'string') return '';
-      return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
+    function getReferralCode() { return new URLSearchParams(window.location.search).get('ref') || ''; }
+    function escapeHtml(str) { if (typeof str !== 'string') return ''; return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
     function hapticLight() { try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); } catch(e){} }
     function hapticSuccess() { try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch(e){} }
 
-    // ========== RÉSOLUTION DU DÉFI ANTI-BOT (POW) ==========
+    // TOKEN AUTH (fallback pour mobile/app)
+    function getSessionToken() { return localStorage.getItem('miltape_session_token') || ''; }
+    function apiFetch(path) {
+      const token = getSessionToken();
+      const sep = path.includes('?') ? '&' : '?';
+      return fetch(BACKEND_URL + path + sep + 'token=' + encodeURIComponent(token), { credentials: 'include' });
+    }
+
+    // POW
     async function solvePow(challenge, difficulty) {
       const encoder = new TextEncoder();
       const target = '0'.repeat(difficulty);
@@ -339,50 +382,72 @@
       return null;
     }
 
-    // ========== CHRONO ==========
+    // CONDITIONS
+    function hasAcceptedTerms() { return localStorage.getItem(TERMS_KEY) === 'true'; }
+    function showTermsModal() {
+      return new Promise((resolve) => {
+        if (hasAcceptedTerms()) return resolve(true);
+        termsCheckbox.checked = false;
+        termsAcceptBtn.disabled = true;
+        termsAcceptBtn.style.opacity = '0.5';
+        termsModal.classList.add('show');
+        termsModal.style.display = 'flex';
+        termsCheckbox.onchange = () => {
+          if (termsCheckbox.checked) { termsAcceptBtn.disabled = false; termsAcceptBtn.style.opacity = '1'; }
+          else { termsAcceptBtn.disabled = true; termsAcceptBtn.style.opacity = '0.5'; }
+        };
+        termsAcceptBtn.onclick = () => { if (!termsCheckbox.checked) return; localStorage.setItem(TERMS_KEY, 'true'); termsModal.classList.remove('show'); termsModal.style.display = 'none'; resolve(true); };
+        termsCancelBtn.onclick = () => { termsModal.classList.remove('show'); termsModal.style.display = 'none'; resolve(false); };
+      });
+    }
+
+    // CHRONO
     function updateTimerDisplay() {
       if (!timerRuleValue) return;
-      let target = endsAt || preparationEndsAt;
+      const target = endsAt || preparationEndsAt;
       if (!target || target <= Date.now()) {
-        if (gameStatus === 'running') {
-          timerRuleValue.innerText = "0:00";
-        } else if (gameStatus === 'preparing') {
-          timerRuleValue.innerText = "2:00";
-        } else {
-          timerRuleValue.innerText = "10:00";
-        }
+        timerRuleValue.innerText = gameStatus === 'running' ? "0:00" : "10:00";
         timerCard?.classList.remove('warning');
         if (tapCounterDisplay) tapCounterDisplay.innerText = myTaps;
         return;
       }
-      const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000));
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
+      const remaining = Math.max(0, Math.ceil((target - Date.now()) / 1000));
+      const m = Math.floor(remaining / 60), s = remaining % 60;
       timerRuleValue.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-      if (remaining <= 60 && remaining > 0 && gameStatus === 'running') {
-        timerCard?.classList.add('warning');
-      } else {
-        timerCard?.classList.remove('warning');
-      }
+      if (remaining <= 60 && remaining > 0 && gameStatus === 'running') timerCard?.classList.add('warning');
+      else timerCard?.classList.remove('warning');
       if (tapCounterDisplay) tapCounterDisplay.innerText = myTaps;
     }
+    function startLocalTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = setInterval(updateTimerDisplay, 250); updateTimerDisplay(); }
+    startLocalTimer();
 
-    function startLocalTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(updateTimerDisplay, 500);
+    function syncTimerFromServer(data) {
+      if (!data) return;
+      gameStatus = data.status || gameStatus;
+      const now = Date.now();
+      const serverRemaining = typeof data.remainingSeconds === 'number' ? data.remainingSeconds : 0;
+      const localTarget = endsAt || preparationEndsAt;
+      const localRemaining = localTarget ? Math.max(0, Math.ceil((localTarget - now) / 1000)) : 0;
+      if (!localTarget || Math.abs(serverRemaining - localRemaining) > 2) {
+        if (serverRemaining > 0) {
+          if (gameStatus === 'preparing') { preparationEndsAt = now + (serverRemaining * 1000); endsAt = null; }
+          else { endsAt = now + (serverRemaining * 1000); preparationEndsAt = null; }
+        } else {
+          if (gameStatus === 'preparing' && data.preparationEndsAt) { preparationEndsAt = new Date(data.preparationEndsAt).getTime(); endsAt = null; }
+          else if (gameStatus === 'running' && data.endsAt) { endsAt = new Date(data.endsAt).getTime(); preparationEndsAt = null; }
+          else { endsAt = null; preparationEndsAt = null; }
+        }
+      }
       updateTimerDisplay();
     }
-    startLocalTimer();
+    setInterval(() => { socket.emit('timer:request'); }, 15000);
 
     function updateJackpotCountdown(nextDraw) {
       if (!jackpotCountdown) return;
       const target = new Date(nextDraw).getTime();
       const update = () => {
         const diff = Math.max(0, target - Date.now());
-        const d = Math.floor(diff / 86400000);
-        const h = Math.floor((diff / 3600000) % 24);
-        const m = Math.floor((diff / 60000) % 60);
-        const s = Math.floor((diff / 1000) % 60);
+        const d = Math.floor(diff / 86400000), h = Math.floor((diff / 3600000) % 24), m = Math.floor((diff / 60000) % 60), s = Math.floor((diff / 1000) % 60);
         if (d > 0) jackpotCountdown.innerText = `${d}j ${h}h`;
         else if (h > 0) jackpotCountdown.innerText = `${h}h ${m}m`;
         else jackpotCountdown.innerText = `${m}m ${s}s`;
@@ -391,120 +456,71 @@
       setInterval(update, 1000);
     }
 
-    // ========== ÉVÉNEMENTS SOCKET ==========
-    socket.on('connect', () => {
-      console.log('✅ Connecté au serveur');
-      socket.emit("timer:request");
-    });
+    // INFO MODAL
+    function openInfoModal(title, contentHTML) {
+      infoModalTitle.textContent = title;
+      infoModalContent.innerHTML = contentHTML;
+      infoModal.classList.add('show');
+    }
+    function closeInfoModal() { infoModal.classList.remove('show'); }
+    closeInfoBtn.onclick = closeInfoModal;
 
+    // SOCKET
+    socket.on('connect', () => { console.log('✅ Connecté'); socket.emit("timer:request"); });
     socket.on('disconnect', () => console.log('🔴 Déconnecté'));
-
-    socket.on('pow:challenge', async (data) => {
-      powChallenge = data.challenge;
-      powDifficulty = data.difficulty || 4;
-      console.log('🔐 Défi anti-bot reçu, résolution...');
-      powNonce = await solvePow(powChallenge, powDifficulty);
-      console.log('✅ Défi résolu, nonce =', powNonce);
-    });
-
-    socket.on('timer:update', (data) => {
-      if (!data) return;
-      console.log('⏱️ timer:update reçu:', data);
-      gameStatus = data.status || gameStatus;
-
-      // PRIORITÉ 1 : Utiliser remainingSeconds (toujours fiable)
-      if (typeof data.remainingSeconds === 'number' && data.remainingSeconds > 0) {
-        endsAt = Date.now() + (data.remainingSeconds * 1000);
-        preparationEndsAt = null;
-        console.log('✅ Chrono mis à jour via remainingSeconds:', data.remainingSeconds, 's');
-      }
-      // PRIORITÉ 2 : Fallback sur endsAt si remainingSeconds absent
-      else if (data.endsAt) {
-        const target = new Date(data.endsAt).getTime();
-        if (target > Date.now()) {
-          endsAt = target;
-          preparationEndsAt = null;
-        } else {
-          endsAt = null;
-        }
-      }
-      // PRIORITÉ 3 : Aucune info de temps
-      else {
-        endsAt = null;
-        console.log('⚠️ Aucune info de temps dans timer:update');
-      }
-
-      updateTimerDisplay();
-    });
-
+    socket.on('pow:challenge', async (data) => { powChallenge = data.challenge; powDifficulty = data.difficulty || 4; powNonce = await solvePow(powChallenge, powDifficulty); });
+    socket.on('timer:update', (data) => syncTimerFromServer(data));
     socket.on('game:preparing', (data) => {
       gameStatus = 'preparing';
-      if (data.preparationEndsAt) {
-        preparationEndsAt = new Date(data.preparationEndsAt).getTime();
-        endsAt = null;
-      }
+      if (data && data.preparationEndsAt) { preparationEndsAt = new Date(data.preparationEndsAt).getTime(); endsAt = null; }
       updateTimerDisplay();
-      if (tapMessage) {
-        tapMessage.style.display = 'block';
-        tapMessage.innerText = "⏳ Préparation... La partie va bientôt commencer !";
-      }
+      if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⏳ Préparation..."; }
     });
-
     socket.on('game:started', (data) => {
       gameStatus = 'running';
-      if (data.endsAt) {
-        endsAt = new Date(data.endsAt).getTime();
-      } else if (data.remainingSeconds) {
-        endsAt = Date.now() + (data.remainingSeconds * 1000);
-      }
+      if (data && data.remainingSeconds) endsAt = Date.now() + (data.remainingSeconds * 1000);
+      else if (data && data.endsAt) endsAt = new Date(data.endsAt).getTime();
       preparationEndsAt = null;
-      isPlaying = true;
-      if (tapButton) tapButton.disabled = false;
-      if (tapMessage) {
-        tapMessage.style.display = 'block';
-        tapMessage.innerText = "⚡ C'EST PARTI ! TAPE VITE !";
+      if (isPaid) {
+        isPlaying = true;
+        if (tapButton) tapButton.disabled = false;
+        if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⚡ C'EST PARTI ! TAPE VITE !"; }
+        if (payButton) { payButton.style.display = 'none'; payButton.style.animation = ''; }
+      } else if (myPlayerId) {
+        isPlaying = false;
+        if (tapButton) tapButton.disabled = true;
+        if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⚠️ Tu n'as pas payé ta mise."; }
+        if (payButton && myWallet) { payButton.style.display = 'block'; payButton.style.animation = 'pulseButton 1.5s infinite'; }
+      } else {
+        if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⚡ C'EST PARTI ! Rejoins vite !"; }
       }
       updateTimerDisplay();
-      hapticSuccess();
     });
-
     socket.on('game:finished', () => {
-      gameStatus = 'finished';
-      isPlaying = false;
+      gameStatus = 'finished'; isPlaying = false;
       if (tapButton) tapButton.disabled = true;
       if (tapMessage) tapMessage.innerText = "🏁 PARTIE TERMINÉE !";
     });
-
     socket.on('player:joined', (data) => {
       if (!data.success) return;
       myPlayerId = data.player._id || data.player.id;
-      myPlayerName = data.player.name;
-      myBet = data.player.bet;
-      myWallet = data.player.wallet;
-      myToken = data.player.token;
+      myPlayerName = data.player.name; myBet = data.player.bet;
+      myWallet = data.player.wallet; myToken = data.player.token;
       isPaid = data.player.paid;
-
       if (data.player.sessionToken) {
+        // ✅ Sauvegarde dans localStorage pour fallback mobile
+        localStorage.setItem('miltape_session_token', data.player.sessionToken);
         fetch(BACKEND_URL + '/api/session/store', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
           body: JSON.stringify({ sessionToken: data.player.sessionToken })
-        }).catch(e => console.warn('Session store error:', e));
+        }).catch(e => console.warn('Session:', e));
       }
-
-      if (payButton && !isPaid) payButton.style.display = 'block';
-      if (tapMessage) tapMessage.innerText = "✅ Rejoint ! Paie ta mise pour commencer.";
-      console.log('✅ Joueur rejoint:', myPlayerName);
+      if (payButton && !isPaid) { payButton.style.display = 'block'; if (gameStatus === 'running') payButton.style.animation = 'pulseButton 1.5s infinite'; }
+      if (tapMessage) tapMessage.innerText = isPaid ? "✅ Prêt à jouer !" : "✅ Rejoint ! Paie ta mise pour commencer.";
     });
-
     socket.on('player:score', (data) => {
-      if (data && typeof data.taps === 'number') {
-        myTaps = data.taps;
-        if (tapCounterDisplay) tapCounterDisplay.innerText = myTaps;
-      }
+      if (data && typeof data.taps === 'number') { myTaps = data.taps; if (tapCounterDisplay) tapCounterDisplay.innerText = myTaps; }
     });
-
     socket.on('leaderboard:update', (leaderboard) => {
       if (!leaderboardList) return;
       leaderboardList.innerHTML = "";
@@ -517,21 +533,13 @@
         const rankDisplay = index < 3 ? medals[index] : (index + 1);
         const div = document.createElement('div');
         div.className = 'leaderboard-item';
-        div.innerHTML = `
-          <span class="rank-badge">${rankDisplay}</span>
-          <span class="player-name">${escapeHtml(player.name || 'Anonyme')}</span>
-          <span class="player-score">${player.taps || 0} TAP</span>
-        `;
+        div.innerHTML = `<span class="rank-badge">${rankDisplay}</span><span class="player-name">${escapeHtml(player.name || 'Anonyme')}</span><span class="player-score">${player.taps || 0} TAP</span>`;
         leaderboardList.appendChild(div);
       });
     });
-
     socket.on('online:count', (data) => {
-      if (onlineCount && data) {
-        onlineCount.innerHTML = `<span style="display:inline-block;width:7px;height:7px;background:#2ecc71;border-radius:50%;margin-right:4px"></span><span>${data.count} EN LIGNE</span>`;
-      }
+      if (onlineCount && data) onlineCount.innerHTML = `<span style="display:inline-block;width:7px;height:7px;background:#2ecc71;border-radius:50%;margin-right:4px"></span><span>${data.count} EN LIGNE</span>`;
     });
-
     socket.on('chat:message', (data) => {
       if (!chatMessages || !data) return;
       const div = document.createElement('div');
@@ -541,50 +549,60 @@
       chatMessages.scrollTop = chatMessages.scrollHeight;
       while (chatMessages.children.length > 100) chatMessages.removeChild(chatMessages.firstChild);
     });
-
     socket.on('jackpot:update', (data) => {
       if (!data) return;
       if (jackpotAmount) jackpotAmount.innerText = (data.prize || 0).toFixed(2) + ' USDT';
       if (data.nextDraw) updateJackpotCountdown(data.nextDraw);
     });
-
-    socket.on('totalStakes:update', (data) => {
-      if (displayBet && data) displayBet.innerText = (data.totalStakes || 0).toFixed(2) + ' USDT';
-    });
-
+    socket.on('totalStakes:update', (data) => { if (displayBet && data) displayBet.innerText = (data.totalStakes || 0).toFixed(2) + ' USDT'; });
     socket.on('payment:verified', () => {
       isPaid = true;
-      if (payButton) payButton.style.display = 'none';
-      if (tapMessage) {
-        tapMessage.style.display = 'block';
-        tapMessage.innerText = "✅ Paiement confirmé ! Le jeu va démarrer...";
+      if (payButton) { payButton.style.display = 'none'; payButton.style.animation = ''; }
+      if (gameStatus === 'running') {
+        isPlaying = true;
+        if (tapButton) tapButton.disabled = false;
+        if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⚡ PAIEMENT OK ! TAPE VITE !"; }
+      } else {
+        if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "✅ Paiement confirmé !"; }
       }
       hapticSuccess();
       paymentModal?.classList.remove('show');
     });
-
-    socket.on('error', (data) => {
-      console.warn('⚠️ Erreur serveur:', data.message);
-      alert('⚠️ ' + (data.message || 'Erreur'));
-    });
-
-    socket.on('duel:queue', (d) => alert(d.message || 'En file d\'attente...'));
+    socket.on('deposit:expired', (data) => { if (data && data.message) alert('⏰ ' + data.message); if (payButton) { payButton.style.display = 'none'; payButton.style.animation = ''; } });
+    socket.on('error', (data) => { console.warn('⚠️ Erreur:', data.message); alert('⚠️ ' + (data.message || 'Erreur')); });
+    socket.on('duel:queue', (d) => alert(d.message || 'En file...'));
     socket.on('duel:need_payment', (d) => alert('💰 Envoie ' + d.amount + ' USDT à ' + d.wallet));
     socket.on('duel:started', (d) => alert('⚔️ Duel contre ' + d.opponentName + ' !'));
     socket.on('duel:finished', (d) => alert('🏆 Gagnant : ' + d.winnerName));
     socket.on('duel:cancelled', (d) => alert(d.message || 'Duel annulé'));
 
-    // ========== BOUTON "JOUER MAINTENANT" ==========
-    enterChallenge.addEventListener('click', () => {
+    // BOUTON JOUER
+    enterChallenge.addEventListener('click', async () => {
+      const accepted = await showTermsModal();
+      if (!accepted) return;
       nameModal.classList.add('show');
       nameInput.focus();
+      updatePotentialGain();
+    });
+
+    function updatePotentialGain() {
+      const val = parseFloat(betInput.value) || 0;
+      potentialGain.innerText = (val * 2).toFixed(2) + ' USDT';
+    }
+    betInput.addEventListener('input', updatePotentialGain);
+    document.querySelectorAll('.bet-quick button').forEach(btn => {
+      btn.addEventListener('click', () => { betInput.value = btn.dataset.quick; updatePotentialGain(); hapticLight(); });
     });
 
     nameSubmitBtn.addEventListener('click', () => {
       const name = nameInput.value.trim();
       if (!name) { alert('Entre un pseudo'); return; }
-      if (!/^[\p{L}\p{N} _'-]{1,30}$/u.test(name)) { alert('Pseudo invalide (lettres, chiffres, espaces, - _ \')'); return; }
-      myPlayerName = name;
+      if (!/^[\p{L}\p{N} _'-]{1,30}$/u.test(name)) { alert('Pseudo invalide'); return; }
+      const bet = parseFloat(betInput.value);
+      if (!bet || bet <= 0) { alert('Entre une mise valide'); return; }
+      if (bet < 0.5) { alert('Mise minimale : 0.5 USDT'); return; }
+      if (bet > 100000) { alert('Mise maximale : 100000 USDT'); return; }
+      myPlayerName = name; myBet = bet;
       nameModal.classList.remove('show');
       walletModal.classList.add('show');
       walletInput.focus();
@@ -592,55 +610,42 @@
 
     walletSubmitBtn.addEventListener('click', () => {
       const wallet = walletInput.value.trim();
-      if (!wallet || !wallet.startsWith('T') || wallet.length < 30) {
-        alert('Adresse TRON invalide (doit commencer par T et faire ~34 caractères)'); return;
-      }
+      if (!wallet || !wallet.startsWith('T') || wallet.length < 30) { alert('Adresse TRON invalide'); return; }
       myWallet = wallet;
       walletModal.classList.remove('show');
-
-      if (!powNonce) {
-        alert('Résolution du défi anti-bot en cours, réessaie dans 1 seconde...');
-        return;
-      }
-
-      socket.emit('player:join', {
-        name: myPlayerName,
-        wallet: myWallet,
-        bet: myBet,
-        token: myToken,
-        deviceId: getDeviceId(),
-        referralCode: getReferralCode(),
-        powNonce: powNonce
-      });
-
-      powNonce = null;
-      powChallenge = null;
-
-      if (tapMessage) {
-        tapMessage.style.display = 'block';
-        tapMessage.innerText = "⏳ Rejoint la partie...";
+      if (!powNonce) { alert('Anti-bot en cours...'); return; }
+      socket.emit('player:join', { name: myPlayerName, wallet: myWallet, bet: myBet, token: myToken, deviceId: getDeviceId(), referralCode: getReferralCode(), powNonce: powNonce });
+      powNonce = null; powChallenge = null;
+      if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⏳ Rejoint la partie..."; }
+      // ✅ Si mode démo activé, déclenche la vérification démo après un délai
+      if (demoMode) {
+        setTimeout(async () => {
+          try {
+            const res = await fetch(BACKEND_URL + '/api/demo/verify', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ playerId: myPlayerId })
+            });
+            const data = await res.json();
+            if (data.success) console.log('✅ Mode démo activé');
+          } catch (e) { console.warn('Erreur démo:', e); }
+        }, 1500);
       }
     });
 
-    // ========== BOUTON DE TAP ==========
     tapButton.addEventListener('click', (e) => {
       if (!isPlaying || gameStatus !== 'running') return;
       if (!isPaid) { alert('Tu dois payer ta mise avant de jouer !'); return; }
-
       tapButton.style.transform = 'scale(0.88)';
       setTimeout(() => tapButton.style.transform = 'scale(1)', 100);
-
       const rect = tapButton.getBoundingClientRect();
       const ripple = document.createElement('span');
       ripple.style.cssText = `position:absolute;left:${(e.clientX||rect.width/2)-rect.left}px;top:${(e.clientY||rect.height/2)-rect.top}px;width:20px;height:20px;border-radius:50%;border:2px solid rgba(100,181,246,0.9);pointer-events:none;`;
       tapButton.appendChild(ripple);
       setTimeout(() => ripple.remove(), 400);
-
       hapticLight();
       socket.emit('player:tap');
     });
 
-    // ========== CHAT ==========
     chatSend.addEventListener('click', () => {
       const msg = chatInput.value.trim();
       if (!msg) return;
@@ -648,96 +653,194 @@
       socket.emit('chat:send', { message: msg });
       chatInput.value = '';
     });
-
     chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') chatSend.click(); });
 
-    // ========== PAIEMENT ==========
+    // PAIEMENT
     payButton.addEventListener('click', () => {
       if (!myWallet) { alert('Rejoins d\'abord la partie'); return; }
-
       const amountStr = myBet + ' ' + myToken;
       const walletAddress = document.getElementById('serverWalletDisplay').innerText;
-
       document.getElementById('paymentAmountDisplay').innerText = amountStr;
       document.getElementById('paymentWalletDisplay').innerText = myWallet.substring(0, 8) + '...' + myWallet.substring(myWallet.length - 6);
       document.getElementById('paymentAddressDisplay').innerText = walletAddress;
-
-      document.getElementById('openTrustBtn').href = 'trust://';
-      document.getElementById('openTronLinkBtn').href = 'tronlinkoutside://';
-
-      // Génération du QR code avec 3 APIs de secours
+      document.getElementById('openTronScanBtn').href = 'https://tronscan.org/#/address/' + walletAddress;
       const qrContainer = document.getElementById('qrContainer');
       qrContainer.innerHTML = '<div style="color:#888;font-size:12px;">Génération du QR code...</div>';
-
       const qrApis = [
-        'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(walletAddress),
-        'https://quickchart.io/qr?size=180&text=' + encodeURIComponent(walletAddress),
-        'https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=' + encodeURIComponent(walletAddress)
+        'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(walletAddress),
+        'https://quickchart.io/qr?size=200&text=' + encodeURIComponent(walletAddress),
+        'https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=' + encodeURIComponent(walletAddress)
       ];
-
       let qrIndex = 0;
       const tryQr = () => {
-        if (qrIndex >= qrApis.length) {
-          qrContainer.innerHTML = '<div style="color:#ff8888;font-size:12px;padding:20px;text-align:center;">⚠️ QR code indisponible.<br>Copie l\'adresse ci-dessous manuellement.</div>';
-          return;
-        }
+        if (qrIndex >= qrApis.length) { qrContainer.innerHTML = '<div style="color:#ff8888;font-size:12px;padding:20px;">⚠️ QR indisponible. Copie l\'adresse.</div>'; return; }
         const img = new Image();
-        img.onload = () => {
-          qrContainer.innerHTML = '';
-          img.style.cssText = 'width:180px;height:180px;border-radius:12px;background:white;padding:8px;';
-          qrContainer.appendChild(img);
-        };
+        img.onload = () => { qrContainer.innerHTML = ''; img.style.cssText = 'width:200px;height:200px;border-radius:12px;background:white;padding:8px;'; qrContainer.appendChild(img); };
         img.onerror = () => { qrIndex++; tryQr(); };
         img.src = qrApis[qrIndex];
       };
       tryQr();
-
       paymentModal.classList.add('show');
     });
 
     document.getElementById('copyAddressBtn').addEventListener('click', () => {
-      const walletAddress = document.getElementById('serverWalletDisplay').innerText;
-      navigator.clipboard.writeText(walletAddress).then(() => {
+      const addr = document.getElementById('serverWalletDisplay').innerText;
+      navigator.clipboard.writeText(addr).then(() => {
         const btn = document.getElementById('copyAddressBtn');
         btn.innerText = '✅ COPIÉ !';
         setTimeout(() => btn.innerText = '📋 COPIER L\'ADRESSE', 2000);
-      }).catch(() => alert('Adresse : ' + walletAddress));
+      }).catch(() => alert('Adresse : ' + addr));
     });
-
-    document.getElementById('closePaymentBtn').addEventListener('click', () => {
-      paymentModal.classList.remove('show');
-    });
-
+    document.getElementById('closePaymentBtn').addEventListener('click', () => paymentModal.classList.remove('show'));
     document.getElementById('iPaidBtn').addEventListener('click', () => {
       paymentModal.classList.remove('show');
-      if (tapMessage) {
-        tapMessage.style.display = 'block';
-        tapMessage.innerText = "⏳ Vérification du paiement en cours... (max 30s)";
-      }
+      if (tapMessage) { tapMessage.style.display = 'block'; tapMessage.innerText = "⏳ Vérification du paiement en cours... (max 30s)"; }
     });
 
-    // ========== DUEL ==========
     duelButton.addEventListener('click', () => {
-      if (!myPlayerId) { alert('Rejoins d\'abord la partie principale'); return; }
+      if (!myPlayerId) { alert('Rejoins d\'abord la partie'); return; }
       socket.emit('duel:join', { bet: myBet });
     });
 
-    // ========== MENU ==========
+    // MENU
     menuButton.addEventListener('click', () => { sideMenu.classList.add('show'); menuOverlay.classList.add('show'); });
     closeMenu.addEventListener('click', () => { sideMenu.classList.remove('show'); menuOverlay.classList.remove('show'); });
     menuOverlay.addEventListener('click', () => { sideMenu.classList.remove('show'); menuOverlay.classList.remove('show'); });
 
     resetGameBtn.addEventListener('click', async () => {
-      if (!confirm('Effacer tes données locales et recommencer ?')) return;
+      if (!confirm('Effacer tes données locales ?')) return;
       localStorage.clear();
       try { await fetch(BACKEND_URL + '/api/session/clear', { method: 'POST', credentials: 'include' }); } catch(e) {}
       location.reload();
     });
 
-    // ========== RESTAURATION DE SESSION ==========
-    window.addEventListener('load', () => {
-      setTimeout(() => socket.emit('player:restore', {}), 800);
+    // MODE DÉMO
+    function updateDemoBadge() {
+      if (demoMode) {
+        demoBadge.style.display = 'inline-block';
+        document.getElementById('menuDemoBtn').innerHTML = '🔬 Mode démo <span id="demoBadge" class="demo-badge">ON</span>';
+      } else {
+        demoBadge.style.display = 'none';
+        document.getElementById('menuDemoBtn').innerHTML = '🔬 Activer le mode démo <span id="demoBadge" class="demo-badge" style="display:none;">ON</span>';
+      }
+    }
+    document.getElementById('menuDemoBtn').addEventListener('click', () => {
+      demoMode = !demoMode;
+      localStorage.setItem('miltape_demo_mode', demoMode ? 'true' : 'false');
+      updateDemoBadge();
+      alert(demoMode ? '✅ Mode démo ACTIVÉ — tu peux jouer sans payer réellement (0.5 USDT min requis pour tester le flux).' : '🔒 Mode démo DÉSACTIVÉ.');
+      sideMenu.classList.remove('show'); menuOverlay.classList.remove('show');
     });
+
+    // MENU : MES PARTIES
+    document.getElementById('menuGamesBtn').addEventListener('click', async () => {
+      sideMenu.classList.remove('show'); menuOverlay.classList.remove('show');
+      openInfoModal('🎮 Mes parties', '<div style="text-align:center;color:#888;padding:20px;">Chargement...</div>');
+      try {
+        const res = await apiFetch('/api/player/history');
+        const data = await res.json();
+        if (!data.success) { infoModalContent.innerHTML = '<div style="text-align:center;color:#f39c12;padding:20px;">Connecte-toi d\'abord au jeu</div>'; return; }
+        if (data.count === 0) { infoModalContent.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Aucune partie jouée pour le moment</div>'; return; }
+        infoModalContent.innerHTML = data.history.map(h => `
+          <div style="padding:10px;border-radius:8px;margin:6px 0;background:rgba(255,255,255,0.06);">
+            <div style="font-weight:700;">Rang #${h.rank} — ${h.gain} ${h.token}</div>
+            <div style="font-size:11px;color:#aaa;">Mise : ${h.bet} | Taps : ${h.taps}</div>
+            <div style="font-size:11px;color:#aaa;">${new Date(h.createdAt).toLocaleString('fr-FR')}</div>
+            <div style="font-size:11px;color:${h.paidOut ? '#2ecc71' : '#f39c12'};">${h.paidOut ? '✅ Payé' : '⏳ En attente'}</div>
+          </div>
+        `).join('');
+      } catch (e) { infoModalContent.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px;">Erreur : ' + e.message + '</div>'; }
+    });
+
+    // MENU : MES GAINS
+    document.getElementById('menuGainsBtn').addEventListener('click', async () => {
+      sideMenu.classList.remove('show'); menuOverlay.classList.remove('show');
+      openInfoModal('💰 Mes gains', '<div style="text-align:center;color:#888;padding:20px;">Chargement...</div>');
+      try {
+        const res = await apiFetch('/api/player/earnings');
+        const data = await res.json();
+        if (!data.success) { infoModalContent.innerHTML = '<div style="text-align:center;color:#f39c12;padding:20px;">Connecte-toi d\'abord au jeu</div>'; return; }
+        infoModalContent.innerHTML = `
+          <div class="stat-card"><div class="value">${data.totalGain.toFixed(2)}</div><div class="label">Gains totaux (USDT)</div></div>
+          <div class="stat-card"><div class="value">${data.netProfit.toFixed(2)}</div><div class="label">Profit net (USDT)</div></div>
+          <div class="info-line"><span>Parties jouées</span><strong>${data.gamesPlayed}</strong></div>
+          <div class="info-line"><span>Victoires (Top 5)</span><strong>${data.wins}</strong></div>
+          <div class="info-line"><span>Total misé</span><strong>${data.totalBet.toFixed(2)} USDT</strong></div>
+          <div class="info-line"><span>Payé</span><strong>${data.paidOut.toFixed(2)} USDT</strong></div>
+          <div class="info-line"><span>En attente</span><strong>${data.pending.toFixed(2)} USDT</strong></div>
+          <div class="info-line"><span>Gains parrainage</span><strong>${data.referralEarnings.toFixed(2)} USDT</strong></div>
+        `;
+      } catch (e) { infoModalContent.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px;">Erreur : ' + e.message + '</div>'; }
+    });
+
+    // MENU : MES CLASSEMENTS
+    document.getElementById('menuRankingsBtn').addEventListener('click', async () => {
+      sideMenu.classList.remove('show'); menuOverlay.classList.remove('show');
+      openInfoModal('🏆 Mes classements', '<div style="text-align:center;color:#888;padding:20px;">Chargement...</div>');
+      try {
+        const res = await apiFetch('/api/player/rankings');
+        const data = await res.json();
+        if (!data.success) { infoModalContent.innerHTML = '<div style="text-align:center;color:#f39c12;padding:20px;">Connecte-toi d\'abord au jeu</div>'; return; }
+        infoModalContent.innerHTML = `
+          <div class="stat-card"><div class="value">#${data.currentRank}</div><div class="label">Rang actuel (manche en cours)</div></div>
+          <div class="stat-card"><div class="value">${data.currentTaps}</div><div class="label">Taps cette manche</div></div>
+          <div class="info-line"><span>Victoires totales (Top 5)</span><strong>${data.totalWins}</strong></div>
+          <div class="info-line"><span>Taps cette semaine</span><strong>${data.weeklyTaps}</strong></div>
+          ${data.bestRank ? `
+            <div style="margin-top:12px;padding:12px;background:rgba(255,215,0,0.1);border-radius:12px;border:1px solid rgba(255,215,0,0.3);">
+              <div style="font-size:11px;color:#aaa;margin-bottom:4px;">🏅 Meilleur rang</div>
+              <div style="font-size:18px;font-weight:900;color:#ffd700;">#${data.bestRank.rank}</div>
+              <div style="font-size:11px;color:#aaa;">Gain : ${data.bestRank.gain} USDT</div>
+              <div style="font-size:11px;color:#aaa;">${new Date(data.bestRank.date).toLocaleDateString('fr-FR')}</div>
+            </div>
+          ` : ''}
+        `;
+      } catch (e) { infoModalContent.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px;">Erreur : ' + e.message + '</div>'; }
+    });
+
+    // MENU : PARRAINAGE
+    document.getElementById('menuReferralBtn').addEventListener('click', async () => {
+      sideMenu.classList.remove('show'); menuOverlay.classList.remove('show');
+      openInfoModal('👥 Parrainage', '<div style="text-align:center;color:#888;padding:20px;">Chargement...</div>');
+      try {
+        const res = await apiFetch('/api/player/referral');
+        const data = await res.json();
+        if (!data.success) { infoModalContent.innerHTML = '<div style="text-align:center;color:#f39c12;padding:20px;">Connecte-toi d\'abord au jeu</div>'; return; }
+        const refLink = window.location.origin + '/?ref=' + (data.referralCode || '');
+        infoModalContent.innerHTML = `
+          <div class="stat-card"><div class="value">${data.referralCount || 0}</div><div class="label">Filleuls</div></div>
+          <div class="stat-card"><div class="value">${(data.referralEarnings || 0).toFixed(2)}</div><div class="label">Gains parrainage (USDT)</div></div>
+          <div style="margin-top:12px;padding:12px;background:rgba(100,181,246,0.1);border-radius:12px;">
+            <div style="font-size:11px;color:#aaa;margin-bottom:4px;">Ton code</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#64b5f6;">${data.referralCode}</div>
+          </div>
+          <button onclick="navigator.clipboard.writeText('${refLink}').then(()=>alert('Lien copié !'))" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;border:none;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">📋 Copier mon lien</button>
+          ${data.filleuls && data.filleuls.length > 0 ? `
+            <div style="margin-top:16px;font-size:12px;color:#64b5f6;font-weight:700;">Tes filleuls récents</div>
+            ${data.filleuls.map(f => `<div style="padding:6px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.05);">${escapeHtml(f.name)}</div>`).join('')}
+          ` : '<div style="text-align:center;color:#888;padding:20px;font-size:12px;">Aucun filleul pour le moment</div>'}
+        `;
+      } catch (e) { infoModalContent.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px;">Erreur : ' + e.message + '</div>'; }
+    });
+
+    // MENU : RÈGLES
+    document.getElementById('menuRulesBtn').addEventListener('click', () => {
+      sideMenu.classList.remove('show'); menuOverlay.classList.remove('show');
+      openInfoModal('📜 Règles du jeu', `
+        <div style="line-height:1.7;font-size:13px;">
+          <p><strong style="color:#64b5f6;">🎯 But du jeu</strong><br>Tape le plus vite possible pendant 10 minutes.</p>
+          <p><strong style="color:#64b5f6;">💰 Mise</strong><br>Envoie ta mise en USDT (TRC20) avant le début.</p>
+          <p><strong style="color:#64b5f6;">🏆 Gagnants</strong><br>Les 5 premiers du classement gagnent 2× leur mise.</p>
+          <p><strong style="color:#64b5f6;">🎁 Jackpot</strong><br>5% de toutes les mises s'ajoutent au jackpot. Distribué chaque samedi au meilleur tapeur de la semaine.</p>
+          <p><strong style="color:#64b5f6;">⚔️ Mode Duel</strong><br>1 vs 1. Tape le plus en 1 minute. Le gagnant remporte 1.8× sa mise.</p>
+          <p><strong style="color:#64b5f6;">🚫 Interdictions</strong><br>Bots, scripts et triches sont interdits. Bannissement sans remboursement.</p>
+        </div>
+      `);
+    });
+
+    // INIT
+    updateDemoBadge();
+    window.addEventListener('load', () => setTimeout(() => socket.emit('player:restore', {}), 800));
   </script>
 </body>
 </html>
