@@ -150,7 +150,7 @@ app.use("/api/", limiter);
 
 const io = new Server(server, { cors: { origin: ALLOWED_ORIGINS, methods: ["GET", "POST"], credentials: true }, pingInterval: 25000, pingTimeout: 60000 });
 
-// ✅ FIX : Le middleware de connexion lit maintenant le token envoyé par le client dans la poignée de main
+// ✅ FIX SESSION : Le middleware de connexion lit maintenant le token envoyé par le client
 io.use((socket, next) => {
     const ip = getClientIp(socket);
     socket.data.clientIp = ip;
@@ -491,6 +491,8 @@ async function startPreparationPhase() {
     game.preparationEndsAt = new Date(Date.now() + PREPARATION_DURATION_SECONDS * 1000);
     await saveGameState();
     await Player.updateMany({}, { $set: { taps: 0 } });
+    // ✅ FIX COMPTEUR : Notifie tous les clients que leur compteur repart à 0
+    io.emit("player:score", { taps: 0 });
     io.emit("game:preparing", { gameId: game.id, preparationEndsAt: game.preparationEndsAt, duration: PREPARATION_DURATION_SECONDS });
     broadcastTimer();
     gameTimer = setTimeout(() => { beginActualGame().catch(err => console.error(err)); }, PREPARATION_DURATION_SECONDS * 1000);
@@ -868,7 +870,7 @@ io.on("connection", async (socket) => {
 
     socket.on("timer:request", () => socket.emit("timer:update", { gameId: game.id, status: game.status, remainingSeconds: getRemainingSeconds(), endsAt: game.endsAt || game.preparationEndsAt }));
 
-    // ✅ FIX MAJEUR : Utilise le token du client (auth) en priorité, puis le cookie en secours
+    // ✅ FIX SESSION : Utilise le token du client (auth) en priorité, puis le cookie en secours
     socket.on("player:restore", async (data) => {
         try {
             const token = socket.data.authSessionToken || socket.data.cookieSessionToken;
@@ -943,7 +945,7 @@ io.on("connection", async (socket) => {
             const isSameActiveRound = existingPlayer && existingPlayer.gameId === game.id && (game.status === "preparing" || game.status === "running");
 
             if (isSameActiveRound && existingPlayer.sessionToken) {
-                // ✅ FIX : Accepte aussi bien le token du cookie que celui envoyé par le client
+                // ✅ FIX SESSION : Accepte aussi bien le token du cookie que celui envoyé par le client
                 const clientToken = socket.data.authSessionToken;
                 if ((!socket.data.cookieSessionToken || socket.data.cookieSessionToken !== existingPlayer.sessionToken) && 
                     (!clientToken || clientToken !== existingPlayer.sessionToken)) {
